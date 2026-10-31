@@ -1,0 +1,37 @@
+{
+  "coverage": {
+    "font_base": "AAAAAA+DejaVuSans",
+    "font_subtype": "/TrueType",
+    "subset": true,
+    "family": "DejaVu Sans",
+    "weight": 435,
+    "chars_via_tounicode": 143,
+    "missing_for_new_text_tounicode": "ÁầẵỢỳỹ–",
+    "chars_via_embedded_cmap": 0,
+    "missing_for_new_text_cmap": " :CDKMQghnptuvyÁôĐơưầẵịổỢỳỹ–",
+    "full_vietnamese_covered_by_subset": false
+  },
+  "a_settext_subset_font": {
+    "ms": 9.7,
+    "new_text_extractable": false,
+    "old_text_gone": true,
+    "size": 201562,
+    "size_delta_vs_corpus": -6480
+  },
+  "b_loadfont_full_ttf": {
+    "embedded_font_bytes": 759720,
+    "ms": 49.4,
+    "new_text_extractable": true,
+    "old_text_gone": true,
+    "size": 603242,
+    "size_delta_vs_corpus": 395200
+  },
+  "c_loadfont_fonttools_subset": {
+    "embedded_font_bytes": 44668,
+    "ms": 132.1,
+    "new_text_extractable": true,
+    "old_text_gone": true,
+    "size": 225779,
+    "size_delta_vs_corpus": 17737
+  }
+}

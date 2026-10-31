@@ -1,0 +1,129 @@
+{
+  "os": "Linux 6.18.44-fc-v185 x86_64",
+  "python": "3.13.18",
+  "python_bits": 64,
+  "libraries": [
+    {
+      "lib": "/usr/lib/softhsm/libsofthsm2.so",
+      "load_ms": 8,
+      "manufacturer": "SoftHSM",
+      "description": "Implementation of PKCS11",
+      "cryptoki_version": "2.40",
+      "slots": [
+        {
+          "slot_id": 311753262,
+          "description": "SoftHSM slot ID 0x1294fa2e",
+          "flags": [
+            "TOKEN_PRESENT"
+          ],
+          "token": {
+            "label": "CHEF-TEST",
+            "manufacturer": "SoftHSM project",
+            "model": "SoftHSM v2",
+            "serial": "853b69461294fa2e",
+            "flags": [
+              "RNG",
+              "LOGIN_REQUIRED",
+              "USER_PIN_INITIALIZED",
+              "RESTORE_KEY_NOT_NEEDED",
+              "TOKEN_INITIALIZED"
+            ],
+            "pin_flags": [],
+            "mech_sha256_rsa_pkcs": true,
+            "mech_rsa_pkcs_raw": true,
+            "mech_ecdsa": true,
+            "mech_sha256_rsa_pss": true,
+            "private_keys_visible_without_login": 0,
+            "certs": [
+              {
+                "label": "Chef Test Root CA",
+                "id": "03",
+                "subject": "CN=Chef Test Root CA,O=Chef PDF Test Root (giả lập NEAC),C=VN",
+                "issuer": "CN=Chef Test Root CA,O=Chef PDF Test Root (giả lập NEAC),C=VN",
+                "not_before": "2026-10-30T14:35:35+00:00",
+                "not_after": "2036-10-28T14:35:35+00:00",
+                "is_ca": true,
+                "key_type": "RSAPublicKey",
+                "sig_alg": "sha256WithRSAEncryption"
+              },
+              {
+                "label": "Chef Test CA SHA-256",
+                "id": "02",
+                "subject": "CN=Chef Test CA SHA-256,OU=Trung tâm Chứng thực,O=Công ty CA Thử Nghiệm,C=VN",
+                "issuer": "CN=Chef Test Root CA,O=Chef PDF Test Root (giả lập NEAC),C=VN",
+                "not_before": "2026-10-30T14:35:35+00:00",
+                "not_after": "2031-10-30T14:35:35+00:00",
+                "is_ca": true,
+                "key_type": "RSAPublicKey",
+                "sig_alg": "sha256WithRSAEncryption"
+              },
+              {
+                "label": "Nguyễn Văn A",
+                "id": "a1b2c3d4",
+                "subject": "UID=CCCD:*********890,UID=MST:*******567,CN=Nguyễn Văn A,2.5.4.12=Giám đốc,O=Công ty TNHH Thử Nghiệm,L=Hà Nội,ST=Hà Nội,C=VN",
+                "issuer": "CN=Chef Test CA SHA-256,OU=Trung tâm Chứng thực,O=Công ty CA Thử Nghiệm,C=VN",
+                "not_before": "2026-10-30T14:35:35+00:00",
+                "not_after": "2027-10-31T14:35:35+00:00",
+                "is_ca": false,
+                "key_type": "RSAPublicKey",
+                "sig_alg": "sha256WithRSAEncryption"
+              }
+            ]
+          }
+        },
+        {
+          "slot_id": 1043694214,
+          "description": "SoftHSM slot ID 0x3e358286",
+          "flags": [
+            "TOKEN_PRESENT"
+          ],
+          "token": {
+            "label": "CHEF-LOCKTEST",
+            "manufacturer": "SoftHSM project",
+            "model": "SoftHSM v2",
+            "serial": "c05d8bcfbe358286",
+            "flags": [
+              "RNG",
+              "LOGIN_REQUIRED",
+              "USER_PIN_INITIALIZED",
+              "RESTORE_KEY_NOT_NEEDED",
+              "TOKEN_INITIALIZED"
+            ],
+            "pin_flags": [],
+            "mech_sha256_rsa_pkcs": true,
+            "mech_rsa_pkcs_raw": true,
+            "mech_ecdsa": true,
+            "mech_sha256_rsa_pss": true,
+            "private_keys_visible_without_login": 0,
+            "certs": []
+          }
+        },
+        {
+          "slot_id": 2,
+          "description": "SoftHSM slot ID 0x2",
+          "flags": [
+            "TOKEN_PRESENT"
+          ],
+          "token": {
+            "label": "",
+            "manufacturer": "SoftHSM project",
+            "model": "SoftHSM v2",
+            "serial": "",
+            "flags": [
+              "RNG",
+              "LOGIN_REQUIRED",
+              "RESTORE_KEY_NOT_NEEDED",
+              "SO_PIN_LOCKED",
+              "SO_PIN_TO_BE_CHANGED"
+            ],
+            "pin_flags": [],
+            "mech_sha256_rsa_pkcs": true,
+            "mech_rsa_pkcs_raw": true,
+            "mech_ecdsa": true,
+            "mech_sha256_rsa_pss": true
+          }
+        }
+      ]
+    }
+  ]
+}
