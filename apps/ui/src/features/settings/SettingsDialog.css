@@ -1,0 +1,16 @@
+.settings__section + .settings__section {
+  margin-top: var(--space-8);
+  padding-top: var(--space-7);
+  border-top: 1px solid var(--c-divider);
+}
+.settings__heading {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--c-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-6);
+}
+.settings__version {
+  font-size: var(--text-sm);
+}
