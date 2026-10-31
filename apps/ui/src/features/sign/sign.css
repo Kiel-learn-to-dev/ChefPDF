@@ -1,0 +1,286 @@
+/* Signature placement on the pages (T3.12) and the signing dialogs (T3.12-T3.13). */
+
+/* ---------- Layer over the pages ---------- */
+.sign-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.sign-layer--place {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+.sign-layer__page {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sign-layer__hint {
+  position: absolute;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  background: rgba(20, 24, 32, 0.82);
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.sign-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px solid var(--c-accent);
+  background: rgba(47, 107, 228, 0.08);
+  pointer-events: none;
+}
+.sign-box--field {
+  border-color: var(--c-success);
+  background: rgba(30, 142, 62, 0.08);
+}
+.sign-box--preview {
+  border: 1.5px dashed #d98a00;
+  background: rgba(217, 138, 0, 0.06);
+}
+.sign-box--preview.is-selected {
+  border-style: solid;
+  background: rgba(217, 138, 0, 0.18);
+}
+.sign-box__size {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(20, 24, 32, 0.75);
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+}
+.sign-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -5px 0 0 -5px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--c-accent);
+  border-radius: 2px;
+  background: #fff;
+  pointer-events: none;
+}
+
+/* ---------- Bar with the placement actions ---------- */
+.sign-bar {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: calc(100% - 24px);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-md);
+}
+.sign-bar__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.sign-bar__add {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+.sign-bar__add .input {
+  width: 160px;
+}
+.sign-bar__spacer {
+  flex: 1;
+  min-width: var(--space-2);
+}
+.sign-bar__fields {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: var(--space-3);
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  max-height: 260px;
+  overflow: auto;
+  padding: var(--space-1);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-lg);
+}
+.sign-bar__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--c-text);
+  text-align: left;
+  cursor: pointer;
+}
+.sign-bar__field:hover,
+.sign-bar__field[aria-selected='true'] {
+  background: var(--c-accent-soft);
+}
+.sign-bar__page,
+.sign-bar__none {
+  margin-left: auto;
+  color: var(--c-text-);
+  font-size: 12px;
+}
+.sign-bar__none {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ---------- Dialogs ---------- */
+.sign-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--c-divider);
+}
+.sign-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.sign-section__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+.sign-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.sign-note {
+  margin: 0;
+  color: var(--c-text-);
+  font-size: 12px;
+}
+.sign-note--warn {
+  color: var(--c-warning);
+}
+.sign-note--danger {
+  color: var(--c-danger);
+}
+.sign-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sign-aspect {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+.sign-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.sign-preview__box {
+  flex: 1;
+  min-width: 0;
+}
+.sign-results {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sign-results th,
+.sign-results td {
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--c-divider);
+  text-align: left;
+  vertical-align: top;
+}
+.sign-results__err {
+  color: var(--c-danger);
+}
+.sign-results__scroll {
+  max-height: 300px;
+  overflow: auto;
+}
+.sign-badge-ok {
+  color: var(--c-success);
+}
+.sign-badge-warn {
+  color: var(--c-warning);
+}
+.sign-badge-bad {
+  color: var(--c-danger);
+}
+.sign-tabs-hint {
+  color: var(--c-text-);
+}
+.sign-pin {
+  max-width: 180px;
+}
+
+.sign-drop {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1.5px dashed var(--c-border-strong);
+  border-radius: var(--radius-md);
+}
+.sign-drop.is-over {
+  border-color: var(--c-accent);
+  background: var(--c-accent-soft);
+}
+.sign-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sign-file-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.sign-file-list__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

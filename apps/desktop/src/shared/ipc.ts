@@ -8,6 +8,7 @@ export const IpcChannels = {
   filesOpenDialog: 'chef:files.openDialog',
   filesSaveDialog: 'chef:files.saveDialog',
   filesShowInFolder: 'chef:files.showInFolder',
+  filesListPdfs: 'chef:files.listPdfs',
   filesGrant: 'chef:files.grant',
   settingsGet: 'chef:settings.get',
   settingsSet: 'chef:settings.set',

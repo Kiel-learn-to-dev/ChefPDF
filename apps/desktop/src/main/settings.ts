@@ -23,6 +23,8 @@ export const MAX_PFX_LABEL = 200;
 export const MAX_SIGN_TEMPLATES = 50;
 export const MAX_SIGN_TEMPLATE_BYTES = 16 * 1024;
 export const MAX_SIGN_TEMPLATE_NAME = 80;
+export const MAX_TSA_URLS = 5;
+const MAX_TSA_URL_LENGTH = 2048;
 const MAX_SCAN_PRESET_PARAMS_BYTES = 4096;
 const MAX_PREFS_BYTES = 1024 * 1024;
 const LANGUAGES: readonly LanguageSetting[] = ['vi', 'en'];
@@ -40,6 +42,7 @@ export function defaultSettings(): Settings {
     knownPfxFiles: [],
     lastDriverPath: null,
     signTemplates: [],
+    tsaUrls: [],
   };
 }
 
@@ -79,6 +82,48 @@ function normalizeScanPreset(v: unknown): ScanUserPreset | null {
   }
   if (json.length > MAX_SCAN_PRESET_PARAMS_BYTES) return null;
   return { name, params: JSON.parse(json) as Record<string, unknown> };
+}
+
+/** The URL trimmed, when it is an absolute http(s) URL with a host; otherwise null (I28). */
+export function validTsaUrl(raw: string): string | null {
+  const s = raw.trim();
+  if (s.length === 0 || s.length > MAX_TSA_URL_LENGTH || /\s/.test(s)) return null;
+  let url: URL;
+  try {
+    url = new URL(s);
+  } catch {
+    return null;
+  }
+  if ((url.protocol !== 'http:' && url.protocol !== 'https:') || !url.hostname) return null;
+  return url.toString();
+}
+
+/** Keeps valid, unique TSA urls from untrusted disk data, in order (at most MAX_TSA_URLS). */
+export function sanitizeTsaUrls(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const url = validTsaUrl(item);
+    if (url && !out.includes(url)) out.push(url);
+    if (out.length >= MAX_TSA_URLS) break;
+  }
+  return out;
+}
+
+/** Validates a renderer-provided TSA list strictly (throws on the first bad entry). */
+export function validateTsaUrls(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > MAX_TSA_URLS) {
+    throw new SettingsValidationError(`tsaUrls must be an array of at most ${MAX_TSA_URLS}`);
+  }
+  const out: string[] = [];
+  for (const item of value) {
+    const url = typeof item === 'string' ? validTsaUrl(item) : null;
+    if (!url) throw new SettingsValidationError('Invalid timestamp server URL');
+    if (out.includes(url)) throw new SettingsValidationError(`Duplicate timestamp server: ${url}`);
+    out.push(url);
+  }
+  return out;
 }
 
 function isAbsoluteDriverPath(v: string): boolean {
@@ -298,6 +343,7 @@ export function sanitizeSettings(
   s.scanPresets = sanitizeScanPresets(raw.scanPresets);
   s.knownPfxFiles = sanitizeKnownPfx(raw.knownPfxFiles, platform);
   s.signTemplates = sanitizeSignTemplates(raw.signTemplates);
+  s.tsaUrls = sanitizeTsaUrls(raw.tsaUrls);
   if (typeof raw.lastDriverPath === 'string' && isAbsoluteDriverPath(raw.lastDriverPath)) {
     s.lastDriverPath = raw.lastDriverPath;
   }
@@ -349,6 +395,9 @@ export function validatePatch(
         break;
       case 'signTemplates':
         out.signTemplates = validateSignTemplates(value);
+        break;
+      case 'tsaUrls':
+        out.tsaUrls = validateTsaUrls(value);
         break;
       case 'lastDriverPath':
         if (value !== null && !(typeof value === 'string' && isAbsoluteDriverPath(value))) {

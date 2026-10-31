@@ -131,7 +131,9 @@
     "dropHint": "No recent files yet. Drop PDF files here to open them.",
     "dropHintShort": "Tip: drop PDF files onto the window to open them.",
     "paletteHint": "Find any command, accents optional:",
-    "scanTitle": "Convert to scan"
+    "scanTitle": "Convert to scan",
+    "batchSignTitle": "Batch signing",
+    "batchSignText": "Sign many PDF files at once with one certificate."
   },
   "palette": {
     "title": "Command palette",
@@ -474,7 +476,19 @@
     "certificates": "Certificates & tokens",
     "certificatesHint": "Manage the .pfx/.p12 files you used and USB tokens, and diagnose token problems.",
     "signTools": "Signing tools",
-    "signToolsHint": "Signature templates, the signature and stamp library, and the trusted certificates."
+    "signToolsHint": "Signature templates, the signature and stamp library, and the trusted certificates.",
+    "tsa": {
+      "label": "Timestamp servers (TSA)",
+      "hint": "At most 5 http or https addresses, tried in order.",
+      "item": "TSA address {{n}}",
+      "remove": "Remove this address",
+      "add": "Add address",
+      "save": "Save",
+      "needed": "No TSA server yet: signatures at B-T and above cannot be made.",
+      "invalid": "Invalid address: {{list}}",
+      "tooMany": "At most {{max}} addresses.",
+      "saved": "TSA list saved."
+    }
   },
   "jobs": {
     "title": "Jobs",
@@ -675,7 +689,196 @@
   "sign": {
     "placeField": "Place signature field",
     "signDoc": "Sign document",
-    "soonHint": "Coming in a later release."
+    "soonHint": "Coming in a later release.",
+    "placeFieldShort": "Place box",
+    "signDocShort": "Sign document",
+    "batchSign": "Batch signing",
+    "needDoc": "Open a document first.",
+    "job": "Sign document",
+    "fieldsJob": "List signature fields",
+    "anchorJob": "Find anchor text",
+    "addFieldJob": "Add empty signature field",
+    "failed": "The document could not be signed",
+    "doc": {
+      "title": "Sign document",
+      "description": "Sign “{{name}}” with your certificate.",
+      "nameHint": "File name after signing: {{name}}",
+      "sign": "Sign"
+    },
+    "done": {
+      "title": "Document signed",
+      "text": "Suggested file name: {{name}}",
+      "viewSignatures": "View signatures",
+      "saveAs": "Save as…"
+    },
+    "confirmFinal": {
+      "title": "Last PIN try",
+      "message": "The token has one PIN try left. A wrong PIN now locks the token. Use this PIN to sign?",
+      "go": "Use PIN and sign"
+    },
+    "errors": {
+      "noSigner": "Choose a certificate first (a .pfx file or a token).",
+      "noAnchor": "No anchor position yet. Click “Preview” first.",
+      "noBox": "No signature box yet. Draw one on the page, pick an existing field, or choose a fixed position.",
+      "NEEDS_TSA": "Level B-T and above needs at least one TSA server. Add one in Settings.",
+      "BAD_TOKEN_SELECTION": "Choose the token, the certificate and the slot before signing.",
+      "NO_PIN": "Enter the token PIN."
+    },
+    "signer": {
+      "title": "Signer",
+      "file": "Certificate file",
+      "token": "USB token",
+      "pickFile": "Choose .pfx / .p12 file",
+      "noFile": "No certificate file chosen",
+      "saved": "Used certificates",
+      "savedPick": "Choose a used certificate…",
+      "password": "Certificate file password",
+      "remember": "Remember this password (kept in the OS keychain)",
+      "rememberHint": "The password is encrypted and never stored in the settings file.",
+      "readCert": "Read certificate",
+      "savedPasswordWrong": "The remembered password no longer works. Enter it again.",
+      "driver": "Token driver",
+      "driverPick": "Choose driver…",
+      "readTokens": "Read tokens",
+      "pin": "Token PIN",
+      "pinHint": "Kept in memory while the dialog is open. Not stored, not logged, never retried automatically.",
+      "certificate": "Certificate on the token",
+      "readJob": "Read certificate"
+    },
+    "pin": {
+      "countLow": "The token has few PIN tries left. Wrong entries lock it.",
+      "finalTry": "One PIN try left. You will be asked to confirm before it is used.",
+      "locked": "The token PIN is locked. Unlock it with the vendor software.",
+      "toBeChanged": "The PIN must be changed before signing. Change it in the token software."
+    },
+    "template": {
+      "title": "Signature template",
+      "none": "No template (plain text box)",
+      "noneHint": "Choose a template in Signature templates for a styled box.",
+      "bound": "bound to this certificate"
+    },
+    "level": {
+      "title": "Signature level",
+      "bb": "B-B: basic signature. Proves integrity; no timestamp.",
+      "bt": "B-T: adds a timestamp from a TSA server, proving when it was signed.",
+      "blt": "B-LT: adds revocation data (CRL/OCSP) so it can be checked later offline.",
+      "blta": "B-LTA: adds a document timestamp for long-term validity.",
+      "needTsa": "This level needs at least one TSA server. Add one in Settings.",
+      "tsaCount": "TSA servers: {{count}} (tried in order).",
+      "digest": "Hash algorithm",
+      "reason": "Reason",
+      "location": "Location",
+      "contact": "Contact information"
+    },
+    "certify": {
+      "title": "Certify document",
+      "none": "Do not certify",
+      "noChanges": "Lock all changes (P=1)",
+      "formFill": "Allow form filling (P=2)",
+      "annotate": "Allow form filling and comments (P=3)",
+      "warning": "Certification restricts later changes. Use it only for the first signature of a document."
+    },
+    "place": {
+      "sectionTitle": "Signature position",
+      "mode": {
+        "invisible": "Invisible",
+        "draw": "Draw on page",
+        "field": "Existing field",
+        "anchor": "By anchor text",
+        "fixed": "Fixed position"
+      },
+      "invisibleHint": "The signature is not shown on the page. It is still fully valid.",
+      "drawOnPage": "Draw on page…",
+      "addEmptyDraw": "Draw a new empty field…",
+      "current": "Box on page {{page}}.",
+      "noBox": "No box yet.",
+      "noFields": "The document has no empty signature fields.",
+      "fieldsTitle": "Empty signature fields",
+      "pageOf": "page {{page}}",
+      "hint": "Drag to draw a box. Drag inside it to move, drag a handle to resize.",
+      "hintEsc": "Esc to leave",
+      "barLabel": "Place signature box",
+      "title": "Place signature box",
+      "aspectLock": "Keep proportions",
+      "pickField": "Existing field",
+      "label": "Signer name",
+      "labelPlaceholder": "Signer (e.g. Director)",
+      "addEmpty": "Add empty field",
+      "fieldAdded": "Signature field added",
+      "fieldsFailed": "The signature fields could not be listed",
+      "cancel": "Leave",
+      "signHere": "Sign here",
+      "needBox": "Draw or choose a box first",
+      "sizeMm": "{{w}} × {{h}} mm",
+      "rotatedHint": "The view is rotated. Set the rotation back to 0° to draw a box."
+    },
+    "anchor": {
+      "text": "Anchor text",
+      "placeholder": "e.g. GIÁM ĐỐC",
+      "position": "Position relative to the text",
+      "pos": {
+        "below": "Below the text",
+        "above": "Above the text",
+        "left": "Left of the text",
+        "right": "Right of the text",
+        "over": "Over the text"
+      },
+      "widthMm": "Width (mm)",
+      "heightMm": "Height (mm)",
+      "offsetX": "Horizontal offset (pt)",
+      "offsetY": "Vertical offset (pt)",
+      "align": "Alignment",
+      "al": {
+        "left": "Left",
+        "center": "Center",
+        "right": "Right"
+      },
+      "which": "Matches used",
+      "w": {
+        "first": "First match",
+        "last": "Last match",
+        "all": "All matches"
+      },
+      "onMissing": "When the text is not found",
+      "m": {
+        "skip": "Skip (do not sign)",
+        "fail": "Report an error",
+        "fallback": "Place at the bottom right"
+      },
+      "recent": "Recent:",
+      "ignoreDiacritics": "Ignore Vietnamese diacritics",
+      "preview": "Preview",
+      "notFound": "The anchor text was not found in the document.",
+      "found": "Found {{count}} match(es).",
+      "truncated": "(Only some of the matches are shown.)",
+      "invalid": "Check: {{field}}",
+      "field": {
+        "text": "anchor text",
+        "widthMm": "width",
+        "heightMm": "height",
+        "offsetXPt": "horizontal offset",
+        "offsetYPt": "vertical offset"
+      },
+      "chooseMatch": "Choose a match",
+      "matchN": "Match {{n}}",
+      "allNote": "A single signature uses the chosen match. To sign every match, use Batch signing."
+    },
+    "fixed": {
+      "corner": "Corner",
+      "c": {
+        "bottom-right": "Bottom right",
+        "bottom-left": "Bottom left",
+        "top-right": "Top right",
+        "top-left": "Top left"
+      },
+      "page": "Page",
+      "p": {
+        "first": "First page",
+        "last": "Last page"
+      },
+      "margin": "Margin (pt)",
+      "invalid": "Size or margin is not valid."
+    }
   },
   "certs": {
     "title": "Certificates & tokens",
@@ -1064,5 +1267,96 @@
     "slant": "Slant",
     "color": "Ink colour",
     "jobType": "Make a signature from text"
+  },
+  "signBatch": {
+    "title": "Batch signing",
+    "description": "Sign many PDF files with one certificate and one set of options.",
+    "files": "Files to sign",
+    "addFiles": "Add files…",
+    "addFolder": "Add folder…",
+    "clear": "Clear list",
+    "count": "{{count}} file(s)",
+    "dropHint": "Drop PDF files here",
+    "duplicates": "{{count}} file(s) already in the list",
+    "overLimit": "The list holds at most 200 files",
+    "probeFailed": "Could not open {{name}}",
+    "hasPassword": "Password set",
+    "remove": "Remove this file",
+    "options": "Options",
+    "noSigner": "Choose a certificate first.",
+    "run": "Sign {{count}} file(s)",
+    "cancelJob": "Cancel job",
+    "retry": "Retry failed files",
+    "progress": "Signing…",
+    "cancelled": "Batch signing was cancelled.",
+    "doneTitle": "Batch signing finished",
+    "summary": "{{total}} file(s): {{signed}} signed, {{failed}} failed, {{skipped}} skipped.",
+    "results": "Results",
+    "openFolder": "Open result folder",
+    "showFile": "Show in folder",
+    "skippedNote": "Skipped",
+    "col": {
+      "status": "Status",
+      "file": "File",
+      "check": "Signature check"
+    },
+    "status": {
+      "signed": "Signed",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "verify": {
+      "valid": "Valid",
+      "valid-with-warnings": "Valid, with warnings",
+      "unknown": "Unknown",
+      "invalid": "Invalid",
+      "unsigned": "Not signed",
+      "none": "Not checked"
+    },
+    "errUnknown": "Unknown error",
+    "problem": {
+      "noFiles": "Add at least one PDF file.",
+      "noTsa": "Level B-T and above needs a TSA server. Add one in Settings.",
+      "badSuffix": "The suffix is not valid.",
+      "noFolder": "Choose a destination folder.",
+      "noOverwriteConfirm": "Tick the overwrite confirmation to continue.",
+      "badRect": "The box is not valid: x2 must be greater than x1 and y2 greater than y1.",
+      "noAnchorText": "Enter the anchor text."
+    },
+    "suffix": {
+      "empty": "The suffix cannot be empty.",
+      "separator": "The suffix cannot contain / or \\.",
+      "invalidChars": "The suffix contains characters that file names cannot use.",
+      "long": "The suffix can be at most 40 characters."
+    },
+    "place": {
+      "invisible": "Invisible",
+      "anchor": "By anchor text",
+      "fixed": "Fixed corner",
+      "rect": "Area on the first page"
+    },
+    "rect": {
+      "page": "Page (from 1)",
+      "x1": "x1 (pt)",
+      "y1": "y1 (pt)",
+      "x2": "x2 (pt)",
+      "y2": "y2 (pt)",
+      "note": "PDF coordinates in points (1 pt = 1/72 inch), origin at the bottom left. Applied to every file."
+    },
+    "out": {
+      "suffix": "Add a suffix",
+      "folder": "Into one folder",
+      "overwrite": "Overwrite originals",
+      "suffixLabel": "File name suffix",
+      "example": "For example: {{name}}",
+      "pickFolder": "Choose folder…",
+      "noFolder": "No folder chosen",
+      "overwriteWarning": "Overwriting replaces each original with its signed version. Keep a copy of the originals if you need them.",
+      "overwriteConfirm": "I understand and want to overwrite the originals"
+    },
+    "stopOnError": "Stop at the first error",
+    "verifyAfter": "Check each file after signing",
+    "job": "Batch signing",
+    "output": "Output"
   }
 }

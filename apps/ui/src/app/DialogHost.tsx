@@ -15,6 +15,8 @@ import { TokenDiagnosticWizard } from '../features/certs/TokenDiagnosticWizard';
 import { TrustDialog } from '../features/signatures/TrustDialog';
 import { TemplateStudioDialog } from '../features/signTemplate/TemplateStudioDialog';
 import { LibraryDialog } from '../features/sigLibrary/LibraryDialog';
+import { SignDocDialog } from '../features/sign/SignDocDialog';
+import { BatchSignDialog } from '../features/sign/BatchSignDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -86,6 +88,10 @@ export function DialogHost() {
       return <TemplateStudioDialog />;
     case 'sigLibrary':
       return <LibraryDialog />;
+    case 'signDoc':
+      return <SignDocDialog />;
+    case 'batchSign':
+      return <BatchSignDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

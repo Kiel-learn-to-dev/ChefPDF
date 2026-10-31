@@ -13,6 +13,7 @@ export const fallbackSettings: Settings = {
   knownPfxFiles: [],
   lastDriverPath: null,
   signTemplates: [],
+  tsaUrls: [],
 };
 
 interface SettingsState {

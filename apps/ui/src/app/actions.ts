@@ -11,6 +11,7 @@ import { call, runOp } from '../lib/rpc';
 import { toast } from '../components/Toast';
 import { i18n } from '../i18n';
 import { dropThumbnails } from '../features/viewer/thumbnails';
+import { usePlacementStore } from '../features/sign/placementStore';
 import { releasePdf } from '../features/viewer/pdfCache';
 import { getDoc, useDocs } from './state/documents';
 import { useSettings } from './state/settings';
@@ -204,6 +205,7 @@ export async function closeDoc(id: string): Promise<boolean> {
   }
   useDocs.getState().remove(id);
   useViewStore.getState().drop(id);
+  usePlacementStore.getState().forget(id);
   releasePdf(id);
   dropThumbnails(id);
   call('session.close', { sessionId: id }).catch(() => undefined);

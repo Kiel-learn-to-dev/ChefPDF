@@ -131,7 +131,9 @@
     "dropHint": "Chưa có file gần đây. Kéo thả file PDF vào đây để mở.",
     "dropHintShort": "Mẹo: kéo thả file PDF vào cửa sổ để mở.",
     "paletteHint": "Tìm mọi lệnh, gõ không dấu cũng được:",
-    "scanTitle": "Chuyển thành bản scan"
+    "scanTitle": "Chuyển thành bản scan",
+    "batchSignTitle": "Ký hàng loạt",
+    "batchSignText": "Ký nhiều file PDF cùng lúc bằng một chứng thư."
   },
   "palette": {
     "title": "Bảng lệnh",
@@ -457,7 +459,19 @@
     "certificates": "Chứng thư & token",
     "certificatesHint": "Quản lý file .pfx/.p12 đã dùng và token USB, chẩn đoán lỗi token.",
     "signTools": "Công cụ ký số",
-    "signToolsHint": "Mẫu chữ ký, thư viện chữ ký và con dấu, kho chứng thư tin cậy."
+    "signToolsHint": "Mẫu chữ ký, thư viện chữ ký và con dấu, kho chứng thư tin cậy.",
+    "tsa": {
+      "label": "Máy chủ TSA (dấu thời gian)",
+      "hint": "Tối đa 5 địa chỉ http hoặc https, thử theo thứ tự.",
+      "item": "Địa chỉ TSA {{n}}",
+      "remove": "Bỏ địa chỉ này",
+      "add": "Thêm địa chỉ",
+      "save": "Lưu",
+      "needed": "Chưa có máy chủ TSA: chữ ký B-T trở lên sẽ không ký được.",
+      "invalid": "Địa chỉ không hợp lệ: {{list}}",
+      "tooMany": "Tối đa {{max}} địa chỉ.",
+      "saved": "Đã lưu danh sách TSA."
+    }
   },
   "jobs": {
     "title": "Công việc",
@@ -656,7 +670,196 @@
   "sign": {
     "placeField": "Đặt ô ký",
     "signDoc": "Ký tài liệu",
-    "soonHint": "Sắp có ở bản tới."
+    "soonHint": "Sắp có ở bản tới.",
+    "placeFieldShort": "Đặt ô ký",
+    "signDocShort": "Ký tài liệu",
+    "batchSign": "Ký hàng loạt",
+    "needDoc": "Mở một tài liệu trước.",
+    "job": "Ký tài liệu",
+    "fieldsJob": "Liệt kê ô ký",
+    "anchorJob": "Tìm chữ mốc",
+    "addFieldJob": "Thêm ô ký trống",
+    "failed": "Không ký được tài liệu",
+    "doc": {
+      "title": "Ký tài liệu",
+      "description": "Ký “{{name}}” bằng chứng thư số của bạn.",
+      "nameHint": "Tên file sau khi ký: {{name}}",
+      "sign": "Ký"
+    },
+    "done": {
+      "title": "Đã ký tài liệu",
+      "text": "Lưu với tên gợi ý: {{name}}",
+      "viewSignatures": "Xem chữ ký",
+      "saveAs": "Lưu thành…"
+    },
+    "confirmFinal": {
+      "title": "Lần thử PIN cuối",
+      "message": "Token chỉ còn một lần nhập PIN thử. Nhập sai lần này, token sẽ bị khóa. Bạn có chắc muốn dùng PIN này để ký?",
+      "go": "Dùng PIN và ký"
+    },
+    "errors": {
+      "noSigner": "Chọn chứng thư để ký trước (file .pfx hoặc token).",
+      "noAnchor": "Chưa có chỗ chữ mốc nào. Bấm “Xem trước” trước.",
+      "noBox": "Chưa đặt ô ký. Vẽ ô trên trang, chọn ô có sẵn hoặc chọn vị trí cố định.",
+      "NEEDS_TSA": "Mức B-T trở lên cần ít nhất một máy chủ TSA. Thêm trong Cài đặt.",
+      "BAD_TOKEN_SELECTION": "Chọn token, chứng thư và khe cắm trước khi ký.",
+      "NO_PIN": "Nhập mã PIN của token."
+    },
+    "signer": {
+      "title": "Người ký",
+      "file": "File chứng thư",
+      "token": "USB token",
+      "pickFile": "Chọn file .pfx / .p12",
+      "noFile": "Chưa chọn file chứng thư",
+      "saved": "Chứng thư đã dùng",
+      "savedPick": "Chọn chứng thư đã dùng…",
+      "password": "Mật khẩu file chứng thư",
+      "remember": "Ghi nhớ mật khẩu này (lưu trong kho bảo mật của hệ điều hành)",
+      "rememberHint": "Mật khẩu được mã hóa và không bao giờ nằm trong file cài đặt.",
+      "readCert": "Đọc chứng thư",
+      "savedPasswordWrong": "Mật khẩu đã ghi nhớ không còn đúng. Nhập lại mật khẩu.",
+      "driver": "Driver token",
+      "driverPick": "Chọn driver…",
+      "readTokens": "Đọc danh sách token",
+      "pin": "Mã PIN của token",
+      "pinHint": "Chỉ giữ trong bộ nhớ khi hộp thoại mở. Không lưu, không ghi log, không thử lại tự động.",
+      "certificate": "Chứng thư trên token",
+      "readJob": "Đọc chứng thư"
+    },
+    "pin": {
+      "countLow": "Token còn ít lần thử PIN. Nhập sai nhiều lần sẽ khóa token.",
+      "finalTry": "Chỉ còn một lần thử PIN. Sẽ có xác nhận trước khi dùng.",
+      "locked": "Token đã khóa PIN. Mở khóa bằng phần mềm của nhà cung cấp.",
+      "toBeChanged": "PIN phải được đổi trước khi ký. Đổi PIN trong phần mềm của token."
+    },
+    "template": {
+      "title": "Mẫu chữ ký",
+      "none": "Không dùng mẫu (chữ ký chữ thường)",
+      "noneHint": "Chọn một mẫu trong Mẫu chữ ký để có khung chữ ký đẹp.",
+      "bound": "gắn với chứng thư này"
+    },
+    "level": {
+      "title": "Mức chữ ký",
+      "bb": "B-B: chữ ký cơ bản. Đủ để ký và kiểm tra toàn vẹn; không có dấu thời gian.",
+      "bt": "B-T: thêm dấu thời gian của máy chủ TSA, để chứng minh thời điểm ký.",
+      "blt": "B-LT: thêm dữ liệu thu hồi chứng thư (CRL/OCSP), để kiểm tra lâu dài khi không còn mạng.",
+      "blta": "B-LTA: thêm dấu thời gian tài liệu, để giữ hiệu lực nhiều năm.",
+      "needTsa": "Mức này cần ít nhất một máy chủ TSA. Thêm trong Cài đặt.",
+      "tsaCount": "Máy chủ TSA: {{count}} (thử lần lượt).",
+      "digest": "Thuật toán băm",
+      "reason": "Lý do",
+      "location": "Nơi ký",
+      "contact": "Thông tin liên hệ"
+    },
+    "certify": {
+      "title": "Chứng nhận tài liệu",
+      "none": "Không chứng nhận",
+      "noChanges": "Khóa mọi thay đổi (P=1)",
+      "formFill": "Cho phép điền form (P=2)",
+      "annotate": "Cho phép điền form và chú thích (P=3)",
+      "warning": "Chứng nhận giới hạn các thay đổi sau này. Chỉ dùng cho chữ ký đầu tiên của tài liệu."
+    },
+    "place": {
+      "sectionTitle": "Vị trí chữ ký",
+      "mode": {
+        "invisible": "Ký ẩn",
+        "draw": "Vẽ trên trang",
+        "field": "Ô có sẵn",
+        "anchor": "Theo chữ mốc",
+        "fixed": "Vị trí cố định"
+      },
+      "invisibleHint": "Chữ ký không hiện trên trang. Vẫn có đầy đủ hiệu lực pháp lý.",
+      "drawOnPage": "Vẽ trên trang…",
+      "addEmptyDraw": "Vẽ ô ký trống trên trang…",
+      "current": "Ô ký ở trang {{page}}.",
+      "noBox": "Chưa có ô ký.",
+      "noFields": "Không có ô ký trống nào trong tài liệu.",
+      "fieldsTitle": "Ô ký trống",
+      "pageOf": "trang {{page}}",
+      "hint": "Kéo để vẽ ô ký. Kéo khung để di chuyển, kéo góc để đổi kích thước.",
+      "hintEsc": "Esc để thoát",
+      "barLabel": "Đặt ô ký",
+      "title": "Đặt ô ký",
+      "aspectLock": "Giữ tỉ lệ",
+      "pickField": "Ô ký có sẵn",
+      "label": "Tên người ký",
+      "labelPlaceholder": "Người ký (ví dụ: Giám đốc)",
+      "addEmpty": "Thêm ô ký trống",
+      "fieldAdded": "Đã thêm ô ký",
+      "fieldsFailed": "Không đọc được danh sách ô ký",
+      "cancel": "Thoát",
+      "signHere": "Ký ở đây",
+      "needBox": "Vẽ hoặc chọn ô ký trước",
+      "sizeMm": "{{w}} × {{h}} mm",
+      "rotatedHint": "Xoay trang đang khác 0°. Đặt xoay về 0° để vẽ ô ký."
+    },
+    "anchor": {
+      "text": "Chữ mốc",
+      "placeholder": "Ví dụ: GIÁM ĐỐC",
+      "position": "Vị trí so với chữ",
+      "pos": {
+        "below": "Dưới chữ",
+        "above": "Trên chữ",
+        "left": "Bên trái chữ",
+        "right": "Bên phải chữ",
+        "over": "Chồng lên chữ"
+      },
+      "widthMm": "Rộng (mm)",
+      "heightMm": "Cao (mm)",
+      "offsetX": "Lệch ngang (pt)",
+      "offsetY": "Lệch dọc (pt)",
+      "align": "Căn lề",
+      "al": {
+        "left": "Trái",
+        "center": "Giữa",
+        "right": "Phải"
+      },
+      "which": "Chỗ được dùng",
+      "w": {
+        "first": "Chỗ đầu tiên",
+        "last": "Chỗ cuối cùng",
+        "all": "Mọi chỗ"
+      },
+      "onMissing": "Khi không thấy chữ",
+      "m": {
+        "skip": "Bỏ qua (không ký)",
+        "fail": "Báo lỗi",
+        "fallback": "Đặt ở góc dưới phải"
+      },
+      "recent": "Gần đây:",
+      "ignoreDiacritics": "Bỏ qua dấu tiếng Việt",
+      "preview": "Xem trước",
+      "notFound": "Không tìm thấy chữ mốc trong tài liệu.",
+      "found": "Tìm thấy {{count}} chỗ.",
+      "truncated": "(Chỉ hiện một phần các chỗ tìm thấy.)",
+      "invalid": "Kiểm tra lại: {{field}}",
+      "field": {
+        "text": "chữ mốc",
+        "widthMm": "chiều rộng",
+        "heightMm": "chiều cao",
+        "offsetXPt": "lệch ngang",
+        "offsetYPt": "lệch dọc"
+      },
+      "chooseMatch": "Chọn chỗ",
+      "matchN": "Chỗ {{n}}",
+      "allNote": "Khi ký một file, chỉ dùng chỗ đang chọn. Để ký mọi chỗ, dùng Ký hàng loạt."
+    },
+    "fixed": {
+      "corner": "Góc",
+      "c": {
+        "bottom-right": "Dưới bên phải",
+        "bottom-left": "Dưới bên trái",
+        "top-right": "Trên bên phải",
+        "top-left": "Trên bên trái"
+      },
+      "page": "Trang",
+      "p": {
+        "first": "Trang đầu",
+        "last": "Trang cuối"
+      },
+      "margin": "Lề (pt)",
+      "invalid": "Kích thước hoặc lề không hợp lệ."
+    }
   },
   "certs": {
     "title": "Chứng thư & token",
@@ -1045,5 +1248,96 @@
     "slant": "Độ nghiêng",
     "color": "Màu mực",
     "jobType": "Tạo chữ ký từ chữ"
+  },
+  "signBatch": {
+    "title": "Ký hàng loạt",
+    "description": "Ký nhiều file PDF bằng một chứng thư và cùng một bộ tùy chọn.",
+    "files": "File cần ký",
+    "addFiles": "Thêm file…",
+    "addFolder": "Thêm thư mục…",
+    "clear": "Xóa danh sách",
+    "count": "{{count}} file",
+    "dropHint": "Kéo thả file PDF vào đây",
+    "duplicates": "{{count}} file đã có trong danh sách",
+    "overLimit": "Danh sách tối đa 200 file",
+    "probeFailed": "Không mở được {{name}}",
+    "hasPassword": "Có mật khẩu",
+    "remove": "Bỏ file này",
+    "options": "Tùy chọn",
+    "noSigner": "Chọn chứng thư để ký trước.",
+    "run": "Ký {{count}} file",
+    "cancelJob": "Hủy việc",
+    "retry": "Thử lại file lỗi",
+    "progress": "Đang ký…",
+    "cancelled": "Đã hủy việc ký hàng loạt.",
+    "doneTitle": "Ký hàng loạt xong",
+    "summary": "Tổng {{total}} file: ký được {{signed}}, lỗi {{failed}}, bỏ qua {{skipped}}.",
+    "results": "Kết quả",
+    "openFolder": "Mở thư mục kết quả",
+    "showFile": "Mở thư mục",
+    "skippedNote": "Bỏ qua",
+    "col": {
+      "status": "Trạng thái",
+      "file": "File",
+      "check": "Kiểm tra chữ ký"
+    },
+    "status": {
+      "signed": "Đã ký",
+      "failed": "Lỗi",
+      "skipped": "Bỏ qua"
+    },
+    "verify": {
+      "valid": "Hợp lệ",
+      "valid-with-warnings": "Hợp lệ, có cảnh báo",
+      "unknown": "Chưa xác định",
+      "invalid": "Không hợp lệ",
+      "unsigned": "Chưa ký",
+      "none": "Chưa kiểm tra"
+    },
+    "errUnknown": "Lỗi không rõ nguyên nhân",
+    "problem": {
+      "noFiles": "Thêm ít nhất một file PDF.",
+      "noTsa": "Mức B-T trở lên cần máy chủ TSA. Thêm trong Cài đặt.",
+      "badSuffix": "Hậu tố không hợp lệ.",
+      "noFolder": "Chọn thư mục đích.",
+      "noOverwriteConfirm": "Tick ô xác nhận ghi đè để tiếp tục.",
+      "badRect": "Vùng ký không hợp lệ: x2 phải lớn hơn x1 và y2 lớn hơn y1.",
+      "noAnchorText": "Nhập chữ mốc."
+    },
+    "suffix": {
+      "empty": "Hậu tố không được trống.",
+      "separator": "Hậu tố không được chứa dấu / hoặc \\.",
+      "invalidChars": "Hậu tố chứa ký tự không dùng được trong tên file.",
+      "long": "Hậu tố tối đa 40 ký tự."
+    },
+    "place": {
+      "invisible": "Ký ẩn",
+      "anchor": "Theo chữ mốc",
+      "fixed": "Góc cố định",
+      "rect": "Vùng trên trang đầu"
+    },
+    "rect": {
+      "page": "Trang (bắt đầu từ 1)",
+      "x1": "x1 (pt)",
+      "y1": "y1 (pt)",
+      "x2": "x2 (pt)",
+      "y2": "y2 (pt)",
+      "note": "Tọa độ PDF, tính bằng điểm (1 pt = 1/72 inch), gốc ở góc dưới trái. Áp dụng cho mọi file."
+    },
+    "out": {
+      "suffix": "Thêm hậu tố",
+      "folder": "Vào một thư mục",
+      "overwrite": "Ghi đè file gốc",
+      "suffixLabel": "Hậu tố tên file",
+      "example": "Ví dụ: {{name}}",
+      "pickFolder": "Chọn thư mục…",
+      "noFolder": "Chưa chọn thư mục",
+      "overwriteWarning": "Ghi đè sẽ thay file gốc bằng bản đã ký. Không hoàn tác được ngoài việc giữ bản sao.",
+      "overwriteConfirm": "Tôi hiểu và muốn ghi đè file gốc"
+    },
+    "stopOnError": "Dừng khi gặp lỗi đầu tiên",
+    "verifyAfter": "Kiểm tra từng file sau khi ký",
+    "job": "Ký hàng loạt",
+    "output": "Đầu ra"
   }
 }

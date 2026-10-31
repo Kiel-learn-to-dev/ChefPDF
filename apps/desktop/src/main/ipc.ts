@@ -14,8 +14,10 @@ import {
   type SaveDialogOptions,
 } from 'electron';
 import fs, { statSync } from 'node:fs';
+import path from 'node:path';
 import type { LibraryKind } from '@chef/contracts';
 import { IpcChannels, type RpcEnvelope } from '../shared/ipc';
+import { pdfFilesOf } from './pdfFiles';
 import type { PathAllowlist } from './allowlist';
 import { atomicWriteFile } from './fsutil';
 import { type ChefLibrary, MAX_LIBRARY_IMAGE_BYTES } from './library';
@@ -65,6 +67,8 @@ export function defaultOpenFilters(l: Labels): OpenDialogOptions['filters'] {
 }
 
 export function registerIpc(d: IpcDeps): void {
+  /** Folders the user picked with the directory dialog (the only ones files.listPdfs reads). */
+  const pickedDirs = new Set<string>();
   const assertTrusted = (event: IpcMainInvokeEvent): void => {
     const url = event.senderFrame?.url ?? '';
     const origin = originOf(url);
@@ -117,7 +121,23 @@ export function registerIpc(d: IpcDeps): void {
       : await dialog.showOpenDialog(dialogOptions);
     if (res.canceled) return [];
     if (!o.directory) for (const p of res.filePaths) d.allowlist.addFile(p);
+    else for (const p of res.filePaths) pickedDirs.add(path.resolve(p));
     return res.filePaths;
+  });
+
+  // PDFs directly inside a folder the user picked (batch signing). Other folders are refused.
+  handle(IpcChannels.filesListPdfs, async (_event, p) => {
+    const abs = validateAbsPath(p, 'folder');
+    if (!pickedDirs.has(path.resolve(abs))) {
+      throw new IpcValidationError('folder was not picked by the user');
+    }
+    const st = await fs.promises.stat(abs);
+    if (!st.isDirectory()) throw new IpcValidationError('not a folder');
+    const entries = await fs.promises.readdir(abs, { withFileTypes: true });
+    return pdfFilesOf(
+      entries.filter((e) => e.isFile()).map((e) => e.name),
+      abs,
+    );
   });
 
   handle(IpcChannels.filesSaveDialog, async (event, options) => {

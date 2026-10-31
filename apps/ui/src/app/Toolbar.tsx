@@ -233,8 +233,9 @@ const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.templates', label: true },
   { kind: 'cmd', id: 'sign.library', label: true },
   { kind: 'sep', id: 's1' },
-  { kind: 'cmd', id: 'soon.placeField', label: true },
-  { kind: 'cmd', id: 'soon.signDoc', label: true },
+  { kind: 'cmd', id: 'sign.placeField', label: true },
+  { kind: 'cmd', id: 'sign.signDoc', label: true },
+  { kind: 'cmd', id: 'sign.batchSign', label: true },
 ];
 
 /** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */

@@ -13,8 +13,15 @@ import type {
   ScanFitSizeParams,
   ScanPreviewParams,
   ScanRasterizeParams,
+  SignAddFieldParams,
+  SignBatchParams,
   SignCertInfoParams,
   SignDiagnoseTokenParams,
+  SignFindAnchorsParams,
+  SignListFieldsParams,
+  SignPadesParams,
+  SignPadesTokenParams,
+  SignPlaceFromAnchorParams,
   SignDriverScanParams,
   SignExtractRevisionParams,
   SignListTokensParams,
@@ -63,6 +70,13 @@ export interface OpParams {
   'sign.listTokens': SignListTokensParams;
   'sign.diagnoseToken': SignDiagnoseTokenParams;
   'sign.verify': SignVerifyParams;
+  'sign.pades': SignPadesParams;
+  'sign.padesToken': SignPadesTokenParams;
+  'sign.addField': SignAddFieldParams;
+  'sign.listFields': SignListFieldsParams;
+  'sign.findAnchors': SignFindAnchorsParams;
+  'sign.placeFromAnchor': SignPlaceFromAnchorParams;
+  'sign.batch': SignBatchParams;
   'sign.extractRevision': SignExtractRevisionParams;
   'sign.trustList': SignTrustListParams;
   'sign.trustAdd': SignTrustAddParams;
@@ -85,6 +99,7 @@ export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'sign.trustList',
   'sign.trustAdd',
   'sign.trustRemove',
+  'sign.batch',
   'image.removeBackground',
   'image.cleanup',
   'image.fromStrokes',

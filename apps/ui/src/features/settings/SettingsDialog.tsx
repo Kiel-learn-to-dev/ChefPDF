@@ -8,6 +8,7 @@ import { pickFolder, showError } from '../../app/actions';
 import { Dialog, DialogSpacer } from '../../components/Dialog';
 import { Button } from '../../components/Button';
 import { Field, Segmented, Select, TextInput } from '../../components/Form';
+import { TsaEditor } from './TsaEditor';
 import { chef } from '../../lib/bridge';
 import { LANGUAGES } from '../../i18n';
 import './SettingsDialog.css';
@@ -97,6 +98,7 @@ export function SettingsDialog() {
             <Button onClick={() => openDialog('trust')}>{t('cmd.sigTrust')}</Button>
           </div>
         </Field>
+        <TsaEditor />
       </section>
       <section className="settings__section">
         <h3 className="settings__heading">{t('settings.files')}</h3>

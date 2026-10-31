@@ -27,6 +27,7 @@ import {
   SpreadMode,
 } from './viewerLib';
 import { SnapshotLayer } from './SnapshotLayer';
+import { PlacementOverlay } from '../sign/PlacementOverlay';
 import { FindBar } from './FindBar';
 import './Viewer.css';
 
@@ -311,6 +312,7 @@ export function Viewer({ doc }: { doc: DocTab }) {
         </div>
       </ContextMenu>
       {tool === 'snapshot' && <SnapshotLayer getContainer={() => containerRef.current} />}
+      <PlacementOverlay doc={doc} getContainer={() => containerRef.current} />
       {!ready && !error && (
         <div className="viewer__center">
           <Spinner size={22} label={t('viewer.loading')} />

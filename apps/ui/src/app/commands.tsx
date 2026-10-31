@@ -52,6 +52,7 @@ import {
   KeyRound,
   PenLine,
   ShieldCheck,
+  Layers,
   Library,
   Landmark,
 } from 'lucide-react';
@@ -73,6 +74,7 @@ import {
 } from '../features/pages/pageActions';
 import { getSelection } from '../features/pages/pageStore';
 import { openScanFlow } from '../features/scan/ScanDialog';
+import { usePlacementStore } from '../features/sign/placementStore';
 
 export type CommandGroup = 'file' | 'edit' | 'view' | 'pages' | 'tools' | 'app' | 'soon';
 
@@ -658,18 +660,36 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
     // Coming soon (later milestones) so the palette can still find them.
     soon('sign', t('soon.sign'), <FileSignature size={I} />, ['sign', 'signature', 'chu ky']),
     {
-      ...soon('placeField', t('sign.placeField'), <PenLine size={I} />, [
-        'signature field',
-        'o ky',
-      ]),
-      disabledHint: t('sign.soonHint'),
+      id: 'sign.placeField',
+      title: t('sign.placeField'),
+      short: t('sign.placeFieldShort'),
+      keywords: ['signature field', 'o ky', 'dat chu ky', 'khung ky'],
+      group: 'tools',
+      icon: <PenLine size={I} />,
+      enabled: has,
+      disabledHint: t('sign.needDoc'),
+      run: () => usePlacementStore.getState().startPlacing(id),
     },
     {
-      ...soon('signDoc', t('sign.signDoc'), <FileSignature size={I} />, [
-        'sign pdf',
-        'ky tai lieu',
-      ]),
-      disabledHint: t('sign.soonHint'),
+      id: 'sign.signDoc',
+      title: t('sign.signDoc'),
+      short: t('sign.signDocShort'),
+      keywords: ['sign pdf', 'ky tai lieu', 'ky so', 'pades', 'token'],
+      group: 'tools',
+      icon: <FileSignature size={I} />,
+      enabled: has,
+      disabledHint: t('sign.needDoc'),
+      run: () => ui.openDialog('signDoc'),
+    },
+    {
+      id: 'sign.batchSign',
+      title: t('sign.batchSign'),
+      short: t('sign.batchSign'),
+      keywords: ['batch', 'hang loat', 'nhieu file', 'ky nhieu'],
+      group: 'tools',
+      icon: <Layers size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('batchSign'),
     },
     soon('stamp', t('soon.stamp'), <Stamp size={I} />, ['stamp', 'con dau']),
     soon('compress', t('soon.compress'), <Shrink size={I} />, ['compress', 'giam dung luong']),

@@ -41,6 +41,7 @@ const defaultSettings: Settings = {
   knownPfxFiles: [],
   lastDriverPath: null,
   signTemplates: [],
+  tsaUrls: [],
 };
 
 interface MockSession {
@@ -52,6 +53,8 @@ interface MockSession {
   password?: string;
   /** Simulated with ?signed in the URL (core: PDFs that already carry a signature). */
   signed?: boolean;
+  /** Signature fields of the mock document (sign.addField, sign.pades). */
+  fields?: { fieldName: string; page: number; rect: number[] | null; signed: boolean }[];
 }
 
 class MockRpcError extends Error {
@@ -86,6 +89,13 @@ const OP_IDS: string[] = [
   'sign.listTokens',
   'sign.diagnoseToken',
   'sign.verify',
+  'sign.pades',
+  'sign.padesToken',
+  'sign.addField',
+  'sign.listFields',
+  'sign.findAnchors',
+  'sign.placeFromAnchor',
+  'sign.batch',
   'sign.extractRevision',
   'sign.trustList',
   'sign.trustAdd',
@@ -129,6 +139,13 @@ const MOCK_SCAN_PRESETS = [
     params: { dpi: 200, color: 'color', effectsPreset: 'old-paper' },
   },
 ];
+
+/** Signing adds a signature to a signed document (several signers, I30). */
+const SIGN_ON_SIGNED_OPS: ReadonlySet<OpId> = new Set<OpId>([
+  'sign.pades',
+  'sign.padesToken',
+  'sign.addField',
+]);
 
 /** Session ops that do not rewrite the document (allowed on signed documents). */
 const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
@@ -178,6 +195,11 @@ function blobToDataUrl(blob: Blob): Promise<string> {
     r.onerror = () => reject(r.error);
     r.readAsDataURL(blob);
   });
+}
+
+/** PDFs of a folder for the mock file picker (batch signing). */
+function mockFolderPdfs(absDir: string): string[] {
+  return [`${absDir}/hopdong.pdf`, `${absDir}/bien-ban.pdf`, `${absDir}/khoa-mat-khau.pdf`];
 }
 
 /** Mock PFX password accepted by the mock certInfo op. */
@@ -530,7 +552,7 @@ export function createMockBridge(): ChefBridge {
   };
 
   async function runSessionOp(opId: OpId, params: unknown, s: MockSession): Promise<OpResult> {
-    if (s.signed && !READ_ONLY_SESSION_OPS.has(opId)) {
+    if (s.signed && !READ_ONLY_SESSION_OPS.has(opId) && !SIGN_ON_SIGNED_OPS.has(opId)) {
       throw new MockRpcError('BLOCKED_BY_SIGNATURE', 'Document is signed');
     }
     const doc = await loadDoc(getFile(s.revisions[s.rev]!));
@@ -777,6 +799,72 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
+      case 'sign.pades':
+      case 'sign.padesToken': {
+        // Mock: adds a signed field; the core writes the real signature.
+        const p = params as { page?: number; rect?: number[]; fieldName?: string; level?: string };
+        const fields = s.fields ?? [];
+        const fieldName = p.fieldName ?? `Signature${fields.length + 1}`;
+        s.fields = [
+          ...fields.filter((f) => f.fieldName !== fieldName),
+          { fieldName, page: p.page ?? 0, rect: p.rect ?? null, signed: true },
+        ];
+        s.signed = true;
+        r = {
+          ...result(p.page === undefined ? [] : [p.page]),
+          data: { fieldName, level: p.level ?? 'B-B', tsaUrl: null, signer: MOCK_CERT_INFO },
+        };
+        break;
+      }
+      case 'sign.addField': {
+        const p = params as { page: number; rect: number[]; fieldName?: string };
+        const fields = s.fields ?? [];
+        const fieldName = p.fieldName ?? `Signature${fields.length + 1}`;
+        s.fields = [...fields, { fieldName, page: p.page, rect: p.rect, signed: false }];
+        r = { ...result([p.page]), data: { fieldName } };
+        break;
+      }
+      case 'sign.listFields': {
+        modified = false;
+        r = { ...result([]), data: { fields: s.fields ?? [] } };
+        break;
+      }
+      case 'sign.findAnchors': {
+        // Mock: one match near the bottom of the last page for any text.
+        modified = false;
+        const pages = doc.getPageIndices();
+        const last = pages[pages.length - 1] ?? 0;
+        r = {
+          ...result([]),
+          data: {
+            matches: [
+              { pageIndex: last, rect: [72, 120, 240, 136], contextBefore: '', contextAfter: '' },
+            ],
+            truncated: false,
+          },
+        };
+        break;
+      }
+      case 'sign.placeFromAnchor': {
+        modified = false;
+        const p = params as {
+          anchors: { pageIndex: number; rect: number[] }[];
+          width: number;
+          height: number;
+        };
+        r = {
+          ...result([]),
+          data: {
+            placements: p.anchors.map((a, i) => ({
+              pageIndex: a.pageIndex,
+              rect: [a.rect[0]!, a.rect[1]! - 4 - p.height, a.rect[0]! + p.width, a.rect[1]! - 4],
+              anchorIndex: i,
+            })),
+            skipped: 0,
+          },
+        };
+        break;
+      }
       default:
         throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
     }
@@ -845,6 +933,52 @@ export function createMockBridge(): ChefBridge {
       const p = params as OpParams['sign.extractRevision'];
       putFile(p.outputPath, getFile(p.path));
       return { ...done(null), outputs: [p.outputPath] };
+    }
+    if (opId === 'sign.batch') {
+      // Mock: every file is signed except names containing "khoa" (encrypted: PASSWORD_REQUIRED).
+      const p = params as {
+        files: { path: string }[];
+        output?: { mode?: string; suffix?: string; folder?: string };
+      };
+      const results = p.files.map((f) => {
+        const name = f.path.split(/[\\/]/).pop() ?? f.path;
+        if (/khoa/i.test(name)) {
+          return {
+            path: f.path,
+            outputPath: null,
+            status: 'failed',
+            errorKind: 'PASSWORD_REQUIRED',
+            message: 'Password required',
+            fieldName: null,
+            page: null,
+            verification: null,
+            warnings: [],
+          };
+        }
+        const base = name.replace(/\.pdf$/i, '');
+        const dir = p.output?.folder ?? f.path.replace(/[\\/][^\\/]*$/, '');
+        const outputPath = `${dir}/${base}${p.output?.suffix ?? '_signed'}.pdf`;
+        return {
+          path: f.path,
+          outputPath,
+          status: 'signed',
+          errorKind: null,
+          message: null,
+          fieldName: 'Signature1',
+          page: 0,
+          verification: { status: 'valid-with-warnings', reasons: ['CERT_UNTRUSTED'] },
+          warnings: [],
+        };
+      });
+      const signed = results.filter((x) => x.status === 'signed').length;
+      return done({
+        results,
+        signed,
+        failed: results.length - signed,
+        skipped: 0,
+        openFolder: p.output?.folder ?? null,
+        stoppedBy: null,
+      });
     }
     if (opId === 'sign.trustList') return done({ entries: mockTrust });
     if (opId === 'sign.trustAdd') {
@@ -1062,6 +1196,9 @@ export function createMockBridge(): ChefBridge {
       openDialog: (options) =>
         options?.directory ? Promise.resolve(['/mock/out']) : pickFiles(options),
       pathForFile: () => '',
+      async listPdfs(absDir) {
+        return mockFolderPdfs(absDir);
+      },
       async readText(absPath) {
         return new TextDecoder().decode(getFile(absPath));
       },

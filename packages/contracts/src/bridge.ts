@@ -85,6 +85,8 @@ export interface Settings {
   lastDriverPath: string | null;
   /** Signature templates (I10). Missing in older files: defaults to []. At most 50. */
   signTemplates: SignTemplateEntry[];
+  /** Timestamp server URLs (I28), tried in order. Max 5, http(s) only. Missing in older files: []. */
+  tsaUrls: string[];
 }
 
 export type ChefEvent =
@@ -107,6 +109,8 @@ export interface ChefBridge {
     /** URL the renderer can fetch/pass to pdf.js for a local session file. */
     toUrl(absPath: string): string;
     showInFolder(absPath: string): Promise<void>;
+    /** PDF files directly inside a folder the user picked with openDialog({ directory: true }) (batch signing). */
+    listPdfs(absDir: string): Promise<string[]>;
     /** Reads a small .json file the user picked with openDialog (512 KB at most). */
     readText(absPath: string): Promise<string>;
     /** Writes a small .json file at a path chosen with saveDialog (512 KB at most). */

@@ -54,6 +54,7 @@ test('launches securely and exposes the full window.chef bridge', async () => {
     'settings',
   ]);
   expect(info.files).toEqual([
+    'listPdfs',
     'openDialog',
     'pathForFile',
     'readText',

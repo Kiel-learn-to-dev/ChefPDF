@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import {
   Clock,
   Combine,
-  FileSignature,
+  Layers,
   FileText,
   FolderOpen,
   ScanLine,
@@ -86,11 +86,12 @@ export function StartScreen() {
       onClick: () => void openScanFlow(),
     },
     {
-      id: 'sign',
-      title: t('soon.sign'),
-      text: t('start.signText'),
-      icon: <FileSignature size={22} />,
+      id: 'batchSign',
+      title: t('start.batchSignTitle'),
+      text: t('start.batchSignText'),
+      icon: <Layers size={22} />,
       tone: 'rose',
+      onClick: () => useUi.getState().openDialog('batchSign'),
     },
     {
       id: 'stamp',

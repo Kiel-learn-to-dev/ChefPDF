@@ -69,6 +69,7 @@ const bridge: ChefBridge = {
       return fileUrl(absPath);
     },
     showInFolder: (absPath) => ipcRenderer.invoke(IpcChannels.filesShowInFolder, absPath),
+    listPdfs: (absDir) => ipcRenderer.invoke(IpcChannels.filesListPdfs, absDir),
     readText: (absPath) => ipcRenderer.invoke(IpcChannels.filesReadText, absPath),
     writeText: (absPath, text) => ipcRenderer.invoke(IpcChannels.filesWriteText, absPath, text),
     pathForFile: (file) => {

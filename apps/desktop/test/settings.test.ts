@@ -11,13 +11,17 @@ import {
   sanitizeKnownPfx,
   MAX_SIGN_TEMPLATES,
   MAX_SIGN_TEMPLATE_BYTES,
+  MAX_TSA_URLS,
   sanitizeScanPresets,
+  sanitizeTsaUrls,
+  validateTsaUrls,
   sanitizeSettings,
   sanitizeSignTemplates,
   validateKnownPfx,
   validatePatch,
   validateScanPresets,
   validateSignTemplates,
+  SettingsValidationError,
 } from '../src/main/settings';
 
 function tmpDir(): string {
@@ -38,6 +42,7 @@ describe('SettingsStore', () => {
       knownPfxFiles: [],
       lastDriverPath: null,
       signTemplates: [],
+      tsaUrls: [],
     });
   });
 
@@ -354,5 +359,51 @@ describe('signature templates (I10)', () => {
     await store.set({ signTemplates: [entry('t1', { certFingerprint: FP_A })] });
     const again = new SettingsStore(dir);
     expect((await again.load()).signTemplates).toEqual([entry('t1', { certFingerprint: FP_A })]);
+  });
+});
+
+describe('timestamp servers (I28, tsaUrls)', () => {
+  it('reads older files without tsaUrls as an empty list', () => {
+    expect(sanitizeSettings({ version: 1 }).tsaUrls).toEqual([]);
+  });
+
+  it('keeps valid http(s) URLs from disk in order and drops the rest', () => {
+    expect(
+      sanitizeTsaUrls([
+        'https://tsa.example.vn/tsa',
+        'ftp://bad.example/',
+        42,
+        '  http://other.example.vn/ts ',
+        'https://tsa.example.vn/tsa',
+        'not a url',
+      ]),
+    ).toEqual(['https://tsa.example.vn/tsa', 'http://other.example.vn/ts']);
+  });
+
+  it('caps the list at five', () => {
+    const many = Array.from({ length: MAX_TSA_URLS + 3 }, (_, i) => `https://t${i}.example/`);
+    expect(sanitizeTsaUrls(many)).toHaveLength(MAX_TSA_URLS);
+  });
+
+  it('validates patches strictly', () => {
+    expect(validateTsaUrls(['https://tsa.example.vn/'])).toEqual(['https://tsa.example.vn/']);
+    expect(() => validateTsaUrls(['javascript:alert(1)'])).toThrow(SettingsValidationError);
+    expect(() => validateTsaUrls(['https://a.example/', 'https://a.example/'])).toThrow(
+      SettingsValidationError,
+    );
+    expect(() => validateTsaUrls(Array(MAX_TSA_URLS + 1).fill('https://a.example/'))).toThrow(
+      SettingsValidationError,
+    );
+    expect(() => validatePatch({ tsaUrls: 'https://a.example/' })).toThrow(SettingsValidationError);
+    expect(validatePatch({ tsaUrls: [] })).toEqual({ tsaUrls: [] });
+  });
+
+  it('persists the list and reloads it', async () => {
+    const dir = tmpDir();
+    const store = new SettingsStore(dir);
+    await store.load();
+    await store.set({ tsaUrls: ['https://tsa.example.vn/tsa'] });
+    const again = new SettingsStore(dir);
+    expect((await again.load()).tsaUrls).toEqual(['https://tsa.example.vn/tsa']);
   });
 });

@@ -36,6 +36,8 @@ export type DialogId =
   | 'trust'
   | 'signTemplates'
   | 'sigLibrary'
+  | 'signDoc'
+  | 'batchSign'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';
