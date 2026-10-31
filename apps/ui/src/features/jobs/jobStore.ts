@@ -23,6 +23,8 @@ export interface JobMeta {
   opId: string;
   title: string;
   sessionId?: SessionId;
+  /** Not listed in the job panel (quick background runs such as scan previews). */
+  silent?: boolean;
 }
 
 type JobEvent =
@@ -47,6 +49,8 @@ interface JobState {
 
 const MAX_KEPT = 30;
 const waiters = new Map<JobId, Waiter>();
+/** Jobs tracked without a row in the job list. */
+const silent = new Set<JobId>();
 /** Terminal events that arrived before `track` was called (race between ops.run reply and notifications). */
 const early = new Map<JobId, JobEvent[]>();
 
@@ -57,15 +61,19 @@ export const useJobStore = create<JobState>((set, get) => ({
     const promise = new Promise<OpResult>((resolve, reject) =>
       waiters.set(jobId, { resolve, reject }),
     );
-    const job: Job = {
-      id: jobId,
-      ...meta,
-      status: 'running',
-      done: 0,
-      total: 0,
-      startedAt: Date.now(),
-    };
-    set((s) => ({ jobs: [job, ...s.jobs.filter((j) => j.id !== jobId)].slice(0, MAX_KEPT) }));
+    const { silent: quiet, ...rest } = meta;
+    if (quiet) silent.add(jobId);
+    else {
+      const job: Job = {
+        id: jobId,
+        ...rest,
+        status: 'running',
+        done: 0,
+        total: 0,
+        startedAt: Date.now(),
+      };
+      set((s) => ({ jobs: [job, ...s.jobs.filter((j) => j.id !== jobId)].slice(0, MAX_KEPT) }));
+    }
     const buffered = early.get(jobId);
     if (buffered) {
       early.delete(jobId);
@@ -76,7 +84,7 @@ export const useJobStore = create<JobState>((set, get) => ({
 
   handle(event) {
     const { jobId } = event.payload;
-    if (!get().jobs.some((j) => j.id === jobId)) {
+    if (!silent.has(jobId) && !get().jobs.some((j) => j.id === jobId)) {
       early.set(jobId, [...(early.get(jobId) ?? []), event]);
       return;
     }
@@ -99,16 +107,19 @@ export const useJobStore = create<JobState>((set, get) => ({
           message: undefined,
         });
         waiters.delete(jobId);
+        silent.delete(jobId);
         waiter?.resolve(event.payload.result);
         return;
       case 'job.failed':
         patch({ status: 'failed', endedAt: Date.now(), error: event.payload.error.message });
         waiters.delete(jobId);
+        silent.delete(jobId);
         waiter?.reject(ChefError.fromRpcError(event.payload.error));
         return;
       case 'job.cancelled':
         patch({ status: 'cancelled', endedAt: Date.now() });
         waiters.delete(jobId);
+        silent.delete(jobId);
         waiter?.reject(new ChefError('CANCELLED', 'cancelled'));
         return;
     }
@@ -145,5 +156,6 @@ export function jobProgress(job: Job): number | null {
 export function resetJobStore() {
   waiters.clear();
   early.clear();
+  silent.clear();
   useJobStore.setState({ jobs: [] });
 }

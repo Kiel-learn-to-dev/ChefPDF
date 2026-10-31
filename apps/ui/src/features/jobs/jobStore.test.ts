@@ -78,4 +78,14 @@ describe('job store', () => {
     store.dismiss('a');
     expect(useJobStore.getState().jobs).toHaveLength(1);
   });
+
+  it('keeps silent jobs out of the job list but still resolves them', async () => {
+    const store = useJobStore.getState();
+    const p = store.track('quiet', { opId: 'scan.preview', title: 'Xem trước', silent: true });
+    expect(useJobStore.getState().jobs).toHaveLength(0);
+    store.handle({ name: 'job.progress', payload: { jobId: 'quiet', done: 1, total: 2 } });
+    store.handle({ name: 'job.finished', payload: { jobId: 'quiet', result } });
+    await expect(p).resolves.toBe(result);
+    expect(useJobStore.getState().jobs).toHaveLength(0);
+  });
 });

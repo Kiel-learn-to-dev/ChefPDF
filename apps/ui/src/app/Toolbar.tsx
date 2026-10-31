@@ -43,7 +43,7 @@ function CmdButton({
   pressed?: boolean;
 }) {
   if (!cmd) return null;
-  return (
+  const button = (
     <IconButton
       label={label && cmd.short ? cmd.short : cmd.title}
       icon={cmd.icon}
@@ -55,6 +55,15 @@ function CmdButton({
       className="toolbar__btn"
     />
   );
+  // Disabled buttons do not raise tooltip events, so the reason goes on a wrapper.
+  if (!cmd.enabled && cmd.disabledHint) {
+    return (
+      <span className="toolbar__hint" title={cmd.disabledHint}>
+        {button}
+      </span>
+    );
+  }
+  return button;
 }
 
 function ZoomControl({ docId }: { docId: string }) {
@@ -216,6 +225,8 @@ const PAGES_ITEMS: Item[] = [
 ];
 const PAGES_OVERFLOW = ['pages.selectAll', 'file.saveAs', 'file.print', 'view.panel'];
 
+const EXPORT_ITEMS: Item[] = [{ kind: 'cmd', id: 'tools.scan', label: true }];
+
 /** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */
 export function Toolbar() {
   const { t } = useTranslation();
@@ -231,7 +242,14 @@ export function Toolbar() {
   if (!doc) return null;
   const cmd = (id: string) => findCommand(commands, id);
 
-  const items = tab === 'view' ? VIEW_ITEMS : tab === 'pages' ? PAGES_ITEMS : [];
+  const items =
+    tab === 'view'
+      ? VIEW_ITEMS
+      : tab === 'pages'
+        ? PAGES_ITEMS
+        : tab === 'export'
+          ? EXPORT_ITEMS
+          : [];
   const overflow = tab === 'view' ? VIEW_OVERFLOW : tab === 'pages' ? PAGES_OVERFLOW : [];
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
@@ -287,27 +305,29 @@ export function Toolbar() {
                 return <Separator key={item.id + i} />;
             }
           })}
-          <DropdownMenu
-            align="end"
-            entries={overflow.map((id) => {
-              const c = cmd(id)!;
-              return {
-                id,
-                label: c.title,
-                icon: c.icon,
-                shortcut: c.shortcut,
-                disabled: !c.enabled,
-                onSelect: c.run,
-              };
-            })}
-            trigger={
-              <IconButton
-                label={t('toolbar.more')}
-                icon={<Ellipsis size={16} />}
-                className="toolbar__btn"
-              />
-            }
-          />
+          {overflow.length > 0 && (
+            <DropdownMenu
+              align="end"
+              entries={overflow.map((id) => {
+                const c = cmd(id)!;
+                return {
+                  id,
+                  label: c.title,
+                  icon: c.icon,
+                  shortcut: c.shortcut,
+                  disabled: !c.enabled,
+                  onSelect: c.run,
+                };
+              })}
+              trigger={
+                <IconButton
+                  label={t('toolbar.more')}
+                  icon={<Ellipsis size={16} />}
+                  className="toolbar__btn"
+                />
+              }
+            />
+          )}
         </div>
       ) : (
         <div className="toolbar__soon">

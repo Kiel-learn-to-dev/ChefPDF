@@ -46,7 +46,8 @@
     "find": "Find",
     "snapshot": "Snapshot",
     "present": "Present",
-    "print": "Print"
+    "print": "Print",
+    "scan": "Scan"
   },
   "cmd": {
     "open": "Open PDF",
@@ -93,10 +94,10 @@
     "shortcuts": "Keyboard shortcuts",
     "palette": "Command palette",
     "nextTab": "Next document",
-    "prevTab": "Previous document"
+    "prevTab": "Previous document",
+    "scan": "Convert to scan"
   },
   "soon": {
-    "scan": "Make it look scanned",
     "sign": "Digital signature",
     "stamp": "Stamp",
     "compress": "Compress",
@@ -121,7 +122,8 @@
     "removeRecent": "Remove from recent files",
     "dropHint": "No recent files yet. Drop PDF files here to open them.",
     "dropHintShort": "Tip: drop PDF files onto the window to open them.",
-    "paletteHint": "Find any command, accents optional:"
+    "paletteHint": "Find any command, accents optional:",
+    "scanTitle": "Convert to scan"
   },
   "palette": {
     "title": "Command palette",
@@ -545,5 +547,99 @@
     "CANCELLED": "Stopped.",
     "INTERNAL": "The processing core hit an error. Please try again.",
     "UNKNOWN": "Unknown error."
+  },
+  "scan": {
+    "title": "Convert to scan",
+    "description": "{{name}} · {{count}} pages",
+    "run": "Convert",
+    "jobTitle": "Convert {{name}} to scan",
+    "previewTitle": "Preview scan",
+    "fitTitle": "Find size settings",
+    "doneTitle": "Converted to scan",
+    "doneText": "Converted {{count}} pages to images. Text on these pages can no longer be selected or searched.",
+    "signedBlocked": "The document is digitally signed, so it cannot be converted (the signatures would break). Save a copy first and convert the copy.",
+    "dpiLimited": "Resolution lowered to {{dpi}} dpi to fit the page size. Run again to convert.",
+    "estimateValue": "~{{size}} · about {{time}}",
+    "estimating": "Estimating…",
+    "durationSeconds": "{{value}} s",
+    "durationMinutes": "{{value}} min",
+    "dpi": "Resolution",
+    "dpiChoice": "{{dpi}} dpi",
+    "dpiCustom": "Custom…",
+    "dpiCustomValue": "Custom dpi",
+    "colorLabel": "Color mode",
+    "colorMode": {
+      "color": "Color",
+      "gray": "Grayscale",
+      "bw": "Black and white (1 bit)"
+    },
+    "jpegQuality": "JPEG quality",
+    "jpegQualityHint": "For color and grayscale. Lower means a smaller file.",
+    "pages": "Pages",
+    "pagesHint": "Leave empty to convert all {{count}} pages. Example: 1-3, 5",
+    "allPages": "All pages",
+    "invalidPages": "Invalid page range (the document has {{count}} pages).",
+    "invalidDpi": "Enter a number from {{min}} to {{max}} dpi.",
+    "invalidJpeg": "Enter a number from 1 to 100.",
+    "invalidThreshold": "Enter a number from 0 to 255.",
+    "invalidSeed": "Enter a whole number, zero or more.",
+    "threshold": "Black and white threshold",
+    "thresholdHint": "Pixels at or above this gray level become white.",
+    "dithering": "Dither when converting to black and white",
+    "effectsLabel": "Scan effects",
+    "effectsHint": "Imitates old paper, photocopies and so on. Each page differs slightly.",
+    "effects": {
+      "none": "None",
+      "light": "Light",
+      "photocopy": "Photocopy",
+      "oldPaper": "Old paper"
+    },
+    "seed": "Random seed",
+    "seedHint": "The same number gives the same result.",
+    "stripMetadata": "Remove metadata",
+    "stripMetadataHint": "Drop the author, the creating software and other document information.",
+    "presetCustom": "Custom",
+    "presetSave": "Save these settings as a preset",
+    "presetSaveConfirm": "Save",
+    "presetDelete": "Delete this preset",
+    "presetName": "Preset name",
+    "presetIssue": {
+      "empty": "The name cannot be empty.",
+      "tooLong": "The name can be at most {{max}} characters.",
+      "duplicate": "A preset with this name already exists."
+    },
+    "fitLabel": "Compress to file ≤ (MB)",
+    "fitHint": "Finds a suitable resolution and quality, based on a few sample pages.",
+    "fitRun": "Find settings",
+    "fit": {
+      "done": "Chose {{dpi}} dpi, quality {{quality}}. Estimated {{size}}.",
+      "unreachable": "Cannot reach ≤ {{mb}} MB even at the lowest setting. Closest: {{dpi}} dpi, quality {{quality}}, estimated {{size}}."
+    },
+    "previewLoading": "Creating preview…",
+    "previewEmpty": "No preview yet.",
+    "compare": {
+      "label": "Comparison",
+      "side": "Side by side",
+      "slider": "Slider",
+      "split": "Comparison position"
+    },
+    "zoom": {
+      "label": "Zoom",
+      "fit": "Fit",
+      "actual": "100%"
+    },
+    "samplePages": "Preview pages",
+    "pageN": "Page {{page}}",
+    "original": "Original",
+    "result": "Result",
+    "sampleMeta": "Result image {{width}} × {{height}} px",
+    "warn": {
+      "text": "Text will be lost: the pages become images with no text to select or search.",
+      "links": "Links will be lost.",
+      "bookmarks": "Bookmarks will be lost.",
+      "forms": "Form fields will be lost.",
+      "signatures": "Digital signatures will be lost."
+    },
+    "unitMb": "MB"
   }
 }

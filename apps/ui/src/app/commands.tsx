@@ -67,6 +67,7 @@ import {
   targetPages,
 } from '../features/pages/pageActions';
 import { getSelection } from '../features/pages/pageStore';
+import { openScanFlow } from '../features/scan/ScanDialog';
 
 export type CommandGroup = 'file' | 'edit' | 'view' | 'pages' | 'tools' | 'app' | 'soon';
 
@@ -82,6 +83,8 @@ export interface Command {
   /** Extra shortcuts (not displayed). */
   altShortcuts?: string[];
   enabled: boolean;
+  /** Why the command is disabled, shown as a tooltip where the toolbar can show one. */
+  disabledHint?: string;
   /** Feature planned for a later milestone. */
   comingSoon?: boolean;
   /** Allow the shortcut while typing in an input. */
@@ -107,6 +110,7 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
   const pagesReady = has && doc.busy === 0;
   // Signed documents: rewrite ops are blocked by the core (BLOCKED_BY_SIGNATURE); extract/split/merge still work.
   const canRewrite = pagesReady && !doc.state.signed;
+  const canScan = pagesReady && !doc.state.signed;
   const mode = (m: ViewMode) => () => {
     if (viewer()) viewer()!.setMode(m);
     else useViewStore.getState().patch(id, { mode: m });
@@ -523,6 +527,21 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: has,
       run: () => ui.openDialog('split'),
     },
+    {
+      id: 'tools.scan',
+      title: t('cmd.scan'),
+      short: t('toolbar.scan'),
+      keywords: ['scan', 'ban scan', 'chuyen thanh ban scan', 'anh', 'image'],
+      group: 'tools',
+      icon: <ScanLine size={I} />,
+      // Without a document the command asks for a PDF first; signed documents are blocked by the core.
+      enabled: !has || canScan,
+      disabledHint: doc?.state.signed ? t('scan.signedBlocked') : undefined,
+      run: () => {
+        if (has) ui.openDialog('scan');
+        else void openScanFlow();
+      },
+    },
     // App
     {
       id: 'app.home',
@@ -582,7 +601,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       run: () => cycleTab(-1),
     },
     // Coming soon (later milestones) so the palette can still find them.
-    soon('scan', t('soon.scan'), <ScanLine size={I} />, ['scan']),
     soon('sign', t('soon.sign'), <FileSignature size={I} />, ['sign', 'signature', 'chu ky']),
     soon('stamp', t('soon.stamp'), <Stamp size={I} />, ['stamp', 'con dau']),
     soon('compress', t('soon.compress'), <Shrink size={I} />, ['compress', 'giam dung luong']),

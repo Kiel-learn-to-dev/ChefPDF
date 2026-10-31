@@ -22,6 +22,8 @@ export interface RunOpOptions {
   title: string;
   /** Called with the job id as soon as the core accepted the job (for progress / cancel). */
   onStarted?(jobId: string): void;
+  /** Keep the job out of the job panel (quick background runs). */
+  silent?: boolean;
 }
 
 /** Start an operation and wait for its result (job.finished). */
@@ -35,9 +37,12 @@ export async function runOp<K extends OpId>(
     opId,
     params,
   });
-  const result = useJobStore
-    .getState()
-    .track(jobId, { opId, title: options.title, sessionId: options.sessionId });
+  const result = useJobStore.getState().track(jobId, {
+    opId,
+    title: options.title,
+    sessionId: options.sessionId,
+    silent: options.silent,
+  });
   options.onStarted?.(jobId);
   return result;
 }

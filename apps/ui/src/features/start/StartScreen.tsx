@@ -24,6 +24,7 @@ import { chef } from '../../lib/bridge';
 import { formatRelative } from '../../lib/format';
 import { dirname } from '../../lib/path';
 import { Logo } from '../../app/Logo';
+import { openScanFlow } from '../scan/ScanDialog';
 import './StartScreen.css';
 
 interface Tile {
@@ -78,10 +79,11 @@ export function StartScreen() {
     },
     {
       id: 'scan',
-      title: t('soon.scan'),
+      title: t('start.scanTitle'),
       text: t('start.scanText'),
       icon: <ScanLine size={22} />,
       tone: 'amber',
+      onClick: () => void openScanFlow(),
     },
     {
       id: 'sign',

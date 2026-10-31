@@ -5,6 +5,8 @@
  * Page indices are 0-based.
  */
 
+import type { ScanFitSizeParams, ScanPreviewParams, ScanRasterizeParams } from '@chef/contracts';
+
 export type RotateAngle = 90 | 180 | 270;
 export type SplitMode = 'ranges' | 'everyN' | 'bookmarks' | 'maxSize' | 'oddEven';
 export type ImageSource = { path: string } | { dataUrl: string };
@@ -36,6 +38,9 @@ export interface OpParams {
     outputDir: string;
     nameTemplate: string;
   };
+  'scan.rasterize': ScanRasterizeParams;
+  'scan.preview': ScanPreviewParams;
+  'scan.fitSize': ScanFitSizeParams;
 }
 
 export type OpId = keyof OpParams;

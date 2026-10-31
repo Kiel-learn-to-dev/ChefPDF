@@ -9,6 +9,7 @@ export const fallbackSettings: Settings = {
   defaultSaveDir: null,
   recentFiles: [],
   prefs: {},
+  scanPresets: [],
 };
 
 interface SettingsState {

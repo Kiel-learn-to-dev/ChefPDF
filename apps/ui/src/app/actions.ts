@@ -221,28 +221,44 @@ async function refreshInfo(id: string) {
   }
 }
 
+export interface RunDocOpOptions {
+  /** Receives the job id once the core accepted the job (progress / cancel). */
+  onStarted?(jobId: string): void;
+  /** Return true to handle the error yourself (no error toast). */
+  onError?(e: unknown): boolean;
+  /** Show the result warnings as toasts (default true). */
+  toastWarnings?: boolean;
+}
+
 /**
  * Run an op on a document session and apply the result (new revision).
- * Returns null when it failed (an error toast was shown).
+ * Returns null when it failed (an error toast was shown, unless onError handled it).
  */
 export async function runDocOp<K extends OpId>(
   id: string,
   opId: K,
   params: OpParams[K],
   title: string,
+  options: RunDocOpOptions = {},
 ): Promise<OpResult | null> {
   const docs = useDocs.getState();
   docs.setBusy(id, 1);
   try {
-    const result = await runOp(opId, params, { sessionId: id, title });
+    const result = await runOp(opId, params, {
+      sessionId: id,
+      title,
+      onStarted: options.onStarted,
+    });
     const info = await call('session.info', { sessionId: id }).catch(() => undefined);
     // OpResult.state is null for standalone ops; session ops always return it.
     const state = result.state as SessionState | null;
     if (state) useDocs.getState().applyState(id, state, result.changedPages, info);
-    for (const w of result.warnings) toast.warning(title, w);
+    if (options.toastWarnings !== false) {
+      for (const w of result.warnings) toast.warning(title, w);
+    }
     return result;
   } catch (e) {
-    showError(e, t('errors.opFailed', { title }));
+    if (!options.onError?.(e)) showError(e, t('errors.opFailed', { title }));
     return null;
   } finally {
     useDocs.getState().setBusy(id, -1);

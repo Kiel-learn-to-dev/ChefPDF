@@ -9,6 +9,7 @@ import { SplitDialog } from '../features/split/SplitDialog';
 import { SettingsDialog } from '../features/settings/SettingsDialog';
 import { PrintDialog } from '../features/print/PrintDialog';
 import { PropertiesDialog } from '../features/viewer/PropertiesDialog';
+import { ScanDialog } from '../features/scan/ScanDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -68,6 +69,8 @@ export function DialogHost() {
       return <InsertFromFileDialog />;
     case 'insertImages':
       return <InsertImagesDialog />;
+    case 'scan':
+      return <ScanDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

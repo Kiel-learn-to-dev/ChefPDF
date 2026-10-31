@@ -4,10 +4,13 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   MAX_RECENT_FILES,
+  MAX_SCAN_PRESETS,
   SettingsStore,
   defaultSettings,
+  sanitizeScanPresets,
   sanitizeSettings,
   validatePatch,
+  validateScanPresets,
 } from '../src/main/settings';
 
 function tmpDir(): string {
@@ -24,6 +27,7 @@ describe('SettingsStore', () => {
       defaultSaveDir: null,
       recentFiles: [],
       prefs: {},
+      scanPresets: [],
     });
   });
 
@@ -123,6 +127,65 @@ describe('SettingsStore', () => {
     await store.addRecent(path.resolve('/Docs/A.pdf'));
     const s = await store.addRecent(path.resolve('/docs/a.PDF'));
     expect(s.recentFiles).toHaveLength(1);
+  });
+
+  it('reads older settings files without scanPresets as an empty list', () => {
+    const s = sanitizeSettings({ version: 1, language: 'en', theme: 'light' });
+    expect(s.scanPresets).toEqual([]);
+    expect(s.language).toBe('en');
+  });
+
+  it('keeps valid scan presets from disk and drops malformed or duplicate ones', () => {
+    const s = sanitizeSettings({
+      scanPresets: [
+        { name: '  Hồ sơ  ', params: { dpi: 300, color: 'gray' } },
+        { name: 'hồ sơ', params: { dpi: 200 } },
+        { name: '', params: {} },
+        { name: 'x', params: [] },
+        { name: 'y'.repeat(61), params: {} },
+        { name: 'big', params: { t: 'z'.repeat(5000) } },
+        'nope',
+      ],
+    });
+    expect(s.scanPresets).toEqual([{ name: 'Hồ sơ', params: { dpi: 300, color: 'gray' } }]);
+    expect(sanitizeScanPresets('not a list')).toEqual([]);
+    const many = Array.from({ length: MAX_SCAN_PRESETS + 5 }, (_, i) => ({
+      name: `p${i}`,
+      params: {},
+    }));
+    expect(sanitizeScanPresets(many)).toHaveLength(MAX_SCAN_PRESETS);
+  });
+
+  it('validates scan preset patches strictly', () => {
+    expect(validatePatch({ scanPresets: [{ name: ' A ', params: { dpi: 150 } }] })).toEqual({
+      scanPresets: [{ name: 'A', params: { dpi: 150 } }],
+    });
+    expect(validatePatch({ scanPresets: [] })).toEqual({ scanPresets: [] });
+    expect(() => validateScanPresets([{ name: '', params: {} }])).toThrow(/Invalid scan preset/);
+    expect(() =>
+      validateScanPresets([
+        { name: 'a', params: {} },
+        { name: 'A', params: {} },
+      ]),
+    ).toThrow(/Duplicate/);
+    expect(() => validateScanPresets('x')).toThrow(/array/);
+    expect(() =>
+      validateScanPresets(
+        Array.from({ length: MAX_SCAN_PRESETS + 1 }, (_, i) => ({ name: `n${i}`, params: {} })),
+      ),
+    ).toThrow(/at most/);
+    expect(() => validatePatch({ scanPresets: [{ name: 'a', params: 'x' }] })).toThrow(
+      /Invalid scan preset/,
+    );
+  });
+
+  it('persists scan presets and reloads them', async () => {
+    const dir = tmpDir();
+    const store = new SettingsStore(dir);
+    await store.load();
+    await store.set({ scanPresets: [{ name: 'Lưu', params: { dpi: 300, color: 'bw' } }] });
+    const again = await new SettingsStore(dir).load();
+    expect(again.scanPresets).toEqual([{ name: 'Lưu', params: { dpi: 300, color: 'bw' } }]);
   });
 
   it('notifies change listeners', async () => {

@@ -15,6 +15,8 @@ export interface TaskPreset<V extends string = string> {
   value: V;
   options: SelectOption<V>[];
   onChange(value: V): void;
+  /** Buttons next to the preset select (save / delete a preset). */
+  actions?: ReactNode;
 }
 
 export interface TaskApplyTo {
@@ -52,6 +54,8 @@ export interface TaskDialogProps {
   progress?: number | null;
   onCancelRun?(): void;
   size?: 'md' | 'lg' | 'xl';
+  /** Width of the preview column in px (default 300). */
+  sideWidth?: number;
 }
 
 /**
@@ -78,9 +82,12 @@ export function TaskDialog({
   progress,
   onCancelRun,
   size,
+  sideWidth,
 }: TaskDialogProps) {
   const { t } = useTranslation();
   const hasSide = preview !== undefined || estimate !== undefined;
+  const splitStyle =
+    sideWidth !== undefined ? { gridTemplateColumns: `minmax(0, 1fr) ${sideWidth}px` } : undefined;
   return (
     <Dialog
       open={open}
@@ -134,16 +141,19 @@ export function TaskDialog({
         </>
       }
     >
-      <div className={clsx('task', hasSide && 'task--split')}>
+      <div className={clsx('task', hasSide && 'task--split')} style={splitStyle}>
         <div className="task__main">
           {preset && (
             <Field label={t('task.preset')}>
-              <Select
-                value={preset.value}
-                onChange={preset.onChange}
-                options={preset.options}
-                aria-label={t('task.preset')}
-              />
+              <div className="task__preset-row">
+                <Select
+                  value={preset.value}
+                  onChange={preset.onChange}
+                  options={preset.options}
+                  aria-label={t('task.preset')}
+                />
+                {preset.actions}
+              </div>
             </Field>
           )}
           <div className="task__options">{children}</div>

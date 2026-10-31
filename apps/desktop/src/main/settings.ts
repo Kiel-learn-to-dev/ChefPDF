@@ -4,10 +4,19 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { LanguageSetting, RecentFile, Settings, ThemeSetting } from '@chef/contracts';
+import type {
+  LanguageSetting,
+  RecentFile,
+  ScanUserPreset,
+  Settings,
+  ThemeSetting,
+} from '@chef/contracts';
 import { atomicWriteFile, isPlainObject, readJsonFile } from './fsutil';
 
 export const MAX_RECENT_FILES = 20;
+export const MAX_SCAN_PRESETS = 50;
+export const MAX_SCAN_PRESET_NAME = 60;
+const MAX_SCAN_PRESET_PARAMS_BYTES = 4096;
 const MAX_PREFS_BYTES = 1024 * 1024;
 const LANGUAGES: readonly LanguageSetting[] = ['vi', 'en'];
 const THEMES: readonly ThemeSetting[] = ['system', 'light', 'dark'];
@@ -20,6 +29,7 @@ export function defaultSettings(): Settings {
     defaultSaveDir: null,
     recentFiles: [],
     prefs: {},
+    scanPresets: [],
   };
 }
 
@@ -44,6 +54,58 @@ function validRecent(v: unknown): v is RecentFile {
     typeof v.name === 'string' &&
     typeof v.openedAt === 'string'
   );
+}
+
+/** Trimmed name + JSON-serialisable params of a scan preset, or null when malformed. */
+function normalizeScanPreset(v: unknown): ScanUserPreset | null {
+  if (!isPlainObject(v) || typeof v.name !== 'string' || !isPlainObject(v.params)) return null;
+  const name = v.name.trim();
+  if (name.length === 0 || name.length > MAX_SCAN_PRESET_NAME) return null;
+  let json: string;
+  try {
+    json = JSON.stringify(v.params);
+  } catch {
+    return null;
+  }
+  if (json.length > MAX_SCAN_PRESET_PARAMS_BYTES) return null;
+  return { name, params: JSON.parse(json) as Record<string, unknown> };
+}
+
+/** Lower-cased name for the case-insensitive uniqueness check. */
+const presetKey = (name: string) => name.toLowerCase();
+
+/** Keeps valid, uniquely named presets from untrusted disk data (invalid entries are dropped). */
+export function sanitizeScanPresets(raw: unknown): ScanUserPreset[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ScanUserPreset[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const preset = normalizeScanPreset(item);
+    if (!preset || seen.has(presetKey(preset.name))) continue;
+    seen.add(presetKey(preset.name));
+    out.push(preset);
+    if (out.length >= MAX_SCAN_PRESETS) break;
+  }
+  return out;
+}
+
+/** Validates a renderer-provided list of scan presets strictly (throws on the first bad entry). */
+export function validateScanPresets(value: unknown): ScanUserPreset[] {
+  if (!Array.isArray(value) || value.length > MAX_SCAN_PRESETS) {
+    throw new SettingsValidationError(
+      `scanPresets must be an array of at most ${MAX_SCAN_PRESETS}`,
+    );
+  }
+  const seen = new Set<string>();
+  return value.map((item) => {
+    const preset = normalizeScanPreset(item);
+    if (!preset) throw new SettingsValidationError('Invalid scan preset');
+    if (seen.has(presetKey(preset.name))) {
+      throw new SettingsValidationError(`Duplicate scan preset name: ${preset.name}`);
+    }
+    seen.add(presetKey(preset.name));
+    return preset;
+  });
 }
 
 function dedupeRecent(list: RecentFile[], platform: NodeJS.Platform): RecentFile[] {
@@ -77,6 +139,7 @@ export function sanitizeSettings(
     );
   }
   if (isPlainObject(raw.prefs)) s.prefs = raw.prefs;
+  s.scanPresets = sanitizeScanPresets(raw.scanPresets);
   return s;
 }
 
@@ -116,6 +179,9 @@ export function validatePatch(
           value.map((r) => ({ path: r.path, name: r.name, openedAt: r.openedAt })),
           platform,
         );
+        break;
+      case 'scanPresets':
+        out.scanPresets = validateScanPresets(value);
         break;
       case 'prefs': {
         if (!isPlainObject(value)) throw new SettingsValidationError('prefs must be an object');

@@ -46,7 +46,8 @@
     "find": "Tìm",
     "snapshot": "Chụp vùng",
     "present": "Trình chiếu",
-    "print": "In"
+    "print": "In",
+    "scan": "Bản scan"
   },
   "cmd": {
     "open": "Mở PDF",
@@ -93,10 +94,10 @@
     "shortcuts": "Phím tắt",
     "palette": "Bảng lệnh",
     "nextTab": "Tài liệu kế tiếp",
-    "prevTab": "Tài liệu trước"
+    "prevTab": "Tài liệu trước",
+    "scan": "Chuyển thành bản scan"
   },
   "soon": {
-    "scan": "Chuyển thành bản scan",
     "sign": "Ký số",
     "stamp": "Đóng dấu",
     "compress": "Nén",
@@ -121,7 +122,8 @@
     "removeRecent": "Bỏ khỏi danh sách gần đây",
     "dropHint": "Chưa có file gần đây. Kéo thả file PDF vào đây để mở.",
     "dropHintShort": "Mẹo: kéo thả file PDF vào cửa sổ để mở.",
-    "paletteHint": "Tìm mọi lệnh, gõ không dấu cũng được:"
+    "paletteHint": "Tìm mọi lệnh, gõ không dấu cũng được:",
+    "scanTitle": "Chuyển thành bản scan"
   },
   "palette": {
     "title": "Bảng lệnh",
@@ -526,5 +528,99 @@
     "CANCELLED": "Đã dừng.",
     "INTERNAL": "Lõi xử lý gặp lỗi. Bạn thử lại nhé.",
     "UNKNOWN": "Lỗi không xác định."
+  },
+  "scan": {
+    "title": "Chuyển thành bản scan",
+    "description": "{{name}} · {{count}} trang",
+    "run": "Chuyển đổi",
+    "jobTitle": "Chuyển {{name}} thành bản scan",
+    "previewTitle": "Xem trước bản scan",
+    "fitTitle": "Tìm thiết lập nén",
+    "doneTitle": "Đã chuyển thành bản scan",
+    "doneText": "Đã chuyển {{count}} trang thành ảnh. Chữ trong các trang này không còn chọn hay tìm được nữa.",
+    "signedBlocked": "Tài liệu đã ký số nên không chuyển được (sẽ làm hỏng chữ ký). Hãy lưu một bản sao rồi chuyển bản sao đó.",
+    "dpiLimited": "Độ phân giải đã giảm xuống {{dpi}} dpi để vừa kích thước trang. Bấm lại để chuyển.",
+    "estimateValue": "~{{size}} · khoảng {{time}}",
+    "estimating": "Đang ước tính…",
+    "durationSeconds": "{{value}} giây",
+    "durationMinutes": "{{value}} phút",
+    "dpi": "Độ phân giải",
+    "dpiChoice": "{{dpi}} dpi",
+    "dpiCustom": "Tùy chỉnh…",
+    "dpiCustomValue": "Số dpi tùy chỉnh",
+    "colorLabel": "Chế độ màu",
+    "colorMode": {
+      "color": "Màu",
+      "gray": "Xám",
+      "bw": "Đen trắng (1 bit)"
+    },
+    "jpegQuality": "Chất lượng JPEG",
+    "jpegQualityHint": "Dùng cho ảnh màu và xám. Càng thấp thì file càng nhẹ.",
+    "pages": "Trang",
+    "pagesHint": "Để trống để chuyển cả {{count}} trang. Ví dụ: 1-3, 5",
+    "allPages": "Tất cả trang",
+    "invalidPages": "Khoảng trang chưa đúng (tài liệu có {{count}} trang).",
+    "invalidDpi": "Nhập số từ {{min}} đến {{max}} dpi.",
+    "invalidJpeg": "Nhập số từ 1 đến 100.",
+    "invalidThreshold": "Nhập số từ 0 đến 255.",
+    "invalidSeed": "Nhập số nguyên không âm.",
+    "threshold": "Ngưỡng đen trắng",
+    "thresholdHint": "Điểm có độ sáng từ mức này trở lên sẽ thành trắng.",
+    "dithering": "Rắc điểm (dithering) khi chuyển đen trắng",
+    "effectsLabel": "Hiệu ứng scan",
+    "effectsHint": "Giả lập giấy cũ, bản photocopy… Mỗi trang khác nhau một chút.",
+    "effects": {
+      "none": "Không có",
+      "light": "Nhẹ",
+      "photocopy": "Bản photocopy",
+      "oldPaper": "Giấy cũ"
+    },
+    "seed": "Hạt ngẫu nhiên",
+    "seedHint": "Cùng số này thì cùng một kết quả.",
+    "stripMetadata": "Xóa metadata",
+    "stripMetadataHint": "Bỏ tên tác giả, phần mềm tạo file và các thông tin khác trong tài liệu.",
+    "presetCustom": "Tùy chỉnh",
+    "presetSave": "Lưu thiết lập này thành preset",
+    "presetSaveConfirm": "Lưu",
+    "presetDelete": "Xóa preset này",
+    "presetName": "Tên preset",
+    "presetIssue": {
+      "empty": "Tên không được để trống.",
+      "tooLong": "Tên dài tối đa {{max}} ký tự.",
+      "duplicate": "Đã có preset hoặc mẫu có tên này."
+    },
+    "fitLabel": "Nén sao cho file ≤ (MB)",
+    "fitHint": "Tự tìm độ phân giải và chất lượng phù hợp, dựa trên vài trang mẫu.",
+    "fitRun": "Tìm thiết lập",
+    "fit": {
+      "done": "Đã chọn {{dpi}} dpi, chất lượng {{quality}}. Ước tính {{size}}.",
+      "unreachable": "Không đạt được ≤ {{mb}} MB, dù đã thử mức thấp nhất. Gần nhất: {{dpi}} dpi, chất lượng {{quality}}, ước tính {{size}}."
+    },
+    "previewLoading": "Đang tạo xem trước…",
+    "previewEmpty": "Chưa có xem trước.",
+    "compare": {
+      "label": "Kiểu so sánh",
+      "side": "Hai ảnh",
+      "slider": "Thanh trượt",
+      "split": "Vị trí so sánh"
+    },
+    "zoom": {
+      "label": "Phóng to",
+      "fit": "Vừa khung",
+      "actual": "100%"
+    },
+    "samplePages": "Trang xem trước",
+    "pageN": "Trang {{page}}",
+    "original": "Gốc",
+    "result": "Kết quả",
+    "sampleMeta": "Ảnh kết quả {{width}} × {{height}} px",
+    "warn": {
+      "text": "Chữ sẽ mất: trang thành ảnh nên không còn chữ để chọn hay tìm.",
+      "links": "Liên kết sẽ mất.",
+      "bookmarks": "Bookmark sẽ mất.",
+      "forms": "Các ô form sẽ mất.",
+      "signatures": "Chữ ký số sẽ mất."
+    },
+    "unitMb": "MB"
   }
 }

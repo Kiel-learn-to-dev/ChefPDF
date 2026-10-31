@@ -26,6 +26,12 @@ describe('validateRpcCall', () => {
     });
   });
 
+  it('forwards the scan methods (scan.presets is reachable from the renderer)', () => {
+    expect(validateRpcCall('scan.presets', {})).toEqual({ method: 'scan.presets', params: {} });
+    expect(validateRpcCall('scan.presets', undefined).method).toBe('scan.presets');
+    expect(validateRpcCall('ops.run', { opId: 'scan.preview', params: {} }).method).toBe('ops.run');
+  });
+
   it('rejects malformed methods, main-only methods and non-object params', () => {
     for (const m of ['', 'ping', 'System.ping', 'a..b', 'a.b c', 42, 'x.' + 'y'.repeat(200)]) {
       expect(() => validateRpcCall(m, {})).toThrow();

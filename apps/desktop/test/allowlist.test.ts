@@ -42,6 +42,22 @@ describe('PathAllowlist (lexical, posix)', () => {
   });
 });
 
+describe('PathAllowlist (scan previews)', () => {
+  // scan.preview writes PNGs to <sessions>/<sessionId>/preview/, inside the sessions root.
+  const sessions = '/data/sessions';
+  const list = new PathAllowlist([sessions], { platform: 'linux', realpath: identity });
+
+  it('allows the preview images of a session', () => {
+    expect(list.isAllowed('/data/sessions/s1/preview/abcd1234-p0-original.png')).toBe(true);
+    expect(list.isAllowed('/data/sessions/s1/preview/abcd1234-p0-result.png')).toBe(true);
+  });
+
+  it('does not allow previews escaping their session', () => {
+    expect(list.isAllowed('/data/sessions/s1/preview/../../../settings.json')).toBe(false);
+    expect(list.isAllowed('/data/sessions/s1/preview/../../../etc/x.png')).toBe(false);
+  });
+});
+
 describe('PathAllowlist (win32)', () => {
   it('compares case-insensitively', () => {
     const l = new PathAllowlist(['C:\\Users\\me\\AppData\\Roaming\\Chef PDF\\sessions'], {

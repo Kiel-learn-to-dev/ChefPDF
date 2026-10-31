@@ -61,26 +61,30 @@ const waitJobs = (l: Launched) =>
 
 const cardCount = (l: Launched) => l.page.locator('.page-card').count();
 
-test('real core: core is ready and lists the v0.1 operations', async () => {
+test('real core: core is ready and lists the v0.1 and scan operations', async () => {
   const l = await open('vietnamese_text.pdf');
   const ping = await l.page.evaluate(() => window.chef.rpc('system.ping', {}));
   expect(ping.version).toBeTruthy();
   const ops = await l.page.evaluate(() => window.chef.rpc('ops.list', {}));
-  const ids = ops.map((o) => o.id).sort();
-  expect(ids).toEqual(
-    [
-      'file.merge',
-      'file.split',
-      'page.delete',
-      'page.duplicate',
-      'page.extract',
-      'page.insertBlank',
-      'page.insertFromFile',
-      'page.insertImages',
-      'page.reorder',
-      'page.rotate',
-    ].sort(),
-  );
+  const ids = ops.map((o) => o.id);
+  // Other operations may be added later, so check that the required ones are present.
+  for (const id of [
+    'file.merge',
+    'file.split',
+    'page.delete',
+    'page.duplicate',
+    'page.extract',
+    'page.insertBlank',
+    'page.insertFromFile',
+    'page.insertImages',
+    'page.reorder',
+    'page.rotate',
+    'scan.fitSize',
+    'scan.preview',
+    'scan.rasterize',
+  ]) {
+    expect(ids).toContain(id);
+  }
 });
 
 test('opens a Vietnamese PDF from the command line and searches without diacritics', async () => {

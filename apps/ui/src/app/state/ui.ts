@@ -12,7 +12,11 @@ export const FUNCTION_TABS = [
 ] as const;
 export type FunctionTab = (typeof FUNCTION_TABS)[number];
 /** Tabs that have tools in v0.1. */
-export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>(['view', 'pages']);
+export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>([
+  'view',
+  'pages',
+  'export',
+]);
 
 export type SidebarTab = 'thumbnails' | 'outline';
 export type ViewerTool = 'select' | 'snapshot';
@@ -25,6 +29,7 @@ export type DialogId =
   | 'insertBlank'
   | 'insertFromFile'
   | 'insertImages'
+  | 'scan'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

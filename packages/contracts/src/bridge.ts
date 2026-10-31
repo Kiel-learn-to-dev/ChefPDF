@@ -18,6 +18,12 @@ export interface RecentFile {
 export type ThemeSetting = 'system' | 'light' | 'dark';
 export type LanguageSetting = 'vi' | 'en';
 
+/** A user-saved preset for "Chuyển thành bản scan" (K8). `params` is a scan.rasterize wire object without `pages`. */
+export interface ScanUserPreset {
+  name: string;
+  params: Record<string, unknown>;
+}
+
 export interface Settings {
   version: 1;
   language: LanguageSetting;
@@ -26,6 +32,8 @@ export interface Settings {
   recentFiles: RecentFile[];
   /** Free-form per-feature preferences, keyed by feature code (e.g. "K"). */
   prefs: Record<string, unknown>;
+  /** User presets for scan conversion (K8). Missing in older files: defaults to []. */
+  scanPresets: ScanUserPreset[];
 }
 
 export type ChefEvent =

@@ -36,6 +36,7 @@ const defaultSettings: Settings = {
   defaultSaveDir: null,
   recentFiles: [],
   prefs: {},
+  scanPresets: [],
 };
 
 interface MockSession {
@@ -73,7 +74,71 @@ const OP_IDS: OpId[] = [
   'page.insertImages',
   'file.merge',
   'file.split',
+  'scan.rasterize',
+  'scan.preview',
+  'scan.fitSize',
 ];
+
+/** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
+const MOCK_SCAN_PRESETS = [
+  {
+    name: 'email-light',
+    labelVi: 'Nhẹ để gửi email',
+    labelEn: 'Light for email',
+    params: { dpi: 150, color: 'gray', jpegQuality: 60 },
+  },
+  {
+    name: 'archive',
+    labelVi: 'Lưu trữ',
+    labelEn: 'Archive',
+    params: { dpi: 300, color: 'color', jpegQuality: 80 },
+  },
+  {
+    name: 'fax-bw',
+    labelVi: 'Fax đen trắng',
+    labelEn: 'Black and white fax',
+    params: { dpi: 200, color: 'bw', dithering: false, threshold: 140 },
+  },
+  {
+    name: 'photocopy',
+    labelVi: 'Bản photocopy',
+    labelEn: 'Photocopy',
+    params: { dpi: 200, color: 'gray', effectsPreset: 'photocopy' },
+  },
+  {
+    name: 'old-document',
+    labelVi: 'Tài liệu cũ',
+    labelEn: 'Old document',
+    params: { dpi: 200, color: 'color', effectsPreset: 'old-paper' },
+  },
+];
+
+/** Session ops that do not rewrite the document (allowed on signed documents). */
+const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
+  'page.extract',
+  'file.split',
+  'scan.preview',
+  'scan.fitSize',
+]);
+
+/** A small grey PNG with a label, standing in for rendered page images in the mock. */
+async function placeholderPng(label: string, width: number, height: number): Promise<Uint8Array> {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#f4f1e8';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#555';
+    ctx.font = '28px sans-serif';
+    ctx.fillText(label, 24, 48);
+  }
+  const blob = await new Promise<Blob>((resolve) =>
+    canvas.toBlob((b) => resolve(b ?? new Blob()), 'image/png'),
+  );
+  return new Uint8Array(await blob.arrayBuffer());
+}
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -235,7 +300,7 @@ export function createMockBridge(): ChefBridge {
   };
 
   async function runSessionOp(opId: OpId, params: unknown, s: MockSession): Promise<OpResult> {
-    if (s.signed && opId !== 'page.extract' && opId !== 'file.split') {
+    if (s.signed && !READ_ONLY_SESSION_OPS.has(opId)) {
       throw new MockRpcError('BLOCKED_BY_SIGNATURE', 'Document is signed');
     }
     const doc = await loadDoc(getFile(s.revisions[s.rev]!));
@@ -248,9 +313,75 @@ export function createMockBridge(): ChefBridge {
       outputs,
       warnings,
     });
-    let r: Pick<OpResult, 'changedPages' | 'outputs' | 'warnings'>;
+    let r: Pick<OpResult, 'changedPages' | 'outputs' | 'warnings' | 'data'>;
     let modified = true;
     switch (opId) {
+      case 'scan.rasterize': {
+        // Mock: the pages keep their vector content; only the warnings of the real conversion.
+        const p = params as OpParams['scan.rasterize'];
+        const selected = p.pages ?? doc.getPageIndices();
+        r = result(
+          selected,
+          [],
+          ['Text will be lost: converted pages become images without text.'],
+        );
+        break;
+      }
+      case 'scan.preview': {
+        const p = params as OpParams['scan.preview'];
+        const selected = p.pages ?? doc.getPageIndices();
+        const picks = p.samplePages ?? [selected[0]!, selected[Math.floor(selected.length / 2)]!];
+        const samples = [];
+        for (const index of [...new Set(picks)].slice(0, 3)) {
+          const originalPath = `/mock/sessions/${s.id}/preview/mock-p${index}-original.png`;
+          const resultPath = `/mock/sessions/${s.id}/preview/mock-p${index}-result.png`;
+          putFile(originalPath, await placeholderPng(`Original ${index + 1}`, 612, 792));
+          putFile(resultPath, await placeholderPng(`Scan ${index + 1}`, 612, 792));
+          samples.push({
+            pageIndex: index,
+            originalPath,
+            resultPath,
+            widthPx: 612,
+            heightPx: 792,
+            encodedBytes: 120_000,
+          });
+        }
+        modified = false;
+        r = {
+          ...result([]),
+          data: {
+            samples,
+            estimate: {
+              estimatedBytes: selected.length * 120_000,
+              estimatedSeconds: Math.round(selected.length * 0.4 * 100) / 100,
+              lossWarnings: ['Text will be lost: converted pages become images without text.'],
+            },
+          },
+        };
+        break;
+      }
+      case 'scan.fitSize': {
+        const p = params as OpParams['scan.fitSize'];
+        const targetBytes = p.targetBytes;
+        const base: Record<string, unknown> = { ...p };
+        delete base.targetBytes;
+        delete base.minDpi;
+        delete base.minJpegQuality;
+        const dpi = Math.min(p.dpi ?? 200, 150);
+        const quality = Math.min(p.jpegQuality ?? 75, 50);
+        const estimatedBytes = doc.getPageCount() * 120_000 * (dpi / 200) ** 2;
+        modified = false;
+        r = {
+          ...result([]),
+          data: {
+            params: { ...base, dpi, jpegQuality: quality },
+            estimatedBytes,
+            reachable: estimatedBytes <= targetBytes,
+            steps: 3,
+          },
+        };
+        break;
+      }
       case 'page.rotate': {
         const p = params as OpParams['page.rotate'];
         checkPages(doc, p.pages);
@@ -506,11 +637,13 @@ export function createMockBridge(): ChefBridge {
           title: id,
           group: id.split('.')[0]!,
           paramsSchema: {},
-          destructive: id === 'page.delete',
+          destructive: id === 'page.delete' || id === 'scan.rasterize',
           finalizing: false,
           batchable: true,
           standalone: id === 'file.merge',
         }));
+      case 'scan.presets':
+        return MOCK_SCAN_PRESETS;
       case 'ops.run': {
         const p = params as RpcParams<'ops.run'>;
         if (!OP_IDS.includes(p.opId as OpId))
@@ -617,7 +750,9 @@ export function createMockBridge(): ChefBridge {
           const bytes = files.get(absPath);
           if (!bytes) return `chef-file://f/${encodeURIComponent(absPath)}`;
           url = URL.createObjectURL(
-            new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'application/pdf' }),
+            new Blob([bytes.slice().buffer as ArrayBuffer], {
+              type: absPath.toLowerCase().endsWith('.png') ? 'image/png' : 'application/pdf',
+            }),
           );
           urls.set(absPath, url);
         }
