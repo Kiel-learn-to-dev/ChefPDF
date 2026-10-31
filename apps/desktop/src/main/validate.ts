@@ -71,15 +71,20 @@ export function validateFilters(v: unknown): FileFilter[] | undefined {
 
 export function validateOpenDialogOptions(v: unknown): {
   multiple: boolean;
+  directory: boolean;
   filters?: FileFilter[];
 } {
-  if (v === undefined || v === null) return { multiple: false };
+  if (v === undefined || v === null) return { multiple: false, directory: false };
   if (!isPlainObject(v)) throw new IpcValidationError('openDialog options must be an object');
   if (v.multiple !== undefined && typeof v.multiple !== 'boolean') {
     throw new IpcValidationError('multiple must be a boolean');
   }
+  if (v.directory !== undefined && typeof v.directory !== 'boolean') {
+    throw new IpcValidationError('directory must be a boolean');
+  }
+  const base = { multiple: v.multiple === true, directory: v.directory === true };
   const filters = validateFilters(v.filters);
-  return filters ? { multiple: v.multiple === true, filters } : { multiple: v.multiple === true };
+  return filters ? { ...base, filters } : base;
 }
 
 export function validateSaveDialogOptions(v: unknown): {

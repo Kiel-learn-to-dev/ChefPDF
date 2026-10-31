@@ -143,16 +143,10 @@ export async function pickSavePath(
   });
 }
 
-/**
- * Pick a folder. ChefBridge has no directory picker yet, so this uses the save
- * dialog ("choose where to put the files") and takes the chosen file's folder.
- */
-export async function pickFolder(current?: string | null): Promise<string | null> {
-  const name = t('folderPicker.fileName');
-  const picked = await chef().files.saveDialog({
-    defaultPath: current ? join(current, name) : name,
-  });
-  return picked ? dirname(picked) : null;
+/** Pick a folder with the native directory picker. */
+export async function pickFolder(): Promise<string | null> {
+  const picked = await chef().files.openDialog({ directory: true });
+  return picked[0] ?? null;
 }
 
 export async function saveDoc(id: string, saveAs = false): Promise<boolean> {

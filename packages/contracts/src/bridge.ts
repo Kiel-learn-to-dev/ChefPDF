@@ -38,11 +38,21 @@ export interface ChefBridge {
   /** Subscribe to events. Returns an unsubscribe function. */
   onEvent(listener: (event: ChefEvent) => void): () => void;
   files: {
-    openDialog(options?: { multiple?: boolean; filters?: FileFilter[] }): Promise<string[]>;
+    /** `directory: true` picks folders instead of files (filters are ignored). */
+    openDialog(options?: {
+      multiple?: boolean;
+      directory?: boolean;
+      filters?: FileFilter[];
+    }): Promise<string[]>;
     saveDialog(options?: { defaultPath?: string; filters?: FileFilter[] }): Promise<string | null>;
     /** URL the renderer can fetch/pass to pdf.js for a local session file. */
     toUrl(absPath: string): string;
     showInFolder(absPath: string): Promise<void>;
+    /**
+     * Absolute path of a File from a drag-and-drop event (Electron webUtils.getPathForFile).
+     * Returns '' when the File has no backing path. The path is also granted to chef-file.
+     */
+    pathForFile(file: File): string;
   };
   settings: {
     get(): Promise<Settings>;

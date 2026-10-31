@@ -98,7 +98,7 @@ export function SettingsDialog() {
             <Button
               icon={<FolderOpen size={15} />}
               onClick={() =>
-                void pickFolder(dir || null).then((d) => {
+                void pickFolder().then((d) => {
                   if (d) {
                     setDir(d);
                     commitDir(d);

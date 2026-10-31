@@ -361,7 +361,7 @@ export function SplitDialog() {
           />
           <Button
             icon={<FolderOpen size={15} />}
-            onClick={() => void pickFolder(outputDir).then((d) => d && setOutputDir(d))}
+            onClick={() => void pickFolder().then((d) => d && setOutputDir(d))}
           >
             {t('common.browse')}
           </Button>

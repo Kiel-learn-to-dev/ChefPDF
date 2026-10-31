@@ -13,6 +13,7 @@ import {
   type OpenDialogOptions,
   type SaveDialogOptions,
 } from 'electron';
+import { statSync } from 'node:fs';
 import { IpcChannels, type RpcEnvelope } from '../shared/ipc';
 import type { PathAllowlist } from './allowlist';
 import type { Labels } from './labels';
@@ -87,16 +88,22 @@ export function registerIpc(d: IpcDeps): void {
 
   handle(IpcChannels.filesOpenDialog, async (event, options) => {
     const o = validateOpenDialogOptions(options);
-    const dialogOptions: OpenDialogOptions = {
-      properties: o.multiple ? ['openFile', 'multiSelections'] : ['openFile'],
-      filters: o.filters ?? defaultOpenFilters(d.labels()),
-    };
+    const dialogOptions: OpenDialogOptions = o.directory
+      ? {
+          properties: o.multiple
+            ? ['openDirectory', 'createDirectory', 'multiSelections']
+            : ['openDirectory', 'createDirectory'],
+        }
+      : {
+          properties: o.multiple ? ['openFile', 'multiSelections'] : ['openFile'],
+          filters: o.filters ?? defaultOpenFilters(d.labels()),
+        };
     const parent = BrowserWindow.fromWebContents(event.sender);
     const res = parent
       ? await dialog.showOpenDialog(parent, dialogOptions)
       : await dialog.showOpenDialog(dialogOptions);
     if (res.canceled) return [];
-    for (const p of res.filePaths) d.allowlist.addFile(p);
+    if (!o.directory) for (const p of res.filePaths) d.allowlist.addFile(p);
     return res.filePaths;
   });
 
@@ -117,6 +124,19 @@ export function registerIpc(d: IpcDeps): void {
 
   handle(IpcChannels.filesShowInFolder, (_event, p) => {
     shell.showItemInFolder(validateAbsPath(p));
+  });
+
+  // Dropped files (preload `files.pathForFile`): grant regular files to chef-file.
+  ipcMain.on(IpcChannels.filesGrant, (event, p: unknown) => {
+    try {
+      const url = event.senderFrame?.url ?? '';
+      const origin = originOf(url);
+      if (!origin || !d.trustedOrigins.has(origin)) return;
+      const abs = validateAbsPath(p);
+      if (statSync(abs, { throwIfNoEntry: false })?.isFile()) d.allowlist.addFile(abs);
+    } catch (err) {
+      d.log(`files.grant rejected: ${String(err)}`);
+    }
   });
 
   handle(IpcChannels.settingsGet, () => d.settings.get());

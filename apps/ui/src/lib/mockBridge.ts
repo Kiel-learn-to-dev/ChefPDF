@@ -604,7 +604,9 @@ export function createMockBridge(): ChefBridge {
       return () => listeners.delete(listener);
     },
     files: {
-      openDialog: (options) => pickFiles(options),
+      openDialog: (options) =>
+        options?.directory ? Promise.resolve(['/mock/out']) : pickFiles(options),
+      pathForFile: () => '',
       async saveDialog(options) {
         const name = basename(options?.defaultPath ?? 'document.pdf') || 'document.pdf';
         return uniquePath('/mock/out', name);

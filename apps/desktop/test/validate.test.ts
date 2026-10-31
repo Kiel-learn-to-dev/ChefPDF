@@ -43,7 +43,12 @@ describe('validateRpcCall', () => {
 
 describe('dialog options', () => {
   it('validates open dialog options', () => {
-    expect(validateOpenDialogOptions(undefined)).toEqual({ multiple: false });
+    expect(validateOpenDialogOptions(undefined)).toEqual({ multiple: false, directory: false });
+    expect(validateOpenDialogOptions({ directory: true })).toEqual({
+      multiple: false,
+      directory: true,
+    });
+    expect(() => validateOpenDialogOptions({ directory: 1 })).toThrow();
     expect(
       validateOpenDialogOptions({
         multiple: true,
@@ -51,6 +56,7 @@ describe('dialog options', () => {
       }),
     ).toEqual({
       multiple: true,
+      directory: false,
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
     });
     expect(() => validateOpenDialogOptions({ multiple: 'yes' })).toThrow();

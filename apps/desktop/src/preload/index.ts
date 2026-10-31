@@ -2,7 +2,7 @@
  * Preload (sandboxed): exposes `window.chef` exactly as `ChefBridge` in
  * packages/contracts/src/bridge.ts. Only `electron`'s renderer modules are available here.
  */
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { ChefBridge, ChefEvent } from '@chef/contracts';
 import { APP_VERSION_ARG, IpcChannels, fileUrl, type RpcEnvelope } from '../shared/ipc';
 
@@ -69,6 +69,12 @@ const bridge: ChefBridge = {
       return fileUrl(absPath);
     },
     showInFolder: (absPath) => ipcRenderer.invoke(IpcChannels.filesShowInFolder, absPath),
+    pathForFile: (file) => {
+      const p = webUtils.getPathForFile(file);
+      // Grant the dropped file to the chef-file protocol (fire-and-forget; main validates it).
+      if (p) ipcRenderer.send(IpcChannels.filesGrant, p);
+      return p;
+    },
   },
 
   settings: {

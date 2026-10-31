@@ -33,21 +33,15 @@ export function isMockBridge(): boolean {
   return mock;
 }
 
-interface DropCapableBridge {
-  files: { pathForFile?: (file: File) => string };
-}
-
 /**
- * Absolute paths of files dropped on the window. ChefBridge (v0.1) has no
- * method for this; Electron ≥ 32 removed `File.path`, so the preload needs to
- * expose `webUtils.getPathForFile`. We feature-detect an optional
- * `chef.files.pathForFile`, then legacy `File.path`, then the dev mock.
+ * Absolute paths of files dropped on the window, via `chef.files.pathForFile`
+ * (Electron webUtils), falling back to the dev mock in the browser.
  */
 export async function pathsForDroppedFiles(files: File[]): Promise<string[]> {
-  const b = current as unknown as DropCapableBridge | null;
+  const b = current as (Partial<ChefBridge> & { files?: Partial<ChefBridge['files']> }) | null;
   const out: string[] = [];
   for (const f of files) {
-    const viaBridge = b?.files.pathForFile?.(f);
+    const viaBridge = b?.files?.pathForFile?.(f);
     const legacy = (f as File & { path?: string }).path;
     if (viaBridge) out.push(viaBridge);
     else if (legacy) out.push(legacy);
