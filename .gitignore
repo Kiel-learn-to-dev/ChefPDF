@@ -24,3 +24,6 @@ playwright-report/
 
 # Local env
 .env
+
+# Agent worktrees (local only)
+.claude/worktrees/
