@@ -1,9 +1,9 @@
 # Chef PDF: Cây tính năng
 
-> **Trạng thái:** Bản nháp 2 (2026-10-31), chờ chủ dự án góp ý.
-> Bản nháp 2 **đánh lại mã toàn bộ** so với bản nháp 1. Từ giờ dùng mã trong file này.
+> **Trạng thái:** Bản nháp 3 (2026-10-31), chờ chủ dự án góp ý.
+> Bản nháp 2 đã **đánh lại mã toàn bộ** so với bản nháp 1. Bản nháp 3 giữ nguyên mã cũ, chỉ thêm mã mới (riêng nhóm K được đánh lại vì mở rộng nhiều).
 > Mỗi tính năng có mã (ví dụ `F4`) để tiện góp ý. Cột "Bản" là phiên bản dự kiến làm.
-> ★ = tính năng chủ lực. 🆕 = mới thêm ở bản nháp 2. 🤔 = chưa chắc có cần không, chờ chủ dự án quyết.
+> ★ = tính năng chủ lực. = mới thêm ở bản nháp 2. 🤔 = chưa chắc có cần không, chờ chủ dự án quyết.
 
 ## Cách tổ chức
 
@@ -27,7 +27,7 @@ Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sử
 |---|---|
 | v0.1 | Khung app, Start, xem PDF, tab, sắp xếp trang, build 3 OS |
 | v0.2 | ★ Chuyển thành bản scan |
-| v0.3 | ★ Ký số và kiểm tra chữ ký |
+| v0.3 | ★ Ký số, **Studio mẫu chữ ký** (ảnh ký, tách nền, thông tin hiển thị, bố cục) và kiểm tra chữ ký |
 | v0.4 | Watermark, con dấu, dấu giáp lai, header/footer, số trang; mật khẩu; nén; chuyển PDF ↔ ảnh |
 | v0.5 | **Bộ máy nội dung**: chọn/di chuyển/xóa đối tượng, tẩy vùng, bảng lớp, gỡ watermark, che thông tin mật |
 | v0.6 | Sửa chữ có sẵn (mức dòng, sau đó mức đoạn), tìm & thay thế; ghi chú |
@@ -67,6 +67,8 @@ Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sử
 | B6 | Mở file có mật khẩu | Hỏi mật khẩu khi mở | v0.1 |
 | B7 | Thuộc tính tài liệu | Xem metadata, khổ giấy, font, phiên bản PDF, số trang, dung lượng (sửa metadata ở M8) | v0.1 |
 | B8 | Chế độ đọc ban đêm | Đảo màu trang | Sau 🤔 |
+| B9 🆕 | Đọc to | Đọc chữ trong PDF bằng giọng đọc có sẵn của hệ điều hành (có tiếng Việt nếu máy cài giọng Việt) | Sau 🤔 |
+| B10 🆕 | Xem song song | Chia đôi màn hình xem 2 file hoặc 2 vị trí của cùng một file | v0.4 |
 
 ---
 
@@ -84,6 +86,10 @@ Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sử
 | C6 | Thay thế trang | Thay trang X bằng trang từ file khác | v0.4 |
 | C7 | Cắt lề / đổi khổ | Cắt lề trắng (tự dò), đưa về A4/Letter, co giãn nội dung | v0.4 |
 | C8 | In ghép trang | N-up (2/4 trang trên 1 tờ), in kiểu sổ tay (booklet) | Sau 🤔 |
+| C9 🆕 | Xóa trang trắng | Tự tìm và xóa trang trắng (hay gặp khi scan 2 mặt), có xem trước trước khi xóa | v0.4 |
+| C10 🆕 | Chia đôi trang | Một trang A3 / trang đôi thành 2 trang A4; hoặc cắt trang thành lưới N phần | v0.4 |
+| C11 🆕 | Trang dài | Ghép nhiều trang thành 1 trang dài (xem trên điện thoại) và ngược lại, cắt trang dài thành trang A4 | Sau 🤔 |
+| C12 🆕 | Tách thông minh | Tách file theo nội dung: mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách | v0.4 |
 
 ---
 
@@ -95,16 +101,18 @@ Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sử
 |---|---|---|---|
 | D1 | Thêm chữ | Hộp chữ mới, hỗ trợ đầy đủ tiếng Việt (nhúng font Unicode) | v0.4 |
 | D2 | Thêm ảnh | Logo, ảnh, kéo thả lên trang | v0.4 |
-| D3 🆕 | Chọn & sửa đối tượng | Click chọn chữ, ảnh hoặc hình vẽ có sẵn; di chuyển, đổi kích thước, xoay, xóa, đưa lên trên / xuống dưới | v0.5 |
-| D4 🆕 | Tẩy vùng | Quét chọn một vùng rồi xóa toàn bộ nội dung bên trong (khác với che thông tin mật: không để lại ô đen) | v0.5 |
-| D5 🆕 | Thay ảnh | Thay một ảnh trong PDF bằng ảnh khác, giữ nguyên vị trí và kích thước | v0.5 |
+| D3 | Chọn & sửa đối tượng | Click chọn chữ, ảnh hoặc hình vẽ có sẵn; di chuyển, đổi kích thước, xoay, xóa, đưa lên trên / xuống dưới | v0.5 |
+| D4 | Tẩy vùng | Quét chọn một vùng rồi xóa toàn bộ nội dung bên trong (khác với che thông tin mật: không để lại ô đen) | v0.5 |
+| D5 | Thay ảnh | Thay một ảnh trong PDF bằng ảnh khác, giữ nguyên vị trí và kích thước | v0.5 |
 | D6 | **Sửa chữ có sẵn (mức dòng)** | Click vào dòng chữ để sửa. Dùng lại font gốc nếu font còn đủ ký tự; nếu thiếu (hay gặp với tiếng Việt) thì tự thay bằng font gần giống | v0.6 |
-| D7 🆕 | **Sửa chữ có sẵn (mức đoạn)** | Gom các dòng thành đoạn văn, sửa và tự xuống dòng lại (reflow), đổi font/cỡ/màu/căn lề | v0.6 |
-| D8 🆕 | Tìm & thay thế chữ | Thay một cụm từ trên toàn tài liệu, ví dụ đổi tên công ty, đổi ngày tháng | v0.6 |
+| D7 | **Sửa chữ có sẵn (mức đoạn)** | Gom các dòng thành đoạn văn, sửa và tự xuống dòng lại (reflow), đổi font/cỡ/màu/căn lề | v0.6 |
+| D8 | Tìm & thay thế chữ | Thay một cụm từ trên toàn tài liệu, ví dụ đổi tên công ty, đổi ngày tháng | v0.6 |
 | D9 | Liên kết | Thêm/sửa/xóa link (trang nội bộ, web, email) | v0.6 |
 | D10 | Sửa mục lục | Thêm/sửa/xóa/sắp xếp bookmark | v0.4 |
+| D11 🆕 | Chỉnh ảnh trong PDF | Cắt, xoay, lật, xóa nền ảnh, chỉnh sáng/tương phản ngay trong PDF, không cần app khác | v0.5 |
+| D12 🆕 | Tự tạo mục lục | Dò các dòng có cỡ chữ lớn / in đậm (tiêu đề) để tạo bookmark tự động | Sau 🤔 |
 
-## E. 🆕 Lớp & gỡ watermark
+## E. Lớp & gỡ watermark
 
 | Mã | Tính năng | Chi tiết | Bản |
 |---|---|---|---|
@@ -122,14 +130,17 @@ Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sử
 |---|---|---|---|
 | F1 | Thêm watermark | Chữ hoặc ảnh, độ mờ, góc xoay, cỡ, nằm trên/dưới nội dung, chọn trang. **Gắn nhãn chuẩn** nên sau này gỡ được sạch | v0.4 |
 | F2 | Con dấu chữ | ĐÃ DUYỆT, MẬT, KHẨN, BẢN SAO, ĐÃ NHẬN…, thư viện dấu tự tạo | v0.4 |
-| F3 🆕 | Con dấu ảnh | Ảnh con dấu / chữ ký tay, kéo thả, đổi cỡ, xoay; lưu vào thư viện dấu | v0.4 |
-| F4 🆕 | Tách nền trắng cho ảnh dấu | Chụp ảnh con dấu/chữ ký bằng điện thoại → app tự bỏ nền giấy, giữ lại nét mực (màu đỏ/xanh) trong suốt | v0.4 |
-| F5 🆕 | **Dấu giáp lai** | Đóng một dấu cắt đều qua mép phải của nhiều trang, đúng kiểu văn bản hành chính Việt Nam. Chọn trang, vị trí theo chiều dọc, số phần cắt | v0.4 |
-| F6 🆕 | Con dấu động | Dấu tự điền ngày giờ và tên người, ví dụ "ĐÃ NHẬN – 14:30 31/10/2026 – Nguyễn A" | v0.4 |
+| F3 | Con dấu ảnh | Ảnh con dấu / chữ ký tay, kéo thả, đổi cỡ, xoay. **Dùng chung thư viện và công cụ xử lý ảnh chữ ký & con dấu (K-C)** | v0.4 |
+| F4 | Tách nền trắng cho ảnh dấu | Đã gộp vào K21 (xử lý ảnh chữ ký & con dấu). Đóng dấu ảnh ở F3 dùng luôn công cụ đó | v0.3 |
+| F5 | **Dấu giáp lai** | Đóng một dấu cắt đều qua mép phải của nhiều trang, đúng kiểu văn bản hành chính Việt Nam. Chọn trang, vị trí theo chiều dọc, số phần cắt | v0.4 |
+| F6 | Con dấu động | Dấu tự điền ngày giờ và tên người, ví dụ "ĐÃ NHẬN – 14:30 31/10/2026 – Nguyễn A" | v0.4 |
 | F7 | Header / Footer | Chữ hoặc ảnh ở đầu/chân trang, trái/giữa/phải, có biến `{ngay}` `{tenfile}` `{trang}` `{tongtrang}` | v0.4 |
 | F8 | Đánh số trang | Nhiều kiểu ("1", "Trang 1/10", "- 1 -", số La Mã), chọn vị trí, bỏ trang đầu, bắt đầu từ số bất kỳ. **Preset theo Nghị định 30/2020/NĐ-CP**: giữa lề trên, không đánh số trang đầu | v0.4 |
 | F9 | Đánh số Bates | Mã tài liệu liên tục qua nhiều file (ví dụ HS-000001), dùng trong hồ sơ pháp lý | v0.4 |
 | F10 | Quản lý & gỡ | Sửa hoặc gỡ watermark / header / footer / số trang mà Chef PDF đã thêm trước đó | v0.4 |
+| F11 🆕 | Chồng lên giấy tiêu đề | Đặt nội dung PDF lên một mẫu giấy tiêu đề công ty (letterhead) là file PDF khác; chọn trang đầu / mọi trang | v0.4 |
+| F12 🆕 | Mã QR / mã vạch | Chèn QR hoặc mã vạch (link, mã hồ sơ, số văn bản, thông tin tùy ý) lên trang, dùng được trong đánh số Bates | v0.4 |
+| F13 🆕 | Chữ ký nháy | Đóng ảnh chữ ký nháy (ký tắt) lên góc mọi trang hoặc các trang chọn | v0.4 |
 
 ## G. Ghi chú
 
@@ -169,7 +180,7 @@ Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sử
 | I9 | Cảnh báo | Báo trước sẽ mất chữ, link, form, chữ ký số | v0.2 |
 | I10 | Giới hạn dung lượng | "Nén sao cho file ≤ 5MB": tự dò DPI/chất lượng phù hợp, hữu ích khi nộp hồ sơ online | v0.2 🤔 |
 
-## J. 🆕 Làm đẹp bản scan
+## J. Làm đẹp bản scan
 
 Dành cho PDF vốn đã là bản scan hoặc ảnh chụp, không cần OCR.
 
@@ -180,22 +191,74 @@ Dành cho PDF vốn đã là bản scan hoặc ảnh chụp, không cần OCR.
 | J3 | Làm trắng nền | Biến nền giấy ngả vàng/xám thành trắng, chữ đậm và rõ hơn | v0.7 |
 | J4 | Khử nhiễu, chỉnh sáng | Xóa chấm bẩn; chỉnh độ sáng, tương phản | v0.7 |
 | J5 | Tách trang đôi | Ảnh chụp 2 trang sách mở thành 2 trang riêng | Sau 🤔 |
+| J6 🆕 | Tách nhiều ảnh trên một bản scan | Scan nhiều hóa đơn / ảnh / thẻ trên một mặt kính → tự tách thành từng ảnh hoặc từng trang riêng | Sau 🤔 |
+| J7 🆕 | **Chụp tài liệu bằng điện thoại** | App hiện mã QR, điện thoại quét mã (cùng mạng Wi-Fi, **không qua internet**) mở trang chụp, chụp xong ảnh gửi thẳng về máy tính, tự cắt và nắn thẳng (J2). Không cần cài app trên điện thoại. Thay thế máy scan | v0.7 |
 
 ## K. ★ Ký số
 
+Nhóm này được **đánh lại mã** ở bản nháp 3 và chia thành 5 phần nhỏ. Số có chừa khoảng trống để sau này chèn thêm.
+
+### K-A. Nguồn chứng thư
+
 | Mã | Tính năng | Chi tiết | Bản |
 |---|---|---|---|
-| K1 | Nguồn chứng thư | USB token qua PKCS#11 (tự dò driver các CA Việt Nam), file `.pfx`/`.p12` | v0.3 |
-| K2 | Hình thức chữ ký | Hiển thị hoặc ẩn; kéo thả khung ký; ảnh chữ ký tay / con dấu (dùng chung thư viện ở F3, F4); mẫu chữ "Ký bởi / Ngày ký / Lý do / Nơi ký"; lưu nhiều mẫu | v0.3 |
-| K3 | Tùy chọn ký | Lý do, nơi ký, liên hệ; mức PAdES (B-B, B-T, B-LT, B-LTA); cấu hình TSA (có sẵn danh sách TSA Việt Nam); SHA-256 | v0.3 |
-| K4 | Ký chứng nhận (certify) | Khóa tài liệu, chọn mức quyền được phép sau khi ký | v0.3 |
-| K5 | Nhiều người ký | Ký nối tiếp không phá chữ ký trước; tạo ô ký trống cho người khác | v0.3 |
-| K6 | Ký hàng loạt | Chọn nhiều file, nhập PIN 1 lần, vị trí ký cố định (ví dụ góc phải trang cuối) | v0.3 |
-| K7 | Kiểm tra chữ ký | Panel trạng thái (✅ hợp lệ / ⚠️ đã bị sửa / ❌ không tin cậy), chuỗi chứng thư, kiểm tra OCSP/CRL, xem phiên bản tài liệu lúc ký | v0.3 |
-| K8 | Kho tin cậy | Nạp sẵn Root CA quốc gia Việt Nam, thêm/xóa chứng thư tin cậy | v0.3 |
-| K9 | Kho chứng thư hệ điều hành | Windows Certificate Store, macOS Keychain | Sau 🤔 |
-| K10 | Ký từ xa qua cloud | VNPT SmartCA, Viettel MySign… | Sau |
-| K11 | Báo cáo chữ ký | Xuất kết quả kiểm tra ra PDF | Sau 🤔 |
+| K1 | USB token | Qua PKCS#11, tự dò driver các CA Việt Nam; chọn chứng thư nếu token có nhiều | v0.3 |
+| K2 | File chứng thư | `.pfx` / `.p12`, có tùy chọn ghi nhớ (mật khẩu lưu trong kho bảo mật của hệ điều hành) | v0.3 |
+| K3 | Kho chứng thư hệ điều hành | Windows Certificate Store, macOS Keychain | Sau 🤔 |
+| K4 | Ký từ xa qua cloud | VNPT SmartCA, Viettel MySign… | Sau |
+| K5 🆕 | Thông tin chứng thư | Xem chi tiết: chủ sở hữu, đơn vị cấp, hạn dùng, **MST / CCCD** (CA Việt Nam thường ghi trong chứng thư); **nhắc trước khi chứng thư hết hạn** | v0.3 |
+
+### K-B. 🆕 Studio mẫu chữ ký (giao diện chữ ký)
+
+Tham khảo hộp thoại "Configure Signature Style" của Foxit, cộng thêm các nhu cầu riêng ở Việt Nam. **Xem trước trực tiếp** khi chỉnh, lưu được nhiều mẫu.
+
+| Mã | Tính năng | Chi tiết | Bản |
+|---|---|---|---|
+| K10 | Quản lý mẫu | Tạo / sửa / nhân bản / xóa mẫu; đặt mẫu mặc định; **gắn mẫu với từng chứng thư** (cắm token nào thì tự chọn mẫu đó); xuất/nhập mẫu ra file để dùng ở máy khác | v0.3 |
+| K11 | Thông tin hiển thị | Tích chọn từng dòng: **Người ký**, Đơn vị/Tổ chức, Chức vụ, Email, MST/CCCD, **Ngày ký**, **Lý do**, **Nơi ký**, Liên hệ, Tên đầy đủ trong chứng thư (DN), dòng chữ tùy ý. Bật/tắt nhãn ("Ký bởi:", "Ngày ký:"…) và sửa được chữ của nhãn | v0.3 |
+| K12 | Nguồn dữ liệu cho từng dòng | Mặc định **lấy tự động từ chứng thư** (tên, đơn vị, email, MST). Có thể ghi đè chữ hiển thị, nhưng panel kiểm tra (K40) luôn hiện thông tin thật trong chứng thư | v0.3 |
+| K13 | Định dạng ngày giờ | `dd/MM/yyyy HH:mm:ss`, `dd/MM/yyyy`, "Ngày 31 tháng 10 năm 2026", có/không múi giờ (GMT+7); chọn lấy giờ máy hay giờ máy chủ dấu thời gian (TSA) | v0.3 |
+| K14 | Lý do & nơi ký | Danh sách lý do có sẵn ("Tôi đồng ý với nội dung", "Phê duyệt", "Xác nhận đã xem"…), tự nhớ lý do đã nhập; nơi ký đặt sẵn trong cài đặt (ví dụ "Hà Nội") | v0.3 |
+| K15 | Bố cục | Preset: ảnh trái + chữ phải / ảnh trên + chữ dưới / chỉ ảnh / chỉ chữ / **ảnh mờ làm nền phía sau chữ** / ảnh chữ ký + con dấu chồng lên nhau. Chỉnh tỉ lệ ảnh/chữ, lề, căn lề | v0.3 |
+| K16 | Kiểu chữ & màu | Font (có font tiếng Việt đóng gói sẵn), cỡ chữ (hoặc **tự co chữ cho vừa khung**), màu chữ, đậm/nghiêng, khung viền, màu nền / nền trong suốt | v0.3 |
+| K17 | Biểu tượng hợp lệ | Tùy chọn hiện dấu ✓ kiểu "Signature Valid" thường thấy trên hóa đơn điện tử Việt Nam | v0.3 |
+| K18 | Logo | Thêm logo công ty bên cạnh hoặc làm nền mờ | v0.3 |
+
+### K-C. 🆕 Ảnh chữ ký & con dấu
+
+Thư viện ảnh **dùng chung** cho ký số (K-B), đóng dấu ảnh (F3), chữ ký nháy (F13) và dấu giáp lai (F5).
+
+| Mã | Tính năng | Chi tiết | Bản |
+|---|---|---|---|
+| K20 | Tạo ảnh chữ ký | Nhập ảnh có sẵn; **vẽ bằng chuột / bút cảm ứng / bảng vẽ** (bút có độ nhạy lực); gõ tên rồi chọn font chữ viết tay; chụp bằng điện thoại qua QR (giống J7) | v0.3 |
+| K21 | **Tách nền tự động** | Bỏ nền giấy (trắng, ngả vàng, có bóng do chụp điện thoại), giữ nét mực trong suốt. Có thanh chỉnh độ nhạy và **xem trước trên nền caro** để thấy rõ vùng trong suốt. Tự nhận màu mực (đỏ của con dấu, xanh/đen của chữ ký) | v0.3 |
+| K22 | Làm sạch & chỉnh | Tự cắt sát nét mực, xoay, thẳng góc; xóa chấm bẩn; **đổi màu mực** (đen → xanh, làm đỏ con dấu tươi hơn); làm nét đậm hoặc mảnh đi; chỉnh độ mờ | v0.3 |
+| K23 | Tách chữ ký và con dấu | Ảnh chụp có cả chữ ký xanh đè lên con dấu đỏ → tách thành 2 ảnh riêng theo màu | v0.3 🤔 |
+| K24 | Chuyển thành vector | Biến ảnh chữ ký/dấu thành nét vector, phóng to bao nhiêu cũng nét, file nhẹ | Sau 🤔 |
+| K25 | Bảo vệ thư viện | Ảnh chữ ký/con dấu được **mã hóa** khi lưu trên máy; tùy chọn hỏi mật khẩu hoặc vân tay/Windows Hello/Touch ID trước khi dùng | v0.3 |
+
+### K-D. Đặt chữ ký & ký
+
+| Mã | Tính năng | Chi tiết | Bản |
+|---|---|---|---|
+| K30 | Đặt chữ ký | Kéo thả khung ký lên trang; hoặc ký ẩn (không hiện trên trang); hoặc ký vào ô ký có sẵn | v0.3 |
+| K31 🆕 | **Đặt theo chữ mốc** | Tìm một cụm chữ (ví dụ "NGƯỜI KÝ", "GIÁM ĐỐC") rồi đặt chữ ký ngay dưới/cạnh nó. Rất hữu ích khi ký hàng loạt các file có vị trí ký khác nhau | v0.3 |
+| K32 | Vị trí cố định | Góc phải trang cuối, trang đầu, mọi trang, trang chỉ định; lưu vị trí thành preset | v0.3 |
+| K33 | Tùy chọn kỹ thuật | Mức PAdES (B-B, B-T, B-LT, B-LTA); máy chủ dấu thời gian TSA (có sẵn danh sách TSA Việt Nam, có dự phòng khi một máy chủ lỗi); thuật toán SHA-256 | v0.3 |
+| K34 | Ký chứng nhận (certify) | Khóa tài liệu, chọn mức quyền được phép sau khi ký | v0.3 |
+| K35 | Nhiều người ký | Ký nối tiếp không phá chữ ký trước; tạo ô ký trống cho người khác | v0.3 |
+| K36 | Ký hàng loạt | Chọn nhiều file, nhập PIN 1 lần, kết hợp K31 / K32 | v0.3 |
+| K37 🆕 | Ký kèm đóng dấu | Một lần bấm: ký số + đóng dấu giáp lai (F5) + chữ ký nháy mọi trang (F13) | v0.4 |
+| K38 🆕 | Sau khi ký | Tự đặt tên file (`_da-ky`), mở panel kiểm tra, mở thư mục chứa file | v0.3 |
+
+### K-E. Kiểm tra chữ ký
+
+| Mã | Tính năng | Chi tiết | Bản |
+|---|---|---|---|
+| K40 | Kiểm tra chữ ký | Panel trạng thái (✅ hợp lệ / ⚠️ đã bị sửa / ❌ không tin cậy), chuỗi chứng thư, kiểm tra OCSP/CRL, xem phiên bản tài liệu lúc ký | v0.3 |
+| K41 | Kho tin cậy | Nạp sẵn Root CA quốc gia Việt Nam, thêm/xóa chứng thư tin cậy | v0.3 |
+| K42 | Báo cáo chữ ký | Xuất kết quả kiểm tra ra PDF | Sau 🤔 |
+| K43 🆕 | Kiểm tra hàng loạt | Kiểm tra chữ ký của cả thư mục, xuất bảng kết quả ra Excel/CSV | v0.4 |
 
 ## L. Bảo mật
 
@@ -205,6 +268,8 @@ Dành cho PDF vốn đã là bản scan hoặc ảnh chụp, không cần OCR.
 | L2 | Gỡ mật khẩu | Khi đã biết mật khẩu | v0.4 |
 | L3 | Che thông tin mật | Chọn vùng hoặc chữ; tìm và che hàng loạt (số CCCD, số điện thoại, email, số tài khoản); **xóa hẳn nội dung bên dưới** | v0.5 |
 | L4 | Gỡ dữ liệu ẩn | Xóa metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú, lịch sử sửa (bản lưu ghi thêm) | v0.4 |
+| L5 🆕 | Soi file | Báo cáo file chứa gì: JavaScript, link ra ngoài, file đính kèm, form, chữ ký, font chưa nhúng, lớp ẩn, phiên bản PDF. Giúp phát hiện file đáng ngờ | v0.4 |
+| L6 🆕 | **Kiểm tra trước khi gửi** | Một nút chạy checklist: còn metadata/tên tác giả không, còn ghi chú chưa xóa, form chưa làm phẳng, dung lượng có vượt giới hạn (ví dụ 5MB / 10MB / 25MB) không, chữ ký còn hợp lệ không. Bấm để sửa từng mục | v0.4 |
 
 ## M. Tối ưu, chuyển đổi & sửa lỗi
 
@@ -214,13 +279,18 @@ Dành cho PDF vốn đã là bản scan hoặc ảnh chụp, không cần OCR.
 | M2 | PDF → ảnh | PNG / JPG / TIFF (TIFF nhiều trang), chọn DPI | v0.4 |
 | M3 | Ảnh → PDF | Nhiều ảnh, sắp thứ tự, khổ giấy, lề, tự xoay theo EXIF | v0.4 |
 | M4 | Trích xuất | Lấy toàn bộ ảnh gốc, lấy text ra `.txt` | v0.4 |
-| M5 🆕 | Sửa file PDF hỏng | Thử khôi phục file lỗi, không mở được | v0.4 |
-| M6 🆕 | File đính kèm | Xem, thêm, xóa, lưu ra các file nhúng trong PDF | v0.4 |
-| M7 🆕 | Tối ưu cho web | Linearize: mở trang đầu nhanh khi xem qua mạng | v0.4 |
-| M8 🆕 | Sửa metadata | Tiêu đề, tác giả, chủ đề, từ khóa | v0.4 |
+| M5 | Sửa file PDF hỏng | Thử khôi phục file lỗi, không mở được | v0.4 |
+| M6 | File đính kèm | Xem, thêm, xóa, lưu ra các file nhúng trong PDF | v0.4 |
+| M7 | Tối ưu cho web | Linearize: mở trang đầu nhanh khi xem qua mạng | v0.4 |
+| M8 | Sửa metadata | Tiêu đề, tác giả, chủ đề, từ khóa | v0.4 |
 | M9 | PDF/A để lưu trữ | Lưu ý giấy phép: không dùng Ghostscript | Sau |
 | M10 | Office → PDF | Qua LibreOffice nếu máy có cài | Sau 🤔 |
-| M11 🆕 | Máy in ảo "Chef PDF" | In từ bất kỳ app nào ra PDF. Khó làm đều trên 3 OS | Sau 🤔 |
+| M11 | Máy in ảo "Chef PDF" | In từ bất kỳ app nào ra PDF. Khó làm đều trên 3 OS | Sau 🤔 |
+| M12 🆕 | Chuyển đổi màu | Chuyển sang thang xám / đen trắng (vẫn giữ chữ, khác với I2); **tiết kiệm mực in** (nền tối thành trắng); thay một màu bằng màu khác | v0.4 |
+| M13 🆕 | Web / Markdown / HTML → PDF | Dán link trang web hoặc file Markdown/HTML để xuất ra PDF đẹp (Electron có sẵn bộ in của Chromium nên làm rất rẻ) | v0.4 |
+| M14 🆕 | Ảnh chụp màn hình → PDF | Dán ảnh từ clipboard thành trang mới, hoặc chụp màn hình trực tiếp | v0.4 |
+| M15 🆕 | Bảng → Excel/CSV | Trích bảng trong PDF có chữ (không cần OCR) ra Excel/CSV | Sau 🤔 |
+| M16 🆕 | Xuất ảnh cho mạng xã hội | Xuất từng trang thành ảnh vừa khổ Zalo / Facebook, tùy chọn ghép nhiều trang thành 1 ảnh dài | Sau 🤔 |
 
 ---
 
@@ -236,6 +306,9 @@ Dành cho PDF vốn đã là bản scan hoặc ảnh chụp, không cần OCR.
 | N4 | Quy tắc đặt tên đầu ra | `{ten}_{ngay}_da-ky.pdf` | v0.7 |
 | N5 | Tự sắp xếp thứ tự an toàn | Bước "bản scan" luôn đứng trước "ký số" và có cảnh báo | v0.7 |
 | N6 | Dòng lệnh `chefpdf` | Dùng chung lõi xử lý, chạy được từ script | Sau 🤔 |
+| N7 🆕 | Đổi tên file hàng loạt | Theo mẫu (`{so}_{tieude}_{ngay}`), theo tiêu đề trong metadata, hoặc theo dòng chữ đầu tiên của trang 1 | v0.7 |
+| N8 🆕 | Quy trình mẫu có sẵn | Ví dụ "Nộp hồ sơ online": ghép → bản scan 200 dpi xám → nén ≤ 5MB → ký số; "Phát hành văn bản": đánh số theo NĐ 30 → ký số → đóng dấu giáp lai | v0.7 |
+| N9 🆕 | Kéo thả vào biểu tượng | Kéo file thả lên một quy trình ở màn hình Start là chạy luôn | v0.7 |
 
 ## O. So sánh tài liệu
 
@@ -253,3 +326,6 @@ Dành cho PDF vốn đã là bản scan hoặc ảnh chụp, không cần OCR.
 | P3 | PDF hỗ trợ người khiếm thị (tagged PDF / PDF/UA) | Sau 🤔 |
 | P4 | Hệ thống plugin mở rộng | Sau 🤔 |
 | P5 | Bản web rút gọn (không ký số), dùng lại giao diện React | Sau 🤔 |
+| P6 🆕 | Trợ lý AI (tùy chọn, phải tự bật): tóm tắt, hỏi đáp tài liệu, dịch. Gửi nội dung ra ngoài nên **mặc định tắt**, ngược với nguyên tắc offline | Sau 🤔 |
+| P7 🆕 | Tạo hóa đơn / văn bản từ mẫu (PDF24 có công cụ tạo hóa đơn) | Sau 🤔 |
+| P8 🆕 | Bản di động (portable) chạy từ USB, không cần cài đặt | Sau 🤔 |

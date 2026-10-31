@@ -5,7 +5,7 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** Đang brainstorm và chốt cây tính năng ([FEATURES.md](FEATURES.md), bản nháp 2). **Chưa viết code.**
+- **Giai đoạn:** Đang brainstorm và chốt cây tính năng ([FEATURES.md](FEATURES.md), bản nháp 3). **Chưa viết code.**
 - **Việc tiếp theo:** Chờ chủ dự án góp ý cây tính năng → chốt phạm vi v0.1 → dựng khung dự án Electron.
 - **Câu hỏi còn mở:**
   - Chủ dự án dùng USB token của hãng nào (VNPT-CA, Viettel-CA, BKAV-CA, FPT-CA, MISA…)? Cần token thật để thử ký số.
@@ -36,6 +36,9 @@
 | D12 | Thêm nhóm **Lớp & gỡ watermark** (bảng lớp, xem theo loại nội dung, gỡ watermark tự động) | Chủ dự án yêu cầu |
 | D13 | Làm một **"bộ máy nội dung"** dùng chung (v0.5) cho: chọn/xóa đối tượng, tẩy vùng, gỡ watermark, che thông tin mật. Sửa chữ (v0.6) xây tiếp trên nền này | Làm một lần, dùng cho nhiều tính năng |
 | D14 | Watermark/header/footer/số trang do Chef PDF thêm vào phải **gắn nhãn chuẩn** (marked content `/Artifact` + `/Subtype /Watermark` hoặc `/Pagination`) | Để sau này sửa/gỡ được sạch |
+| D15 | Ký số có **Studio mẫu chữ ký** đầy đủ (tham khảo Foxit): chọn dòng thông tin, định dạng ngày, lý do/nơi ký, bố cục, font, logo, biểu tượng ✓; mẫu gắn với từng chứng thư | Chủ dự án yêu cầu |
+| D16 | Một **thư viện ảnh chữ ký & con dấu dùng chung** (tách nền, làm sạch, đổi màu mực, mã hóa khi lưu) cho ký số, đóng dấu ảnh, chữ ký nháy, dấu giáp lai | Tránh làm trùng; ảnh chữ ký/con dấu là dữ liệu nhạy cảm |
+| D17 | Thông tin hiển thị trên chữ ký mặc định lấy từ chứng thư; người dùng được ghi đè chữ hiển thị, nhưng panel kiểm tra luôn hiện thông tin thật | Chống hiểu nhầm/giả mạo người ký |
 
 ## Kiến trúc dự kiến
 
@@ -100,5 +103,6 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 
 ## Nhật ký
 
+- **2026-10-31 (3):** Chủ dự án yêu cầu tùy chỉnh chữ ký số kiểu Foxit (ảnh ký, tách nền, người ký, ngày, nơi ký, lý do…). Claude mở rộng nhóm K thành 5 phần (K-A nguồn chứng thư, K-B Studio mẫu chữ ký, K-C ảnh chữ ký & con dấu, K-D đặt chữ ký & ký, K-E kiểm tra), **đánh lại mã nhóm K**. Đối chiếu với PDF24, Stirling-PDF, Acrobat, Smallpdf, iLovePDF, thêm: xóa trang trắng, chia đôi trang, tách thông minh, chỉnh ảnh trong PDF, giấy tiêu đề, QR/mã vạch, chữ ký nháy, chụp tài liệu bằng điện thoại qua QR, soi file, kiểm tra trước khi gửi, chuyển màu/tiết kiệm mực, web/Markdown → PDF, đổi tên hàng loạt, quy trình mẫu, trợ lý AI tùy chọn. (Không mở được trang danh sách đầy đủ của PDF24 và tài liệu Stirling-PDF vì mạng phiên bị chặn, nên tổng hợp từ kết quả tìm kiếm.)
 - **2026-10-31 (2):** Chủ dự án bổ sung: sửa chữ PDF, bóc tách lớp để gỡ watermark, thêm watermark/con dấu ảnh, số trang, header/footer. Claude đối chiếu với ABBYY và thêm: chọn/sửa đối tượng, tẩy vùng, thay ảnh, tìm & thay thế, dấu giáp lai, tách nền ảnh dấu, dấu động, Bates, gỡ nền, làm đẹp bản scan, sửa file hỏng, file đính kèm, metadata, máy in ảo, quét từ máy scan. Sắp xếp lại cây thành 5 khu vực, **đánh lại mã** (bản nháp 2). Lộ trình kéo dài đến v0.7.
 - **2026-10-31:** Bắt đầu dự án. Chốt tên Chef PDF, Electron, Python sidecar, bỏ OCR ở bản đầu, ưu tiên "Chuyển thành bản scan" và "Ký số". Soạn cây tính năng bản nháp 1 (`docs/FEATURES.md`), chờ chủ dự án góp ý.
