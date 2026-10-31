@@ -208,7 +208,8 @@ test('settings persist to settings.json with defaults and recent files', async (
     recentFiles: [],
   });
   expect(res.updated).toBe('dark');
-  expect(res.recent[0]).toMatchObject({ path: '/tmp/x/a.pdf', name: 'a.pdf' });
+  // main normalises the path for the current OS (backslashes on Windows)
+  expect(res.recent[0]).toMatchObject({ path: path.normalize('/tmp/x/a.pdf'), name: 'a.pdf' });
   expect(res.bad).toBe('rejected');
   const disk = JSON.parse(fs.readFileSync(path.join(userDataDir, 'settings.json'), 'utf8'));
   expect(disk).toMatchObject({ version: 1, theme: 'dark' });
