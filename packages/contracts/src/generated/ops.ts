@@ -483,6 +483,165 @@ export interface ImageTextSignatureParams {
   outputPath: string;
 }
 
+/**
+ * Add a PNG or JPEG. Give `width` or `height` (the other follows the aspect ratio, both
+ * fit inside), or `scale` (1.0 = natural size at 96 dpi). Default width is 150 pt.
+ */
+export interface OverlayAddImageParams {
+  /** Anchor point, from the left edge of the displayed page. */
+  x: number;
+  /** Anchor point, from the top edge of the displayed page. */
+  y: number;
+  /** @default "pt" */
+  unit?: 'pt' | 'mm';
+  /**
+   * Which point of the object is at x, y.
+   * @default "top-left"
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Degrees, counter-clockwise.
+   * @default 0.0
+   */
+  rotation?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /**
+   * True puts it beneath the page content.
+   * @default false
+   */
+  under?: boolean;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** Absolute path of the image file. */
+  path: string;
+  width?: number;
+  height?: number;
+  scale?: number;
+}
+
+/** Add a text box. Line breaks in `text` are kept; `width` wraps lines to a box width. */
+export interface OverlayAddTextParams {
+  /** Anchor point, from the left edge of the displayed page. */
+  x: number;
+  /** Anchor point, from the top edge of the displayed page. */
+  y: number;
+  /** @default "pt" */
+  unit?: 'pt' | 'mm';
+  /**
+   * Which point of the object is at x, y.
+   * @default "top-left"
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Degrees, counter-clockwise.
+   * @default 0.0
+   */
+  rotation?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /**
+   * True puts it beneath the page content.
+   * @default false
+   */
+  under?: boolean;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  text: string;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 12.0 */
+  fontSize?: number;
+  /** @default false */
+  bold?: boolean;
+  /** @default "#000000" */
+  color?: string;
+  /** @default "left" */
+  align?: 'left' | 'center' | 'right';
+  /** @default 1.2 */
+  lineHeight?: number;
+  /** Box width in unit; wraps lines. */
+  width?: number;
+}
+
+/**
+ * Place a page of another PDF (the letterhead) on the selected pages. `sourcePage` (0-based)
+ * is used for every page. `first`, `odd`, `even` and `rest` (0-based source pages)
+ * choose by target page: the first page, odd-numbered pages (1, 3, 5...), even-numbered pages,
+ * and any other page. Mapping fields take priority over `sourcePage`.
+ */
+export interface OverlayLetterheadParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** PDF that holds the letterhead. */
+  sourcePath: string;
+  sourcePage?: number;
+  first?: number;
+  odd?: number;
+  even?: number;
+  rest?: number;
+  /** @default "fit" */
+  scaling?: 'none' | 'fit';
+  /** @default true */
+  under?: boolean;
+}
+
+/** No parameters: lists the overlays of the current revision. */
+export interface OverlayListOverlaysParams {
+}
+
+/**
+ * Remove overlays added by Chef PDF. Give at least one selector; all given selectors must
+ * match.
+ */
+export interface OverlayRemoveParams {
+  ids?: string[];
+  group?: string;
+  kind?: 'text' | 'image' | 'watermark' | 'stamp' | 'header' | 'footer' | 'number' | 'qr' | 'letterhead';
+}
+
+/**
+ * A text or image watermark, rotated and faint by default. `mode` `center` puts one copy
+ * in the middle of each page; `tiled` repeats it over the page with `spacing` points
+ * between copies. Sizes and spacing are in points.
+ */
+export interface OverlayWatermarkParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  text?: string;
+  path?: string;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 60.0 */
+  fontSize?: number;
+  /** @default false */
+  bold?: boolean;
+  /** @default "#808080" */
+  color?: string;
+  /** @default 0.25 */
+  opacity?: number;
+  /** @default 45.0 */
+  rotation?: number;
+  /** @default "center" */
+  mode?: 'center' | 'tiled';
+  /** @default 60.0 */
+  spacing?: number;
+  /** Image width in points. */
+  width?: number;
+  /** Image height in points. */
+  height?: number;
+  /** @default false */
+  under?: boolean;
+}
+
 /** Delete pages. Deleting every page is not allowed. */
 export interface PageDeleteParams {
   /** 0-based page indices. */
@@ -985,6 +1144,12 @@ export interface OpParams {
   'image.removeBackground': ImageRemoveBackgroundParams;
   'image.separateColors': ImageSeparateColorsParams;
   'image.textSignature': ImageTextSignatureParams;
+  'overlay.addImage': OverlayAddImageParams;
+  'overlay.addText': OverlayAddTextParams;
+  'overlay.letterhead': OverlayLetterheadParams;
+  'overlay.listOverlays': OverlayListOverlaysParams;
+  'overlay.remove': OverlayRemoveParams;
+  'overlay.watermark': OverlayWatermarkParams;
   'page.delete': PageDeleteParams;
   'page.duplicate': PageDuplicateParams;
   'page.extract': PageExtractParams;
@@ -1025,6 +1190,12 @@ export const OP_IDS = [
   'image.removeBackground',
   'image.separateColors',
   'image.textSignature',
+  'overlay.addImage',
+  'overlay.addText',
+  'overlay.letterhead',
+  'overlay.listOverlays',
+  'overlay.remove',
+  'overlay.watermark',
   'page.delete',
   'page.duplicate',
   'page.extract',

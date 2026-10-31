@@ -20,6 +20,7 @@ BUILTIN_MODULES = (
     "chef_core.ops.sign_trust",
     "chef_core.ops.sign_batch",
     "chef_core.ops.image_sig",
+    "chef_core.ops.overlay",
 )
 
 
