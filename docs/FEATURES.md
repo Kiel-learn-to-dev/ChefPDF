@@ -16,10 +16,11 @@ Cây chia thành **5 khu vực**, khớp với cách giao diện sẽ được b
                   F Watermark, con dấu & đánh số · G Ghi chú · H Form
 4. Xuất & bảo vệ  I Chuyển thành bản scan · J Làm đẹp bản scan · K Ký số
                   L Bảo mật · M Tối ưu, chuyển đổi & sửa lỗi
+                  Q Rã tài liệu & tái tạo định dạng
 5. Tự động        N Quy trình & hàng loạt · O So sánh · P Để sau
 ```
 
-Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sửa** (D, E, F) · **Ghi chú** (G) · **Form** (H) · **Ký & Bảo vệ** (K, L) · **Xuất** (I, J, M) · **Quy trình** (N).
+Giao diện dự kiến: **Start** · tab **Xem** · **Trang** · **Chỉnh sửa** (D, E, F) · **Ghi chú** (G) · **Form** (H) · **Ký & Bảo vệ** (K, L) · **Xuất** (I, J, M, Q) · **Quy trình** (N).
 
 ## Lộ trình theo phiên bản
 
@@ -296,6 +297,30 @@ Thư viện ảnh **dùng chung** cho ký số (K-B), đóng dấu ảnh (F3), c
 | M15 🆕 | Bảng → Excel/CSV | Trích bảng trong PDF có chữ (không cần OCR) ra Excel/CSV | Sau 🤔 |
 | M16 🆕 | Xuất ảnh cho mạng xã hội | Xuất từng trang thành ảnh vừa khổ Zalo / Facebook, tùy chọn ghép nhiều trang thành 1 ảnh dài | Sau 🤔 |
 
+## Q. 🆕 Rã tài liệu & tái tạo định dạng
+
+Rã PDF (có chữ hoặc scan) thành một **mô hình tài liệu** gồm tiêu đề, đoạn, danh sách, bảng, hình, chú thích, kèm vị trí và độ tin cậy. Từ mô hình đó xuất ra Markdown, Word, HTML… Markdown chỉ là **một trong các định dạng xuất**, không phải định dạng trung gian, vì Markdown làm mất bố cục (cột, vị trí, font, màu).
+
+Cột "Bản": **v0.8** = làm được với PDF có chữ, không cần OCR. **OCR** = thuộc giai đoạn OCR sau này.
+
+| Mã | Tính năng | Chi tiết | Bản |
+|---|---|---|---|
+| Q1 | Rã PDF có chữ | Lấy chữ kèm font, cỡ, đậm/nghiêng; gom thành dòng → đoạn; nhận tiêu đề theo cỡ chữ; danh sách; link; tách ảnh; xác định thứ tự đọc, kể cả văn bản nhiều cột | v0.8 |
+| Q2 | Nhận dạng bố cục | Dùng mô hình chạy offline trên máy để nhận vùng: tiêu đề, đoạn, bảng, hình, chú thích ảnh, header/footer/số trang (bỏ khi xuất) | v0.8 |
+| Q3 | Nhận dạng bảng | Bảng có kẻ và không kẻ, ô gộp → bảng Markdown/HTML/Excel | v0.8 |
+| Q4 | OCR cho PDF scan và ảnh | Tiếng Việt + Anh. Phát hiện vùng chữ, sau đó nhận dạng chữ có dấu (tham khảo PaddleOCR + VietOCR, Tesseract làm dự phòng) | OCR |
+| Q5 | Lọc con dấu & chữ ký trước khi OCR | Bỏ con dấu đỏ, chữ ký xanh đè lên chữ (dùng công cụ tách màu ở K23) để OCR không đọc sai | OCR |
+| Q6 | Nhận diện văn bản hành chính VN | Nhận các phần quốc hiệu, tiêu ngữ, cơ quan ban hành, số/ký hiệu, ngày tháng, trích yếu, nơi nhận, người ký → xuất Word đúng thể thức | OCR 🤔 |
+| Q7 | **Màn hình kiểm tra & sửa** | Ảnh gốc một bên, kết quả một bên, click chỗ nào nhảy tới chỗ đó. **Tô vàng chữ có độ tin cậy thấp**, phím tắt nhảy tới chữ đáng ngờ tiếp theo, sửa trực tiếp, sửa cả loại vùng (đoạn ↔ bảng ↔ hình) | v0.8 |
+| Q8 | Xuất định dạng | Markdown (kèm thư mục ảnh), DOCX, HTML, EPUB, ODT, TXT, XLSX (chỉ lấy bảng), JSON | v0.8 |
+| Q9 | Hai chế độ xuất Word | **"Dễ chỉnh sửa"**: văn bản chảy tự nhiên, dùng style Heading. **"Giữ bố cục"**: dùng khung định vị và cột để giống bản gốc nhất có thể | v0.8 |
+| Q10 | PDF tìm kiếm được | Giữ ảnh scan, thêm lớp chữ ẩn bên dưới để tìm kiếm và copy được | OCR |
+| Q11 | Làm mới tài liệu | Dàn trang lại thành PDF sạch, font đẹp từ mô hình tài liệu, ví dụ biến bản scan mờ thành văn bản như mới | v0.8 |
+| Q12 | Trình sửa Markdown tích hợp | Sửa file Markdown, xem trước, xuất lại ra các định dạng | Sau 🤔 |
+| Q13 | Công thức toán | Nhận công thức thành LaTeX | Sau 🤔 |
+| Q14 | Gói nhận dạng tải riêng | Các mô hình bố cục/bảng/OCR (vài trăm MB) **không đi kèm bản cài chính**, tải khi cần. Tùy chọn dùng GPU nếu máy có | v0.8 |
+| Q15 | Hàng loạt | Rã cả thư mục; dùng làm một bước trong Quy trình (N) | v0.8 |
+
 ---
 
 # Khu vực 5: Tự động & mở rộng
@@ -325,7 +350,7 @@ Thư viện ảnh **dùng chung** cho ký số (K-B), đóng dấu ảnh (F3), c
 
 | Mã | Tính năng | Bản |
 |---|---|---|
-| P1 | OCR (tiếng Việt, tiếng Anh) | Sau |
+| P1 | OCR (tiếng Việt, tiếng Anh). Chi tiết nằm trong nhóm Q | Sau |
 | P2 | Quét trực tiếp từ máy scan (TWAIN/WIA trên Windows, ICA trên macOS, SANE trên Linux) | Sau 🤔 |
 | P3 | PDF hỗ trợ người khiếm thị (tagged PDF / PDF/UA) | Sau 🤔 |
 | P4 | Hệ thống plugin mở rộng | Sau 🤔 |

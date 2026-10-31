@@ -42,6 +42,9 @@
 
 | D18 | **Không làm tính năng AI** | Chủ dự án: chưa cần thiết. Cũng khớp với nguyên tắc offline |
 | D19 | Ký số hỗ trợ **cả CA công cộng và CA chuyên dùng Chính phủ (Ban Cơ yếu)**; tin cậy cả 2 hệ Root CA; driver token quản lý bằng danh bạ dữ liệu + quét tự động + màn hình chẩn đoán | Xem [TOKENS.md](TOKENS.md) |
+| D20 | Thêm nhóm **Q. Rã tài liệu & tái tạo định dạng**. Phần PDF có chữ làm trước (v0.8, không cần OCR), phần scan làm ở giai đoạn OCR | Chủ dự án hỏi |
+| D21 | Định dạng trung gian là **mô hình tài liệu JSON** (khối, vị trí, kiểu chữ, độ tin cậy); Markdown chỉ là một định dạng xuất | Markdown làm mất bố cục |
+| D22 | Các mô hình nhận dạng (bố cục, bảng, OCR) chạy **offline trên máy**, đóng thành **gói tải riêng** để bản cài chính vẫn nhẹ | Giữ nguyên tắc offline; D18 (bỏ AI) nói về trợ lý AI, *giả định* không áp dụng cho mô hình OCR offline (**chờ chủ dự án xác nhận**) |
 
 ## Kiến trúc dự kiến
 
@@ -93,6 +96,12 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 - **Đánh số trang theo Nghị định 30/2020/NĐ-CP:** số Ả Rập, canh giữa trong lề trên, không hiển thị số ở trang đầu.
 - **Tách nền ảnh dấu/chữ ký** chụp bằng điện thoại: lọc theo màu mực (đỏ/xanh), nền thành trong suốt.
 
+### Rã tài liệu (nhóm Q): thư viện ứng viên và giấy phép
+Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm tra lại trước khi dùng.**
+- **Dùng được:** Docling (IBM, MIT; rã PDF, bố cục, bảng, xuất Markdown/JSON), PaddleOCR / PP-Structure (Apache-2.0), Tesseract (Apache-2.0, có dữ liệu `vie`), VietOCR (Apache-2.0, nhận dạng tiếng Việt tốt), EasyOCR (Apache-2.0), python-docx (MIT).
+- **Tránh hoặc cẩn thận:** Marker và Surya (code GPL, trọng số mô hình hạn chế dùng thương mại), MinerU (từng dùng AGPL, cần xem giấy phép hiện tại). Pandoc là GPL: chỉ gọi như chương trình riêng, không nhúng vào code; hoặc tự viết bộ xuất.
+- Chạy trên CPU ước chừng vài giây mỗi trang cho bố cục + OCR. Có GPU thì nhanh hơn nhiều.
+
 ### Phân phối
 - macOS cần notarize (tài khoản Apple Developer 99 USD/năm), nếu không Gatekeeper sẽ chặn app.
 - Windows cần chứng thư code signing, nếu không SmartScreen sẽ cảnh báo.
@@ -106,6 +115,7 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 
 ## Nhật ký
 
+- **2026-10-31 (5):** Chủ dự án hỏi về tính năng rã PDF (có chữ / scan) thành Markdown rồi tái tạo ra định dạng khác. Claude đánh giá theo mức khó, thêm nhóm Q (Q1–Q15) và D20–D22. Hỏi lại: mô hình OCR/bố cục chạy offline có bị tính là "AI" (đã bỏ) không.
 - **2026-10-31 (4):** Bỏ trợ lý AI (P6). Chủ dự án cần hỗ trợ token Viettel, VNPT, FPT, Cơ yếu, MISA… Claude tra cứu và ghi vào `docs/TOKENS.md`: có 2 hệ CA (công cộng / chuyên dùng Chính phủ), token đa số là chip Feitian/SafeNet/Bit4id đóng gói lại, driver khác nhau theo từng đời token. Thêm K6–K9 (danh bạ driver, quét driver, chẩn đoán token, cảnh báo PIN). Chủ dự án: liệt kê tính năng trước, lập plan và ước lượng sau.
 - **2026-10-31 (3):** Chủ dự án yêu cầu tùy chỉnh chữ ký số kiểu Foxit (ảnh ký, tách nền, người ký, ngày, nơi ký, lý do…). Claude mở rộng nhóm K thành 5 phần (K-A nguồn chứng thư, K-B Studio mẫu chữ ký, K-C ảnh chữ ký & con dấu, K-D đặt chữ ký & ký, K-E kiểm tra), **đánh lại mã nhóm K**. Đối chiếu với PDF24, Stirling-PDF, Acrobat, Smallpdf, iLovePDF, thêm: xóa trang trắng, chia đôi trang, tách thông minh, chỉnh ảnh trong PDF, giấy tiêu đề, QR/mã vạch, chữ ký nháy, chụp tài liệu bằng điện thoại qua QR, soi file, kiểm tra trước khi gửi, chuyển màu/tiết kiệm mực, web/Markdown → PDF, đổi tên hàng loạt, quy trình mẫu, trợ lý AI tùy chọn. (Không mở được trang danh sách đầy đủ của PDF24 và tài liệu Stirling-PDF vì mạng phiên bị chặn, nên tổng hợp từ kết quả tìm kiếm.)
 - **2026-10-31 (2):** Chủ dự án bổ sung: sửa chữ PDF, bóc tách lớp để gỡ watermark, thêm watermark/con dấu ảnh, số trang, header/footer. Claude đối chiếu với ABBYY và thêm: chọn/sửa đối tượng, tẩy vùng, thay ảnh, tìm & thay thế, dấu giáp lai, tách nền ảnh dấu, dấu động, Bates, gỡ nền, làm đẹp bản scan, sửa file hỏng, file đính kèm, metadata, máy in ảo, quét từ máy scan. Sắp xếp lại cây thành 5 khu vực, **đánh lại mã** (bản nháp 2). Lộ trình kéo dài đến v0.7.
