@@ -19,7 +19,7 @@
 - **Việc tiếp theo:** Chủ dự án duyệt blueprint → trả lời CH1 (OS chính, token của CA nào) → bắt đầu **v0.1** từ T1.01 (dựng monorepo). Trạng thái từng task theo dõi trong TASKS.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
-  - **CH1:** máy chính chạy OS nào? Token của CA nào? (cần cho spike T1.08)
+  - **CH1:** máy chính chạy OS nào? Token của CA nào? → chạy `cd spikes && uv sync && uv run python s1_token_probe.py` trên máy có token, gửi lại `token_probe_report.json` (hướng dẫn ở `docs/spikes/S1-pkcs11.md` mục 9)
   - **CH2:** cách tự cập nhật khi repo private (cần trước T9.08). Xem TASKS.md.
   - Cần **token thật** (Viettel, VNPT, FPT, Ban Cơ yếu, MISA…) để thử ký số. Xem [TOKENS.md](TOKENS.md).
 
@@ -69,6 +69,8 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D30 | Kiến trúc **mô hình thao tác (Operation)**: mỗi tính năng tác động lên tài liệu là một operation có Params dạng pydantic (sinh JSON Schema và kiểu TS). UI, hàng loạt, quy trình và dòng lệnh dùng chung | Chi tiết ở BLUEPRINT mục 3 |
 | D31 | Main ↔ lõi Python giao tiếp bằng **JSON-RPC 2.0 qua stdin/stdout** (không mở cổng mạng). Dữ liệu lớn truyền bằng đường dẫn file | BLUEPRINT mục 5 |
 | D32 | **Phiên tài liệu** dùng bản sao làm việc và các bản sửa trên đĩa; không động vào file gốc tới khi Lưu; hoàn tác bằng bản sửa | BLUEPRINT mục 4 |
+| D33 | **Giữ stack giấy phép thoáng (D7)** cho sửa đối tượng/chữ: pypdfium2 + pikepdf + fontTools. Không dùng PyMuPDF | Spike S2: đủ sức; PyMuPDF còn làm lộ chữ đã che qua `/ActualText` trong mẫu thử |
+| D34 | Giao diện chữ ký số **tự vẽ bằng reportlab** rồi nhúng vào, không dùng bộ vẽ chữ của pyHanko. Giữ **một phiên đăng nhập cho mỗi token**; đọc lại cờ PIN ngay trước mỗi lần hỏi PIN | Spike S1: pyHanko 0.38 giãn chữ sai với font TrueType; đăng nhập lần 2 trong cùng tiến trình bị lỗi |
 
 ## Kiến trúc dự kiến
 
@@ -163,6 +165,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-10-31 (13):** Ghép spike. **S1** (SoftHSM2): ký ẩn, ký hiển thị tiếng Việt + ảnh trong suốt, B-T/B-LT/B-LTA, 2 người ký, certify đều hợp lệ; đọc lại được MST/CCCD; 10 file một lần PIN mất 0,3s. Mọi TSA công khai bị proxy chặn nên thử bằng TSA cục bộ. **S2**: stack giấy phép thoáng đủ sức, giữ D7 (D33). Thêm D34. Ước lượng: v0.3 31,5; v0.6 21,5.
 - **2026-10-31 (12):** Ghép nhánh desktop: T1.02, T1.06, T1.21 xong; phần main/CI của T1.07, T1.15 xong (72 unit test, 10 e2e). Hạ TypeScript từ 7.0 xuống **6.0.3** vì typescript-eslint chưa hỗ trợ TS 7. UI chạy dưới scheme `chef-app://ui/`. CI thêm bước kiểm tra codegen. Bộ cài Linux (chưa có UI, lõi giả): AppImage ~132MB; khởi động nguội ~0,5s.
 - **2026-10-31 (11):** Bắt đầu code v0.1 với 4 sub agent song song (core, desktop, UI, spike). T1.01 xong (khung monorepo + `docs/CONTRACTS.md`). Ghép nhánh core: T1.03–T1.05, T1.23 xong; phần lõi của T1.20, T1.25, T1.07 xong (101 test). Bổ sung hợp đồng: `OpResult.state` có thể null (op standalone), `session.save` trả thêm `warnings`, bảng mã lỗi chi tiết. **Quyết định mặc định:** file đã có chữ ký thì chặn các thao tác ghi lại tài liệu (`BLOCKED_BY_SIGNATURE`), cho phép trích/tách/ghép.
 - **2026-10-31 (10):** Chủ dự án: app **tự dùng** (D28). Chuyển sang lập kế hoạch. Claude viết `docs/BLUEPRINT.md` (bối cảnh, kiến trúc, mô hình operation, phiên tài liệu, IPC, giao diện, dữ liệu & bảo mật, cấu trúc repo, công nghệ, kiểm thử, build, quy trình làm việc, mốc, ước lượng, rủi ro) và `docs/TASKS.md` (118 task, 262 điểm, đủ 160 tính năng). Chia lại mốc thành 11 mốc (D29). Thêm D30–D32. Câu hỏi mới: CH1, CH2.

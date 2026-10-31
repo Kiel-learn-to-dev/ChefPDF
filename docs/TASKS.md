@@ -18,10 +18,10 @@
 |---|---|---|---|
 | v0.1 | Nền móng, xem & sắp xếp | 25 | 42 |
 | v0.2 | ★ Bản scan | 8 | 10,5 |
-| v0.3 | ★ Ký số | 14 | 32 |
+| v0.3 | ★ Ký số | 14 | 31,5 |
 | v0.4 | Đóng dấu & đánh số | 14 | 24 |
 | v0.5 | Bảo mật, tối ưu & chuyển đổi | 11 | 21,5 |
-| v0.6 | Bộ máy nội dung | 7 | 21 |
+| v0.6 | Bộ máy nội dung | 7 | 21,5 |
 | v0.7 | Sửa chữ & ghi chú | 7 | 21 |
 | v0.8 | Ảnh scan & chụp sách | 11 | 32 |
 | v0.9 | Form & quy trình tự động | 8 | 19,5 |
@@ -52,8 +52,8 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T1.08 | **S1:** pyHanko + PKCS#11 với SoftHSM2, rồi với **token thật** trên máy chủ dự án. Ghi kết quả vào TOKENS.md | (I1) | 1,5 | T1.03, CH1 | 🔄 |
-| T1.09 | **S2:** đánh giá pypdfium2/pikepdf cho chọn/xóa/di chuyển đối tượng và sửa chữ tiếng Việt. Kết luận có cần xem lại D7 không | (D4–D9) | 1,5 | T1.03 | 🔄 |
+| T1.08 | **S1:** pyHanko + PKCS#11 với SoftHSM2, rồi với **token thật** trên máy chủ dự án. Ghi kết quả vào TOKENS.md. *Phần SoftHSM2 xong ([báo cáo](spikes/S1-pkcs11.md)); chờ chủ dự án chạy `spikes/s1_token_probe.py` với token thật* | (I1) | 1,5 | T1.03, CH1 | 🔄 |
+| T1.09 | **S2:** đánh giá pypdfium2/pikepdf cho chọn/xóa/di chuyển đối tượng và sửa chữ tiếng Việt. Kết luận có cần xem lại D7 không | (D4–D9) | 1,5 | T1.03 | ✅ |
 
 ### Giao diện & trình xem
 
@@ -114,12 +114,12 @@
 | T3.06 | Engine ký PAdES: B-B / B-T / B-LT / B-LTA, TSA có dự phòng, SHA-256, ghi incremental | I28 | 3 | T3.01, T3.04 | ⬜ |
 | T3.07 | Ký chứng nhận (DocMDP); nhiều người ký nối tiếp; tạo ô ký trống | I29, I30 | 1,5 | T3.06 | ⬜ |
 | T3.08 | Kiểm tra chữ ký: panel trạng thái, chuỗi chứng thư, OCSP/CRL, xem phiên bản lúc ký; kho tin cậy với 2 hệ Root CA Việt Nam | I34, I35 | 3 | T3.06 | ⬜ |
-| T3.09 | Bộ vẽ giao diện chữ ký theo mẫu: bố cục, font tiếng Việt, tự co chữ, màu, viền, logo, dấu ✓ | I15–I18 | 3 | T3.06 | ⬜ |
+| T3.09 | Bộ vẽ giao diện chữ ký theo mẫu: bố cục, font tiếng Việt, tự co chữ, màu, viền, logo, dấu ✓. **Tự vẽ bằng reportlab rồi nhúng vào**, không dùng bộ vẽ chữ có sẵn của pyHanko (lỗi giãn chữ với font TrueType, xem spike S1) | I15–I18 | 3 | T3.06 | ⬜ |
 | T3.10 | Studio mẫu chữ ký (UI): quản lý mẫu, gắn mẫu với chứng thư, chọn dòng thông tin, nguồn dữ liệu, ngày giờ, lý do/nơi ký, xem trước trực tiếp | I10–I14 | 3 | T3.09, T3.05 | ⬜ |
 | T3.11 | Thư viện ảnh chữ ký & con dấu: nhập ảnh / vẽ (có lực bút) / gõ font viết tay; tách nền tự động; làm sạch & chỉnh; mã hóa thư viện. *Phần "chụp qua QR" của I19 làm ở T8.11* | I19, I20, I21, I23 | 3,5 | T1.10 | ⬜ |
 | T3.12 | Đặt chữ ký: kéo thả khung, ký ẩn, ký vào ô có sẵn, **đặt theo chữ mốc**, vị trí cố định | I25, I26, I27 | 2,5 | T3.09 | ⬜ |
 | T3.13 | Ký hàng loạt (nhập PIN 1 lần); việc sau khi ký (đặt tên, mở panel kiểm tra, mở thư mục) | I31, I32 | 1,5 | T3.12 | ⬜ |
-| T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 2 | T3.13, T3.08 | ⬜ |
+| T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 1,5 | T3.13, T3.08 | ⬜ |
 
 ---
 
@@ -172,12 +172,12 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T6.01 | Content engine: đọc đối tượng trang, xác định đối tượng dưới con trỏ, chọn, biến đổi, xóa, ghi lại | | 5 | T1.09 | ⬜ |
+| T6.01 | Content engine: đọc đối tượng trang, xác định đối tượng dưới con trỏ, chọn, biến đổi, xóa, ghi lại. Gồm bước tiền xử lý bằng pikepdf (mở Form XObject, bỏ ActualText, lấy mã ký tự từ ToUnicode) và bước kiểm chứng độc lập, theo spike S2 | | 6 | T1.09 | ⬜ |
 | T6.02 | UI chọn & sửa đối tượng (tay nắm, xoay, thứ tự lớp) | D4 | 2,5 | T6.01 | ⬜ |
 | T6.03 | Tẩy vùng: cắt chữ/vector/ảnh theo vùng | D5 | 3 | T6.01 | ⬜ |
 | T6.04 | Thay ảnh; chỉnh ảnh trong PDF | D6, D7 | 2 | T6.01 | ⬜ |
 | T6.05 | Bảng lớp; xem theo loại nội dung | E1, E2 | 2 | T6.01 | ⬜ |
-| T6.06 | Gỡ watermark tự động (dò ứng viên, xem trước, tích chọn); gỡ "đối tượng giống thế này"; gỡ/đổi nền | E3, E4, E5 | 3,5 | T6.05 | ⬜ |
+| T6.06 | Gỡ watermark tự động (dò ứng viên, xem trước, tích chọn); gỡ "đối tượng giống thế này"; gỡ/đổi nền | E3, E4, E5 | 3 | T6.05 | ⬜ |
 | T6.07 | Che thông tin mật: xóa thật nội dung bên dưới; tìm theo mẫu CCCD/SĐT/email/STK; kiểm chứng bằng test | J6 | 3 | T6.03 | ⬜ |
 
 ---

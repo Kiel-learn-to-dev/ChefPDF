@@ -268,6 +268,7 @@ Phiên bản cụ thể sẽ **chốt và ghim lại khi dựng khung** (T1.01),
 | Mã QR, mã vạch | segno, python-barcode | BSD / MIT |
 | Xuất tài liệu | python-docx, openpyxl | MIT |
 | Đóng gói lõi | PyInstaller (chế độ onedir) | GPL kèm ngoại lệ cho app đóng gói |
+| Vẽ giao diện chữ ký, font | reportlab, fontTools | BSD / MIT |
 | Kiểm thử | pytest, Vitest, Playwright, SoftHSM2 (token giả lập) | MIT / MIT / Apache-2.0 / BSD |
 | Chất lượng code | ruff, mypy, ESLint, Prettier | MIT |
 
@@ -360,16 +361,16 @@ nền móng  scan    ký số    đóng dấu  bảo mật  nội dung  sửa ch
 |---|---|---|
 | v0.1 | 42 | Gồm toàn bộ nền móng (kiến trúc, đóng gói 3 OS, test) |
 | v0.2 | 10,5 | |
-| v0.3 | 32 | Rủi ro cao nhất: token, driver, tương thích Adobe |
+| v0.3 | 31,5 | Rủi ro cao nhất: token, driver, tương thích Adobe. Cộng 2–3 điểm nếu driver token không chạy trên macOS/Linux |
 | v0.4 | 24 | |
 | v0.5 | 21,5 | |
-| v0.6 | 21 | Rủi ro: content engine |
+| v0.6 | 21,5 | Spike S2: thư viện giấy phép thoáng đủ sức, có vài bẫy cần xử lý |
 | v0.7 | 21 | Rủi ro: font tiếng Việt khi sửa chữ |
 | v0.8 | 32 | Nhiều thuật toán ảnh |
 | v0.9 | 19,5 | |
 | v0.10 | 24,5 | |
 | v1.0 | 14 | |
-| **Tổng** | **262** | Cộng dự phòng 20% thì khoảng **315 điểm** |
+| **Tổng** | **262** | Cộng dự phòng 20% thì khoảng **315 điểm**. Sau spike: v0.3 −0,5, v0.6 +0,5 |
 
 Chi tiết từng task ở [TASKS.md](TASKS.md).
 
@@ -379,8 +380,8 @@ Chi tiết từng task ở [TASKS.md](TASKS.md).
 
 | # | Rủi ro | Ảnh hưởng | Khả năng | Cách giảm |
 |---|---|---|---|---|
-| R1 | Driver USB token Việt Nam không chạy trên macOS/Linux, hoặc PKCS#11 có hành vi lạ | Cao | Cao | **Spike S1 ngay ở v0.1** với token thật trên máy chủ dự án; SoftHSM2 cho CI; màn hình chẩn đoán (I6); đường dự phòng qua kho chứng thư OS (I8) |
-| R2 | pypdfium2/pikepdf không đủ sức cho sửa đối tượng và sửa chữ | Cao | Trung bình | **Spike S2 ở v0.1.** Nếu không đủ: xem lại D7 và cân nhắc PyMuPDF (được phép vì tự dùng, D28) |
+| R1 | Driver USB token Việt Nam không chạy trên macOS/Linux, hoặc PKCS#11 có hành vi lạ | Cao | Cao | Spike S1 với SoftHSM2: pyHanko làm được mọi kiểu ký cần thiết ([báo cáo](spikes/S1-pkcs11.md)). **Còn chờ thử token thật** bằng `spikes/s1_token_probe.py`. Màn hình chẩn đoán (I6); đường dự phòng qua kho chứng thư OS (I8) |
+| R2 | pypdfium2/pikepdf không đủ sức cho sửa đối tượng và sửa chữ | Cao | ~~Trung bình~~ **Thấp** | ✅ **Spike S2 đã kiểm chứng**: sửa/xóa đối tượng, gỡ watermark, che thông tin mật thật, sửa chữ thiếu glyph (fontTools) đều chạy. Giữ D7. Xem [spike S2](spikes/S2-content-editing.md) |
 | R3 | Sửa chữ tiếng Việt thiếu glyph trong font đã nhúng | Trung bình | Cao | Thay font gần giống; đóng gói font Unicode; báo rõ cho người dùng |
 | R4 | Adobe Reader không công nhận chữ ký / giao diện chữ ký | Cao | Trung bình | Kiểm tra chéo ở mỗi bản (T3.14); bám chuẩn PAdES; dùng bộ kiểm tra của pyHanko |
 | R5 | Bộ cài nặng, sidecar khởi động chậm | Thấp | Trung bình | PyInstaller onedir; nạp thư viện nặng (OpenCV, ONNX) khi cần mới nạp; đo ở T1.06 |
