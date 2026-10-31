@@ -1,14 +1,16 @@
 """Scan conversion (group K): scan.rasterize turns the document into an image-only PDF.
 
-Pages are rendered one at a time. Each rendered page is encoded into a one-page PDF in the job
-work directory and copied into the document as soon as it is ready, so bitmaps never pile up.
-PDFium is not thread-safe, so with several pages the rendering runs in a process pool (bounded
-window of in-flight pages, results consumed in page order).
+Pages are rendered in a process pool (PDFium is not thread-safe). Each worker writes the encoded
+page image (JPEG or TIFF G4 bytes) into the job work directory, so the parent never holds encoded
+pages in RAM. When every page is ready, img2pdf assembles the images into one PDF file, streamed
+to disk. Unselected pages are copied from the source document. The number of workers is capped
+by a RAM budget (worker_count), so big pages mean fewer workers.
 """
 
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 from collections import deque
 from collections.abc import Generator
@@ -30,8 +32,11 @@ from chef_core.pdf.outline import read_bookmarks
 from chef_core.pdf.pages import check_indices, display_size, replace_page_order, unique_sorted
 from chef_core.pdf.rasterize import (
     ColorMode,
+    assemble_image_pdf,
     convert_mode,
+    encode_image_bytes,
     encode_image_page,
+    image_suffix,
     rasterize_page,
 )
 from chef_core.session.info import has_signatures
@@ -40,10 +45,18 @@ PageIndex = Annotated[int, Field(ge=0)]
 EffectPresetName = Literal["none", "light", "photocopy", "old-paper"]
 
 # Rendering is CPU-bound and PDFium is single-threaded, so processes, not threads.
-MAX_WORKERS = min(os.cpu_count() or 1, 4)
+MAX_WORKER_PROCESSES = 4
+MAX_WORKERS = min(os.cpu_count() or 1, MAX_WORKER_PROCESSES)
 POOL_MIN_PAGES = 8  # below this, rendering inline is cheaper than starting workers
 # Largest rendered page accepted (about 200 MB as RGBA). A4 is about 720 dpi at this limit.
 MAX_PAGE_PIXELS = 50_000_000
+# Memory guard: the bitmaps of all workers together should fit in this budget.
+RAM_BUDGET_BYTES = int(1.5 * 1024**3)
+RAM_BUDGET_ENV = "CHEF_SCAN_RAM_MB"  # overrides RAM_BUDGET_BYTES, in MiB (used by tests)
+BITMAP_BYTES_PER_PIXEL = 4  # PDFium renders BGRA
+BITMAP_COPY_FACTOR = 2  # the render and the converted copy are alive at the same time
+# Catalog entries that do not refer to pages: kept from the source (the rest is dropped).
+CARRIED_CATALOG_KEYS = ("/Lang", "/PageLayout", "/PageMode", "/PageLabels", "/ViewerPreferences")
 
 TEXT_SHOW_OPERATORS = frozenset({"Tj", "TJ", "'", '"'})
 
@@ -137,14 +150,52 @@ def render_result_page(source: pdfium.PdfDocument, index: int, opts: EncodeOptio
 
 
 def encode_result_page(source: pdfium.PdfDocument, index: int, opts: EncodeOptions) -> bytes:
-    """One page as the one-page image PDF that is copied into the document."""
+    """One page as a one-page image PDF (used by previews and size estimates)."""
     img = render_result_page(source, index, opts)
     return encode_image_page(img, opts.dpi, opts.color, opts.jpeg_quality)
 
 
+def encode_result_image(source: pdfium.PdfDocument, index: int, opts: EncodeOptions) -> bytes:
+    """The encoded page image (JPEG or TIFF G4 bytes) that the final PDF embeds unchanged."""
+    img = render_result_page(source, index, opts)
+    return encode_image_bytes(img, opts.dpi, opts.color, opts.jpeg_quality)
+
+
 def _render_to_file(source: pdfium.PdfDocument, index: int, opts: EncodeOptions, out: Path) -> Path:
-    out.write_bytes(encode_result_page(source, index, opts))
+    out.write_bytes(encode_result_image(source, index, opts))
     return out
+
+
+def page_bitmap_bytes(width_pt: float, height_pt: float, dpi: int) -> int:
+    """Estimated RAM needed to render one page: pixels x bytes per pixel x copies alive."""
+    pixels = math.ceil(width_pt * dpi / 72) * math.ceil(height_pt * dpi / 72)
+    return pixels * BITMAP_BYTES_PER_PIXEL * BITMAP_COPY_FACTOR
+
+
+def largest_page_bytes(pdf: pikepdf.Pdf, pages: list[int], dpi: int) -> int:
+    """The biggest per-page estimate over the selected pages (1 when there are none)."""
+    sizes: list[int] = []
+    for index in pages:
+        width, height, _ = display_size(pdf.pages[index])
+        if width > 0 and height > 0:
+            sizes.append(page_bitmap_bytes(width, height, dpi))
+    return max(sizes, default=1)
+
+
+def ram_budget_bytes() -> int:
+    """RAM_BUDGET_BYTES, or CHEF_SCAN_RAM_MB (MiB) when that variable holds a positive integer."""
+    raw = os.environ.get(RAM_BUDGET_ENV, "")
+    try:
+        mebibytes = int(raw)
+    except ValueError:
+        return RAM_BUDGET_BYTES
+    return mebibytes * 1024 * 1024 if mebibytes > 0 else RAM_BUDGET_BYTES
+
+
+def worker_count(per_page_bytes: int, cpus: int, budget_bytes: int) -> int:
+    """min(cpus, 4, max(1, budget // per_page)): never zero, never more than the budget allows."""
+    fitting = max(1, budget_bytes // max(1, per_page_bytes))
+    return max(1, min(cpus, MAX_WORKER_PROCESSES, fitting))
 
 
 def check_page_budget(pdf: pikepdf.Pdf, pages: list[int], dpi: int) -> None:
@@ -177,25 +228,28 @@ def _render_worker(source: str, index: int, opts: EncodeOptions, out: str) -> st
     return str(_render_to_file(_worker_doc[1], index, opts, Path(out)))
 
 
+def _image_path(ctx: OpContext, index: int, opts: EncodeOptions) -> Path:
+    return ctx.work_dir / f"page-{index:05d}{image_suffix(opts.color)}"
+
+
 def _rasterized_pages(
-    ctx: OpContext, source: Path, pages: list[int], opts: EncodeOptions
+    ctx: OpContext, source: Path, pages: list[int], opts: EncodeOptions, workers: int
 ) -> Generator[tuple[int, Path], None, None]:
-    """Yield ``(page index, one-page PDF path)`` in page order."""
+    """Yield ``(page index, encoded page image path)`` in page order."""
     total = len(pages)
-    if total < POOL_MIN_PAGES or MAX_WORKERS <= 1:
+    if total < POOL_MIN_PAGES or workers <= 1:
         doc = pdfium.PdfDocument(str(source))
         try:
             for done, index in enumerate(pages):
                 ctx.progress(done, total, "Rasterizing")
-                out = ctx.work_dir / f"page-{index:05d}.pdf"
-                yield index, _render_to_file(doc, index, opts, out)
+                yield index, _render_to_file(doc, index, opts, _image_path(ctx, index, opts))
         finally:
             doc.close()
         ctx.progress(total, total)
         return
 
-    window = MAX_WORKERS * 2
-    pool = ProcessPoolExecutor(max_workers=MAX_WORKERS)
+    window = workers * 2
+    pool = ProcessPoolExecutor(max_workers=workers)
     pending: deque[tuple[int, Future[str], Path]] = deque()
     queue = iter(pages)
 
@@ -203,7 +257,7 @@ def _rasterized_pages(
         index = next(queue, None)
         if index is None:
             return
-        out = ctx.work_dir / f"page-{index:05d}.pdf"
+        out = _image_path(ctx, index, opts)
         future = pool.submit(_render_worker, str(source), index, opts, str(out))
         pending.append((index, future, out))
 
@@ -272,28 +326,92 @@ def selected_pages(pages: list[int] | None, count: int) -> list[int]:
 )
 def rasterize(ctx: OpContext, p: RasterizeParams) -> OpOutput:
     opts = encode_options(p)
-    with ctx.open_input() as pdf:
-        count = len(pdf.pages)
+    with ctx.open_input() as source_pdf:
+        count = len(source_pdf.pages)
         selected = selected_pages(p.pages, count)
-        check_page_budget(pdf, selected, p.dpi)
-        for message in scan_loss_warnings(pdf):
+        check_page_budget(source_pdf, selected, p.dpi)
+        for message in scan_loss_warnings(source_pdf):
             ctx.warn(message)
-        originals = [page.obj for page in pdf.pages]
-        replacements: dict[int, pikepdf.Object] = {}
+        workers = worker_count(
+            largest_page_bytes(source_pdf, selected, p.dpi), MAX_WORKERS, ram_budget_bytes()
+        )
 
         source = Path(ctx.input_path or "")
-        with contextlib.closing(_rasterized_pages(ctx, source, selected, opts)) as pages_iter:
-            for index, page_file in pages_iter:
-                with pikepdf.open(page_file) as one_page:
-                    pdf.pages.append(one_page.pages[0])
-                    replacements[index] = pdf.pages[-1].obj
-                page_file.unlink()
-
-        order = [replacements.get(i, originals[i]) for i in range(count)]
-        replace_page_order(pdf, order)
-        _drop_document_content(pdf, p.strip_metadata)
-        ctx.save_document(pdf)
+        images: list[Path] = []
+        assembled = ctx.work_dir / "scan-pages.pdf"
+        try:
+            with contextlib.closing(
+                _rasterized_pages(ctx, source, selected, opts, workers)
+            ) as pages_iter:
+                for _, image in pages_iter:
+                    images.append(image)
+            ctx.check_cancelled()
+            assemble_image_pdf(images, p.dpi, assembled)
+            with pikepdf.open(assembled) as pdf:
+                _arrange_pages(pdf, source_pdf, selected, count)
+                _carry_document_parts(pdf, source_pdf, p.strip_metadata)
+                _drop_document_content(pdf, p.strip_metadata)
+                ctx.save_document(pdf)
+        finally:
+            for image in images:
+                image.unlink(missing_ok=True)
+            assembled.unlink(missing_ok=True)
     return OpOutput(changed_pages=selected)
+
+
+def _arrange_pages(pdf: pikepdf.Pdf, source: pikepdf.Pdf, selected: list[int], count: int) -> None:
+    """Page order of the result: the converted pages (in ``pdf``) at the selected positions and
+    the source pages copied in everywhere else."""
+    converted = dict(zip(selected, (page.obj for page in pdf.pages), strict=True))
+    order: list[pikepdf.Object] = []
+    for index in range(count):
+        if index in converted:
+            order.append(converted[index])
+            continue
+        original = source.pages[index]
+        _materialize_inherited(original)
+        pdf.pages.append(original)
+        order.append(pdf.pages[-1].obj)
+    replace_page_order(pdf, order)
+
+
+def _materialize_inherited(page: pikepdf.Page) -> None:
+    """Write inherited page attributes into the page itself, so they survive being copied."""
+    if "/MediaBox" not in page.obj:
+        page.obj.MediaBox = pikepdf.Array([float(v) for v in page.mediabox])
+    if "/CropBox" not in page.obj:
+        page.obj.CropBox = pikepdf.Array([float(v) for v in page.cropbox])
+    if "/Rotate" not in page.obj:
+        page.obj.Rotate = page.rotation
+    if "/Resources" not in page.obj:
+        inherited = page.obj.Parent.get("/Resources") if "/Parent" in page.obj else None
+        if inherited is not None:
+            page.obj.Resources = inherited
+
+
+def _foreign_copy(pdf: pikepdf.Pdf, value: pikepdf.Object) -> pikepdf.Object:
+    """A copy of ``value`` (from another document) that can be stored in ``pdf``."""
+    return pdf.copy_foreign(value) if value.is_indirect else value
+
+
+def _carry_document_parts(pdf: pikepdf.Pdf, source: pikepdf.Pdf, strip_metadata: bool) -> None:
+    """Keep the catalog entries that do not refer to pages; metadata only when not stripped."""
+    # img2pdf derives its file ID from the time it wrote; atomic_save makes a content-based one.
+    if "/ID" in pdf.trailer:
+        del pdf.trailer["/ID"]
+    for key in CARRIED_CATALOG_KEYS:
+        if key in source.Root:
+            pdf.Root[key] = _foreign_copy(pdf, source.Root[key])
+    if strip_metadata:
+        return
+    if "/Info" in source.trailer:
+        pdf.trailer["/Info"] = _foreign_copy(pdf, source.trailer["/Info"])
+    elif "/Info" in pdf.trailer:
+        del pdf.trailer["/Info"]
+    if "/Metadata" in source.Root:
+        pdf.Root.Metadata = _foreign_copy(pdf, source.Root.Metadata)
+    elif "/Metadata" in pdf.Root:
+        del pdf.Root["/Metadata"]
 
 
 def _drop_document_content(pdf: pikepdf.Pdf, strip_metadata: bool) -> None:
