@@ -1,0 +1,101 @@
+# electron-builder config for Chef PDF (personal use: no code signing / notarization).
+# Build with `pnpm package` from the repo root (packaging/package.mjs), which first builds
+# the core (PyInstaller onedir), the UI (apps/ui/dist) and main/preload (apps/desktop/dist).
+appId: app.chefpdf.desktop
+productName: Chef PDF
+executableName: chef-pdf
+copyright: Chef PDF
+artifactName: chef-pdf-${version}-${os}-${arch}.${ext}
+
+extraMetadata:
+  name: chef-pdf
+  homepage: https://github.com/Kiel-learn-to-dev/powerpdf
+  desktopName: chef-pdf.desktop
+
+# Auto-update (A10) is not decided yet (TASKS.md CH2): no update metadata for now.
+publish: null
+
+directories:
+  output: release
+  buildResources: ../../packaging/build-resources
+
+asar: true
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+forceCodeSigning: false
+
+files:
+  - package.json
+  - dist/**/*
+  - static/**/*
+  - '!**/*.map'
+  - from: ../ui/dist
+    to: ui
+    filter:
+      - '**/*'
+
+extraResources:
+  # PyInstaller onedir output -> <resources>/core/chef-core[.exe]
+  - from: ../../packaging/dist/chef-core
+    to: core
+    filter:
+      - '**/*'
+
+fileAssociations:
+  - ext: pdf
+    name: PDF
+    description: PDF Document
+    mimeType: application/pdf
+    role: Viewer
+    rank: Alternate
+
+afterPack: ../../packaging/after-pack.mjs
+
+win:
+  target:
+    - nsis
+    - zip
+  # Unsigned on purpose (personal use); still embed version info / icon in the exe.
+  signAndEditExecutable: true
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Chef PDF
+  artifactName: chef-pdf-${version}-setup-${arch}.${ext}
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+  # No Developer ID: skip signing; after-pack.mjs applies an ad-hoc signature so the
+  # arm64 build launches (Apple Silicon refuses unsigned arm64 code).
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  notarize: false
+
+dmg:
+  sign: false
+
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  category: Office
+  synopsis: Desktop PDF tool
+  description: Chef PDF - desktop PDF app (personal use)
+  maintainer: Chef PDF <noreply@localhost>
+  vendor: Chef PDF
+  syncDesktopName: true
+
+deb:
+  packageName: chef-pdf
+
+rpm:
+  packageName: chef-pdf
