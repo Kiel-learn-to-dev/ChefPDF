@@ -42,9 +42,9 @@
 |---|---|---|---|---|---|
 | T1.01 | Dựng monorepo: pnpm workspaces, uv, ruff/mypy, ESLint/Prettier, editorconfig; **chốt và ghim phiên bản** các công nghệ | | 1 | | ✅ |
 | T1.02 | Electron shell: main/preload/renderer, cấu hình bảo mật (contextIsolation, sandbox, CSP), cửa sổ, menu, một phiên bản app duy nhất | | 1,5 | T1.01 | 🔄 |
-| T1.03 | Sidecar Python: JSON-RPC qua stdio, khởi động / theo dõi / tự khởi động lại, log, `ping` | | 2 | T1.01 | 🔄 |
-| T1.04 | Operation registry + job runner (tiến độ, hủy, process pool) + codegen pydantic → JSON Schema → kiểu TS | | 2 | T1.03 | 🔄 |
-| T1.05 | Phiên tài liệu: bản sao làm việc, bản sửa, journal, hoàn tác/làm lại, danh sách trang thay đổi, Lưu / Lưu thành an toàn | A6 | 2,5 | T1.04 | 🔄 |
+| T1.03 | Sidecar Python: JSON-RPC qua stdio, khởi động / theo dõi / tự khởi động lại, log, `ping` | | 2 | T1.01 | ✅ |
+| T1.04 | Operation registry + job runner (tiến độ, hủy, process pool) + codegen pydantic → JSON Schema → kiểu TS | | 2 | T1.03 | ✅ |
+| T1.05 | Phiên tài liệu: bản sao làm việc, bản sửa, journal, hoàn tác/làm lại, danh sách trang thay đổi, Lưu / Lưu thành an toàn | A6 | 2,5 | T1.04 | ✅ |
 | T1.06 | Đóng gói: PyInstaller onedir + electron-builder; GitHub Actions build 3 OS; đo dung lượng bộ cài và thời gian khởi động | A8 | 2,5 | T1.02, T1.03 | 🔄 |
 | T1.07 | Hạ tầng test: pytest, Vitest, Playwright-Electron; script sinh bộ PDF mẫu tiếng Việt; workflow `ci.yml` | | 1,5 | T1.01 | 🔄 |
 
@@ -77,7 +77,7 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T1.23 | Operation trang: xoay, xóa, nhân bản, trích; chèn trang trắng / từ file / từ ảnh / từ clipboard | C2, C3 | 2 | T1.05 | 🔄 |
+| T1.23 | Operation trang: xoay, xóa, nhân bản, trích; chèn trang trắng / từ file / từ ảnh / từ clipboard | C2, C3 | 2 | T1.05 | ✅ |
 | T1.24 | Lưới thumbnail: kéo thả đổi thứ tự, chọn nhiều | C1 | 2 | T1.17, T1.23 | 🔄 |
 | T1.25 | Ghép file (kèm tạo bookmark theo tên file), tách file (theo khoảng, mỗi N trang, bookmark, dung lượng, chẵn/lẻ) | C4, C5 | 2 | T1.12, T1.23 | 🔄 |
 

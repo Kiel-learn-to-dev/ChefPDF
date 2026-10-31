@@ -31,7 +31,8 @@ Renderer (apps/ui)  --window.chef (preload)-->  Main (apps/desktop)  --JSON-RPC 
 - JSON-RPC 2.0, **one JSON object per line** (UTF-8, `\n` terminated), in both directions.
 - Requests have `id` (main uses incrementing integers). Notifications have no `id`.
 - Errors use `{ code, message, data: { kind, detail? } }`. `kind` is one of `ErrorKinds` in `rpc.ts`.
-  - JSON-RPC codes: `-32700` parse error, `-32601` method not found, `-32602` invalid params (`kind: INVALID_PARAMS`), `-32000` application error (all other kinds).
+  - JSON-RPC codes: `-32700` parse error and `-32600` invalid request (`kind: INVALID_PARAMS`), `-32601` method not found (`kind: OP_NOT_FOUND`), `-32602` invalid params (`kind: INVALID_PARAMS`), `-32000` application error (all other kinds, incl. unknown `opId` in `ops.run` → `OP_NOT_FOUND`, request aborted by shutdown → `CANCELLED`).
+  - `jobs.cancel` on an unknown or already finished job returns `null` (no error).
 - Large binary data never goes through stdio. Pass file paths instead.
 
 ## 4. Methods
@@ -50,7 +51,7 @@ All signatures are in `RpcMethods` (`rpc.ts`).
 | `session.close` | Deletes the session directory. |
 | `session.state` / `session.info` | Current state / document properties (B7). |
 | `session.undo` / `session.redo` | Move between revisions. `changedPages` = `'all'`. |
-| `session.save` | Writes the current revision to `path` (or back to the source path) atomically: write temp file in the same dir, then rename. Returns the new state (`dirty: false`). |
+| `session.save` | Writes the current revision to `path` (or back to the source path) atomically: write temp file in the same dir, fsync, then rename. Returns the new state (`dirty: false`) plus `warnings: string[]`. |
 
 ### Session storage
 
@@ -77,7 +78,9 @@ All signatures are in `RpcMethods` (`rpc.ts`).
 
 - Op ids are `group.action`. Params are pydantic models in the core; `ops.list` returns their JSON Schema. The core also generates TypeScript interfaces into `packages/contracts/src/generated/ops.ts` (`python -m chef_core.codegen`).
 - Page indices are **0-based**.
-- Every op result returns the new `SessionState` (for session ops) and `changedPages`.
+- Every op result returns the new `SessionState` and `changedPages`. Standalone ops run without a session return `state: null`, `changedPages: []`.
+- **Signed documents:** when the opened file already contains a signed signature field, `SessionState.signed` is `true` and ops that rewrite the document (rotate, delete, duplicate, reorder, insert*) fail with `BLOCKED_BY_SIGNATURE`. Read-only/export ops (extract, split, merge) are allowed. The UI must explain this and suggest saving a copy first (a "remove signatures" op comes in a later milestone).
+- After `system.shutdown` the core deletes all session directories. On a bare stdin EOF (main crashed) sessions are left on disk as crash-recovery candidates (A9).
 
 ### v0.1 operations
 
@@ -92,9 +95,9 @@ All signatures are in `RpcMethods` (`rpc.ts`).
 | `page.insertFromFile` | yes | `{ at: number, path: string, password?: string, pages?: number[] }` | `'all'` |
 | `page.insertImages` | yes | `{ at: number, images: ({ path: string } \| { dataUrl: string })[], pageSize: 'image' \| 'a4' \| 'letter', margin: number }` (margin in pt; respects EXIF rotation) | `'all'` |
 | `file.merge` | **standalone** | `{ inputs: { path: string, password?: string, pages?: number[] }[], outputPath: string, bookmarksFromFilenames: boolean }` | `outputs = [outputPath]` |
-| `file.split` | yes | `{ mode: 'ranges' \| 'everyN' \| 'bookmarks' \| 'maxSize' \| 'oddEven', ranges?: string, n?: number, maxBytes?: number, outputDir: string, nameTemplate: string }` | `outputs` = files written |
+| `file.split` | yes | `{ mode: 'ranges' \| 'everyN' \| 'bookmarks' \| 'maxSize' \| 'oddEven', ranges?: string, n?: number, maxBytes?: number, outputDir: string, nameTemplate?: string }` | `outputs` = files written |
 
-- `ranges` uses 1-based human syntax, e.g. `"1-3,5,7-9"`; each comma group becomes one output file.
+- `ranges` uses 1-based human syntax, e.g. `"1-3,5,7-9"`; each comma group becomes one output file. `"7-"` means page 7 to the end; reversed groups like `"3-1"` are allowed.
 - `nameTemplate` variables: `{name}` (source file name without extension), `{index}` (1-based, zero-padded to the number of digits of the total), `{start}`, `{end}` (1-based pages). Default `"{name}_{index}"`.
 - `maxSize` splits greedily by pages so that each file stays at or under `maxBytes` (a single page bigger than the limit becomes its own file + warning).
 

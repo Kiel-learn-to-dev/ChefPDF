@@ -36,7 +36,8 @@ export interface SessionState {
 export type ChangedPages = 'all' | PageIndex[];
 
 export interface OpResult {
-  state: SessionState;
+  /** null for standalone ops run without a session (e.g. file.merge). */
+  state: SessionState | null;
   changedPages: ChangedPages;
   warnings: string[];
   /** Files written outside the session (e.g. split output). */
@@ -79,7 +80,7 @@ export interface RpcMethods {
   'session.info': [{ sessionId: SessionId }, DocumentInfo];
   'session.undo': [{ sessionId: SessionId }, OpResult];
   'session.redo': [{ sessionId: SessionId }, OpResult];
-  'session.save': [{ sessionId: SessionId; path?: string }, SessionState];
+  'session.save': [{ sessionId: SessionId; path?: string }, SessionState & { warnings: string[] }];
 }
 
 export type RpcMethod = keyof RpcMethods;

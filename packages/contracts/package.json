@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "codegen": "node scripts/codegen.mjs",
+    "codegen": "uv run --project ../../core python -m chef_core.codegen",
     "typecheck": "tsc --noEmit -p ."
   }
 }
