@@ -9,6 +9,7 @@ dependencies = [
   "pypdfium2>=4.30",
   "pillow>=11.0",
   "img2pdf>=0.5",
+  "pyhanko>=0.38",
 ]
 
 [dependency-groups]

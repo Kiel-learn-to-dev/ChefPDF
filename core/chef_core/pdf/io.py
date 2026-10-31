@@ -106,6 +106,9 @@ def atomic_save(
 ) -> None:
     """Save ``pdf`` to ``dest`` atomically. Encryption is dropped unless given explicitly."""
     save_kwargs.setdefault("encryption", False)
+    if not save_kwargs["encryption"]:
+        # qpdf otherwise writes a random second /ID element: same input would give different bytes
+        save_kwargs.setdefault("deterministic_id", True)
 
     def write(tmp: Path) -> None:
         pdf.save(tmp, **save_kwargs)

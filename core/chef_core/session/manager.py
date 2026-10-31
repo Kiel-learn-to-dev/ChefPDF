@@ -204,6 +204,8 @@ class Session:
             ctx.check_cancelled()
             if ctx.modified:
                 self._commit(ctx.result_path, spec.id, params)
+                if spec.finalizing:
+                    self.mark_signed()
                 changed = output.changed_pages
             else:
                 changed = []
@@ -237,11 +239,25 @@ class Session:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
         self.write_meta()
 
+    def mark_signed(self) -> None:
+        """Record that a digital signature was added (sets ``signed`` and saves the meta)."""
+        with self._lock:
+            self.signed = True
+        self.write_meta()
+
+    def _sync_signed_flag(self) -> None:
+        """Recompute ``signed`` from the current revision (undo/redo can remove a signature)."""
+        with opened_pdf(self.current_path) as pdf:
+            value = has_signatures(pdf)
+        with self._lock:
+            self.signed = value
+
     def undo(self) -> dict[str, Any]:
         with self._lock:
             if self.index == 0:
                 raise invalid_params("Nothing to undo")
             self.index -= 1
+        self._sync_signed_flag()
         self.write_meta()
         return self._move_result()
 
@@ -250,6 +266,7 @@ class Session:
             if self.index >= len(self.revisions) - 1:
                 raise invalid_params("Nothing to redo")
             self.index += 1
+        self._sync_signed_flag()
         self.write_meta()
         return self._move_result()
 

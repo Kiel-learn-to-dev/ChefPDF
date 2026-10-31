@@ -12,6 +12,7 @@ BUILTIN_MODULES = (
     "chef_core.ops.scan",
     "chef_core.ops.scan_preview",
     "chef_core.ops.scan_fit",
+    "chef_core.ops.sign",
 )
 
 

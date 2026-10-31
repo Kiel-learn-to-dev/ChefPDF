@@ -192,3 +192,25 @@ def numbered(tmp_path: Path) -> Callable[[int], Path]:
         return make_numbered_pdf(tmp_path / f"numbered_{count}.pdf", count)
 
     return build
+
+
+# -- signing fixtures (loopback CRL/TSA server and a generated PKI, once per session) ------
+
+
+@pytest.fixture(scope="session")
+def sign_services() -> Iterator[Any]:
+    from signing_support import LocalServices
+
+    services = LocalServices()
+    services.start()
+    try:
+        yield services
+    finally:
+        services.stop()
+
+
+@pytest.fixture(scope="session")
+def pki(sign_services: Any, tmp_path_factory: pytest.TempPathFactory) -> Any:
+    from signing_support import build_pki
+
+    return build_pki(sign_services, tmp_path_factory.mktemp("pki"))

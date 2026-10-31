@@ -116,6 +116,11 @@ export const ErrorKinds = [
   'OP_NOT_FOUND',
   'INVALID_PARAMS',
   'BLOCKED_BY_SIGNATURE',
+  'SIGN_BAD_PASSWORD',
+  'SIGN_BAD_CERT',
+  'SIGN_CERT_EXPIRED',
+  'SIGN_TSA_FAILED',
+  'SIGN_FAILED',
   'CANCELLED',
   'INTERNAL',
 ] as const;

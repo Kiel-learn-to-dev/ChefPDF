@@ -291,6 +291,42 @@ export interface ScanRasterizeParams {
   seed?: number;
 }
 
+/** Read the certificate in a .pfx / .p12 file without signing anything. */
+export interface SignCertInfoParams {
+  /** Path to the .pfx or .p12 file. */
+  pfxPath: string;
+  /** Password of the certificate file. Never stored, logged or echoed back. */
+  password?: string;
+}
+
+/** Sign the document with a certificate file (PAdES). */
+export interface SignPadesParams {
+  /** Path to the .pfx or .p12 file. */
+  pfxPath: string;
+  /** Password of the certificate file. Never stored, logged or echoed back. */
+  password?: string;
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER) for B-LT and B-LTA. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Signature field name. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** 0-based page for a visible signature. Needs rect. */
+  page?: number;
+  /** [x1, y1, x2, y2] in PDF points. Needs page. */
+  rect?: number[];
+}
+
 /** Params type of every operation, by op id. */
 export interface OpParams {
   'file.merge': FileMergeParams;
@@ -306,6 +342,8 @@ export interface OpParams {
   'scan.fitSize': ScanFitSizeParams;
   'scan.preview': ScanPreviewParams;
   'scan.rasterize': ScanRasterizeParams;
+  'sign.certInfo': SignCertInfoParams;
+  'sign.pades': SignPadesParams;
 }
 
 export type OpId = keyof OpParams;
@@ -324,4 +362,6 @@ export const OP_IDS = [
   'scan.fitSize',
   'scan.preview',
   'scan.rasterize',
+  'sign.certInfo',
+  'sign.pades',
 ] as const;
