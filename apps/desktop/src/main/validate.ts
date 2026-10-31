@@ -5,6 +5,7 @@ import path from 'node:path';
 import type { FileFilter } from '@chef/contracts';
 import { isPlainObject } from './fsutil';
 import { RpcCallError } from './rpc';
+import { MAX_SECRET_VALUE_LENGTH } from './secrets';
 
 export class IpcValidationError extends Error {
   constructor(message: string) {
@@ -107,6 +108,24 @@ export function validateSaveDialogOptions(v: unknown): {
   const filters = validateFilters(v.filters);
   if (filters) out.filters = filters;
   return out;
+}
+
+/** Secret keys are absolute certificate paths (see secrets.ts). */
+export function validateSecretKey(v: unknown): string {
+  return validateAbsPath(v, 'secret key');
+}
+
+/** Secret values are PFX passwords: non-empty, bounded, no NUL. */
+export function validateSecretValue(v: unknown): string {
+  if (
+    typeof v !== 'string' ||
+    v.length === 0 ||
+    v.length > MAX_SECRET_VALUE_LENGTH ||
+    v.includes('\0')
+  ) {
+    throw new IpcValidationError('secret value must be a non-empty string');
+  }
+  return v;
 }
 
 export function validateText(v: unknown): string {

@@ -3,7 +3,16 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { app, BrowserWindow, dialog, nativeTheme, protocol, session, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  nativeTheme,
+  protocol,
+  safeStorage,
+  session,
+  shell,
+} from 'electron';
 import type { ChefEvent, RpcNotification, RpcNotifications, Settings } from '@chef/contracts';
 import { APP_SCHEME, FILE_SCHEME, IpcChannels } from '../shared/ipc';
 import { PathAllowlist } from './allowlist';
@@ -15,6 +24,7 @@ import { installMenu } from './menu';
 import { OpenFilesController, argvSkipCount, parseFileArgs } from './openFiles';
 import { repoRootFrom, resolveUi } from './paths';
 import { createAppHandler, createFileHandler, privilegedSchemes } from './protocol';
+import { SecretStore } from './secrets';
 import { SettingsStore } from './settings';
 import { SidecarManager, resolveCoreCommand, type CoreStatus } from './sidecar';
 import { createMainWindow, trustedOrigins } from './window';
@@ -125,6 +135,7 @@ async function onReady(): Promise<void> {
   registerIpc({
     sidecar: sidecar!,
     settings,
+    secrets: new SecretStore(path.join(userData, 'secrets.json'), () => safeStorage),
     allowlist,
     openFiles,
     trustedOrigins: origins,

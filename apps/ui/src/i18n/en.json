@@ -95,7 +95,8 @@
     "palette": "Command palette",
     "nextTab": "Next document",
     "prevTab": "Previous document",
-    "scan": "Convert to scan"
+    "scan": "Convert to scan",
+    "certs": "Certificates & tokens"
   },
   "soon": {
     "sign": "Digital signature",
@@ -460,7 +461,10 @@
     "recent": "Recent files",
     "clearRecent_one": "Clear list ({{count}} file)",
     "clearRecent_other": "Clear list ({{count}} files)",
-    "version": "Chef PDF {{version}}"
+    "version": "Chef PDF {{version}}",
+    "signing": "Digital signature",
+    "certificates": "Certificates & tokens",
+    "certificatesHint": "Manage the .pfx/.p12 files you used and USB tokens, and diagnose token problems."
   },
   "jobs": {
     "title": "Jobs",
@@ -546,7 +550,18 @@
     "BLOCKED_BY_SIGNATURE": "The document is digitally signed, so it can’t be changed directly (it would break the signature). Make an editable copy, or use extract / split.",
     "CANCELLED": "Stopped.",
     "INTERNAL": "The processing core hit an error. Please try again.",
-    "UNKNOWN": "Unknown error."
+    "UNKNOWN": "Unknown error.",
+    "SIGN_BAD_PASSWORD": "The certificate file password is wrong.",
+    "SIGN_BAD_CERT": "The certificate file is invalid or has no signing key.",
+    "SIGN_CERT_EXPIRED": "The certificate has expired, so it cannot sign.",
+    "SIGN_TSA_FAILED": "Could not get a timestamp from the TSA server.",
+    "SIGN_FAILED": "Signing failed. Please try again.",
+    "TOKEN_NOT_FOUND": "No token found. Plug the token into a USB port.",
+    "TOKEN_PIN_INVALID": "The PIN is wrong.",
+    "TOKEN_PIN_LOCKED": "The token is locked after too many wrong PINs. Contact the CA to unlock it.",
+    "TOKEN_PIN_CONFIRM_REQUIRED": "The PIN must be confirmed before signing.",
+    "TOKEN_DRIVER_ERROR": "The token driver failed. Run the token diagnosis to find the cause.",
+    "TOKEN_SUPPORT_UNAVAILABLE": "This driver does not support signing with a token."
   },
   "scan": {
     "title": "Convert to scan",
@@ -641,5 +656,119 @@
       "signatures": "Digital signatures will be lost."
     },
     "unitMb": "MB"
+  },
+  "sign": {
+    "placeField": "Place signature field",
+    "signDoc": "Sign document",
+    "soonHint": "Coming in a later release."
+  },
+  "certs": {
+    "title": "Certificates & tokens",
+    "description": "Sign with a .pfx/.p12 certificate file or a USB token.",
+    "sectionFile": "Certificate file (.pfx / .p12)",
+    "sectionToken": "USB token",
+    "pickPfx": "Choose certificate file…",
+    "pfxFilter": "PKCS#12 certificate",
+    "noFile": "No file chosen",
+    "password": "Certificate file password",
+    "remember": "Remember the password on this computer",
+    "rememberHint": "Stored in the operating system's secure storage. PINs are never stored.",
+    "noSecrets": "This computer has no OS secure storage, so passwords cannot be remembered.",
+    "read": "Read certificate",
+    "readJob": "Read certificate",
+    "savedPasswordWrong": "The remembered password is no longer correct. It was removed; please enter it again.",
+    "savedPasswordMissing": "The remembered password could not be read. Please enter it again.",
+    "savedFiles": "Recently used files",
+    "noSaved": "No certificate files saved yet.",
+    "rememberedBadge": "Password remembered",
+    "open": "Open",
+    "remove": "Remove from list",
+    "card": {
+      "issuer": "Issuer",
+      "validFrom": "Valid from",
+      "validTo": "Valid until",
+      "serial": "Serial number",
+      "usage": "Key usage",
+      "fingerprint": "SHA-256 fingerprint",
+      "noIdentity": "The certificate has no tax code or citizen ID.",
+      "daysLeft": "{{days}} days left",
+      "expiredDays": "Expired {{days}} days ago"
+    },
+    "expiry": {
+      "soon": "The certificate expires soon. Contact the CA to renew it.",
+      "expired": "The certificate has expired and cannot be used for signing."
+    },
+    "identity": {
+      "personName": "Holder",
+      "organization": "Organisation",
+      "taxCode": "Tax code (MST)",
+      "citizenId": "Citizen ID (CCCD / CMND)",
+      "budgetCode": "Budget code"
+    },
+    "scanDrivers": "Scan for drivers",
+    "scanJob": "Scan for drivers",
+    "scanHint": "Press “Scan for drivers” to find the token drivers installed on this computer.",
+    "noDrivers": "No driver in the catalogue for this operating system. Choose the driver file yourself.",
+    "selectHint": "Pick an installed driver (marked as installed), then read the token.",
+    "chooseDriverFile": "Choose driver file…",
+    "driverFilter": "PKCS#11 library",
+    "driverFound": "Installed",
+    "driverMissing": "Not found",
+    "tokensSeen": "Tokens seen: {{labels}}",
+    "noTokenSeen": "The driver loads but no token is seen. Plug in the token.",
+    "probeError": "The driver could not be loaded: {{reason}}",
+    "confidence": {
+      "documented": "Checked against documentation",
+      "reported": "From third-party guides",
+      "unverified": "Not verified yet"
+    },
+    "chosenDriver": "Selected driver: {{path}}",
+    "noChosenDriver": "No driver selected.",
+    "readTokens": "Read token",
+    "readTokensJob": "Read token",
+    "diagnose": "Diagnose token",
+    "noTokens": "This driver sees no token.",
+    "noPinHere": "PIN is not asked here. It is only asked when signing and is never stored.",
+    "pin": {
+      "ok": "PIN is normal",
+      "countLow": "A wrong PIN was entered before. Another wrong PIN may lock the token.",
+      "finalTry": "Only 1 PIN try left. A wrong PIN locks the token.",
+      "locked": "The token is locked after wrong PINs. Contact the CA to unlock it.",
+      "toBeChanged": "The token requires a PIN change. Change it with the CA's software."
+    },
+    "token": {
+      "unnamed": "Unnamed token",
+      "serial": "Serial number",
+      "notInit": "The token is not initialised.",
+      "certs": "Signer certificates",
+      "noCerts": "The token has no signer certificate.",
+      "unreadable": "{{count}} objects could not be read (usually harmless)."
+    }
+  },
+  "diag": {
+    "title": "Token diagnosis",
+    "description": "Checks each step to find where the problem is and how to fix it.",
+    "jobTitle": "Token diagnosis",
+    "running": "Checking…",
+    "rerun": "Run again",
+    "copy": "Copy report",
+    "copied": "Report copied to the clipboard.",
+    "fix": "Fix",
+    "pinTitle": "PIN warning: do not enter a wrong PIN again",
+    "overall": {
+      "ok": "The token is ready to sign.",
+      "warn": "Something needs attention before signing.",
+      "fail": "There is an error to fix before signing."
+    },
+    "status": {
+      "ok": "OK",
+      "warn": "Warning",
+      "fail": "Error",
+      "skipped": "Skipped"
+    },
+    "driverLabel": "Driver",
+    "noDriver": "not chosen (the first driver found is used)",
+    "reportTitle": "Chef PDF: token diagnosis report",
+    "generatedAt": "Time"
   }
 }

@@ -10,6 +10,8 @@ export const fallbackSettings: Settings = {
   recentFiles: [],
   prefs: {},
   scanPresets: [],
+  knownPfxFiles: [],
+  lastDriverPath: null,
 };
 
 interface SettingsState {

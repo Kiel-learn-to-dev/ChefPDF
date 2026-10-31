@@ -15,6 +15,7 @@ export type FunctionTab = (typeof FUNCTION_TABS)[number];
 export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>([
   'view',
   'pages',
+  'sign',
   'export',
 ]);
 
@@ -30,6 +31,8 @@ export type DialogId =
   | 'insertFromFile'
   | 'insertImages'
   | 'scan'
+  | 'certs'
+  | 'tokenWizard'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

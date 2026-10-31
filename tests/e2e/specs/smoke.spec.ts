@@ -35,6 +35,7 @@ test('launches securely and exposes the full window.chef bridge', async () => {
     keys: Object.keys(window.chef).sort(),
     files: Object.keys(window.chef.files).sort(),
     settings: Object.keys(window.chef.settings).sort(),
+    secrets: Object.keys(window.chef.secrets).sort(),
     clipboard: Object.keys(window.chef.clipboard).sort(),
     version: window.chef.app.version,
     platform: window.chef.app.platform,
@@ -42,9 +43,10 @@ test('launches securely and exposes the full window.chef bridge', async () => {
     hasProcess: typeof (window as unknown as { process?: unknown }).process,
     url: location.href,
   }));
-  expect(info.keys).toEqual(['app', 'clipboard', 'files', 'onEvent', 'rpc', 'settings']);
+  expect(info.keys).toEqual(['app', 'clipboard', 'files', 'onEvent', 'rpc', 'secrets', 'settings']);
   expect(info.files).toEqual(['openDialog', 'pathForFile', 'saveDialog', 'showInFolder', 'toUrl']);
   expect(info.settings).toEqual(['addRecent', 'get', 'set']);
+  expect(info.secrets).toEqual(['available', 'delete', 'get', 'set']);
   expect(info.clipboard).toEqual(['readImagePng', 'writeImagePng', 'writeText']);
   expect(info.version).toMatch(/^\d+\.\d+\.\d+/);
   expect(info.platform).toBe(process.platform);

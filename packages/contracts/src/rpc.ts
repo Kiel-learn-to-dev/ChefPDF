@@ -131,3 +131,115 @@ export const ErrorKinds = [
   'INTERNAL',
 ] as const;
 export type ErrorKind = (typeof ErrorKinds)[number];
+
+/** Results of the standalone signature ops (`ops.run` → job.finished → result.data). */
+export interface CertIdentity {
+  taxCode: string | null;
+  citizenId: string | null;
+  budgetCode: string | null;
+  organization: string | null;
+  personName: string | null;
+}
+
+/** sign.certInfo result (same shape as core CertInfo). Dates are ISO 8601 strings. */
+export interface CertInfoData {
+  subjectCommonName: string | null;
+  issuerCommonName: string | null;
+  subject: string;
+  issuer: string;
+  serial: string;
+  notBefore: string;
+  notAfter: string;
+  daysUntilExpiry: number;
+  expired: boolean;
+  expiringSoon: boolean;
+  keyUsage: string[];
+  keyAlgorithm: string;
+  keySize: number | null;
+  fingerprintSha256: string;
+  identity: CertIdentity;
+}
+
+export type DriverConfidence = 'documented' | 'reported' | 'unverified';
+
+export interface DriverProbe {
+  status: 'ok' | 'error';
+  errorKind: string | null;
+  reason: string | null;
+  tokenLabels: string[];
+}
+
+/** One row of sign.driverScan. */
+export interface DriverRow {
+  ca: string;
+  caId: string;
+  model: string;
+  modelId: string;
+  path: string;
+  exists: boolean;
+  confidence: DriverConfidence;
+  bitness: string | null;
+  probe?: DriverProbe;
+}
+
+export interface DriverScanData {
+  os: string;
+  drivers: DriverRow[];
+}
+
+export type PinState = 'ok' | 'count_low' | 'final_try' | 'locked' | 'to_be_changed';
+
+/** One certificate on a token (sign.listTokens). */
+export interface TokenCertificate {
+  ckaId: string;
+  label: string;
+  isCa: boolean;
+  cert: CertInfoData;
+}
+
+export interface TokenInfo {
+  slotId: number;
+  slotDescription: string;
+  label: string;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  initialized: boolean;
+  pinState: PinState;
+  flags: string[];
+  protectedAuthPath: boolean;
+  unreadableObjects: number;
+  certificates: TokenCertificate[];
+}
+
+export interface ListTokensData {
+  modulePath: string;
+  tokens: TokenInfo[];
+}
+
+export type DiagStepId =
+  | 'driver_found'
+  | 'driver_loads'
+  | 'token_present'
+  | 'token_initialized'
+  | 'certificate_readable'
+  | 'certificate_validity'
+  | 'pin_state'
+  | 'signing_self_test';
+
+export type DiagStatus = 'ok' | 'warn' | 'fail' | 'skipped';
+
+export interface DiagStep {
+  id: DiagStepId;
+  status: DiagStatus;
+  titleVi: string;
+  titleEn: string;
+  detail: string;
+  fixVi: string | null;
+  fixEn: string | null;
+}
+
+export interface DiagnoseData {
+  overall: 'ok' | 'warn' | 'fail';
+  steps: DiagStep[];
+}

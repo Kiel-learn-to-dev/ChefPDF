@@ -16,6 +16,10 @@ export const IpcChannels = {
   clipboardWriteText: 'chef:clipboard.writeText',
   clipboardWriteImagePng: 'chef:clipboard.writeImagePng',
   clipboardReadImagePng: 'chef:clipboard.readImagePng',
+  secretsAvailable: 'chef:secrets.available',
+  secretsSet: 'chef:secrets.set',
+  secretsGet: 'chef:secrets.get',
+  secretsDelete: 'chef:secrets.delete',
 } as const;
 
 /** Envelope used for `chef:rpc` so structured RPC errors survive IPC. */

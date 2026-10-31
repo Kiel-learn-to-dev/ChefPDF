@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderOpen, Monitor, Moon, Settings as SettingsIcon, Sun } from 'lucide-react';
+import { FolderOpen, KeyRound, Monitor, Moon, Settings as SettingsIcon, Sun } from 'lucide-react';
 import type { LanguageSetting, ThemeSetting } from '@chef/contracts';
 import { useSettings } from '../../app/state/settings';
 import { useUi } from '../../app/state/ui';
@@ -18,6 +18,7 @@ export function SettingsDialog() {
   const close = useUi((s) => s.closeDialog);
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
+  const openDialog = useUi((s) => s.openDialog);
   const [dir, setDir] = useState(settings.defaultSaveDir ?? '');
 
   const save = (patch: Parameters<typeof update>[0]) =>
@@ -78,6 +79,16 @@ export function SettingsDialog() {
               { value: 'dark', label: t('settings.themeDark'), icon: <Moon size={14} /> },
             ]}
           />
+        </Field>
+      </section>
+      <section className="settings__section">
+        <h3 className="settings__heading">{t('settings.signing')}</h3>
+        <Field label={t('settings.certificates')} hint={t('settings.certificatesHint')}>
+          <div>
+            <Button icon={<KeyRound size={15} />} onClick={() => openDialog('certs')}>
+              {t('certs.title')}
+            </Button>
+          </div>
         </Field>
       </section>
       <section className="settings__section">

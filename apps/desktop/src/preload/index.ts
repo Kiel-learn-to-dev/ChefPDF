@@ -89,6 +89,13 @@ const bridge: ChefBridge = {
     initialFiles: () => ipcRenderer.invoke(IpcChannels.appInitialFiles),
   },
 
+  secrets: {
+    available: () => ipcRenderer.invoke(IpcChannels.secretsAvailable),
+    set: (key, value) => ipcRenderer.invoke(IpcChannels.secretsSet, key, value),
+    get: (key) => ipcRenderer.invoke(IpcChannels.secretsGet, key),
+    delete: (key) => ipcRenderer.invoke(IpcChannels.secretsDelete, key),
+  },
+
   clipboard: {
     writeText: (text) => ipcRenderer.invoke(IpcChannels.clipboardWriteText, text),
     writeImagePng: (dataUrl) => ipcRenderer.invoke(IpcChannels.clipboardWriteImagePng, dataUrl),

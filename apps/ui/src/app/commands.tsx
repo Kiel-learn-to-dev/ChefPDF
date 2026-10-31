@@ -49,6 +49,8 @@ import {
   ZoomOut,
   RectangleVertical,
   Keyboard,
+  KeyRound,
+  PenLine,
 } from 'lucide-react';
 import { closeDoc, openWithDialog, redo, saveDoc, undo } from './actions';
 import { useDocs, type DocTab } from './state/documents';
@@ -506,6 +508,17 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: has,
       run: () => (setTab('pages')(), selectAll(id)),
     },
+    // Sign & security: certificate files and USB tokens (T3.02-T3.04)
+    {
+      id: 'sign.certs',
+      title: t('cmd.certs'),
+      short: t('cmd.certs'),
+      keywords: ['certificate', 'token', 'pfx', 'p12', 'usb', 'chung thu', 'chu ky', 'driver'],
+      group: 'tools',
+      icon: <KeyRound size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('certs'),
+    },
     // Tools
     {
       id: 'tools.merge',
@@ -602,6 +615,20 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
     },
     // Coming soon (later milestones) so the palette can still find them.
     soon('sign', t('soon.sign'), <FileSignature size={I} />, ['sign', 'signature', 'chu ky']),
+    {
+      ...soon('placeField', t('sign.placeField'), <PenLine size={I} />, [
+        'signature field',
+        'o ky',
+      ]),
+      disabledHint: t('sign.soonHint'),
+    },
+    {
+      ...soon('signDoc', t('sign.signDoc'), <FileSignature size={I} />, [
+        'sign pdf',
+        'ky tai lieu',
+      ]),
+      disabledHint: t('sign.soonHint'),
+    },
     soon('stamp', t('soon.stamp'), <Stamp size={I} />, ['stamp', 'con dau']),
     soon('compress', t('soon.compress'), <Shrink size={I} />, ['compress', 'giam dung luong']),
     soon('editText', t('soon.editText'), <FileText size={I} />, ['edit', 'sua chu']),

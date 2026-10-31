@@ -10,6 +10,8 @@ import { SettingsDialog } from '../features/settings/SettingsDialog';
 import { PrintDialog } from '../features/print/PrintDialog';
 import { PropertiesDialog } from '../features/viewer/PropertiesDialog';
 import { ScanDialog } from '../features/scan/ScanDialog';
+import { CertManagerDialog } from '../features/certs/CertManagerDialog';
+import { TokenDiagnosticWizard } from '../features/certs/TokenDiagnosticWizard';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -71,6 +73,10 @@ export function DialogHost() {
       return <InsertImagesDialog />;
     case 'scan':
       return <ScanDialog />;
+    case 'certs':
+      return <CertManagerDialog />;
+    case 'tokenWizard':
+      return <TokenDiagnosticWizard />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

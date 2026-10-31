@@ -24,6 +24,14 @@ export interface ScanUserPreset {
   params: Record<string, unknown>;
 }
 
+/** A .pfx / .p12 certificate file the user has used before (K-sign). Password is never here. */
+export interface KnownPfxFile {
+  path: string;
+  label: string;
+  /** True when the password is kept encrypted with safeStorage (see `chef.secrets`). */
+  remembered?: boolean;
+}
+
 export interface Settings {
   version: 1;
   language: LanguageSetting;
@@ -34,6 +42,10 @@ export interface Settings {
   prefs: Record<string, unknown>;
   /** User presets for scan conversion (K8). Missing in older files: defaults to []. */
   scanPresets: ScanUserPreset[];
+  /** Certificate files used before (T3.04). Missing in older files: defaults to []. */
+  knownPfxFiles: KnownPfxFile[];
+  /** Driver file of the last token session (T3.02). Missing in older files: null. */
+  lastDriverPath: string | null;
 }
 
 export type ChefEvent =
@@ -72,6 +84,19 @@ export interface ChefBridge {
     platform: 'win32' | 'darwin' | 'linux';
     /** Paths passed on the command line / by the OS at launch. */
     initialFiles(): Promise<string[]>;
+  };
+  /**
+   * Encrypted secrets with the OS keychain (Electron safeStorage). Only PFX passwords are stored
+   * this way; PINs are never stored. `key` is the absolute path of the certificate file; the main
+   * process hashes it before using it as a file key. `get` returns the plain secret to the renderer
+   * only when the user asks for it (the renderer is the app's own UI, not a remote page).
+   */
+  secrets: {
+    /** False when the OS offers no encryption: the UI must not offer "remember". */
+    available(): Promise<boolean>;
+    set(key: string, value: string): Promise<void>;
+    get(key: string): Promise<string | null>;
+    delete(key: string): Promise<void>;
   };
   clipboard: {
     writeText(text: string): Promise<void>;

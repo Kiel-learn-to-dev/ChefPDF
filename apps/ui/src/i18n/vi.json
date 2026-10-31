@@ -95,7 +95,8 @@
     "palette": "Bảng lệnh",
     "nextTab": "Tài liệu kế tiếp",
     "prevTab": "Tài liệu trước",
-    "scan": "Chuyển thành bản scan"
+    "scan": "Chuyển thành bản scan",
+    "certs": "Chứng thư & token"
   },
   "soon": {
     "sign": "Ký số",
@@ -443,7 +444,10 @@
     "defaultSaveDirPlaceholder": "Cạnh file gốc",
     "recent": "File gần đây",
     "clearRecent": "Xóa danh sách ({{count}} file)",
-    "version": "Chef PDF {{version}}"
+    "version": "Chef PDF {{version}}",
+    "signing": "Ký số",
+    "certificates": "Chứng thư & token",
+    "certificatesHint": "Quản lý file .pfx/.p12 đã dùng và token USB, chẩn đoán lỗi token."
   },
   "jobs": {
     "title": "Công việc",
@@ -527,7 +531,18 @@
     "BLOCKED_BY_SIGNATURE": "Tài liệu đã ký số nên không sửa trực tiếp được (sẽ làm hỏng chữ ký). Hãy tạo bản sao để sửa, hoặc dùng trích trang / tách file.",
     "CANCELLED": "Đã dừng.",
     "INTERNAL": "Lõi xử lý gặp lỗi. Bạn thử lại nhé.",
-    "UNKNOWN": "Lỗi không xác định."
+    "UNKNOWN": "Lỗi không xác định.",
+    "SIGN_BAD_PASSWORD": "Mật khẩu file chứng thư không đúng.",
+    "SIGN_BAD_CERT": "File chứng thư không hợp lệ hoặc không có khóa ký.",
+    "SIGN_CERT_EXPIRED": "Chứng thư đã hết hạn nên không ký được.",
+    "SIGN_TSA_FAILED": "Không lấy được dấu thời gian từ máy chủ TSA.",
+    "SIGN_FAILED": "Ký không thành công. Bạn thử lại nhé.",
+    "TOKEN_NOT_FOUND": "Không thấy token. Hãy cắm token vào cổng USB.",
+    "TOKEN_PIN_INVALID": "PIN không đúng.",
+    "TOKEN_PIN_LOCKED": "Token đã bị khóa vì nhập sai PIN quá nhiều. Liên hệ CA để mở khóa.",
+    "TOKEN_PIN_CONFIRM_REQUIRED": "Cần xác nhận PIN trước khi ký.",
+    "TOKEN_DRIVER_ERROR": "Driver token gặp lỗi. Hãy chẩn đoán token để xem nguyên nhân.",
+    "TOKEN_SUPPORT_UNAVAILABLE": "Driver này không hỗ trợ ký bằng token."
   },
   "scan": {
     "title": "Chuyển thành bản scan",
@@ -622,5 +637,119 @@
       "signatures": "Chữ ký số sẽ mất."
     },
     "unitMb": "MB"
+  },
+  "sign": {
+    "placeField": "Đặt ô ký",
+    "signDoc": "Ký tài liệu",
+    "soonHint": "Sắp có ở bản tới."
+  },
+  "certs": {
+    "title": "Chứng thư & token",
+    "description": "Ký bằng file chứng thư .pfx/.p12 hoặc bằng USB token.",
+    "sectionFile": "File .pfx / .p12",
+    "sectionToken": "USB token",
+    "pickPfx": "Chọn file chứng thư…",
+    "pfxFilter": "Chứng thư PKCS#12",
+    "noFile": "Chưa chọn file",
+    "password": "Mật khẩu file chứng thư",
+    "remember": "Ghi nhớ mật khẩu trên máy này",
+    "rememberHint": "Lưu trong kho bảo mật của hệ điều hành. Không bao giờ lưu PIN token.",
+    "noSecrets": "Máy này không có kho bảo mật của hệ điều hành, nên không ghi nhớ được mật khẩu.",
+    "read": "Đọc chứng thư",
+    "readJob": "Đọc chứng thư",
+    "savedPasswordWrong": "Mật khẩu đã nhớ không còn đúng. Đã xóa mật khẩu đó, hãy nhập lại.",
+    "savedPasswordMissing": "Không đọc được mật khẩu đã nhớ. Hãy nhập lại mật khẩu.",
+    "savedFiles": "File đã dùng",
+    "noSaved": "Chưa có file chứng thư nào được lưu.",
+    "rememberedBadge": "Đã nhớ mật khẩu",
+    "open": "Mở",
+    "remove": "Xóa khỏi danh sách",
+    "card": {
+      "issuer": "Đơn vị cấp",
+      "validFrom": "Hiệu lực từ",
+      "validTo": "Hiệu lực đến",
+      "serial": "Số serial",
+      "usage": "Công dụng",
+      "fingerprint": "Vân tay SHA-256",
+      "noIdentity": "Chứng thư không ghi MST hay CCCD.",
+      "daysLeft": "Còn {{days}} ngày",
+      "expiredDays": "Đã hết hạn {{days}} ngày"
+    },
+    "expiry": {
+      "soon": "Chứng thư sắp hết hạn. Hãy liên hệ CA để gia hạn.",
+      "expired": "Chứng thư đã hết hạn, không dùng để ký được."
+    },
+    "identity": {
+      "personName": "Người sở hữu",
+      "organization": "Tổ chức",
+      "taxCode": "Mã số thuế",
+      "citizenId": "CCCD / CMND",
+      "budgetCode": "Mã ngân sách"
+    },
+    "scanDrivers": "Quét tìm driver",
+    "scanJob": "Quét tìm driver",
+    "scanHint": "Bấm “Quét tìm driver” để tìm driver token đã cài trên máy này.",
+    "noDrivers": "Không có driver nào trong danh bạ cho hệ điều hành này. Hãy chọn file driver bằng tay.",
+    "selectHint": "Chọn driver đã cài (đánh dấu “Đã cài”) rồi đọc token.",
+    "chooseDriverFile": "Chọn file driver…",
+    "driverFilter": "Thư viện PKCS#11",
+    "driverFound": "Đã cài",
+    "driverMissing": "Chưa có",
+    "tokensSeen": "Token thấy được: {{labels}}",
+    "noTokenSeen": "Driver nạp được nhưng chưa thấy token. Hãy cắm token vào máy.",
+    "probeError": "Không nạp được driver: {{reason}}",
+    "confidence": {
+      "documented": "Đã đối chiếu tài liệu",
+      "reported": "Theo tài liệu bên thứ ba",
+      "unverified": "Chưa kiểm chứng"
+    },
+    "chosenDriver": "Driver đang chọn: {{path}}",
+    "noChosenDriver": "Chưa chọn driver.",
+    "readTokens": "Đọc token",
+    "readTokensJob": "Đọc token",
+    "diagnose": "Chẩn đoán token",
+    "noTokens": "Driver này không thấy token nào.",
+    "noPinHere": "Chương trình không hỏi PIN ở đây. PIN chỉ được hỏi khi ký và không bao giờ được lưu.",
+    "pin": {
+      "ok": "PIN bình thường",
+      "countLow": "Đã có lần nhập PIN sai. Nhập sai thêm có thể khóa token.",
+      "finalTry": "Chỉ còn 1 lần thử PIN. Nhập sai là token bị khóa.",
+      "locked": "Token đã bị khóa vì nhập sai PIN. Liên hệ CA để mở khóa.",
+      "toBeChanged": "Token yêu cầu đổi PIN. Hãy đổi bằng phần mềm của CA."
+    },
+    "token": {
+      "unnamed": "Token không tên",
+      "serial": "Số serial",
+      "notInit": "Token chưa được khởi tạo.",
+      "certs": "Chứng thư người ký",
+      "noCerts": "Token không có chứng thư người ký.",
+      "unreadable": "{{count}} đối tượng không đọc được (thường không ảnh hưởng)."
+    }
+  },
+  "diag": {
+    "title": "Chẩn đoán token",
+    "description": "Kiểm tra từng bước để biết lỗi nằm ở đâu và cách sửa.",
+    "jobTitle": "Chẩn đoán token",
+    "running": "Đang kiểm tra…",
+    "rerun": "Chạy lại",
+    "copy": "Sao chép báo cáo",
+    "copied": "Đã chép báo cáo vào clipboard.",
+    "fix": "Cách sửa",
+    "pinTitle": "Cảnh báo PIN: đừng nhập sai thêm",
+    "overall": {
+      "ok": "Token sẵn sàng để ký.",
+      "warn": "Có điều cần chú ý trước khi ký.",
+      "fail": "Có lỗi cần sửa trước khi ký."
+    },
+    "status": {
+      "ok": "Đạt",
+      "warn": "Cảnh báo",
+      "fail": "Lỗi",
+      "skipped": "Bỏ qua"
+    },
+    "driverLabel": "Driver",
+    "noDriver": "chưa chọn (dùng driver tìm thấy đầu tiên)",
+    "reportTitle": "Chef PDF: báo cáo chẩn đoán token",
+    "generatedAt": "Thời điểm"
   }
 }

@@ -227,6 +227,13 @@ const PAGES_OVERFLOW = ['pages.selectAll', 'file.saveAs', 'file.print', 'view.pa
 
 const EXPORT_ITEMS: Item[] = [{ kind: 'cmd', id: 'tools.scan', label: true }];
 
+const SIGN_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'sign.certs', label: true },
+  { kind: 'sep', id: 's1' },
+  { kind: 'cmd', id: 'soon.placeField', label: true },
+  { kind: 'cmd', id: 'soon.signDoc', label: true },
+];
+
 /** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */
 export function Toolbar() {
   const { t } = useTranslation();
@@ -249,7 +256,9 @@ export function Toolbar() {
         ? PAGES_ITEMS
         : tab === 'export'
           ? EXPORT_ITEMS
-          : [];
+          : tab === 'sign'
+            ? SIGN_ITEMS
+            : [];
   const overflow = tab === 'view' ? VIEW_OVERFLOW : tab === 'pages' ? PAGES_OVERFLOW : [];
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',

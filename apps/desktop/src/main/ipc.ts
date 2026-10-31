@@ -19,6 +19,7 @@ import type { PathAllowlist } from './allowlist';
 import type { Labels } from './labels';
 import type { OpenFilesController } from './openFiles';
 import { toRpcError } from './rpc';
+import type { SecretStore } from './secrets';
 import type { SettingsStore } from './settings';
 import type { SidecarManager } from './sidecar';
 import {
@@ -30,6 +31,8 @@ import {
   validatePngDataUrl,
   validateRpcCall,
   validateSaveDialogOptions,
+  validateSecretKey,
+  validateSecretValue,
   validateText,
 } from './validate';
 import { originOf } from './window';
@@ -37,6 +40,7 @@ import { originOf } from './window';
 export interface IpcDeps {
   sidecar: SidecarManager;
   settings: SettingsStore;
+  secrets: SecretStore;
   allowlist: PathAllowlist;
   openFiles: OpenFilesController;
   trustedOrigins: Set<string>;
@@ -142,6 +146,15 @@ export function registerIpc(d: IpcDeps): void {
   handle(IpcChannels.settingsGet, () => d.settings.get());
   handle(IpcChannels.settingsSet, (_event, patch) => d.settings.set(patch));
   handle(IpcChannels.settingsAddRecent, (_event, p) => d.settings.addRecent(validateAbsPath(p)));
+
+  // Secrets (PFX passwords). `get` returns the plain value to the renderer: only the app's own
+  // UI calls it, on an explicit user action (for example "open this remembered certificate").
+  handle(IpcChannels.secretsAvailable, () => d.secrets.available());
+  handle(IpcChannels.secretsSet, async (_event, key, value) => {
+    await d.secrets.set(validateSecretKey(key), validateSecretValue(value));
+  });
+  handle(IpcChannels.secretsGet, (_event, key) => d.secrets.get(validateSecretKey(key)));
+  handle(IpcChannels.secretsDelete, (_event, key) => d.secrets.delete(validateSecretKey(key)));
 
   handle(IpcChannels.appInitialFiles, () => d.openFiles.initialFiles);
 

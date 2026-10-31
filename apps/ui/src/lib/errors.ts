@@ -62,3 +62,36 @@ export function toChefError(e: unknown): ChefError {
   const found = ErrorKinds.find((k) => message.includes(k));
   return new ChefError(found ?? 'UNKNOWN', message);
 }
+
+/**
+ * Error kinds of the certificate and token operations. Each one has a Vietnamese message under
+ * `errors.<KIND>` in i18n (errors.test.ts checks that every kind has one).
+ */
+export const CERT_ERROR_KINDS: readonly ErrorKind[] = [
+  'PASSWORD_REQUIRED',
+  'PASSWORD_INVALID',
+  'FILE_NOT_FOUND',
+  'SIGN_BAD_PASSWORD',
+  'SIGN_BAD_CERT',
+  'SIGN_CERT_EXPIRED',
+  'SIGN_TSA_FAILED',
+  'SIGN_FAILED',
+  'TOKEN_NOT_FOUND',
+  'TOKEN_PIN_INVALID',
+  'TOKEN_PIN_LOCKED',
+  'TOKEN_PIN_CONFIRM_REQUIRED',
+  'TOKEN_DRIVER_ERROR',
+  'TOKEN_SUPPORT_UNAVAILABLE',
+];
+
+/** The password of a .pfx file was wrong or missing: ask again, do not keep it. */
+export function isPasswordProblem(kind: ChefError['kind']): boolean {
+  return (
+    kind === 'SIGN_BAD_PASSWORD' || kind === 'PASSWORD_INVALID' || kind === 'PASSWORD_REQUIRED'
+  );
+}
+
+/** The token refuses the PIN, or is locked: stop asking and tell the user. */
+export function isTokenPinProblem(kind: ChefError['kind']): boolean {
+  return kind === 'TOKEN_PIN_INVALID' || kind === 'TOKEN_PIN_LOCKED';
+}

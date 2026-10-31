@@ -5,7 +5,15 @@
  * Page indices are 0-based.
  */
 
-import type { ScanFitSizeParams, ScanPreviewParams, ScanRasterizeParams } from '@chef/contracts';
+import type {
+  ScanFitSizeParams,
+  ScanPreviewParams,
+  ScanRasterizeParams,
+  SignCertInfoParams,
+  SignDiagnoseTokenParams,
+  SignDriverScanParams,
+  SignListTokensParams,
+} from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
 export type SplitMode = 'ranges' | 'everyN' | 'bookmarks' | 'maxSize' | 'oddEven';
@@ -41,8 +49,18 @@ export interface OpParams {
   'scan.rasterize': ScanRasterizeParams;
   'scan.preview': ScanPreviewParams;
   'scan.fitSize': ScanFitSizeParams;
+  'sign.certInfo': SignCertInfoParams;
+  'sign.driverScan': SignDriverScanParams;
+  'sign.listTokens': SignListTokensParams;
+  'sign.diagnoseToken': SignDiagnoseTokenParams;
 }
 
 export type OpId = keyof OpParams;
 
-export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>(['file.merge']);
+export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
+  'file.merge',
+  'sign.certInfo',
+  'sign.driverScan',
+  'sign.listTokens',
+  'sign.diagnoseToken',
+]);

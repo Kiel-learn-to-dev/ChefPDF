@@ -37,6 +37,8 @@ const defaultSettings: Settings = {
   recentFiles: [],
   prefs: {},
   scanPresets: [],
+  knownPfxFiles: [],
+  lastDriverPath: null,
 };
 
 interface MockSession {
@@ -77,6 +79,10 @@ const OP_IDS: OpId[] = [
   'scan.rasterize',
   'scan.preview',
   'scan.fitSize',
+  'sign.certInfo',
+  'sign.driverScan',
+  'sign.listTokens',
+  'sign.diagnoseToken',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -162,7 +168,149 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+/** Mock PFX password accepted by the mock certInfo op. */
+const MOCK_PFX_PASSWORD = 'demo';
+
+const MOCK_CERT_INFO = {
+  subjectCommonName: 'Nguyễn Văn An',
+  issuerCommonName: 'Viettel-CA',
+  subject: 'CN=Nguyễn Văn An, O=Công ty Mẫu, UID=MST:0101234567',
+  issuer: 'CN=Viettel-CA, O=Viettel',
+  serial: '4F2A9C01',
+  notBefore: '2026-01-15T03:00:00+00:00',
+  notAfter: '2027-01-15T03:00:00+00:00',
+  daysUntilExpiry: 76,
+  expired: false,
+  expiringSoon: true,
+  keyUsage: ['digitalSignature', 'nonRepudiation'],
+  keyAlgorithm: 'RSA',
+  keySize: 2048,
+  fingerprintSha256: 'A1B2C3D4E5F60718293A4B5C6D7E8F90A1B2C3D4E5F60718293A4B5C6D7E8F90',
+  identity: {
+    taxCode: '0101234567',
+    citizenId: null,
+    budgetCode: null,
+    organization: 'Công ty Mẫu',
+    personName: 'Nguyễn Văn An',
+  },
+};
+
+const MOCK_DRIVERS = [
+  {
+    ca: 'Viettel-CA',
+    caId: 'viettel-ca',
+    model: 'V6',
+    modelId: 'viettel-v6',
+    path: 'C:\\Windows\\System32\\viettel-ca_v6.dll',
+    exists: true,
+    confidence: 'documented',
+    bitness: '64',
+  },
+  {
+    ca: 'VNPT-CA',
+    caId: 'vnpt-ca',
+    model: 'Driver token v8',
+    modelId: 'vnpt-v8',
+    path: 'C:\\Windows\\System32\\vnpt-ca_v8.dll',
+    exists: false,
+    confidence: 'unverified',
+    bitness: '64',
+  },
+];
+
+const MOCK_TOKEN = {
+  slotId: 1,
+  slotDescription: 'Mock slot',
+  label: 'MOCK TOKEN',
+  manufacturer: 'Feitian',
+  model: 'ePass2003',
+  serial: '00112233',
+  initialized: true,
+  pinState: 'final_try',
+  flags: ['CKF_USER_PIN_FINAL_TRY'],
+  protectedAuthPath: false,
+  unreadableObjects: 0,
+  certificates: [{ ckaId: '01', label: 'signer', isCa: false, cert: MOCK_CERT_INFO }],
+};
+
+const MOCK_DIAG_STEPS = [
+  {
+    id: 'driver_found',
+    status: 'ok',
+    titleVi: 'Tìm thấy driver của token',
+    titleEn: 'Token driver found',
+    detail: 'viettel-ca_v6.dll',
+    fixVi: null,
+    fixEn: null,
+  },
+  {
+    id: 'driver_loads',
+    status: 'ok',
+    titleVi: 'Nạp được driver',
+    titleEn: 'Driver loads',
+    detail: 'loaded',
+    fixVi: null,
+    fixEn: null,
+  },
+  {
+    id: 'token_present',
+    status: 'ok',
+    titleVi: 'Phát hiện token đang cắm',
+    titleEn: 'Token detected',
+    detail: 'MOCK TOKEN',
+    fixVi: null,
+    fixEn: null,
+  },
+  {
+    id: 'token_initialized',
+    status: 'ok',
+    titleVi: 'Token đã được khởi tạo',
+    titleEn: 'Token is initialised',
+    detail: 'initialised',
+    fixVi: null,
+    fixEn: null,
+  },
+  {
+    id: 'certificate_readable',
+    status: 'ok',
+    titleVi: 'Đọc được chứng thư ký',
+    titleEn: 'Signing certificate readable',
+    detail: '1 signer certificate(s)',
+    fixVi: null,
+    fixEn: null,
+  },
+  {
+    id: 'certificate_validity',
+    status: 'warn',
+    titleVi: 'Chứng thư sắp hết hạn',
+    titleEn: 'Certificate expires soon',
+    detail: 'expires in 76 day(s)',
+    fixVi: 'Nên liên hệ CA gia hạn sớm.',
+    fixEn: 'Contact the CA to renew it soon.',
+  },
+  {
+    id: 'pin_state',
+    status: 'warn',
+    titleVi: 'Token chỉ còn 1 lần thử',
+    titleEn: 'PIN status: only 1 try left',
+    detail: 'flags: CKF_USER_PIN_FINAL_TRY',
+    fixVi:
+      'Chỉ còn 1 lần thử. Nhập sai có thể khóa token. Nhập đúng PIN ngay, hoặc liên hệ CA trước nếu chưa chắc.',
+    fixEn: 'Only 1 try left. A wrong PIN may lock the token.',
+  },
+  {
+    id: 'signing_self_test',
+    status: 'skipped',
+    titleVi: 'Thử ký',
+    titleEn: 'Signing test',
+    detail: 'skipped: no PIN',
+    fixVi: null,
+    fixEn: null,
+  },
+];
+
 export function createMockBridge(): ChefBridge {
+  const secretStore = new Map<string, string>();
   const files = new Map<string, Uint8Array>();
   const urls = new Map<string, string>();
   const sessions = new Map<string, MockSession>();
@@ -546,6 +694,7 @@ export function createMockBridge(): ChefBridge {
   }
 
   async function runStandalone(opId: OpId, params: unknown): Promise<OpResult> {
+    if (opId.startsWith('sign.')) return runSignOp(opId, params);
     if (opId !== 'file.merge')
       throw new MockRpcError('INVALID_PARAMS', 'sessionId is required', -32602);
     const p = params as OpParams['file.merge'];
@@ -562,6 +711,45 @@ export function createMockBridge(): ChefBridge {
       outputs: [p.outputPath],
       warnings: p.bookmarksFromFilenames ? ['Mock: bookmarks are not created.'] : [],
     };
+  }
+
+  /** Mock of the certificate and token ops: same data shapes as the core, no real token. */
+  async function runSignOp(opId: OpId, params: unknown): Promise<OpResult> {
+    const done = (data: unknown, warnings: string[] = []): OpResult => ({
+      state: null as unknown as SessionState,
+      changedPages: [],
+      outputs: [],
+      warnings,
+      data,
+    });
+    if (opId === 'sign.certInfo') {
+      const p = params as OpParams['sign.certInfo'];
+      if (!p.password) throw new MockRpcError('PASSWORD_REQUIRED', 'Password required');
+      if (p.password !== MOCK_PFX_PASSWORD)
+        throw new MockRpcError('SIGN_BAD_PASSWORD', 'Wrong password of the certificate file');
+      return done(MOCK_CERT_INFO);
+    }
+    if (opId === 'sign.driverScan') {
+      const p = params as OpParams['sign.driverScan'];
+      const drivers = MOCK_DRIVERS.map((row) => {
+        if (!p.probe || !row.exists) return row;
+        return {
+          ...row,
+          probe: { status: 'ok', errorKind: null, reason: null, tokenLabels: ['MOCK TOKEN'] },
+        };
+      });
+      return done({ os: 'windows', drivers });
+    }
+    if (opId === 'sign.listTokens') {
+      return done({
+        modulePath: (params as OpParams['sign.listTokens']).modulePath,
+        tokens: [MOCK_TOKEN],
+      });
+    }
+    if (opId === 'sign.diagnoseToken') {
+      return done({ overall: 'warn', steps: MOCK_DIAG_STEPS });
+    }
+    throw new MockRpcError('OP_NOT_FOUND', opId, -32601);
   }
 
   function startJob(opId: OpId, params: unknown, sessionId?: string): { jobId: string } {
@@ -797,6 +985,20 @@ export function createMockBridge(): ChefBridge {
         const path = '/mock/files/mau-tieng-viet.pdf';
         putFile(path, new Uint8Array(await res.arrayBuffer()));
         return [path];
+      },
+    },
+    secrets: {
+      async available() {
+        return true;
+      },
+      async set(key, value) {
+        secretStore.set(key, value);
+      },
+      async get(key) {
+        return secretStore.get(key) ?? null;
+      },
+      async delete(key) {
+        secretStore.delete(key);
       },
     },
     clipboard: {

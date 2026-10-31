@@ -5,6 +5,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type {
+  KnownPfxFile,
   LanguageSetting,
   RecentFile,
   ScanUserPreset,
@@ -16,6 +17,8 @@ import { atomicWriteFile, isPlainObject, readJsonFile } from './fsutil';
 export const MAX_RECENT_FILES = 20;
 export const MAX_SCAN_PRESETS = 50;
 export const MAX_SCAN_PRESET_NAME = 60;
+export const MAX_KNOWN_PFX = 20;
+export const MAX_PFX_LABEL = 200;
 const MAX_SCAN_PRESET_PARAMS_BYTES = 4096;
 const MAX_PREFS_BYTES = 1024 * 1024;
 const LANGUAGES: readonly LanguageSetting[] = ['vi', 'en'];
@@ -30,6 +33,8 @@ export function defaultSettings(): Settings {
     recentFiles: [],
     prefs: {},
     scanPresets: [],
+    knownPfxFiles: [],
+    lastDriverPath: null,
   };
 }
 
@@ -71,6 +76,10 @@ function normalizeScanPreset(v: unknown): ScanUserPreset | null {
   return { name, params: JSON.parse(json) as Record<string, unknown> };
 }
 
+function isAbsoluteDriverPath(v: string): boolean {
+  return v.length > 0 && v.length <= 32_768 && !v.includes('\0') && path.isAbsolute(v);
+}
+
 /** Lower-cased name for the case-insensitive uniqueness check. */
 const presetKey = (name: string) => name.toLowerCase();
 
@@ -108,6 +117,62 @@ export function validateScanPresets(value: unknown): ScanUserPreset[] {
   });
 }
 
+/** Label of a certificate file: the trimmed label, or the file name when it is empty. */
+function pfxLabel(label: string, filePath: string): string {
+  const trimmed = label.trim();
+  if (trimmed.length > 0) return trimmed.slice(0, MAX_PFX_LABEL);
+  return path.basename(filePath).slice(0, MAX_PFX_LABEL) || filePath.slice(0, MAX_PFX_LABEL);
+}
+
+function normalizeKnownPfx(v: unknown): KnownPfxFile | null {
+  if (!isPlainObject(v) || typeof v.path !== 'string' || !path.isAbsolute(v.path)) return null;
+  if (v.path.length > 32_768 || v.path.includes('\0')) return null;
+  if (v.label !== undefined && typeof v.label !== 'string') return null;
+  if (v.remembered !== undefined && typeof v.remembered !== 'boolean') return null;
+  const file = path.normalize(v.path);
+  return {
+    path: file,
+    label: pfxLabel(typeof v.label === 'string' ? v.label : '', file),
+    remembered: v.remembered === true,
+  };
+}
+
+/** Keeps valid, unique certificate files from untrusted disk data (invalid entries are dropped). */
+export function sanitizeKnownPfx(
+  raw: unknown,
+  platform: NodeJS.Platform = process.platform,
+): KnownPfxFile[] {
+  if (!Array.isArray(raw)) return [];
+  const out: KnownPfxFile[] = [];
+  for (const item of raw) {
+    const entry = normalizeKnownPfx(item);
+    if (!entry || out.some((o) => samePath(o.path, entry.path, platform))) continue;
+    out.push(entry);
+    if (out.length >= MAX_KNOWN_PFX) break;
+  }
+  return out;
+}
+
+/** Validates a renderer-provided list strictly (throws on the first bad entry). */
+export function validateKnownPfx(
+  value: unknown,
+  platform: NodeJS.Platform = process.platform,
+): KnownPfxFile[] {
+  if (!Array.isArray(value) || value.length > MAX_KNOWN_PFX) {
+    throw new SettingsValidationError(`knownPfxFiles must be an array of at most ${MAX_KNOWN_PFX}`);
+  }
+  const out: KnownPfxFile[] = [];
+  for (const item of value) {
+    const entry = normalizeKnownPfx(item);
+    if (!entry) throw new SettingsValidationError('Invalid certificate file entry');
+    if (out.some((o) => samePath(o.path, entry.path, platform))) {
+      throw new SettingsValidationError(`Duplicate certificate file: ${entry.path}`);
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
 function dedupeRecent(list: RecentFile[], platform: NodeJS.Platform): RecentFile[] {
   const out: RecentFile[] = [];
   for (const r of list) {
@@ -140,6 +205,10 @@ export function sanitizeSettings(
   }
   if (isPlainObject(raw.prefs)) s.prefs = raw.prefs;
   s.scanPresets = sanitizeScanPresets(raw.scanPresets);
+  s.knownPfxFiles = sanitizeKnownPfx(raw.knownPfxFiles, platform);
+  if (typeof raw.lastDriverPath === 'string' && isAbsoluteDriverPath(raw.lastDriverPath)) {
+    s.lastDriverPath = raw.lastDriverPath;
+  }
   return s;
 }
 
@@ -182,6 +251,15 @@ export function validatePatch(
         break;
       case 'scanPresets':
         out.scanPresets = validateScanPresets(value);
+        break;
+      case 'knownPfxFiles':
+        out.knownPfxFiles = validateKnownPfx(value, platform);
+        break;
+      case 'lastDriverPath':
+        if (value !== null && !(typeof value === 'string' && isAbsoluteDriverPath(value))) {
+          throw new SettingsValidationError('lastDriverPath must be an absolute path or null');
+        }
+        out.lastDriverPath = value as string | null;
         break;
       case 'prefs': {
         if (!isPlainObject(value)) throw new SettingsValidationError('prefs must be an object');
