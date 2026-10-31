@@ -1,0 +1,601 @@
+{
+  "online": {
+    "a_bb_invisible.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "Sig_A",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "b1_bug_2048upm.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "Sig_B1",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "b1_visible_pyhanko_style.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "Sig_B1",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "b2_visible_custom_appearance.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "Sig_B2",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "c_bt_local_tsa.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": true,
+          "timestamp": {
+            "trusted": true,
+            "intact": true,
+            "time": "2026-10-31T14:35:38.044023+00:00"
+          },
+          "field": "Sig_C",
+          "pades_level_guess": "B-T",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "d_blt.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_REVISION",
+          "modification_level": "LTA_UPDATES",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": true,
+          "timestamp": {
+            "trusted": true,
+            "intact": true,
+            "time": "2026-10-31T14:35:38.286790+00:00"
+          },
+          "field": "Sig_D",
+          "pades_level_guess": "B-LT",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "d_blta.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_REVISION",
+          "modification_level": "LTA_UPDATES",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": true,
+          "timestamp": {
+            "trusted": true,
+            "intact": true,
+            "time": "2026-10-31T14:35:38.536226+00:00"
+          },
+          "field": "Sig_D",
+          "pades_level_guess": "B-LTA",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        },
+        {
+          "field": "Timestamp-4ecda447-4bb9-4a5f-91c2-6fd7654be6e5",
+          "doc_timestamp": true,
+          "intact": true,
+          "valid": true,
+          "trusted": true
+        }
+      ],
+      "certification": null
+    },
+    "e1_first_signature.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": true,
+          "timestamp": {
+            "trusted": true,
+            "intact": true,
+            "time": "2026-10-31T14:35:38.732311+00:00"
+          },
+          "field": "BenA",
+          "pades_level_guess": "B-T",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "e2_second_signature.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_REVISION",
+          "modification_level": "FORM_FILLING",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": true,
+          "timestamp": {
+            "trusted": true,
+            "intact": true,
+            "time": "2026-10-31T14:35:38.732311+00:00"
+          },
+          "field": "BenA",
+          "pades_level_guess": "B-T",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        },
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:079123456789, MST:0101234567; Common Name: Trần Thị B; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": true,
+          "timestamp": {
+            "trusted": true,
+            "intact": true,
+            "time": "2026-10-31T14:35:39.008122+00:00"
+          },
+          "field": "BenB",
+          "pades_level_guess": "B-T",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "079123456789"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "f1_certified.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "BenA",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": "FILL_FORMS"
+    },
+    "f2_certified_plus_approval.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_REVISION",
+          "modification_level": "FORM_FILLING",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "BenA",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        },
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:079123456789, MST:0101234567; Common Name: Trần Thị B; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "BenB",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "079123456789"
+            ]
+          }
+        }
+      ],
+      "certification": "FILL_FORMS"
+    },
+    "f3_certified_nochanges.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "BenA",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": "NO_CHANGES"
+    },
+    "g_revoked_signer.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": false,
+          "bottom_line": false,
+          "revoked": true,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001999999999, MST:0101234567; Common Name: Lê Văn Bị Thu Hồi; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "Sig_G",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001999999999"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    },
+    "h_raw_rsa_pkcs.pdf": {
+      "signatures": [
+        {
+          "intact": true,
+          "valid": true,
+          "trusted": true,
+          "bottom_line": true,
+          "revoked": false,
+          "coverage": "ENTIRE_FILE",
+          "modification_level": "NONE",
+          "docmdp_ok": true,
+          "signer": "User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+          "has_signature_timestamp": false,
+          "field": "Sig_H",
+          "pades_level_guess": "B-B",
+          "vn_ids": {
+            "MST": [
+              "0101234567"
+            ],
+            "CCCD": [
+              "001234567890"
+            ]
+          }
+        }
+      ],
+      "certification": null
+    }
+  },
+  "offline_dss_only": {
+    "a_bb_invisible.pdf": [
+      {
+        "field": "Sig_A",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "b1_bug_2048upm.pdf": [
+      {
+        "field": "Sig_B1",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "b1_visible_pyhanko_style.pdf": [
+      {
+        "field": "Sig_B1",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "b2_visible_custom_appearance.pdf": [
+      {
+        "field": "Sig_B2",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "c_bt_local_tsa.pdf": [
+      {
+        "field": "Sig_C",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "d_blt.pdf": [
+      {
+        "field": "Sig_D",
+        "src": "DSS",
+        "trusted": true,
+        "bottom_line": true
+      }
+    ],
+    "d_blta.pdf": [
+      {
+        "field": "Sig_D",
+        "src": "DSS",
+        "trusted": true,
+        "bottom_line": true
+      }
+    ],
+    "e1_first_signature.pdf": [
+      {
+        "field": "BenA",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "e2_second_signature.pdf": [
+      {
+        "field": "BenA",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      },
+      {
+        "field": "BenB",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "f1_certified.pdf": [
+      {
+        "field": "BenA",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "f2_certified_plus_approval.pdf": [
+      {
+        "field": "BenA",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      },
+      {
+        "field": "BenB",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "f3_certified_nochanges.pdf": [
+      {
+        "field": "BenA",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "g_revoked_signer.pdf": [
+      {
+        "field": "Sig_G",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ],
+    "h_raw_rsa_pkcs.pdf": [
+      {
+        "field": "Sig_H",
+        "src": "no DSS",
+        "trusted": false,
+        "bottom_line": false
+      }
+    ]
+  },
+  "ades_lta_d_blta": {
+    "now": {
+      "indication": "PASSED",
+      "subindication": "OK",
+      "failure": "Past signature validation did not manage to improve current time result. [AdESPassed.OK]"
+    },
+    "in_3_years": {
+      "indication": "PASSED",
+      "subindication": "OK",
+      "failure": null
+    }
+  }
+}

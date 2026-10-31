@@ -1,0 +1,24 @@
+[project]
+name = "chef-spikes"
+version = "0.0.0"
+description = "Throwaway technical spikes for Chef PDF (S1: PKCS#11 signing, S2: content editing)"
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=50.0.2",
+    "fonttools>=4.68.0",
+    "pikepdf>=10.17.0",
+    "pillow>=13.0.0",
+    "pyhanko-certvalidator>=0.33.0",
+    "pyhanko[image-support,opentype,pkcs11]>=0.38.0",
+    "pypdfium2>=5.14.0",
+    "python-pkcs11>=0.9.5",
+    "reportlab>=5.1.0",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+agpl = [
+    "pymupdf>=2.0",
+]

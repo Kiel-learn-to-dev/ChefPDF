@@ -1,0 +1,221 @@
+{
+  "library": {
+    "manufacturer": "SoftHSM",
+    "description": "Implementation of PKCS11",
+    "cryptoki_version": [
+      2,
+      40
+    ],
+    "library_version": [
+      2,
+      6
+    ]
+  },
+  "slots": [
+    {
+      "slot_id": 311753262,
+      "slot_description": "SoftHSM slot ID 0x1294fa2e",
+      "slot_manufacturer": "SoftHSM project",
+      "token_label": "CHEF-TEST",
+      "token_serial": "853b69461294fa2e",
+      "token_manufacturer": "SoftHSM project",
+      "token_model": "SoftHSM v2",
+      "flags": [
+        "RNG",
+        "LOGIN_REQUIRED",
+        "USER_PIN_INITIALIZED",
+        "RESTORE_KEY_NOT_NEEDED",
+        "TOKEN_INITIALIZED"
+      ],
+      "rsa_sha256_mech": true,
+      "rsa_raw_mech": true,
+      "certs": [
+        {
+          "label": "Chef Test Root CA",
+          "id": "03",
+          "subject": "CN=Chef Test Root CA,O=Chef PDF Test Root (giả lập NEAC),C=VN",
+          "not_after": "2036-10-28T14:35:35+00:00",
+          "is_ca": true
+        },
+        {
+          "label": "Chef Test CA SHA-256",
+          "id": "02",
+          "subject": "CN=Chef Test CA SHA-256,OU=Trung tâm Chứng thực,O=Công ty CA Thử Nghiệm,C=VN",
+          "not_after": "2031-10-30T14:35:35+00:00",
+          "is_ca": true
+        },
+        {
+          "label": "Nguyễn Văn A",
+          "id": "a1b2c3d4",
+          "subject": "UID=CCCD:001234567890,UID=MST:0101234567,CN=Nguyễn Văn A,2.5.4.12=Giám đốc,O=Công ty TNHH Thử Nghiệm,L=Hà Nội,ST=Hà Nội,C=VN",
+          "not_after": "2027-10-31T14:35:35+00:00",
+          "is_ca": false
+        }
+      ],
+      "private_keys_visible_without_login": 0
+    },
+    {
+      "slot_id": 1043694214,
+      "slot_description": "SoftHSM slot ID 0x3e358286",
+      "slot_manufacturer": "SoftHSM project",
+      "token_label": "CHEF-LOCKTEST",
+      "token_serial": "c05d8bcfbe358286",
+      "token_manufacturer": "SoftHSM project",
+      "token_model": "SoftHSM v2",
+      "flags": [
+        "RNG",
+        "LOGIN_REQUIRED",
+        "USER_PIN_INITIALIZED",
+        "RESTORE_KEY_NOT_NEEDED",
+        "TOKEN_INITIALIZED"
+      ],
+      "rsa_sha256_mech": true,
+      "rsa_raw_mech": true,
+      "certs": [],
+      "private_keys_visible_without_login": 0
+    },
+    {
+      "slot_id": 2,
+      "slot_description": "SoftHSM slot ID 0x2",
+      "slot_manufacturer": "SoftHSM project",
+      "token_label": "",
+      "token_serial": "",
+      "token_manufacturer": "SoftHSM project",
+      "token_model": "SoftHSM v2",
+      "flags": [
+        "RNG",
+        "LOGIN_REQUIRED",
+        "RESTORE_KEY_NOT_NEEDED",
+        "SO_PIN_LOCKED",
+        "SO_PIN_TO_BE_CHANGED"
+      ],
+      "rsa_sha256_mech": true,
+      "rsa_raw_mech": true,
+      "certs": [],
+      "note": "token not initialised; skipped"
+    }
+  ],
+  "wrong_pin_attempts": [
+    {
+      "attempt": 1,
+      "flags_before": [],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 2,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 3,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 4,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 5,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 6,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 7,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 8,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 9,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 10,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 11,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    },
+    {
+      "attempt": 12,
+      "flags_before": [
+        "USER_PIN_COUNT_LOW"
+      ],
+      "result": "CKR_PIN_INCORRECT",
+      "flags_after": [
+        "USER_PIN_COUNT_LOW"
+      ]
+    }
+  ],
+  "correct_pin_after_12_wrong": "OK (SoftHSM2 has no lockout counter)",
+  "second_login_same_process": "CKR_USER_ALREADY_LOGGED_IN",
+  "private_keys_visible_in_new_session_without_pin_while_logged_in": 1
+}

@@ -1,0 +1,37 @@
+{
+  "timings_ms": {
+    "open_session_and_login": 8.3,
+    "load_key_and_certs": 5.2,
+    "a_sign_bb_invisible": 39.9,
+    "b1_sign_visible_textstamp": 186.4,
+    "b2_sign_visible_custom": 32.3,
+    "c_sign_bt_local_tsa": 179.5,
+    "d_sign_blt": 239.6,
+    "d_sign_blta": 309.9,
+    "e_sign_first": 96.5,
+    "e_sign_second": 197.2,
+    "f_sign_certify": 29.4,
+    "f_sign_approval": 126.5,
+    "h_sign_raw_mechanism": 39.9,
+    "batch_10_invisible_total": 272.3
+  },
+  "notes": [
+    "lookup by UTF-8 label OK: User ID: CCCD:001234567890, MST:0101234567; Common Name: Nguyễn Văn A; Title: Giám đốc; Organization: Công ty TNHH Thử Nghiệm; Locality: Hà Nội; State/Province: Hà Nội; Country: VN",
+    "b2 auto-shrink chose font size 8.75pt for 240x90 box",
+    "NO_CHANGES + later approval: pyHanko refused (Author signature forbids all changes)",
+    "B-LT with revoked cert: refused before signing (SigningError: The signer's certificate could not be validated)"
+  ],
+  "public_tsa": {
+    "http://timestamp.digicert.com": "FAIL TimestampRequestError: Error while contacting timestamp service",
+    "https://freetsa.org/tsr": "FAIL TimestampRequestError: Error while contacting timestamp service",
+    "http://timestamp.sectigo.com": "FAIL TimestampRequestError: Error while contacting timestamp service",
+    "http://ts.ssl.com": "FAIL TimestampRequestError: Error while contacting timestamp service",
+    "http://timestamp.globalsign.com/tsa/r6advanced1": "FAIL TimestampRequestError: Error while contacting timestamp service"
+  },
+  "server_hits": {
+    "ocsp": 3,
+    "crl": 3,
+    "tsa": 7,
+    "certs": 0
+  }
+}
