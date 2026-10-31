@@ -26,8 +26,17 @@ export function mockCoreCmd(): string {
   return `"${process.execPath}" "${mockCore}"`;
 }
 
+const tempDirs: string[] = [];
+
 export function makeUserDataDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'chef-e2e-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chef-e2e-'));
+  tempDirs.push(dir);
+  return dir;
+}
+
+/** Removes every directory created by makeUserDataDir (call after the app has exited). */
+export function removeTempDirs(): void {
+  for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 }
 
 export interface LaunchOptions {

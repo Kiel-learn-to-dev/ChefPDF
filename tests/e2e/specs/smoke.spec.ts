@@ -10,6 +10,7 @@ import {
   launchApp,
   makeUserDataDir,
   recordEvents,
+  removeTempDirs,
   sandboxArgs,
   type Launched,
 } from '../fixtures/app';
@@ -19,6 +20,7 @@ let launched: Launched | null = null;
 test.afterEach(async () => {
   await launched?.app.close();
   launched = null;
+  removeTempDirs();
 });
 
 function writePdf(file: string): void {
