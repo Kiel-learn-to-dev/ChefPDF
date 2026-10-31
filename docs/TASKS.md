@@ -106,7 +106,7 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T3.01 | Lớp PKCS#11: nạp module, liệt kê slot/token/chứng thư, đăng nhập PIN, quản lý phiên | I1 | 2,5 | T1.08 | ✅ |
+| T3.01 | Lớp PKCS#11: nạp module, liệt kê slot/token/chứng thư, đăng nhập PIN, quản lý phiên | I1 | 2,5 | T1.08 | 🔄 |
 | T3.02 | Danh bạ driver (file dữ liệu theo CA → đời token → OS) + tự dò + nút "Quét tìm driver" + chọn file thủ công | I4, I5 | 2 | T3.01 | 🔄 |
 | T3.03 | Màn hình chẩn đoán token từng bước, hướng dẫn sửa bằng tiếng Việt; cảnh báo PIN sắp khóa | I6, I7 | 2 | T3.02 | 🔄 |
 | T3.04 | Ký bằng file `.pfx`/`.p12`, ghi nhớ mật khẩu bằng safeStorage | I2 | 1 | T1.04 | ⬜ |
