@@ -32,6 +32,43 @@ export interface KnownPfxFile {
   remembered?: boolean;
 }
 
+/**
+ * A signature look saved in settings (I10). `template` is a SignatureTemplate wire object without
+ * the image / logo paths: those are kept as library references and resolved when used.
+ */
+export interface SignTemplateEntry {
+  id: string;
+  name: string;
+  template: Record<string, unknown>;
+  /** SHA-256 fingerprint of the certificate this template is bound to (I10). */
+  certFingerprint?: string;
+  /** Library item ids for the image and logo slots (I18). */
+  libraryRefs?: { image?: string; logo?: string };
+}
+
+export type LibraryKind = 'signature' | 'stamp' | 'initials' | 'logo';
+
+export interface LibraryItem {
+  id: string;
+  name: string;
+  kind: LibraryKind;
+  /** ISO 8601 time the item was added. */
+  createdAt: string;
+}
+
+export interface LibraryStatus {
+  /** False when the OS offers no secure storage: items are then kept as plain PNG files. */
+  encrypted: boolean;
+}
+
+/** Exactly one of `path` (PNG file) or `bytes` (PNG data) is given. */
+export interface LibraryAddInput {
+  kind: LibraryKind;
+  name: string;
+  path?: string;
+  bytes?: Uint8Array;
+}
+
 export interface Settings {
   version: 1;
   language: LanguageSetting;
@@ -46,6 +83,8 @@ export interface Settings {
   knownPfxFiles: KnownPfxFile[];
   /** Driver file of the last token session (T3.02). Missing in older files: null. */
   lastDriverPath: string | null;
+  /** Signature templates (I10). Missing in older files: defaults to []. At most 50. */
+  signTemplates: SignTemplateEntry[];
 }
 
 export type ChefEvent =
@@ -68,6 +107,10 @@ export interface ChefBridge {
     /** URL the renderer can fetch/pass to pdf.js for a local session file. */
     toUrl(absPath: string): string;
     showInFolder(absPath: string): Promise<void>;
+    /** Reads a small .json file the user picked with openDialog (512 KB at most). */
+    readText(absPath: string): Promise<string>;
+    /** Writes a small .json file at a path chosen with saveDialog (512 KB at most). */
+    writeText(absPath: string, text: string): Promise<void>;
     /**
      * Absolute path of a File from a drag-and-drop event (Electron webUtils.getPathForFile).
      * Returns '' when the File has no backing path. The path is also granted to chef-file.
@@ -97,6 +140,26 @@ export interface ChefBridge {
     set(key: string, value: string): Promise<void>;
     get(key: string): Promise<string | null>;
     delete(key: string): Promise<void>;
+  };
+  /**
+   * Signature and stamp image library (I19-I23). Items are PNG files in userData/library, encrypted
+   * with AES-256-GCM when the OS offers secure storage. Decrypted copies only exist as short-lived
+   * files in the work directory (see materialize / release).
+   */
+  library: {
+    status(): Promise<LibraryStatus>;
+    list(): Promise<LibraryItem[]>;
+    add(input: LibraryAddInput): Promise<LibraryItem>;
+    /** PNG bytes of an item. */
+    get(id: string): Promise<Uint8Array>;
+    rename(id: string, name: string): Promise<LibraryItem>;
+    remove(id: string): Promise<void>;
+    /** Decrypts an item to a PNG file in the work directory; returns its absolute path. */
+    materialize(id: string): Promise<string>;
+    /** Deletes a file inside the work directory (only those files are accepted). */
+    release(absPath: string): Promise<void>;
+    /** Absolute path of the work directory for files the core writes (inside the app cache). */
+    workDir(): Promise<string>;
   };
   clipboard: {
     writeText(text: string): Promise<void>;

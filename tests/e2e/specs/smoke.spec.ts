@@ -43,10 +43,38 @@ test('launches securely and exposes the full window.chef bridge', async () => {
     hasProcess: typeof (window as unknown as { process?: unknown }).process,
     url: location.href,
   }));
-  expect(info.keys).toEqual(['app', 'clipboard', 'files', 'onEvent', 'rpc', 'secrets', 'settings']);
-  expect(info.files).toEqual(['openDialog', 'pathForFile', 'saveDialog', 'showInFolder', 'toUrl']);
+  expect(info.keys).toEqual([
+    'app',
+    'clipboard',
+    'files',
+    'library',
+    'onEvent',
+    'rpc',
+    'secrets',
+    'settings',
+  ]);
+  expect(info.files).toEqual([
+    'openDialog',
+    'pathForFile',
+    'readText',
+    'saveDialog',
+    'showInFolder',
+    'toUrl',
+    'writeText',
+  ]);
   expect(info.settings).toEqual(['addRecent', 'get', 'set']);
   expect(info.secrets).toEqual(['available', 'delete', 'get', 'set']);
+  expect(await page.evaluate(() => Object.keys(window.chef.library).sort())).toEqual([
+    'add',
+    'get',
+    'list',
+    'materialize',
+    'release',
+    'remove',
+    'rename',
+    'status',
+    'workDir',
+  ]);
   expect(info.clipboard).toEqual(['readImagePng', 'writeImagePng', 'writeText']);
   expect(info.version).toMatch(/^\d+\.\d+\.\d+/);
   expect(info.platform).toBe(process.platform);
@@ -221,6 +249,9 @@ test('the core is restarted after a crash with core-status events', async () => 
   launched = await launchApp();
   const { page, userDataDir } = launched;
   await page.evaluate(() => window.chef.rpc('system.ping', {}));
+  // main re-sends the current core status when the window finishes loading; let that settle first
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(500);
   await recordEvents(page);
   await page.evaluate(() => window.chef.rpc('mock.crash' as never, {} as never));
   await expect

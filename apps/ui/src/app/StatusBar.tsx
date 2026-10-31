@@ -10,6 +10,9 @@ import { getViewer } from '../features/viewer/controllers';
 import { JobIndicator } from '../features/jobs/JobPanel';
 import { useSelection } from '../features/pages/pageStore';
 import { isMockBridge } from '../lib/bridge';
+import { chipSummary } from '../features/signatures/verifyModel';
+import { useVerifyStore, verifyEntry } from '../features/signatures/verifyStore';
+import { ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
 
 function PageInput({ docId, page, count }: { docId: string; page: number; count: number }) {
   const { t } = useTranslation();
@@ -51,6 +54,8 @@ export function StatusBar() {
   const set = useUi((s) => s.set);
   const sel = useSelection(doc?.id);
   const count = doc?.info.pageCount ?? 0;
+  const verify = useVerifyStore((s) => (doc ? s.byDoc[doc.id] : undefined)) ?? verifyEntry(doc?.id);
+  const chip = chipSummary(verify.items);
 
   return (
     <footer className="status" aria-label={t('status.label')}>
@@ -96,6 +101,22 @@ export function StatusBar() {
           {tab !== 'pages' && <span className="status__item">{Math.round(view.scale * 100)}%</span>}
           {doc.state.dirty && (
             <span className="status__item status__dirty">{t('status.unsaved')}</span>
+          )}
+          {chip && (
+            <button
+              type="button"
+              className={`status__item status__chip status__chip--${chip.tone}`}
+              onClick={() => useUi.getState().set({ sidebarOpen: true, sidebarTab: 'signatures' })}
+            >
+              {chip.tone === 'ok' || chip.tone === 'warn' ? (
+                <ShieldCheck size={13} aria-hidden />
+              ) : chip.tone === 'bad' ? (
+                <ShieldAlert size={13} aria-hidden />
+              ) : (
+                <ShieldQuestion size={13} aria-hidden />
+              )}
+              {t(chip.key, { count: chip.count })}
+            </button>
           )}
         </>
       ) : (

@@ -1,0 +1,221 @@
+/* Signature and stamp library (I19-I23). */
+
+.lib {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.lib__warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--c-warning-soft);
+  color: var(--c-warning);
+  font-size: var(--text-sm);
+}
+.lib__error {
+  margin: 0;
+  color: var(--c-danger);
+  font-size: var(--text-sm);
+}
+.lib__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.lib__soon {
+  display: inline-flex;
+}
+.lib__soon .btn[disabled] {
+  pointer-events: none;
+}
+
+.lib__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lib-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
+  min-width: 0;
+}
+.lib-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.lib-card__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+}
+.lib-card__actions,
+.lib-card__rename {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.lib-card__rename .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Transparent previews sit on a checkerboard, so the ink and the holes are visible. */
+.lib-thumb,
+.lib-compare__pane--checker {
+  background-color: #ffffff;
+  background-image: conic-gradient(#e6e6e6 25%, #ffffff 0 50%, #e6e6e6 0 75%, #ffffff 0);
+  background-size: 16px 16px;
+  border-radius: var(--radius-sm);
+}
+.lib-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 84px;
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+}
+.lib-thumb__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.lib-flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.lib-flow__pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.lib-flow__file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--c-text-disabled);
+  font-size: var(--text-sm);
+}
+.lib-flow__hint,
+.lib-flow__busy {
+  margin: 0;
+  color: var(--c-text-disabled);
+  font-size: var(--text-sm);
+}
+.lib-flow__grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+}
+@media (max-width: 800px) {
+  .lib-flow__grid {
+    grid-template-columns: 1fr;
+  }
+}
+.lib-flow__opts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  min-width: 0;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.lib-flow__opts legend {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.lib-flow__preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.lib-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin: 0;
+  min-width: 0;
+}
+.lib-compare figure {
+  margin: 0;
+  min-width: 0;
+}
+.lib-compare figcaption {
+  font-size: var(--text-xs);
+  color: var(--c-text-disabled);
+  margin-bottom: var(--space-1);
+}
+.lib-compare__pane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  overflow: hidden;
+}
+.lib-compare__pane img {
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.lib-pad {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  aspect-ratio: 600 / 220;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.lib-save {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.lib-save__buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+@media (max-width: 800px) {
+  .lib-save {
+    grid-template-columns: 1fr;
+  }
+}

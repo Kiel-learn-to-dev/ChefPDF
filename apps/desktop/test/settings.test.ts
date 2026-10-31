@@ -9,11 +9,15 @@ import {
   SettingsStore,
   defaultSettings,
   sanitizeKnownPfx,
+  MAX_SIGN_TEMPLATES,
+  MAX_SIGN_TEMPLATE_BYTES,
   sanitizeScanPresets,
   sanitizeSettings,
+  sanitizeSignTemplates,
   validateKnownPfx,
   validatePatch,
   validateScanPresets,
+  validateSignTemplates,
 } from '../src/main/settings';
 
 function tmpDir(): string {
@@ -33,6 +37,7 @@ describe('SettingsStore', () => {
       scanPresets: [],
       knownPfxFiles: [],
       lastDriverPath: null,
+      signTemplates: [],
     });
   });
 
@@ -275,5 +280,79 @@ describe('certificate settings (knownPfxFiles, lastDriverPath)', () => {
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('signature templates (I10)', () => {
+  const FP_A = 'a'.repeat(64);
+  const FP_B = 'b'.repeat(64);
+  const LIB = 'c'.repeat(32);
+  const entry = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    name: `Mẫu ${id}`,
+    template: { name: id, layout: 'text-only', fontSize: 9 },
+    ...extra,
+  });
+
+  it('reads older files without signTemplates as an empty list', () => {
+    expect(sanitizeSettings({ language: 'en' }).signTemplates).toEqual([]);
+  });
+
+  it('keeps valid templates from disk and drops malformed or duplicate ones', () => {
+    const out = sanitizeSignTemplates([
+      entry('t1'),
+      entry('t1'),
+      entry('bad id!'),
+      { ...entry('t2'), name: '   ' },
+      { ...entry('t3'), template: [] },
+      entry('t4', { certFingerprint: 'XYZ' }),
+      entry('t5', { libraryRefs: { image: LIB } }),
+      entry('t6', { libraryRefs: { image: '../escape' } }),
+    ]);
+    expect(out.map((e) => e.id)).toEqual(['t1', 't5']);
+    expect(out[1]!.libraryRefs).toEqual({ image: LIB });
+  });
+
+  it('keeps one binding per certificate and lower-cases fingerprints', () => {
+    const out = sanitizeSignTemplates([
+      entry('t1', { certFingerprint: FP_A.toUpperCase() }),
+      entry('t2', { certFingerprint: FP_A }),
+      entry('t3', { certFingerprint: FP_B }),
+    ]);
+    expect(out[0]!.certFingerprint).toBe(FP_A);
+    expect(out[1]!.certFingerprint).toBeUndefined();
+    expect(out[2]!.certFingerprint).toBe(FP_B);
+  });
+
+  it('caps the list and the template size', () => {
+    const many = Array.from({ length: MAX_SIGN_TEMPLATES + 5 }, (_, i) => entry(`t${i}`));
+    expect(sanitizeSignTemplates(many)).toHaveLength(MAX_SIGN_TEMPLATES);
+    const big = entry('huge', { template: { text: 'x'.repeat(MAX_SIGN_TEMPLATE_BYTES) } });
+    expect(sanitizeSignTemplates([big])).toEqual([]);
+  });
+
+  it('validates patches strictly', () => {
+    expect(validateSignTemplates([entry('t1')])).toHaveLength(1);
+    expect(() => validateSignTemplates([entry('t1'), entry('t1')])).toThrow(/Duplicate/);
+    expect(() => validateSignTemplates([{ ...entry('t1'), template: 'no' }])).toThrow(/Invalid/);
+    expect(() =>
+      validateSignTemplates([
+        entry('t1', { certFingerprint: FP_A }),
+        entry('t2', { certFingerprint: FP_A }),
+      ]),
+    ).toThrow(/only one bound/);
+    expect(() => validateSignTemplates('nope')).toThrow(/array/);
+    expect(validatePatch({ signTemplates: [entry('t9')] })).toEqual({
+      signTemplates: [entry('t9')],
+    });
+  });
+
+  it('persists templates and reloads them', async () => {
+    const dir = tmpDir();
+    const store = new SettingsStore(dir);
+    await store.load();
+    await store.set({ signTemplates: [entry('t1', { certFingerprint: FP_A })] });
+    const again = new SettingsStore(dir);
+    expect((await again.load()).signTemplates).toEqual([entry('t1', { certFingerprint: FP_A })]);
   });
 });

@@ -1,0 +1,215 @@
+/* Signature validation panel (I34) and trust store dialog (I35). */
+
+.sig-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  min-width: 0;
+}
+.sig-panel__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.sig-panel__status,
+.sig-panel__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--c-text-disabled);
+}
+.sig-panel__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--c-danger);
+}
+
+.sig-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sig-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
+  min-width: 0;
+}
+.sig-item__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.sig-item__who {
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+.sig-item__meta {
+  font-size: var(--text-xs);
+  color: var(--c-text-disabled);
+}
+.sig-item__toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--c-accent-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Status badge: icon + text, tone adds the colour. */
+.sig-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  border: 1px solid currentColor;
+}
+.sig-badge--ok {
+  color: var(--c-success);
+  background: var(--c-success-soft);
+}
+.sig-badge--warn {
+  color: var(--c-warning);
+  background: var(--c-warning-soft);
+}
+.sig-badge--bad {
+  color: var(--c-danger);
+  background: var(--c-danger-soft);
+}
+.sig-badge--unknown {
+  color: var(--c-accent-text);
+  background: var(--c-accent-soft);
+}
+.sig-badge--neutral {
+  color: var(--c-text-disabled);
+  background: var(--c-surface-sunken);
+}
+
+.sig-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--c-divider);
+  font-size: var(--text-sm);
+}
+.sig-detail__summary {
+  margin: 0;
+}
+.sig-detail__section h4 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.sig-detail__list {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+.sig-detail__muted {
+  margin: 0;
+  color: var(--c-text-disabled);
+}
+.sig-detail__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+.sig-detail__facts dt {
+  color: var(--c-text-disabled);
+}
+.sig-detail__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sig-chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.sig-chain__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.sig-chain__name {
+  overflow-wrap: anywhere;
+}
+.sig-tag {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+.sig-tag--ok {
+  color: var(--c-success);
+  background: var(--c-success-soft);
+}
+.sig-tag--warn {
+  color: var(--c-warning);
+  background: var(--c-warning-soft);
+}
+
+/* Trust store dialog */
+.trust {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.trust__add {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.trust__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.trust__table th,
+.trust__table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--c-divider);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.trust__table th {
+  color: var(--c-text-disabled);
+  font-weight: var(--weight-medium);
+}
+.trust__error {
+  color: var(--c-danger);
+  font-size: var(--text-sm);
+  margin: 0;
+}

@@ -25,6 +25,7 @@ import { DialogHost } from './DialogHost';
 import { PromptHost } from './PromptHost';
 import { DropZone } from './DropZone';
 import { CoreStatusBanner } from './CoreStatusBanner';
+import { useVerification } from '../features/signatures/useVerification';
 import './app.css';
 
 function ComingSoonNote({ tab }: { tab: string }) {
@@ -54,6 +55,7 @@ function SignedBanner({ doc }: { doc: DocTab }) {
 }
 
 function Workspace({ doc }: { doc: DocTab }) {
+  useVerification(doc);
   const tab = useUi((s) => s.functionTab);
   const sidebarOpen = useUi((s) => s.sidebarOpen);
   const panelOpen = useUi((s) => s.panelOpen);

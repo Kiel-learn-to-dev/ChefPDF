@@ -20,6 +20,17 @@ export const IpcChannels = {
   secretsSet: 'chef:secrets.set',
   secretsGet: 'chef:secrets.get',
   secretsDelete: 'chef:secrets.delete',
+  filesReadText: 'chef:files.readText',
+  filesWriteText: 'chef:files.writeText',
+  libraryStatus: 'chef:library.status',
+  libraryList: 'chef:library.list',
+  libraryAdd: 'chef:library.add',
+  libraryGet: 'chef:library.get',
+  libraryRename: 'chef:library.rename',
+  libraryRemove: 'chef:library.remove',
+  libraryMaterialize: 'chef:library.materialize',
+  libraryRelease: 'chef:library.release',
+  libraryWorkDir: 'chef:library.workDir',
 } as const;
 
 /** Envelope used for `chef:rpc` so structured RPC errors survive IPC. */

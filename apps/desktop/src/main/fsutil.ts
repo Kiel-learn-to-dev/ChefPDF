@@ -6,7 +6,11 @@ import { randomBytes } from 'node:crypto';
  * Writes `data` atomically: temp file in the same directory, fsync, then rename.
  * `mode` sets the permission bits of the new file (POSIX only; Windows ignores them).
  */
-export async function atomicWriteFile(file: string, data: string, mode?: number): Promise<void> {
+export async function atomicWriteFile(
+  file: string,
+  data: string | Uint8Array,
+  mode?: number,
+): Promise<void> {
   const dir = path.dirname(file);
   await fs.mkdir(dir, { recursive: true });
   const tmp = path.join(
@@ -15,7 +19,7 @@ export async function atomicWriteFile(file: string, data: string, mode?: number)
   );
   const handle = await fs.open(tmp, 'w', mode);
   try {
-    await handle.writeFile(data, 'utf8');
+    await handle.writeFile(data, typeof data === 'string' ? 'utf8' : undefined);
     await handle.sync();
   } finally {
     await handle.close();

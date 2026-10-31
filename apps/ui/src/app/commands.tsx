@@ -51,6 +51,9 @@ import {
   Keyboard,
   KeyRound,
   PenLine,
+  ShieldCheck,
+  Library,
+  Landmark,
 } from 'lucide-react';
 import { closeDoc, openWithDialog, redo, saveDoc, undo } from './actions';
 import { useDocs, type DocTab } from './state/documents';
@@ -518,6 +521,45 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       icon: <KeyRound size={I} />,
       enabled: true,
       run: () => ui.openDialog('certs'),
+    },
+    {
+      id: 'sign.verify',
+      title: t('cmd.sigVerify'),
+      short: t('toolbar.sigVerify'),
+      keywords: ['signature', 'verify', 'chu ky', 'kiem tra', 'hop le'],
+      group: 'tools',
+      icon: <ShieldCheck size={I} />,
+      enabled: has,
+      run: () => ui.set({ sidebarOpen: true, sidebarTab: 'signatures', functionTab: 'sign' }),
+    },
+    {
+      id: 'sign.templates',
+      title: t('cmd.sigTemplates'),
+      short: t('toolbar.sigTemplates'),
+      keywords: ['template', 'mau chu ky', 'studio', 'con dau'],
+      group: 'tools',
+      icon: <FileSignature size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('signTemplates'),
+    },
+    {
+      id: 'sign.library',
+      title: t('cmd.sigLibrary'),
+      short: t('toolbar.sigLibrary'),
+      keywords: ['library', 'thu vien', 'anh chu ky', 'con dau', 'signature image', 'stamp'],
+      group: 'tools',
+      icon: <Library size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('sigLibrary'),
+    },
+    {
+      id: 'sign.trust',
+      title: t('cmd.sigTrust'),
+      keywords: ['trust', 'root ca', 'kho tin cay', 'chung thu goc'],
+      group: 'tools',
+      icon: <Landmark size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('trust'),
     },
     // Tools
     {

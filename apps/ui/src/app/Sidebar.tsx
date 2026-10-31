@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import * as RT from '@radix-ui/react-tabs';
-import { Images, ListTree, PanelLeftClose } from 'lucide-react';
+import { Images, ListTree, PanelLeftClose, ShieldCheck } from 'lucide-react';
 import type { DocTab } from './state/documents';
 import { useUi, type SidebarTab } from './state/ui';
 import { IconButton } from '../components/Button';
 import { Tooltip } from '../components/Tooltip';
 import { ThumbnailList } from '../features/viewer/ThumbnailList';
 import { OutlineTree } from '../features/viewer/OutlineTree';
+import { SignaturePanel } from '../features/signatures/SignaturePanel';
 
 /** Left sidebar (B3): thumbnails / outline. */
 export function Sidebar({ doc }: { doc: DocTab }) {
@@ -40,6 +41,15 @@ export function Sidebar({ doc }: { doc: DocTab }) {
                 <ListTree size={16} />
               </RT.Trigger>
             </Tooltip>
+            <Tooltip content={t('sidebar.signatures')}>
+              <RT.Trigger
+                value="signatures"
+                className="sidenav__tab"
+                aria-label={t('sidebar.signatures')}
+              >
+                <ShieldCheck size={16} />
+              </RT.Trigger>
+            </Tooltip>
           </RT.List>
           <span className="sidenav__title">{t(`sidebar.${tab}`)}</span>
           <IconButton
@@ -54,6 +64,9 @@ export function Sidebar({ doc }: { doc: DocTab }) {
         </RT.Content>
         <RT.Content value="outline" className="sidenav__content">
           <OutlineTree doc={doc} />
+        </RT.Content>
+        <RT.Content value="signatures" className="sidenav__content">
+          <SignaturePanel doc={doc} />
         </RT.Content>
       </RT.Root>
     </aside>

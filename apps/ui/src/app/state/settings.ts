@@ -12,6 +12,7 @@ export const fallbackSettings: Settings = {
   scanPresets: [],
   knownPfxFiles: [],
   lastDriverPath: null,
+  signTemplates: [],
 };
 
 interface SettingsState {

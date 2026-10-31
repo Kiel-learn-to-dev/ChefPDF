@@ -115,7 +115,7 @@
 | T3.07 | Ký chứng nhận (DocMDP); nhiều người ký nối tiếp; tạo ô ký trống | I29, I30 | 1,5 | T3.06 | ✅ |
 | T3.08 | Kiểm tra chữ ký: panel trạng thái, chuỗi chứng thư, OCSP/CRL, xem phiên bản lúc ký; kho tin cậy với 2 hệ Root CA Việt Nam | I34, I35 | 3 | T3.06 | 🔄 |
 | T3.09 | Bộ vẽ giao diện chữ ký theo mẫu: bố cục, font tiếng Việt, tự co chữ, màu, viền, logo, dấu ✓. **Tự vẽ bằng reportlab rồi nhúng vào**, không dùng bộ vẽ chữ có sẵn của pyHanko (lỗi giãn chữ với font TrueType, xem spike S1) | I15–I18 | 3 | T3.06 | ✅ |
-| T3.10 | Studio mẫu chữ ký (UI): quản lý mẫu, gắn mẫu với chứng thư, chọn dòng thông tin, nguồn dữ liệu, ngày giờ, lý do/nơi ký, xem trước trực tiếp | I10–I14 | 3 | T3.09, T3.05 | ⬜ |
+| T3.10 | Studio mẫu chữ ký (UI): quản lý mẫu, gắn mẫu với chứng thư, chọn dòng thông tin, nguồn dữ liệu, ngày giờ, lý do/nơi ký, xem trước trực tiếp | I10–I14 | 3 | T3.09, T3.05 | ✅ |
 | T3.11 | Thư viện ảnh chữ ký & con dấu: nhập ảnh / vẽ (có lực bút) / gõ font viết tay; tách nền tự động; làm sạch & chỉnh; mã hóa thư viện. *Phần "chụp qua QR" của I19 làm ở T8.11* | I19, I20, I21, I23 | 3,5 | T1.10 | 🔄 |
 | T3.12 | Đặt chữ ký: kéo thả khung, ký ẩn, ký vào ô có sẵn, **đặt theo chữ mốc**, vị trí cố định | I25, I26, I27 | 2,5 | T3.09 | 🔄 |
 | T3.13 | Ký hàng loạt (nhập PIN 1 lần); việc sau khi ký (đặt tên, mở panel kiểm tra, mở thư mục) | I31, I32 | 1,5 | T3.12 | 🔄 |

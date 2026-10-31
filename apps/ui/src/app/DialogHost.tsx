@@ -12,6 +12,9 @@ import { PropertiesDialog } from '../features/viewer/PropertiesDialog';
 import { ScanDialog } from '../features/scan/ScanDialog';
 import { CertManagerDialog } from '../features/certs/CertManagerDialog';
 import { TokenDiagnosticWizard } from '../features/certs/TokenDiagnosticWizard';
+import { TrustDialog } from '../features/signatures/TrustDialog';
+import { TemplateStudioDialog } from '../features/signTemplate/TemplateStudioDialog';
+import { LibraryDialog } from '../features/sigLibrary/LibraryDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -77,6 +80,12 @@ export function DialogHost() {
       return <CertManagerDialog />;
     case 'tokenWizard':
       return <TokenDiagnosticWizard />;
+    case 'trust':
+      return <TrustDialog />;
+    case 'signTemplates':
+      return <TemplateStudioDialog />;
+    case 'sigLibrary':
+      return <LibraryDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

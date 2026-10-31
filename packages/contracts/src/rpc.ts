@@ -127,6 +127,11 @@ export const ErrorKinds = [
   'TOKEN_PIN_CONFIRM_REQUIRED',
   'TOKEN_DRIVER_ERROR',
   'TOKEN_SUPPORT_UNAVAILABLE',
+  'LIBRARY_INVALID',
+  'LIBRARY_NOT_FOUND',
+  'LIBRARY_FULL',
+  'LIBRARY_KEY_MISSING',
+  'LIBRARY_TAMPERED',
   'CANCELLED',
   'INTERNAL',
 ] as const;
@@ -242,4 +247,84 @@ export interface DiagStep {
 export interface DiagnoseData {
   overall: 'ok' | 'warn' | 'fail';
   steps: DiagStep[];
+}
+
+/** Status of one signature (sign.verify). `unsigned` is a signature field without a signature. */
+export type SignatureStatus = 'valid' | 'valid-with-warnings' | 'invalid' | 'unknown' | 'unsigned';
+
+/** Machine reasons of sign.verify (core/chef_core/signing/verify.py REASON_TEXT). */
+export type SignatureReason =
+  | 'INTEGRITY_FAILED'
+  | 'MODIFIED_AFTER_SIGNING'
+  | 'CERT_UNTRUSTED'
+  | 'CERT_REVOKED'
+  | 'CERT_EXPIRED_AT_SIGNING'
+  | 'CERT_EXPIRED_NOW'
+  | 'REVOCATION_UNKNOWN'
+  | 'DOCMDP_VIOLATION'
+  | 'TIMESTAMP_INVALID'
+  | 'UNSIGNED_FIELD'
+  | 'SIGNATURE_UNREADABLE';
+
+export type SignatureLevel = 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+
+/** One certificate of a signature's chain. `trusted` is true when the chain ends in a trusted root. */
+export interface SignatureChainRow {
+  subject: string;
+  issuer: string;
+  /** ISO 8601. */
+  notBefore: string;
+  /** ISO 8601. */
+  notAfter: string;
+  trusted: boolean;
+}
+
+export interface SignatureRevocationRow {
+  cert: string;
+  fingerprintSha256: string;
+  /** "embedded" | "crl" | "ocsp" | "none" */
+  source: string;
+  /** "good" | "revoked" | "unknown" | "skipped" */
+  status: string;
+}
+
+/** One entry of sign.verify's `data.signatures`. */
+export interface SignatureVerifyItem {
+  fieldName: string;
+  status: SignatureStatus;
+  reasons: SignatureReason[];
+  summaryVi: string;
+  summaryEn: string;
+  revisionIndex: number | null;
+  subFilter: string | null;
+  level: SignatureLevel | null;
+  digestAlgorithm: string | null;
+  signerName: string | null;
+  signerCert: CertInfoData | null;
+  signingTime: string | null;
+  timestampTime: string | null;
+  timestampOk: boolean | null;
+  coversWholeDocument: boolean | null;
+  modificationLevel: string | null;
+  docMdp: string | null;
+  chain: SignatureChainRow[];
+  revocation: SignatureRevocationRow[];
+}
+
+export interface SignatureVerifyData {
+  signatures: SignatureVerifyItem[];
+}
+
+/** One trusted certificate (sign.trustList). `source` "bundled" entries cannot be removed. */
+export interface TrustEntry {
+  subject: string;
+  issuer: string;
+  notAfter: string;
+  fingerprintSha256: string;
+  group: 'vn-public-ca' | 'vn-gov-ca' | 'user';
+  source: 'bundled' | 'user';
+}
+
+export interface TrustListData {
+  entries: TrustEntry[];
 }

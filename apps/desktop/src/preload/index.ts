@@ -69,6 +69,8 @@ const bridge: ChefBridge = {
       return fileUrl(absPath);
     },
     showInFolder: (absPath) => ipcRenderer.invoke(IpcChannels.filesShowInFolder, absPath),
+    readText: (absPath) => ipcRenderer.invoke(IpcChannels.filesReadText, absPath),
+    writeText: (absPath, text) => ipcRenderer.invoke(IpcChannels.filesWriteText, absPath, text),
     pathForFile: (file) => {
       const p = webUtils.getPathForFile(file);
       // Grant the dropped file to the chef-file protocol (fire-and-forget; main validates it).
@@ -94,6 +96,18 @@ const bridge: ChefBridge = {
     set: (key, value) => ipcRenderer.invoke(IpcChannels.secretsSet, key, value),
     get: (key) => ipcRenderer.invoke(IpcChannels.secretsGet, key),
     delete: (key) => ipcRenderer.invoke(IpcChannels.secretsDelete, key),
+  },
+
+  library: {
+    status: () => ipcRenderer.invoke(IpcChannels.libraryStatus),
+    list: () => ipcRenderer.invoke(IpcChannels.libraryList),
+    add: (input) => ipcRenderer.invoke(IpcChannels.libraryAdd, input),
+    get: (id) => ipcRenderer.invoke(IpcChannels.libraryGet, id),
+    rename: (id, name) => ipcRenderer.invoke(IpcChannels.libraryRename, id, name),
+    remove: (id) => ipcRenderer.invoke(IpcChannels.libraryRemove, id),
+    materialize: (id) => ipcRenderer.invoke(IpcChannels.libraryMaterialize, id),
+    release: (absPath) => ipcRenderer.invoke(IpcChannels.libraryRelease, absPath),
+    workDir: () => ipcRenderer.invoke(IpcChannels.libraryWorkDir),
   },
 
   clipboard: {

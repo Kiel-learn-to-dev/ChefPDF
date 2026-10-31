@@ -21,6 +21,7 @@ import { defaultOpenFilters, registerIpc } from './ipc';
 import { labelsFor } from './labels';
 import { RotatingLog } from './logger';
 import { installMenu } from './menu';
+import { ChefLibrary, secretKeyStore } from './library';
 import { OpenFilesController, argvSkipCount, parseFileArgs } from './openFiles';
 import { repoRootFrom, resolveUi } from './paths';
 import { createAppHandler, createFileHandler, privilegedSchemes } from './protocol';
@@ -132,12 +133,22 @@ async function onReady(): Promise<void> {
   startSidecar();
 
   const origins = trustedOrigins(devServerUrl);
+  const secrets = new SecretStore(path.join(userData, 'secrets.json'), () => safeStorage);
+  const libraryDir = path.join(userData, 'library');
+  const library = new ChefLibrary({
+    dir: libraryDir,
+    workDir: path.join(cacheDir, 'sigwork'),
+    encrypt: secrets.available(),
+    keys: secretKeyStore(secrets, path.join(libraryDir, 'library-key')),
+  });
+  await library.sweepWorkDir().catch((err) => log(`library work dir sweep failed: ${String(err)}`));
   registerIpc({
     sidecar: sidecar!,
     settings,
-    secrets: new SecretStore(path.join(userData, 'secrets.json'), () => safeStorage),
+    secrets,
     allowlist,
     openFiles,
+    library,
     trustedOrigins: origins,
     labels: () => labelsFor(settings.get().language),
     log,

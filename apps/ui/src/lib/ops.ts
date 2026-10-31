@@ -6,13 +6,22 @@
  */
 
 import type {
+  ImageCleanupParams,
+  ImageFromStrokesParams,
+  ImageRemoveBackgroundParams,
+  ImageTextSignatureParams,
   ScanFitSizeParams,
   ScanPreviewParams,
   ScanRasterizeParams,
   SignCertInfoParams,
   SignDiagnoseTokenParams,
   SignDriverScanParams,
+  SignExtractRevisionParams,
   SignListTokensParams,
+  SignTrustAddParams,
+  SignTrustListParams,
+  SignTrustRemoveParams,
+  SignVerifyParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -53,6 +62,15 @@ export interface OpParams {
   'sign.driverScan': SignDriverScanParams;
   'sign.listTokens': SignListTokensParams;
   'sign.diagnoseToken': SignDiagnoseTokenParams;
+  'sign.verify': SignVerifyParams;
+  'sign.extractRevision': SignExtractRevisionParams;
+  'sign.trustList': SignTrustListParams;
+  'sign.trustAdd': SignTrustAddParams;
+  'sign.trustRemove': SignTrustRemoveParams;
+  'image.removeBackground': ImageRemoveBackgroundParams;
+  'image.cleanup': ImageCleanupParams;
+  'image.fromStrokes': ImageFromStrokesParams;
+  'image.textSignature': ImageTextSignatureParams;
 }
 
 export type OpId = keyof OpParams;
@@ -63,4 +81,12 @@ export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'sign.driverScan',
   'sign.listTokens',
   'sign.diagnoseToken',
+  'sign.extractRevision',
+  'sign.trustList',
+  'sign.trustAdd',
+  'sign.trustRemove',
+  'image.removeBackground',
+  'image.cleanup',
+  'image.fromStrokes',
+  'image.textSignature',
 ]);

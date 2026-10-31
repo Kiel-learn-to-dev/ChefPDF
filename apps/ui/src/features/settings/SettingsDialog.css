@@ -14,3 +14,9 @@
 .settings__version {
   font-size: var(--text-sm);
 }
+
+.settings__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

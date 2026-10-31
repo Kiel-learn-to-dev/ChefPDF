@@ -90,6 +90,13 @@ export function SettingsDialog() {
             </Button>
           </div>
         </Field>
+        <Field label={t('settings.signTools')} hint={t('settings.signToolsHint')}>
+          <div className="settings__links">
+            <Button onClick={() => openDialog('signTemplates')}>{t('cmd.sigTemplates')}</Button>
+            <Button onClick={() => openDialog('sigLibrary')}>{t('cmd.sigLibrary')}</Button>
+            <Button onClick={() => openDialog('trust')}>{t('cmd.sigTrust')}</Button>
+          </div>
+        </Field>
       </section>
       <section className="settings__section">
         <h3 className="settings__heading">{t('settings.files')}</h3>

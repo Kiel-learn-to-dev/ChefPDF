@@ -10,6 +10,7 @@ import type {
   RecentFile,
   ScanUserPreset,
   Settings,
+  SignTemplateEntry,
   ThemeSetting,
 } from '@chef/contracts';
 import { atomicWriteFile, isPlainObject, readJsonFile } from './fsutil';
@@ -19,6 +20,9 @@ export const MAX_SCAN_PRESETS = 50;
 export const MAX_SCAN_PRESET_NAME = 60;
 export const MAX_KNOWN_PFX = 20;
 export const MAX_PFX_LABEL = 200;
+export const MAX_SIGN_TEMPLATES = 50;
+export const MAX_SIGN_TEMPLATE_BYTES = 16 * 1024;
+export const MAX_SIGN_TEMPLATE_NAME = 80;
 const MAX_SCAN_PRESET_PARAMS_BYTES = 4096;
 const MAX_PREFS_BYTES = 1024 * 1024;
 const LANGUAGES: readonly LanguageSetting[] = ['vi', 'en'];
@@ -35,6 +39,7 @@ export function defaultSettings(): Settings {
     scanPresets: [],
     knownPfxFiles: [],
     lastDriverPath: null,
+    signTemplates: [],
   };
 }
 
@@ -78,6 +83,92 @@ function normalizeScanPreset(v: unknown): ScanUserPreset | null {
 
 function isAbsoluteDriverPath(v: string): boolean {
   return v.length > 0 && v.length <= 32_768 && !v.includes('\0') && path.isAbsolute(v);
+}
+
+const SIGN_TEMPLATE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const FINGERPRINT_RE = /^[A-Fa-f0-9]{64}$/;
+const LIBRARY_ID_RE = /^[a-f0-9]{32}$/;
+
+/** A sign template entry with a valid shape, or null. The template object is size-limited only. */
+function normalizeSignTemplate(v: unknown): SignTemplateEntry | null {
+  if (!isPlainObject(v) || typeof v.id !== 'string' || !SIGN_TEMPLATE_ID_RE.test(v.id)) return null;
+  if (typeof v.name !== 'string') return null;
+  const name = v.name.trim();
+  if (name.length === 0 || name.length > MAX_SIGN_TEMPLATE_NAME) return null;
+  if (!isPlainObject(v.template)) return null;
+  let json: string;
+  try {
+    json = JSON.stringify(v.template);
+  } catch {
+    return null;
+  }
+  if (json.length > MAX_SIGN_TEMPLATE_BYTES) return null;
+  const entry: SignTemplateEntry = {
+    id: v.id,
+    name,
+    template: JSON.parse(json) as Record<string, unknown>,
+  };
+  if (v.certFingerprint !== undefined) {
+    if (typeof v.certFingerprint !== 'string' || !FINGERPRINT_RE.test(v.certFingerprint))
+      return null;
+    entry.certFingerprint = v.certFingerprint.toLowerCase();
+  }
+  if (v.libraryRefs !== undefined) {
+    if (!isPlainObject(v.libraryRefs)) return null;
+    const refs: { image?: string; logo?: string } = {};
+    for (const slot of ['image', 'logo'] as const) {
+      const id = v.libraryRefs[slot];
+      if (id === undefined) continue;
+      if (typeof id !== 'string' || !LIBRARY_ID_RE.test(id)) return null;
+      refs[slot] = id;
+    }
+    entry.libraryRefs = refs;
+  }
+  return entry;
+}
+
+/** Keeps valid entries from disk: unique ids, at most one template bound to each certificate. */
+export function sanitizeSignTemplates(raw: unknown): SignTemplateEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SignTemplateEntry[] = [];
+  const ids = new Set<string>();
+  const bound = new Set<string>();
+  for (const item of raw) {
+    const entry = normalizeSignTemplate(item);
+    if (!entry || ids.has(entry.id)) continue;
+    if (entry.certFingerprint && bound.has(entry.certFingerprint)) {
+      delete entry.certFingerprint;
+    }
+    if (entry.certFingerprint) bound.add(entry.certFingerprint);
+    ids.add(entry.id);
+    out.push(entry);
+    if (out.length >= MAX_SIGN_TEMPLATES) break;
+  }
+  return out;
+}
+
+/** Validates a renderer-provided list strictly (throws on the first bad entry). */
+export function validateSignTemplates(value: unknown): SignTemplateEntry[] {
+  if (!Array.isArray(value) || value.length > MAX_SIGN_TEMPLATES) {
+    throw new SettingsValidationError(
+      `signTemplates must be an array of at most ${MAX_SIGN_TEMPLATES}`,
+    );
+  }
+  const ids = new Set<string>();
+  const bound = new Set<string>();
+  return value.map((item) => {
+    const entry = normalizeSignTemplate(item);
+    if (!entry) throw new SettingsValidationError('Invalid signature template');
+    if (ids.has(entry.id)) throw new SettingsValidationError(`Duplicate template id: ${entry.id}`);
+    if (entry.certFingerprint) {
+      if (bound.has(entry.certFingerprint)) {
+        throw new SettingsValidationError('A certificate can have only one bound template');
+      }
+      bound.add(entry.certFingerprint);
+    }
+    ids.add(entry.id);
+    return entry;
+  });
 }
 
 /** Lower-cased name for the case-insensitive uniqueness check. */
@@ -206,6 +297,7 @@ export function sanitizeSettings(
   if (isPlainObject(raw.prefs)) s.prefs = raw.prefs;
   s.scanPresets = sanitizeScanPresets(raw.scanPresets);
   s.knownPfxFiles = sanitizeKnownPfx(raw.knownPfxFiles, platform);
+  s.signTemplates = sanitizeSignTemplates(raw.signTemplates);
   if (typeof raw.lastDriverPath === 'string' && isAbsoluteDriverPath(raw.lastDriverPath)) {
     s.lastDriverPath = raw.lastDriverPath;
   }
@@ -254,6 +346,9 @@ export function validatePatch(
         break;
       case 'knownPfxFiles':
         out.knownPfxFiles = validateKnownPfx(value, platform);
+        break;
+      case 'signTemplates':
+        out.signTemplates = validateSignTemplates(value);
         break;
       case 'lastDriverPath':
         if (value !== null && !(typeof value === 'string' && isAbsoluteDriverPath(value))) {

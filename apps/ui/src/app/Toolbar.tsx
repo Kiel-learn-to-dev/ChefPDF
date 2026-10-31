@@ -229,6 +229,9 @@ const EXPORT_ITEMS: Item[] = [{ kind: 'cmd', id: 'tools.scan', label: true }];
 
 const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.certs', label: true },
+  { kind: 'cmd', id: 'sign.verify', label: true },
+  { kind: 'cmd', id: 'sign.templates', label: true },
+  { kind: 'cmd', id: 'sign.library', label: true },
   { kind: 'sep', id: 's1' },
   { kind: 'cmd', id: 'soon.placeField', label: true },
   { kind: 'cmd', id: 'soon.signDoc', label: true },

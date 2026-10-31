@@ -19,7 +19,7 @@ export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>([
   'export',
 ]);
 
-export type SidebarTab = 'thumbnails' | 'outline';
+export type SidebarTab = 'thumbnails' | 'outline' | 'signatures';
 export type ViewerTool = 'select' | 'snapshot';
 export type DialogId =
   | 'merge'
@@ -33,6 +33,9 @@ export type DialogId =
   | 'scan'
   | 'certs'
   | 'tokenWizard'
+  | 'trust'
+  | 'signTemplates'
+  | 'sigLibrary'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

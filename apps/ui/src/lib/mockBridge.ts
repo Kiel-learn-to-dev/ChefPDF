@@ -12,6 +12,7 @@ import type {
   ChefBridge,
   ChefEvent,
   DocumentInfo,
+  LibraryItem,
   OpDescriptor,
   OpResult,
   RpcError,
@@ -39,6 +40,7 @@ const defaultSettings: Settings = {
   scanPresets: [],
   knownPfxFiles: [],
   lastDriverPath: null,
+  signTemplates: [],
 };
 
 interface MockSession {
@@ -65,7 +67,7 @@ class MockRpcError extends Error {
   }
 }
 
-const OP_IDS: OpId[] = [
+const OP_IDS: string[] = [
   'page.rotate',
   'page.delete',
   'page.duplicate',
@@ -83,6 +85,15 @@ const OP_IDS: OpId[] = [
   'sign.driverScan',
   'sign.listTokens',
   'sign.diagnoseToken',
+  'sign.verify',
+  'sign.extractRevision',
+  'sign.trustList',
+  'sign.trustAdd',
+  'sign.trustRemove',
+  'image.removeBackground',
+  'image.cleanup',
+  'image.fromStrokes',
+  'image.textSignature',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -121,6 +132,7 @@ const MOCK_SCAN_PRESETS = [
 
 /** Session ops that do not rewrite the document (allowed on signed documents). */
 const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
+  'sign.verify',
   'page.extract',
   'file.split',
   'scan.preview',
@@ -308,6 +320,76 @@ const MOCK_DIAG_STEPS = [
     fixEn: null,
   },
 ];
+
+const MOCK_WORK_DIR = '/mock/cache/sigwork';
+
+const MOCK_VERIFY_ITEM = {
+  fieldName: 'Signature1',
+  status: 'valid-with-warnings',
+  reasons: ['CERT_UNTRUSTED'],
+  summaryVi: 'Chữ ký hợp lệ nhưng có cảnh báo. Chứng thư không thuộc kho tin cậy.',
+  summaryEn: 'The signature is valid with warnings. The certificate is not trusted.',
+  revisionIndex: 1,
+  subFilter: 'adbe.pkcs7.detached',
+  level: 'B-B',
+  digestAlgorithm: 'sha256',
+  signerName: 'Nguyễn Văn An',
+  signerCert: MOCK_CERT_INFO,
+  signingTime: '2026-10-31T01:02:03+00:00',
+  timestampTime: null,
+  timestampOk: null,
+  coversWholeDocument: true,
+  modificationLevel: 'none',
+  docMdp: null,
+  chain: [
+    {
+      subject: 'CN=Nguyễn Văn An, O=Công ty Mẫu',
+      issuer: 'CN=Viettel-CA',
+      notBefore: '2026-01-15T03:00:00+00:00',
+      notAfter: '2027-01-15T03:00:00+00:00',
+      trusted: false,
+    },
+  ],
+  revocation: [],
+};
+
+const MOCK_TRUST_BASE = {
+  subject: 'CN=Mock Root',
+  issuer: 'CN=Mock Root',
+  notAfter: '2040-01-01T00:00:00+00:00',
+  fingerprintSha256: '0',
+  group: 'vn-public-ca' as const,
+  source: 'user' as const,
+};
+
+let mockTrust: {
+  subject: string;
+  issuer: string;
+  notAfter: string;
+  fingerprintSha256: string;
+  group: 'vn-public-ca' | 'vn-gov-ca' | 'user';
+  source: 'bundled' | 'user';
+}[] = [
+  {
+    subject: 'CN=Root CA quốc gia (NEAC) - mẫu',
+    issuer: 'CN=Root CA quốc gia (NEAC) - mẫu',
+    notAfter: '2040-01-01T00:00:00+00:00',
+    fingerprintSha256: 'A1'.padEnd(64, '0'),
+    group: 'vn-public-ca',
+    source: 'bundled',
+  },
+  {
+    subject: 'CN=Root CA chuyên dùng Chính phủ - mẫu',
+    issuer: 'CN=Root CA chuyên dùng Chính phủ - mẫu',
+    notAfter: '2040-01-01T00:00:00+00:00',
+    fingerprintSha256: 'B2'.padEnd(64, '0'),
+    group: 'vn-gov-ca',
+    source: 'bundled',
+  },
+];
+
+/** In-memory signature library of the mock (the real one is encrypted on disk). */
+const mockLibrary = new Map<string, { item: LibraryItem; bytes: Uint8Array }>();
 
 export function createMockBridge(): ChefBridge {
   const secretStore = new Map<string, string>();
@@ -686,6 +768,15 @@ export function createMockBridge(): ChefBridge {
         r = result([], outputs, warnings);
         break;
       }
+      case 'sign.verify': {
+        // Mock: documents opened with ?signed report one valid signature (the core checks the real one).
+        modified = false;
+        r = {
+          ...result([]),
+          data: { signatures: s.signed ? [MOCK_VERIFY_ITEM] : [] },
+        };
+        break;
+      }
       default:
         throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
     }
@@ -695,6 +786,7 @@ export function createMockBridge(): ChefBridge {
 
   async function runStandalone(opId: OpId, params: unknown): Promise<OpResult> {
     if (opId.startsWith('sign.')) return runSignOp(opId, params);
+    if (opId.startsWith('image.')) return runImageOp(opId, params);
     if (opId !== 'file.merge')
       throw new MockRpcError('INVALID_PARAMS', 'sessionId is required', -32602);
     const p = params as OpParams['file.merge'];
@@ -714,7 +806,7 @@ export function createMockBridge(): ChefBridge {
   }
 
   /** Mock of the certificate and token ops: same data shapes as the core, no real token. */
-  async function runSignOp(opId: OpId, params: unknown): Promise<OpResult> {
+  async function runSignOp(opId: string, params: unknown): Promise<OpResult> {
     const done = (data: unknown, warnings: string[] = []): OpResult => ({
       state: null as unknown as SessionState,
       changedPages: [],
@@ -749,7 +841,49 @@ export function createMockBridge(): ChefBridge {
     if (opId === 'sign.diagnoseToken') {
       return done({ overall: 'warn', steps: MOCK_DIAG_STEPS });
     }
+    if (opId === 'sign.extractRevision') {
+      const p = params as OpParams['sign.extractRevision'];
+      putFile(p.outputPath, getFile(p.path));
+      return { ...done(null), outputs: [p.outputPath] };
+    }
+    if (opId === 'sign.trustList') return done({ entries: mockTrust });
+    if (opId === 'sign.trustAdd') {
+      const p = params as { path: string; group: string };
+      mockTrust.push({
+        ...MOCK_TRUST_BASE,
+        subject: `CN=${basename(p.path)}`,
+        fingerprintSha256: `MOCK${mockTrust.length}`.padEnd(64, '0'),
+        group: p.group as 'user',
+        source: 'user',
+      });
+      return done(null);
+    }
+    if (opId === 'sign.trustRemove') {
+      const p = params as { fingerprintSha256: string };
+      const entry = mockTrust.find((e) => e.fingerprintSha256 === p.fingerprintSha256);
+      if (entry?.source === 'bundled') {
+        throw new MockRpcError('INVALID_PARAMS', 'bundled roots cannot be removed', -32602);
+      }
+      mockTrust = mockTrust.filter((e) => e.fingerprintSha256 !== p.fingerprintSha256);
+      return done(null);
+    }
     throw new MockRpcError('OP_NOT_FOUND', opId, -32601);
+  }
+
+  /** Mock of the image ops (I19-I21): each writes a placeholder PNG to the output path. */
+  async function runImageOp(opId: OpId, params: unknown): Promise<OpResult> {
+    const p = params as { inputPath?: string; outputPath: string };
+    if (p.inputPath && !files.has(p.inputPath)) {
+      throw new MockRpcError('FILE_NOT_FOUND', `File not found: ${p.inputPath}`);
+    }
+    await sleep(120);
+    putFile(p.outputPath, await placeholderPng(opId.replace('image.', ''), 360, 150));
+    return {
+      state: null as unknown as SessionState,
+      changedPages: [],
+      outputs: [p.outputPath],
+      warnings: [],
+    };
   }
 
   function startJob(opId: OpId, params: unknown, sessionId?: string): { jobId: string } {
@@ -928,6 +1062,12 @@ export function createMockBridge(): ChefBridge {
       openDialog: (options) =>
         options?.directory ? Promise.resolve(['/mock/out']) : pickFiles(options),
       pathForFile: () => '',
+      async readText(absPath) {
+        return new TextDecoder().decode(getFile(absPath));
+      },
+      async writeText(absPath, text) {
+        putFile(absPath, new TextEncoder().encode(text));
+      },
       async saveDialog(options) {
         const name = basename(options?.defaultPath ?? 'document.pdf') || 'document.pdf';
         return uniquePath('/mock/out', name);
@@ -999,6 +1139,56 @@ export function createMockBridge(): ChefBridge {
       },
       async delete(key) {
         secretStore.delete(key);
+      },
+    },
+    library: {
+      async status() {
+        return { encrypted: !new URLSearchParams(location.search).has('nosafe') };
+      },
+      async list() {
+        return [...mockLibrary.values()].map((m) => m.item);
+      },
+      async add(input) {
+        if (mockLibrary.size >= 200) throw new MockRpcError('LIBRARY_FULL', 'full');
+        const bytes = input.bytes ?? getFile(input.path!);
+        const item = {
+          id: `m${(++counter).toString(16).padStart(31, '0')}`,
+          name: input.name.trim() || 'Chữ ký',
+          kind: input.kind,
+          createdAt: new Date().toISOString(),
+        };
+        mockLibrary.set(item.id, { item, bytes: new Uint8Array(bytes) });
+        return item;
+      },
+      async get(id) {
+        const m = mockLibrary.get(id);
+        if (!m) throw new MockRpcError('LIBRARY_NOT_FOUND', 'library item not found');
+        return m.bytes;
+      },
+      async rename(id, name) {
+        const m = mockLibrary.get(id);
+        if (!m) throw new MockRpcError('LIBRARY_NOT_FOUND', 'library item not found');
+        m.item = { ...m.item, name: name.trim() };
+        return m.item;
+      },
+      async remove(id) {
+        mockLibrary.delete(id);
+      },
+      async materialize(id) {
+        const m = mockLibrary.get(id);
+        if (!m) throw new MockRpcError('LIBRARY_NOT_FOUND', 'library item not found');
+        const path = `${MOCK_WORK_DIR}/lib-${id}-${++counter}.png`;
+        putFile(path, m.bytes);
+        return path;
+      },
+      async release(absPath) {
+        files.delete(absPath);
+        const old = urls.get(absPath);
+        if (old) URL.revokeObjectURL(old);
+        urls.delete(absPath);
+      },
+      async workDir() {
+        return MOCK_WORK_DIR;
       },
     },
     clipboard: {

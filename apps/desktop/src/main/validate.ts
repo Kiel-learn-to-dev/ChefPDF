@@ -165,3 +165,43 @@ export function pngBytesFromDataUrl(dataUrl: string): Buffer {
   }
   return bytes;
 }
+
+/** Library item ids: 16 random bytes in hex (see library.ts). */
+export function validateLibraryId(v: unknown): string {
+  if (typeof v !== 'string' || !/^[a-f0-9]{32}$/.test(v)) {
+    throw new IpcValidationError('library id is invalid');
+  }
+  return v;
+}
+
+/** Library kind, name and the source of the image (exactly one of path or bytes). */
+export function validateLibraryAddInput(v: unknown): {
+  kind: unknown;
+  name: unknown;
+  path?: string;
+  bytes?: Uint8Array;
+} {
+  if (!isPlainObject(v)) throw new IpcValidationError('library input must be an object');
+  const hasPath = v.path !== undefined;
+  const hasBytes = v.bytes !== undefined;
+  if (hasPath === hasBytes) throw new IpcValidationError('give exactly one of path or bytes');
+  if (hasPath) return { kind: v.kind, name: v.name, path: validateAbsPath(v.path) };
+  if (!(v.bytes instanceof Uint8Array)) throw new IpcValidationError('bytes must be binary data');
+  return { kind: v.kind, name: v.name, bytes: v.bytes };
+}
+
+/** A small JSON file path (signature template import / export). */
+export function validateJsonPath(p: unknown): string {
+  const abs = validateAbsPath(p);
+  if (!abs.toLowerCase().endsWith('.json')) throw new IpcValidationError('only .json files');
+  return abs;
+}
+
+export const MAX_TEXT_FILE_BYTES = 512 * 1024;
+
+export function validateJsonText(v: unknown): string {
+  if (typeof v !== 'string' || v.length > MAX_TEXT_FILE_BYTES) {
+    throw new IpcValidationError('text must be a string of at most 512 KB');
+  }
+  return v;
+}

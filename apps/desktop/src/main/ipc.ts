@@ -13,9 +13,12 @@ import {
   type OpenDialogOptions,
   type SaveDialogOptions,
 } from 'electron';
-import { statSync } from 'node:fs';
+import fs, { statSync } from 'node:fs';
+import type { LibraryKind } from '@chef/contracts';
 import { IpcChannels, type RpcEnvelope } from '../shared/ipc';
 import type { PathAllowlist } from './allowlist';
+import { atomicWriteFile } from './fsutil';
+import { type ChefLibrary, MAX_LIBRARY_IMAGE_BYTES } from './library';
 import type { Labels } from './labels';
 import type { OpenFilesController } from './openFiles';
 import { toRpcError } from './rpc';
@@ -24,9 +27,14 @@ import type { SettingsStore } from './settings';
 import type { SidecarManager } from './sidecar';
 import {
   IpcValidationError,
+  MAX_TEXT_FILE_BYTES,
   pngBytesFromDataUrl,
   resolveDefaultSavePath,
   validateAbsPath,
+  validateJsonPath,
+  validateJsonText,
+  validateLibraryAddInput,
+  validateLibraryId,
   validateOpenDialogOptions,
   validatePngDataUrl,
   validateRpcCall,
@@ -43,6 +51,7 @@ export interface IpcDeps {
   secrets: SecretStore;
   allowlist: PathAllowlist;
   openFiles: OpenFilesController;
+  library: ChefLibrary;
   trustedOrigins: Set<string>;
   labels(): Labels;
   log(message: string): void;
@@ -155,6 +164,52 @@ export function registerIpc(d: IpcDeps): void {
   });
   handle(IpcChannels.secretsGet, (_event, key) => d.secrets.get(validateSecretKey(key)));
   handle(IpcChannels.secretsDelete, (_event, key) => d.secrets.delete(validateSecretKey(key)));
+
+  // Small JSON files (signature templates). Reading needs a path the user picked in a dialog.
+  handle(IpcChannels.filesReadText, async (_event, p) => {
+    const abs = validateJsonPath(p);
+    if (!d.allowlist.isAllowed(abs))
+      throw new IpcValidationError('file was not picked by the user');
+    const st = await fs.promises.stat(abs);
+    if (!st.isFile() || st.size > MAX_TEXT_FILE_BYTES) {
+      throw new IpcValidationError('file must be a regular file of at most 512 KB');
+    }
+    return fs.promises.readFile(abs, 'utf8');
+  });
+  handle(IpcChannels.filesWriteText, async (_event, p, text) => {
+    await atomicWriteFile(validateJsonPath(p), validateJsonText(text));
+  });
+
+  // Signature and stamp image library (I19-I23). Paths given by the renderer must be granted.
+  handle(IpcChannels.libraryStatus, () => d.library.status());
+  handle(IpcChannels.libraryList, () => d.library.list());
+  handle(IpcChannels.libraryAdd, async (_event, input) => {
+    const v = validateLibraryAddInput(input);
+    let bytes: Uint8Array;
+    if (v.path !== undefined) {
+      if (!d.allowlist.isAllowed(v.path)) {
+        throw new IpcValidationError('file was not picked by the user');
+      }
+      const st = await fs.promises.stat(v.path);
+      if (!st.isFile() || st.size > MAX_LIBRARY_IMAGE_BYTES) {
+        throw new IpcValidationError('image must be a regular file of at most 8 MB');
+      }
+      bytes = await fs.promises.readFile(v.path);
+    } else {
+      bytes = v.bytes!;
+    }
+    return d.library.add({ kind: v.kind as LibraryKind, name: v.name as string, bytes });
+  });
+  handle(IpcChannels.libraryGet, async (_event, id) => d.library.get(validateLibraryId(id)));
+  handle(IpcChannels.libraryRename, (_event, id, name) =>
+    d.library.rename(validateLibraryId(id), name as string),
+  );
+  handle(IpcChannels.libraryRemove, (_event, id) => d.library.remove(validateLibraryId(id)));
+  handle(IpcChannels.libraryMaterialize, (_event, id) =>
+    d.library.materialize(validateLibraryId(id)),
+  );
+  handle(IpcChannels.libraryRelease, (_event, p) => d.library.release(validateAbsPath(p)));
+  handle(IpcChannels.libraryWorkDir, () => d.library.workDirPath);
 
   handle(IpcChannels.appInitialFiles, () => d.openFiles.initialFiles);
 
