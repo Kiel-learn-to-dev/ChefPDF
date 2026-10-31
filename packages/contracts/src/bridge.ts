@@ -87,6 +87,18 @@ export interface Settings {
   signTemplates: SignTemplateEntry[];
   /** Timestamp server URLs (I28), tried in order. Max 5, http(s) only. Missing in older files: []. */
   tsaUrls: string[];
+  /** User watermark presets (F1). Missing in older files: []. At most 50. */
+  overlayPresets: OverlayUserPreset[];
+}
+
+/**
+ * A named watermark look (F1) saved by the user. `params` is a plain object with the look only
+ * (font size, bold, colour, opacity, rotation): never a file path or a page list.
+ */
+export interface OverlayUserPreset {
+  name: string;
+  kind: 'watermark';
+  params: Record<string, unknown>;
 }
 
 export type ChefEvent =

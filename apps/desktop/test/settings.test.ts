@@ -22,6 +22,9 @@ import {
   validateScanPresets,
   validateSignTemplates,
   SettingsValidationError,
+  MAX_OVERLAY_PRESETS,
+  sanitizeOverlayPresets,
+  validateOverlayPresets,
 } from '../src/main/settings';
 
 function tmpDir(): string {
@@ -43,6 +46,7 @@ describe('SettingsStore', () => {
       lastDriverPath: null,
       signTemplates: [],
       tsaUrls: [],
+      overlayPresets: [],
     });
   });
 
@@ -405,5 +409,62 @@ describe('timestamp servers (I28, tsaUrls)', () => {
     await store.set({ tsaUrls: ['https://tsa.example.vn/tsa'] });
     const again = new SettingsStore(dir);
     expect((await again.load()).tsaUrls).toEqual(['https://tsa.example.vn/tsa']);
+  });
+});
+
+describe('overlay (watermark) presets (F1, overlayPresets)', () => {
+  const look = { fontSize: 60, bold: true, color: '#808080', opacity: 0.25, rotation: 45 };
+
+  it('reads older files without overlayPresets as an empty list', () => {
+    expect(sanitizeSettings({ version: 1 }).overlayPresets).toEqual([]);
+  });
+
+  it('drops malformed entries, paths and case-insensitive duplicates when reading', () => {
+    const out = sanitizeOverlayPresets([
+      { name: ' Nội bộ ', kind: 'watermark', params: look },
+      { name: 'nội BỘ', kind: 'watermark', params: look },
+      { name: 'Sai loại', kind: 'stamp', params: look },
+      { name: '', kind: 'watermark', params: look },
+      { name: 'Quá dài', kind: 'watermark', params: { text: 'x'.repeat(3000) } },
+      'không phải đối tượng',
+    ]);
+    expect(out).toEqual([{ name: 'Nội bộ', kind: 'watermark', params: look }]);
+  });
+
+  it('caps the list when reading', () => {
+    const many = Array.from({ length: MAX_OVERLAY_PRESETS + 5 }, (_, i) => ({
+      name: `p${i}`,
+      kind: 'watermark',
+      params: look,
+    }));
+    expect(sanitizeOverlayPresets(many)).toHaveLength(MAX_OVERLAY_PRESETS);
+  });
+
+  it('validates a patch strictly: duplicates and bad kinds throw', () => {
+    expect(() =>
+      validatePatch({ overlayPresets: [{ name: 'A', kind: 'watermark', params: look }] }),
+    ).not.toThrow();
+    expect(() =>
+      validatePatch({
+        overlayPresets: [
+          { name: 'A', kind: 'watermark', params: look },
+          { name: 'a', kind: 'watermark', params: look },
+        ],
+      }),
+    ).toThrow(SettingsValidationError);
+    expect(() =>
+      validatePatch({ overlayPresets: [{ name: 'A', kind: 'image', params: look }] }),
+    ).toThrow(SettingsValidationError);
+    expect(() => validateOverlayPresets('nope')).toThrow(SettingsValidationError);
+  });
+
+  it('persists presets across a reload', async () => {
+    const dir = tmpDir();
+    const store = new SettingsStore(dir);
+    await store.load();
+    await store.set({ overlayPresets: [{ name: 'Đã duyệt', kind: 'watermark', params: look }] });
+    expect((await new SettingsStore(dir).load()).overlayPresets).toEqual([
+      { name: 'Đã duyệt', kind: 'watermark', params: look },
+    ]);
   });
 });

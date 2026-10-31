@@ -227,6 +227,19 @@ const PAGES_OVERFLOW = ['pages.selectAll', 'file.saveAs', 'file.print', 'view.pa
 
 const EXPORT_ITEMS: Item[] = [{ kind: 'cmd', id: 'tools.scan', label: true }];
 
+/** Chỉnh sửa: eight overlay tools in the bar, Bates in the overflow menu (D1, D2, F1-F12). */
+const EDIT_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'edit.addText', label: true },
+  { kind: 'cmd', id: 'edit.addImage', label: true },
+  { kind: 'cmd', id: 'edit.watermark', label: true },
+  { kind: 'cmd', id: 'edit.headerFooter', label: true },
+  { kind: 'cmd', id: 'edit.pageNumbers', label: true },
+  { kind: 'cmd', id: 'edit.letterhead', label: true },
+  { kind: 'cmd', id: 'edit.qrBarcode', label: true },
+  { kind: 'cmd', id: 'edit.overlays', label: true },
+];
+const EDIT_OVERFLOW = ['tools.bates'];
+
 const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.certs', label: true },
   { kind: 'cmd', id: 'sign.verify', label: true },
@@ -258,12 +271,21 @@ export function Toolbar() {
       ? VIEW_ITEMS
       : tab === 'pages'
         ? PAGES_ITEMS
-        : tab === 'export'
-          ? EXPORT_ITEMS
-          : tab === 'sign'
-            ? SIGN_ITEMS
-            : [];
-  const overflow = tab === 'view' ? VIEW_OVERFLOW : tab === 'pages' ? PAGES_OVERFLOW : [];
+        : tab === 'edit'
+          ? EDIT_ITEMS
+          : tab === 'export'
+            ? EXPORT_ITEMS
+            : tab === 'sign'
+              ? SIGN_ITEMS
+              : [];
+  const overflow =
+    tab === 'view'
+      ? VIEW_OVERFLOW
+      : tab === 'pages'
+        ? PAGES_OVERFLOW
+        : tab === 'edit'
+          ? EDIT_OVERFLOW
+          : [];
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
     'view.find': findOpen,

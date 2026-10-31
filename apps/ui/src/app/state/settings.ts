@@ -14,6 +14,7 @@ export const fallbackSettings: Settings = {
   lastDriverPath: null,
   signTemplates: [],
   tsaUrls: [],
+  overlayPresets: [],
 };
 
 interface SettingsState {

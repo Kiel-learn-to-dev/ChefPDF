@@ -15,6 +15,7 @@ export type FunctionTab = (typeof FUNCTION_TABS)[number];
 export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>([
   'view',
   'pages',
+  'edit',
   'sign',
   'export',
 ]);
@@ -38,6 +39,15 @@ export type DialogId =
   | 'sigLibrary'
   | 'signDoc'
   | 'batchSign'
+  | 'overlayText'
+  | 'overlayImage'
+  | 'overlayWatermark'
+  | 'overlayHeaderFooter'
+  | 'overlayPageNumbers'
+  | 'overlayCode'
+  | 'overlayLetterhead'
+  | 'overlayBates'
+  | 'overlayManager'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import {
   Clock,
   Combine,
+  Hash,
   Layers,
   FileText,
   FolderOpen,
@@ -92,6 +93,14 @@ export function StartScreen() {
       icon: <Layers size={22} />,
       tone: 'rose',
       onClick: () => useUi.getState().openDialog('batchSign'),
+    },
+    {
+      id: 'bates',
+      title: t('start.batesTitle'),
+      text: t('start.batesText'),
+      icon: <Hash size={22} />,
+      tone: 'violet',
+      onClick: () => useUi.getState().openDialog('overlayBates'),
     },
     {
       id: 'stamp',

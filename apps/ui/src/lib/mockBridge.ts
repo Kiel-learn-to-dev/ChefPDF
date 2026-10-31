@@ -27,6 +27,7 @@ import type { OpId, OpParams } from './ops';
 import { basename, join, stripExt } from './path';
 import { parsePageRanges } from './pageRange';
 import { renderName } from '../features/split/nameTemplate';
+import { applyMockOverlay, mockBates, type MockOverlay } from './mockOverlay';
 
 const SETTINGS_KEY = 'chef-mock-settings';
 
@@ -42,6 +43,7 @@ const defaultSettings: Settings = {
   lastDriverPath: null,
   signTemplates: [],
   tsaUrls: [],
+  overlayPresets: [],
 };
 
 interface MockSession {
@@ -53,6 +55,8 @@ interface MockSession {
   password?: string;
   /** Simulated with ?signed in the URL (core: PDFs that already carry a signature). */
   signed?: boolean;
+  /** Overlays added by Chef PDF (overlay.listOverlays / overlay.remove). */
+  overlays?: MockOverlay[];
   /** Signature fields of the mock document (sign.addField, sign.pades). */
   fields?: { fieldName: string; page: number; rect: number[] | null; signed: boolean }[];
 }
@@ -104,6 +108,17 @@ const OP_IDS: string[] = [
   'image.cleanup',
   'image.fromStrokes',
   'image.textSignature',
+  'overlay.addText',
+  'overlay.addImage',
+  'overlay.watermark',
+  'overlay.headerFooter',
+  'overlay.pageNumbers',
+  'overlay.bates',
+  'overlay.qrCode',
+  'overlay.barcode',
+  'overlay.letterhead',
+  'overlay.listOverlays',
+  'overlay.remove',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -154,6 +169,7 @@ const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'file.split',
   'scan.preview',
   'scan.fitSize',
+  'overlay.listOverlays',
 ]);
 
 /** A small grey PNG with a label, standing in for rendered page images in the mock. */
@@ -845,6 +861,59 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
+      case 'overlay.addText':
+      case 'overlay.addImage':
+      case 'overlay.watermark':
+      case 'overlay.headerFooter':
+      case 'overlay.pageNumbers':
+      case 'overlay.qrCode':
+      case 'overlay.barcode':
+      case 'overlay.letterhead': {
+        const res = await applyMockOverlay(
+          opId,
+          params,
+          doc,
+          (path) => getFile(path),
+          () => `ov${++counter}`,
+        );
+        if (res.overlay) s.overlays = [...(s.overlays ?? []), res.overlay];
+        r = result(res.changed);
+        break;
+      }
+      case 'overlay.listOverlays': {
+        modified = false;
+        r = {
+          ...result([]),
+          data: {
+            overlays: (s.overlays ?? []).map((o) => ({
+              id: o.id,
+              kind: o.kind,
+              group: o.group,
+              pages: o.pages,
+              label: o.label,
+            })),
+          },
+        };
+        break;
+      }
+      case 'overlay.remove': {
+        // Mock: the drawn content stays in the file; the real core rewrites it.
+        const p = params as OpParams['overlay.remove'];
+        const before = s.overlays ?? [];
+        const removed = before.filter(
+          (o) =>
+            (!p.ids || p.ids.includes(o.id)) &&
+            (!p.group || o.group === p.group) &&
+            (!p.kind || o.kind === p.kind),
+        );
+        s.overlays = before.filter((o) => !removed.includes(o));
+        modified = false;
+        r = {
+          ...result([...new Set(removed.flatMap((o) => o.pages))]),
+          data: { removedIds: removed.map((o) => o.id) },
+        };
+        break;
+      }
       case 'sign.placeFromAnchor': {
         modified = false;
         const p = params as {
@@ -875,6 +944,7 @@ export function createMockBridge(): ChefBridge {
   async function runStandalone(opId: OpId, params: unknown): Promise<OpResult> {
     if (opId.startsWith('sign.')) return runSignOp(opId, params);
     if (opId.startsWith('image.')) return runImageOp(opId, params);
+    if (opId === 'overlay.bates') return runBatesOp(params as OpParams['overlay.bates']);
     if (opId !== 'file.merge')
       throw new MockRpcError('INVALID_PARAMS', 'sessionId is required', -32602);
     const p = params as OpParams['file.merge'];
@@ -1002,6 +1072,22 @@ export function createMockBridge(): ChefBridge {
       return done(null);
     }
     throw new MockRpcError('OP_NOT_FOUND', opId, -32601);
+  }
+
+  /** Mock of overlay.bates (standalone, many files). */
+  async function runBatesOp(p: OpParams['overlay.bates']): Promise<OpResult> {
+    const res = await mockBates(
+      p,
+      (path) => getFile(path),
+      (path, bytes) => putFile(path, bytes),
+    );
+    return {
+      state: null as unknown as SessionState,
+      changedPages: [],
+      outputs: res.outputs,
+      warnings: [],
+      data: { files: res.files, nextNumber: res.next },
+    };
   }
 
   /** Mock of the image ops (I19-I21): each writes a placeholder PNG to the output path. */

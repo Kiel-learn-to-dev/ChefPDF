@@ -17,6 +17,14 @@ import { TemplateStudioDialog } from '../features/signTemplate/TemplateStudioDia
 import { LibraryDialog } from '../features/sigLibrary/LibraryDialog';
 import { SignDocDialog } from '../features/sign/SignDocDialog';
 import { BatchSignDialog } from '../features/sign/BatchSignDialog';
+import { AddTextDialog, AddImageDialog } from '../features/overlay/AddObjectDialog';
+import { WatermarkDialog } from '../features/overlay/WatermarkDialog';
+import { HeaderFooterDialog } from '../features/overlay/HeaderFooterDialog';
+import { PageNumbersDialog } from '../features/overlay/PageNumbersDialog';
+import { QrBarcodeDialog } from '../features/overlay/QrBarcodeDialog';
+import { LetterheadDialog } from '../features/overlay/LetterheadDialog';
+import { BatesDialog } from '../features/overlay/BatesDialog';
+import { OverlayManagerDialog } from '../features/overlay/OverlayManagerDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -92,6 +100,24 @@ export function DialogHost() {
       return <SignDocDialog />;
     case 'batchSign':
       return <BatchSignDialog />;
+    case 'overlayText':
+      return <AddTextDialog />;
+    case 'overlayImage':
+      return <AddImageDialog />;
+    case 'overlayWatermark':
+      return <WatermarkDialog />;
+    case 'overlayHeaderFooter':
+      return <HeaderFooterDialog />;
+    case 'overlayPageNumbers':
+      return <PageNumbersDialog />;
+    case 'overlayCode':
+      return <QrBarcodeDialog />;
+    case 'overlayLetterhead':
+      return <LetterheadDialog />;
+    case 'overlayBates':
+      return <BatesDialog />;
+    case 'overlayManager':
+      return <OverlayManagerDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

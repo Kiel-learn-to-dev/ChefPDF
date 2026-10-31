@@ -7,6 +7,7 @@ import path from 'node:path';
 import type {
   KnownPfxFile,
   LanguageSetting,
+  OverlayUserPreset,
   RecentFile,
   ScanUserPreset,
   Settings,
@@ -24,6 +25,10 @@ export const MAX_SIGN_TEMPLATES = 50;
 export const MAX_SIGN_TEMPLATE_BYTES = 16 * 1024;
 export const MAX_SIGN_TEMPLATE_NAME = 80;
 export const MAX_TSA_URLS = 5;
+export const MAX_OVERLAY_PRESETS = 50;
+export const MAX_OVERLAY_PRESET_NAME = 60;
+const MAX_OVERLAY_PRESET_PARAMS_BYTES = 2048;
+const OVERLAY_PRESET_KINDS = ['watermark'] as const;
 const MAX_TSA_URL_LENGTH = 2048;
 const MAX_SCAN_PRESET_PARAMS_BYTES = 4096;
 const MAX_PREFS_BYTES = 1024 * 1024;
@@ -43,6 +48,7 @@ export function defaultSettings(): Settings {
     lastDriverPath: null,
     signTemplates: [],
     tsaUrls: [],
+    overlayPresets: [],
   };
 }
 
@@ -234,6 +240,60 @@ export function sanitizeScanPresets(raw: unknown): ScanUserPreset[] {
   return out;
 }
 
+/** Trimmed name + plain look params of an overlay (watermark) preset, or null when malformed. */
+function normalizeOverlayPreset(v: unknown): OverlayUserPreset | null {
+  if (!isPlainObject(v) || typeof v.name !== 'string' || !isPlainObject(v.params)) return null;
+  if (!(OVERLAY_PRESET_KINDS as readonly unknown[]).includes(v.kind)) return null;
+  const name = v.name.trim();
+  if (name.length === 0 || name.length > MAX_OVERLAY_PRESET_NAME) return null;
+  let json: string;
+  try {
+    json = JSON.stringify(v.params);
+  } catch {
+    return null;
+  }
+  if (json.length > MAX_OVERLAY_PRESET_PARAMS_BYTES) return null;
+  return {
+    name,
+    kind: 'watermark',
+    params: JSON.parse(json) as Record<string, unknown>,
+  };
+}
+
+/** Keeps valid, uniquely named overlay presets from untrusted disk data (invalid ones dropped). */
+export function sanitizeOverlayPresets(raw: unknown): OverlayUserPreset[] {
+  if (!Array.isArray(raw)) return [];
+  const out: OverlayUserPreset[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const preset = normalizeOverlayPreset(item);
+    if (!preset || seen.has(presetKey(preset.name))) continue;
+    seen.add(presetKey(preset.name));
+    out.push(preset);
+    if (out.length >= MAX_OVERLAY_PRESETS) break;
+  }
+  return out;
+}
+
+/** Validates a renderer-provided list of overlay presets strictly (throws on the first bad entry). */
+export function validateOverlayPresets(value: unknown): OverlayUserPreset[] {
+  if (!Array.isArray(value) || value.length > MAX_OVERLAY_PRESETS) {
+    throw new SettingsValidationError(
+      `overlayPresets must be an array of at most ${MAX_OVERLAY_PRESETS}`,
+    );
+  }
+  const seen = new Set<string>();
+  return value.map((item) => {
+    const preset = normalizeOverlayPreset(item);
+    if (!preset) throw new SettingsValidationError('Invalid overlay preset');
+    if (seen.has(presetKey(preset.name))) {
+      throw new SettingsValidationError(`Duplicate overlay preset name: ${preset.name}`);
+    }
+    seen.add(presetKey(preset.name));
+    return preset;
+  });
+}
+
 /** Validates a renderer-provided list of scan presets strictly (throws on the first bad entry). */
 export function validateScanPresets(value: unknown): ScanUserPreset[] {
   if (!Array.isArray(value) || value.length > MAX_SCAN_PRESETS) {
@@ -344,6 +404,7 @@ export function sanitizeSettings(
   s.knownPfxFiles = sanitizeKnownPfx(raw.knownPfxFiles, platform);
   s.signTemplates = sanitizeSignTemplates(raw.signTemplates);
   s.tsaUrls = sanitizeTsaUrls(raw.tsaUrls);
+  s.overlayPresets = sanitizeOverlayPresets(raw.overlayPresets);
   if (typeof raw.lastDriverPath === 'string' && isAbsoluteDriverPath(raw.lastDriverPath)) {
     s.lastDriverPath = raw.lastDriverPath;
   }
@@ -398,6 +459,9 @@ export function validatePatch(
         break;
       case 'tsaUrls':
         out.tsaUrls = validateTsaUrls(value);
+        break;
+      case 'overlayPresets':
+        out.overlayPresets = validateOverlayPresets(value);
         break;
       case 'lastDriverPath':
         if (value !== null && !(typeof value === 'string' && isAbsoluteDriverPath(value))) {

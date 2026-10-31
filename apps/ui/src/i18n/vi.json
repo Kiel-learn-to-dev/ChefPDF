@@ -133,7 +133,9 @@
     "paletteHint": "Tìm mọi lệnh, gõ không dấu cũng được:",
     "scanTitle": "Chuyển thành bản scan",
     "batchSignTitle": "Ký hàng loạt",
-    "batchSignText": "Ký nhiều file PDF cùng lúc bằng một chứng thư."
+    "batchSignText": "Ký nhiều file PDF cùng lúc bằng một chứng thư.",
+    "batesTitle": "Đánh số Bates",
+    "batesText": "Đánh số liên tục nhiều file PDF (HS-000001…)"
   },
   "palette": {
     "title": "Bảng lệnh",
@@ -1339,5 +1341,389 @@
     "verifyAfter": "Kiểm tra từng file sau khi ký",
     "job": "Ký hàng loạt",
     "output": "Đầu ra"
+  },
+  "overlay": {
+    "applied": "Đã áp dụng.",
+    "apply": "Áp dụng",
+    "signedBlocked": "Tài liệu đã ký số nên không sửa trực tiếp được (sẽ làm hỏng chữ ký). Hãy tạo bản sao để sửa.",
+    "addTextJob": "Thêm chữ: {{name}}",
+    "addImageJob": "Thêm ảnh: {{name}}",
+    "watermarkJob": "Watermark: {{name}}",
+    "headerFooterJob": "Header/Footer: {{name}}",
+    "pageNumbersJob": "Số trang: {{name}}",
+    "qrJob": "Mã QR: {{name}}",
+    "barcodeJob": "Mã vạch: {{name}}",
+    "letterheadJob": "Giấy tiêu đề: {{name}}",
+    "cmd": {
+      "addText": "Thêm chữ",
+      "addImage": "Thêm ảnh",
+      "watermark": "Watermark",
+      "headerFooter": "Header/Footer",
+      "pageNumbers": "Số trang",
+      "letterhead": "Giấy tiêu đề",
+      "qrBarcode": "Mã QR/vạch",
+      "overlays": "Đã thêm vào tài liệu",
+      "bates": "Đánh số Bates"
+    },
+    "anchor": {
+      "label": "Điểm neo",
+      "top-left": "Góc trên trái",
+      "top-center": "Giữa lề trên",
+      "top-right": "Góc trên phải",
+      "center-left": "Giữa, mép trái",
+      "center": "Giữa",
+      "center-right": "Giữa, mép phải",
+      "bottom-left": "Góc dưới trái",
+      "bottom-center": "Giữa lề dưới",
+      "bottom-right": "Góc dưới phải"
+    },
+    "pages": {
+      "label": "Trang áp dụng",
+      "current": "Trang đang xem ({{page}})",
+      "all": "Tất cả ({{count}} trang)",
+      "range": "Khoảng trang…",
+      "odd": "Trang lẻ",
+      "even": "Trang chẵn",
+      "rangeText": "Khoảng trang"
+    },
+    "unit": {
+      "label": "Đơn vị",
+      "mm": "mm",
+      "pt": "pt"
+    },
+    "position": {
+      "label": "Vị trí",
+      "x": "Từ mép trái ({{unit}})",
+      "y": "Từ mép trên ({{unit}})",
+      "place": "Đặt trên trang",
+      "placeHint": "Bấm “Đặt trên trang”, rồi bấm hoặc kéo trên trang để chọn vị trí."
+    },
+    "place": {
+      "barLabel": "Đặt vị trí trên trang",
+      "hintPoint": "Bấm một điểm trên trang để đặt. Esc để hủy.",
+      "hintBox": "Kéo để vẽ khung trên trang. Esc để hủy.",
+      "readout": "Trang {{page}}: x {{x}} mm, y {{y}} mm",
+      "noneYet": "Chưa chọn vị trí",
+      "redo": "Chọn lại",
+      "cancel": "Hủy",
+      "done": "Xong",
+      "title": {
+        "overlayText": "Đặt chữ",
+        "overlayImage": "Đặt ảnh",
+        "overlayCode": "Đặt mã"
+      }
+    },
+    "text": {
+      "title": "Thêm chữ",
+      "description": "Hộp chữ mới trên trang, dùng font Be Vietnam Pro (đủ tiếng Việt).",
+      "content": "Nội dung",
+      "contentHint": "Xuống dòng bằng Enter.",
+      "width": "Chiều rộng hộp",
+      "widthHint": "0 = không ngắt dòng."
+    },
+    "look": {
+      "fontSize": "Cỡ chữ (pt)",
+      "color": "Màu",
+      "bold": "In đậm",
+      "rotation": "Xoay (độ, ngược chiều kim đồng hồ)",
+      "opacity": "Độ mờ (0 đến 1)",
+      "align": "Căn lề",
+      "under": "Đặt dưới nội dung trang",
+      "colorPicker": "Chọn màu {{color}}"
+    },
+    "align": {
+      "left": "Trái",
+      "center": "Giữa",
+      "right": "Phải"
+    },
+    "preview": {
+      "page": "Xem trước: trang {{page}}",
+      "firstPage": "Xem trước: trang {{page}}"
+    },
+    "err": {
+      "text": "Nhập nội dung.",
+      "fontSize": "Cỡ chữ không hợp lệ.",
+      "color": "Màu phải dạng #RRGGBB.",
+      "opacity": "Độ mờ phải từ 0 đến 1.",
+      "position": "Vị trí nằm ngoài giới hạn.",
+      "width": "Chiều rộng không hợp lệ.",
+      "pages": "Khoảng trang chưa đúng.",
+      "path": "Chọn file PNG hoặc JPEG.",
+      "size": "Kích thước không hợp lệ.",
+      "template": "Mẫu có biến không hợp lệ hoặc ngoặc không khớp.",
+      "zone": "Mẫu ở ô {{zone}} có lỗi: ngoặc không khớp hoặc biến không tồn tại.",
+      "startNumber": "Số bắt đầu không hợp lệ.",
+      "labels": "Ghi nhãn trang cần số bắt đầu từ 1 trở lên.",
+      "margins": "Lề phải từ 0 đến 200 mm.",
+      "spacing": "Khoảng cách không hợp lệ.",
+      "rotation": "Góc xoay phải từ -360 đến 360 độ."
+    },
+    "image": {
+      "title": "Thêm ảnh",
+      "description": "Ảnh PNG hoặc JPEG. Kéo khung trên trang, hoặc nhập kích thước.",
+      "file": "Ảnh",
+      "fileHint": "Ảnh PNG hoặc JPEG.",
+      "noFile": "Chưa chọn ảnh",
+      "choose": "Chọn ảnh…",
+      "width": "Rộng ({{unit}})",
+      "height": "Cao ({{unit}})",
+      "sizeHint": "0 = theo tỉ lệ của cạnh còn lại.",
+      "placeholder": "Ảnh"
+    },
+    "wm": {
+      "builtin": "Mẫu có sẵn",
+      "custom": "Tùy chỉnh",
+      "savePreset": "Lưu thành mẫu",
+      "savePresetConfirm": "Lưu mẫu",
+      "presetName": "Tên mẫu",
+      "deletePreset": "Xóa mẫu này",
+      "kind": "Loại watermark",
+      "kindText": "Chữ",
+      "kindImage": "Ảnh",
+      "text": "Nội dung chữ",
+      "layout": "Cách đặt",
+      "center": "Một dấu giữa trang",
+      "tiled": "Lặp khắp trang",
+      "spacing": "Khoảng cách giữa các dấu (pt)",
+      "spacingHint": "Dùng khi lặp khắp trang."
+    },
+    "presetText": {
+      "copy": "BẢN SAO",
+      "secret": "MẬT",
+      "draft": "DRAFT",
+      "approved": "ĐÃ DUYỆT"
+    },
+    "presetIssue": {
+      "empty": "Nhập tên mẫu.",
+      "tooLong": "Tên quá dài (tối đa 60 ký tự).",
+      "duplicate": "Đã có mẫu cùng tên."
+    },
+    "watermark": {
+      "title": "Watermark",
+      "description": "Chữ hoặc ảnh mờ, xoay chéo. Đặt một dấu giữa trang hoặc lặp khắp trang."
+    },
+    "numbers": {
+      "title": "Số trang",
+      "description": "Đánh số trang. Có thể chọn theo Nghị định 30/2020/NĐ-CP.",
+      "nd30Button": "Theo Nghị định 30/2020/NĐ-CP",
+      "custom": "Tùy chỉnh",
+      "nd30Explain": "Theo Nghị định 30/2020/NĐ-CP: số Ả Rập ở giữa lề trên, không đánh số trang đầu, chữ 13 pt. Mẫu, kiểu số, vị trí, bỏ trang đầu và cỡ chữ được đặt theo quy định này.",
+      "position": "Vị trí trên trang",
+      "format": "Kiểu số",
+      "template": "Mẫu nội dung",
+      "templateNd30": "Theo Nghị định 30: chỉ hiện số trang.",
+      "start": "Bắt đầu từ số",
+      "skipFirst": "Không đánh số trang đầu",
+      "labels": "Ghi nhãn trang vào file",
+      "labelsHint": "Trình xem PDF hiện đúng số trang (ví dụ “ii” ở trang 2).",
+      "sample": "Trang đầu được đánh số: “{{text}}”",
+      "none": "(trang đầu không có số)"
+    },
+    "format": {
+      "arabic": "1, 2, 3",
+      "roman": "i, ii, iii",
+      "ROMAN": "I, II, III",
+      "alpha": "a, b, c",
+      "ALPHA": "A, B, C"
+    },
+    "numberPos": {
+      "top-left": "Góc trên trái",
+      "top-center": "Giữa lề trên",
+      "top-right": "Góc trên phải",
+      "bottom-left": "Góc dưới trái",
+      "bottom-center": "Giữa lề dưới",
+      "bottom-right": "Góc dưới phải",
+      "outside-alternating": "Ngoài mép, luân phiên"
+    },
+    "vars": {
+      "label": "Biến",
+      "hint": "Chèn biến:",
+      "page": "Số trang hiện tại",
+      "pages": "Tổng số trang",
+      "page_roman": "Số La Mã",
+      "page_alpha": "Chữ cái",
+      "date": "Ngày",
+      "time": "Giờ",
+      "filename": "Tên file",
+      "title": "Tiêu đề tài liệu",
+      "author": "Tác giả",
+      "bates": "Mã Bates",
+      "section": "Tên mục"
+    },
+    "margins": {
+      "top": "Lề trên (mm)",
+      "bottom": "Lề dưới (mm)",
+      "left": "Lề trái (mm)",
+      "right": "Lề phải (mm)"
+    },
+    "hf": {
+      "title": "Header / Footer",
+      "description": "Chữ ở đầu và chân trang, bên trái, giữa và bên phải. Biến như {page} thay theo từng trang.",
+      "grid": "Lưới ô đầu trang và chân trang",
+      "dateFormat": "Định dạng ngày",
+      "dateHint": "Dùng cho biến {date}: dd, MM, yyyy…",
+      "bates": "Mã Bates",
+      "batesHint": "Dùng khi có biến {bates}.",
+      "batesPrefix": "Tiền tố",
+      "batesSuffix": "Hậu tố",
+      "batesDigits": "Số chữ số",
+      "skipFirst": "Bỏ trang đầu",
+      "mirror": "Đảo trái và phải ở trang chẵn",
+      "mirrorHint": "Dùng khi in hai mặt.",
+      "focusHint": "Chèn biến vào ô {{band}}, {{zone}}:"
+    },
+    "zone": {
+      "left": "Trái",
+      "center": "Giữa",
+      "right": "Phải"
+    },
+    "band": {
+      "header": "Đầu trang",
+      "footer": "Chân trang"
+    },
+    "code": {
+      "title": "Mã QR hoặc mã vạch",
+      "description": "Mã đặt trên trang. Nội dung dùng được biến như {filename} và {page}.",
+      "kind": "Loại mã",
+      "qr": "Mã QR",
+      "barcode": "Mã vạch",
+      "content": "Nội dung",
+      "contentHint": "Biến viết trong ngoặc nhọn, ví dụ {page}.",
+      "ecc": "Mức sửa lỗi",
+      "eccHint": "Mức cao: mã lớn hơn, đọc được khi bị xước.",
+      "eccL": "L (7%)",
+      "eccM": "M (15%)",
+      "eccQ": "Q (25%)",
+      "eccH": "H (30%)",
+      "size": "Cạnh ({{unit}})",
+      "label": "Chữ dưới mã",
+      "whiteBg": "Nền trắng",
+      "kinds": {
+        "code128": "Code 128 (mọi ký tự ASCII)",
+        "ean13": "EAN-13 (12 hoặc 13 chữ số)",
+        "code39": "Code 39 (chữ hoa, số và - . $ / + % dấu cách)"
+      },
+      "module": "Độ rộng vạch hẹp ({{unit}})",
+      "height": "Chiều cao vạch ({{unit}})",
+      "code39Hint": "Code 39: chữ hoa, số, - . $ / + % và dấu cách."
+    },
+    "barcode": {
+      "err": {
+        "empty": "Nhập nội dung mã.",
+        "ean13Digits": "EAN-13 chỉ gồm chữ số.",
+        "ean13Length": "EAN-13 cần 12 hoặc 13 chữ số.",
+        "ean13Check": "Chữ số kiểm tra của EAN-13 không đúng.",
+        "code39": "Code 39 chỉ nhận chữ hoa, số và - . $ / + % dấu cách.",
+        "code128": "Code 128 chỉ nhận ký tự ASCII in được."
+      }
+    },
+    "qr": {
+      "err": {
+        "empty": "Nhập nội dung cho mã QR.",
+        "unclosed": "Thiếu dấu “}” của biến.",
+        "stray": "Có dấu “}” không có cặp.",
+        "unknown": "Có biến không tồn tại."
+      }
+    },
+    "letterhead": {
+      "title": "Giấy tiêu đề",
+      "description": "Đặt một trang từ file PDF khác (giấy tiêu đề) lên các trang đã chọn.",
+      "file": "File giấy tiêu đề",
+      "fileHint": "Các trang của file hiện thành ảnh nhỏ bên dưới.",
+      "noFile": "Chưa chọn file",
+      "choose": "Chọn file PDF…",
+      "role": "Gán trang cho",
+      "roles": {
+        "first": "Trang đầu",
+        "odd": "Trang lẻ",
+        "even": "Trang chẵn",
+        "rest": "Trang còn lại"
+      },
+      "pages": "Trang của giấy tiêu đề",
+      "pickHint": "Bấm để gán trang {{page}} cho mục đang chọn",
+      "pageAlt": "Trang {{page}} của giấy tiêu đề",
+      "scaling": "Co giãn",
+      "fit": "Vừa khít trang",
+      "none": "Giữ kích thước gốc",
+      "underHint": "Tắt để đặt giấy tiêu đề lên trên nội dung.",
+      "noPreview": "Chọn trang giấy tiêu đề để xem trước.",
+      "errSource": "Chọn một file PDF.",
+      "errRoles": "Gán ít nhất một trang giấy tiêu đề."
+    },
+    "manager": {
+      "title": "Đã thêm vào tài liệu",
+      "description": "Chữ, ảnh, watermark, header, số trang… do Chef PDF thêm vào. Chọn một mục để xóa hoặc xem.",
+      "empty": "Chưa có gì do Chef PDF thêm vào tài liệu này.",
+      "loading": "Đang đọc danh sách…",
+      "count": "{{count}} đối tượng",
+      "pages": "trang {{pages}}",
+      "view": "Xem trang",
+      "remove": "Xóa",
+      "removeWatermarks": "Xóa tất cả watermark",
+      "removeAll": "Xóa tất cả",
+      "confirmAllTitle": "Xóa tất cả đối tượng đã thêm?",
+      "confirmAllText": "Sẽ gỡ {{count}} đối tượng do Chef PDF thêm. Có thể hoàn tác bằng Ctrl+Z.",
+      "removeJob": "Xóa: {{label}}",
+      "removeKindJob": "Xóa {{kind}}",
+      "removeAllJob": "Xóa các đối tượng đã thêm",
+      "job": "Đọc danh sách đối tượng"
+    },
+    "kind": {
+      "text": "Chữ",
+      "image": "Ảnh",
+      "watermark": "Watermark",
+      "stamp": "Con dấu",
+      "header": "Đầu trang",
+      "footer": "Chân trang",
+      "number": "Số trang",
+      "qr": "Mã QR/vạch",
+      "letterhead": "Giấy tiêu đề"
+    },
+    "bates": {
+      "title": "Đánh số Bates",
+      "description": "Một dãy mã đánh liên tục qua nhiều file PDF, theo thứ tự danh sách. Không cần mở file.",
+      "files": "Các file theo thứ tự",
+      "addFiles": "Thêm file PDF…",
+      "prefix": "Tiền tố",
+      "suffix": "Hậu tố",
+      "start": "Bắt đầu từ",
+      "digits": "Số chữ số",
+      "position": "Vị trí",
+      "output": "Lưu kết quả",
+      "outSuffix": "Cạnh file gốc",
+      "outFolder": "Vào một thư mục",
+      "outOverwrite": "Ghi đè file gốc",
+      "outSuffixLabel": "Hậu tố tên file",
+      "folder": "Thư mục",
+      "noFolder": "Chưa chọn thư mục",
+      "overwriteWarning": "Ghi đè sẽ thay file gốc và không hoàn tác được sau khi lưu.",
+      "stopOnError": "Dừng khi gặp file lỗi",
+      "run": "Đánh số",
+      "job": "Đánh số Bates ({{count}} file)",
+      "failed": "Không đánh số được",
+      "preview": "Mã đầu: {{first}} · mã cuối: {{last}}",
+      "doneTitle": "Đã đánh số Bates",
+      "doneText": "{{done}} / {{total}} file đã được đánh số.",
+      "openFolder": "Mở thư mục",
+      "err": {
+        "files": "Thêm ít nhất một file PDF.",
+        "folder": "Chọn thư mục đích.",
+        "digits": "Số chữ số từ 1 đến 12.",
+        "start": "Số bắt đầu không hợp lệ.",
+        "suffix": "Nhập hậu tố tên file."
+      },
+      "col": {
+        "file": "File",
+        "status": "Trạng thái",
+        "first": "Mã đầu",
+        "last": "Mã cuối",
+        "pages": "Số trang"
+      },
+      "status": {
+        "done": "Xong",
+        "failed": "Lỗi",
+        "skipped": "Bỏ qua"
+      }
+    }
   }
 }

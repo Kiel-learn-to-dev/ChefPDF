@@ -133,7 +133,9 @@
     "paletteHint": "Find any command, accents optional:",
     "scanTitle": "Convert to scan",
     "batchSignTitle": "Batch signing",
-    "batchSignText": "Sign many PDF files at once with one certificate."
+    "batchSignText": "Sign many PDF files at once with one certificate.",
+    "batesTitle": "Bates numbering",
+    "batesText": "One numbering run across many PDFs (HS-000001…)"
   },
   "palette": {
     "title": "Command palette",
@@ -1358,5 +1360,389 @@
     "verifyAfter": "Check each file after signing",
     "job": "Batch signing",
     "output": "Output"
+  },
+  "overlay": {
+    "applied": "Applied.",
+    "apply": "Apply",
+    "signedBlocked": "This document is digitally signed, so it cannot be edited directly (that would break the signature). Make a copy to edit it.",
+    "addTextJob": "Add text: {{name}}",
+    "addImageJob": "Add image: {{name}}",
+    "watermarkJob": "Watermark: {{name}}",
+    "headerFooterJob": "Header/footer: {{name}}",
+    "pageNumbersJob": "Page numbers: {{name}}",
+    "qrJob": "QR code: {{name}}",
+    "barcodeJob": "Barcode: {{name}}",
+    "letterheadJob": "Letterhead: {{name}}",
+    "cmd": {
+      "addText": "Add text",
+      "addImage": "Add image",
+      "watermark": "Watermark",
+      "headerFooter": "Header/Footer",
+      "pageNumbers": "Page numbers",
+      "letterhead": "Letterhead",
+      "qrBarcode": "QR/barcode",
+      "overlays": "Added to document",
+      "bates": "Bates numbering"
+    },
+    "anchor": {
+      "label": "Anchor point",
+      "top-left": "Top left",
+      "top-center": "Top centre",
+      "top-right": "Top right",
+      "center-left": "Centre left",
+      "center": "Centre",
+      "center-right": "Centre right",
+      "bottom-left": "Bottom left",
+      "bottom-center": "Bottom centre",
+      "bottom-right": "Bottom right"
+    },
+    "pages": {
+      "label": "Pages",
+      "current": "Page shown ({{page}})",
+      "all": "All ({{count}} pages)",
+      "range": "Page range…",
+      "odd": "Odd pages",
+      "even": "Even pages",
+      "rangeText": "Page range"
+    },
+    "unit": {
+      "label": "Unit",
+      "mm": "mm",
+      "pt": "pt"
+    },
+    "position": {
+      "label": "Position",
+      "x": "From left edge ({{unit}})",
+      "y": "From top edge ({{unit}})",
+      "place": "Place on page",
+      "placeHint": "Press “Place on page”, then click or drag on the page to choose the position."
+    },
+    "place": {
+      "barLabel": "Place on the page",
+      "hintPoint": "Click a point on the page to place it. Esc to cancel.",
+      "hintBox": "Drag to draw a box on the page. Esc to cancel.",
+      "readout": "Page {{page}}: x {{x}} mm, y {{y}} mm",
+      "noneYet": "No position chosen yet",
+      "redo": "Choose again",
+      "cancel": "Cancel",
+      "done": "Done",
+      "title": {
+        "overlayText": "Place text",
+        "overlayImage": "Place image",
+        "overlayCode": "Place code"
+      }
+    },
+    "text": {
+      "title": "Add text",
+      "description": "A new text box on the page, set in Be Vietnam Pro (full Vietnamese support).",
+      "content": "Content",
+      "contentHint": "Press Enter for a new line.",
+      "width": "Box width",
+      "widthHint": "0 = no line wrap."
+    },
+    "look": {
+      "fontSize": "Font size (pt)",
+      "color": "Colour",
+      "bold": "Bold",
+      "rotation": "Rotation (degrees, counter-clockwise)",
+      "opacity": "Opacity (0 to 1)",
+      "align": "Alignment",
+      "under": "Place under the page content",
+      "colorPicker": "Pick colour {{color}}"
+    },
+    "align": {
+      "left": "Left",
+      "center": "Centre",
+      "right": "Right"
+    },
+    "preview": {
+      "page": "Preview: page {{page}}",
+      "firstPage": "Preview: page {{page}}"
+    },
+    "err": {
+      "text": "Enter the content.",
+      "fontSize": "Font size is not valid.",
+      "color": "Colour must be #RRGGBB.",
+      "opacity": "Opacity must be from 0 to 1.",
+      "position": "The position is outside the allowed range.",
+      "width": "Width is not valid.",
+      "pages": "The page range is not valid.",
+      "path": "Choose a PNG or JPEG file.",
+      "size": "Size is not valid.",
+      "template": "The template has an invalid variable or unmatched braces.",
+      "zone": "The template in the {{zone}} box has an error: unmatched braces or an unknown variable.",
+      "startNumber": "Start number is not valid.",
+      "labels": "Page labels need a start number of 1 or more.",
+      "margins": "Margins must be from 0 to 200 mm.",
+      "spacing": "Spacing is not valid.",
+      "rotation": "Rotation must be from -360 to 360 degrees."
+    },
+    "image": {
+      "title": "Add image",
+      "description": "A PNG or JPEG picture. Drag a box on the page, or type the size.",
+      "file": "Image",
+      "fileHint": "PNG or JPEG picture.",
+      "noFile": "No image chosen",
+      "choose": "Choose image…",
+      "width": "Width ({{unit}})",
+      "height": "Height ({{unit}})",
+      "sizeHint": "0 = keep the proportions of the other side.",
+      "placeholder": "Image"
+    },
+    "wm": {
+      "builtin": "Built-in look",
+      "custom": "Custom",
+      "savePreset": "Save as preset",
+      "savePresetConfirm": "Save preset",
+      "presetName": "Preset name",
+      "deletePreset": "Delete this preset",
+      "kind": "Watermark type",
+      "kindText": "Text",
+      "kindImage": "Image",
+      "text": "Text",
+      "layout": "Layout",
+      "center": "One mark in the centre",
+      "tiled": "Tiled over the page",
+      "spacing": "Spacing between marks (pt)",
+      "spacingHint": "Used when tiled."
+    },
+    "presetText": {
+      "copy": "COPY",
+      "secret": "SECRET",
+      "draft": "DRAFT",
+      "approved": "APPROVED"
+    },
+    "presetIssue": {
+      "empty": "Enter a preset name.",
+      "tooLong": "The name is too long (60 characters at most).",
+      "duplicate": "A preset with this name already exists."
+    },
+    "watermark": {
+      "title": "Watermark",
+      "description": "Faint, rotated text or picture. One mark in the centre, or tiled over the page."
+    },
+    "numbers": {
+      "title": "Page numbers",
+      "description": "Number the pages. You can follow Decree 30/2020/ND-CP.",
+      "nd30Button": "Follow Decree 30/2020/ND-CP",
+      "custom": "Custom",
+      "nd30Explain": "Decree 30/2020/ND-CP: Arabic numerals centred in the top margin, no number on the first page, 13 pt. The template, number format, position, skipping of the first page and font size follow this rule.",
+      "position": "Position on the page",
+      "format": "Number format",
+      "template": "Template",
+      "templateNd30": "Decree 30: only the page number.",
+      "start": "Start numbering at",
+      "skipFirst": "Do not number the first page",
+      "labels": "Write page labels into the file",
+      "labelsHint": "PDF viewers then show the same numbers (for example “ii” on page 2).",
+      "sample": "First numbered page: “{{text}}”",
+      "none": "(first page has no number)"
+    },
+    "format": {
+      "arabic": "1, 2, 3",
+      "roman": "i, ii, iii",
+      "ROMAN": "I, II, III",
+      "alpha": "a, b, c",
+      "ALPHA": "A, B, C"
+    },
+    "numberPos": {
+      "top-left": "Top left",
+      "top-center": "Top centre",
+      "top-right": "Top right",
+      "bottom-left": "Bottom left",
+      "bottom-center": "Bottom centre",
+      "bottom-right": "Bottom right",
+      "outside-alternating": "Outside edge, alternating"
+    },
+    "vars": {
+      "label": "Variables",
+      "hint": "Insert variable:",
+      "page": "Current page number",
+      "pages": "Total pages",
+      "page_roman": "Roman numeral",
+      "page_alpha": "Letter",
+      "date": "Date",
+      "time": "Time",
+      "filename": "File name",
+      "title": "Document title",
+      "author": "Author",
+      "bates": "Bates code",
+      "section": "Section title"
+    },
+    "margins": {
+      "top": "Top margin (mm)",
+      "bottom": "Bottom margin (mm)",
+      "left": "Left margin (mm)",
+      "right": "Right margin (mm)"
+    },
+    "hf": {
+      "title": "Header / Footer",
+      "description": "Text at the top and bottom of the page, left, centre and right. Variables such as {page} change on each page.",
+      "grid": "Header and footer grid",
+      "dateFormat": "Date format",
+      "dateHint": "Used by {date}: dd, MM, yyyy…",
+      "bates": "Bates code",
+      "batesHint": "Used when a {bates} variable appears.",
+      "batesPrefix": "Prefix",
+      "batesSuffix": "Suffix",
+      "batesDigits": "Digits",
+      "skipFirst": "Skip the first page",
+      "mirror": "Swap left and right on even pages",
+      "mirrorHint": "For double-sided printing.",
+      "focusHint": "Insert a variable into {{band}}, {{zone}}:"
+    },
+    "zone": {
+      "left": "Left",
+      "center": "Centre",
+      "right": "Right"
+    },
+    "band": {
+      "header": "Header",
+      "footer": "Footer"
+    },
+    "code": {
+      "title": "QR code or barcode",
+      "description": "A code placed on the page. The content can use variables such as {filename} and {page}.",
+      "kind": "Code type",
+      "qr": "QR code",
+      "barcode": "Barcode",
+      "content": "Content",
+      "contentHint": "Write variables in curly braces, for example {page}.",
+      "ecc": "Error correction",
+      "eccHint": "Higher levels make a bigger code that still reads when scratched.",
+      "eccL": "L (7%)",
+      "eccM": "M (15%)",
+      "eccQ": "Q (25%)",
+      "eccH": "H (30%)",
+      "size": "Side ({{unit}})",
+      "label": "Text under the code",
+      "whiteBg": "White background",
+      "kinds": {
+        "code128": "Code 128 (any ASCII)",
+        "ean13": "EAN-13 (12 or 13 digits)",
+        "code39": "Code 39 (capitals, digits and - . $ / + % space)"
+      },
+      "module": "Narrowest bar width ({{unit}})",
+      "height": "Bar height ({{unit}})",
+      "code39Hint": "Code 39: capitals, digits, - . $ / + % and space."
+    },
+    "barcode": {
+      "err": {
+        "empty": "Enter the code content.",
+        "ean13Digits": "EAN-13 takes digits only.",
+        "ean13Length": "EAN-13 needs 12 or 13 digits.",
+        "ean13Check": "The EAN-13 check digit is wrong.",
+        "code39": "Code 39 takes capitals, digits and - . $ / + % space only.",
+        "code128": "Code 128 takes printable ASCII only."
+      }
+    },
+    "qr": {
+      "err": {
+        "empty": "Enter the content of the QR code.",
+        "unclosed": "A variable is missing its “}”.",
+        "stray": "A “}” has no matching “{”.",
+        "unknown": "A variable does not exist."
+      }
+    },
+    "letterhead": {
+      "title": "Letterhead",
+      "description": "Place a page of another PDF (the letterhead) on the chosen pages.",
+      "file": "Letterhead file",
+      "fileHint": "The pages of the file are shown as small pictures below.",
+      "noFile": "No file chosen",
+      "choose": "Choose PDF…",
+      "role": "Give the page to",
+      "roles": {
+        "first": "First page",
+        "odd": "Odd pages",
+        "even": "Even pages",
+        "rest": "Other pages"
+      },
+      "pages": "Letterhead pages",
+      "pickHint": "Click to give page {{page}} to the chosen role",
+      "pageAlt": "Letterhead page {{page}}",
+      "scaling": "Scaling",
+      "fit": "Fit to page",
+      "none": "Keep original size",
+      "underHint": "Turn off to put the letterhead over the content.",
+      "noPreview": "Choose a letterhead page to preview it.",
+      "errSource": "Choose a PDF file.",
+      "errRoles": "Give at least one letterhead page to a role."
+    },
+    "manager": {
+      "title": "Added to document",
+      "description": "Text, images, watermarks, headers, page numbers… added by Chef PDF. Choose an item to remove or view it.",
+      "empty": "Nothing added by Chef PDF to this document yet.",
+      "loading": "Reading the list…",
+      "count": "{{count}} objects",
+      "pages": "pages {{pages}}",
+      "view": "View page",
+      "remove": "Remove",
+      "removeWatermarks": "Remove all watermarks",
+      "removeAll": "Remove all",
+      "confirmAllTitle": "Remove all objects added by Chef PDF?",
+      "confirmAllText": "This removes {{count}} objects added by Chef PDF. You can undo it with Ctrl+Z.",
+      "removeJob": "Remove: {{label}}",
+      "removeKindJob": "Remove {{kind}}",
+      "removeAllJob": "Remove the added objects",
+      "job": "Reading the list of objects"
+    },
+    "kind": {
+      "text": "Text",
+      "image": "Image",
+      "watermark": "Watermark",
+      "stamp": "Stamp",
+      "header": "Header",
+      "footer": "Footer",
+      "number": "Page number",
+      "qr": "QR/barcode",
+      "letterhead": "Letterhead"
+    },
+    "bates": {
+      "title": "Bates numbering",
+      "description": "One numbering run across many PDFs, in list order. No file needs to be open.",
+      "files": "Files in order",
+      "addFiles": "Add PDF files…",
+      "prefix": "Prefix",
+      "suffix": "Suffix",
+      "start": "Start at",
+      "digits": "Digits",
+      "position": "Position",
+      "output": "Save results",
+      "outSuffix": "Next to each file",
+      "outFolder": "Into one folder",
+      "outOverwrite": "Overwrite the originals",
+      "outSuffixLabel": "File name suffix",
+      "folder": "Folder",
+      "noFolder": "No folder chosen",
+      "overwriteWarning": "Overwriting replaces the original files, and this cannot be undone after saving.",
+      "stopOnError": "Stop at the first failed file",
+      "run": "Number",
+      "job": "Bates numbering ({{count}} files)",
+      "failed": "Numbering failed",
+      "preview": "First code: {{first}} · last code: {{last}}",
+      "doneTitle": "Bates numbering done",
+      "doneText": "{{done}} of {{total}} files were numbered.",
+      "openFolder": "Open folder",
+      "err": {
+        "files": "Add at least one PDF file.",
+        "folder": "Choose the target folder.",
+        "digits": "Digits must be from 1 to 12.",
+        "start": "Start number is not valid.",
+        "suffix": "Enter a file name suffix."
+      },
+      "col": {
+        "file": "File",
+        "status": "Status",
+        "first": "First code",
+        "last": "Last code",
+        "pages": "Pages"
+      },
+      "status": {
+        "done": "Done",
+        "failed": "Failed",
+        "skipped": "Skipped"
+      }
+    }
   }
 }

@@ -29,6 +29,17 @@ import type {
   SignTrustListParams,
   SignTrustRemoveParams,
   SignVerifyParams,
+  OverlayAddImageParams,
+  OverlayAddTextParams,
+  OverlayBarcodeParams,
+  OverlayBatesParams,
+  OverlayHeaderFooterParams,
+  OverlayLetterheadParams,
+  OverlayListOverlaysParams,
+  OverlayPageNumbersParams,
+  OverlayQrCodeParams,
+  OverlayRemoveParams,
+  OverlayWatermarkParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -85,6 +96,17 @@ export interface OpParams {
   'image.cleanup': ImageCleanupParams;
   'image.fromStrokes': ImageFromStrokesParams;
   'image.textSignature': ImageTextSignatureParams;
+  'overlay.addText': OverlayAddTextParams;
+  'overlay.addImage': OverlayAddImageParams;
+  'overlay.watermark': OverlayWatermarkParams;
+  'overlay.headerFooter': OverlayHeaderFooterParams;
+  'overlay.pageNumbers': OverlayPageNumbersParams;
+  'overlay.bates': OverlayBatesParams;
+  'overlay.qrCode': OverlayQrCodeParams;
+  'overlay.barcode': OverlayBarcodeParams;
+  'overlay.letterhead': OverlayLetterheadParams;
+  'overlay.listOverlays': OverlayListOverlaysParams;
+  'overlay.remove': OverlayRemoveParams;
 }
 
 export type OpId = keyof OpParams;
@@ -104,4 +126,5 @@ export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'image.cleanup',
   'image.fromStrokes',
   'image.textSignature',
+  'overlay.bates',
 ]);
