@@ -6,13 +6,13 @@
 ## Trạng thái hiện tại
 
 - **Giai đoạn:** ✅ **Đã chốt cây tính năng 1.0** ([FEATURES.md](FEATURES.md), ngày 2026-10-31). **Chưa viết code.**
-- **Phạm vi đã chốt:** 182 tính năng, trong đó:
+- **Phạm vi đã chốt:** 190 tính năng (gồm 8 tính năng thêm sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
   |---|---|
-  | Bản 1.0 (v0.1–v0.8) | 147 |
+  | Bản 1.0 (v0.1–v0.8) | 153 |
   | Sau 1.0 | 4 |
-  | Gói nâng cấp OCR/AI | 10 |
+  | Gói nâng cấp OCR/AI | 12 |
   | Ý tưởng chưa cam kết | 21 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
@@ -41,7 +41,7 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D3 | Vỏ app: **Electron** (không dùng Tauri, không làm webapp thuần) | Electron mang Chromium theo app nên hiển thị giống hệt trên 3 OS, thử trên 1 máy là gần đủ. Tauri dùng 3 lõi khác nhau (WebView2 / WKWebView / WebKitGTK), Linux hay lỗi canvas. **WebView2 chỉ có trên Windows.** Webapp thuần không truy cập được USB token |
 | D4 | Giao diện: **React + TypeScript**, xem PDF bằng **pdf.js** | Dễ làm đẹp. UI tách khỏi vỏ để sau này có thể chuyển sang Tauri hoặc làm bản web rút gọn |
 | D5 | Lõi xử lý: **Python sidecar** đóng gói kèm app (PyInstaller, chế độ onedir) | Có pyHanko, thư viện ký PDF tốt nhất |
-| D6 | Thư viện lõi: **pyHanko** (ký số), **pypdfium2** (render, đối tượng trang), **pikepdf** (thao tác PDF), **Pillow + img2pdf** (ảnh) | Đều có giấy phép thoáng |
+| D6 | Thư viện lõi: **pyHanko** (ký số), **pypdfium2** (render, đối tượng trang), **pikepdf** (thao tác PDF), **Pillow + img2pdf** (ảnh), **OpenCV** (xử lý ảnh scan: nắn, khử nhiễu, tách màu, dò màu da, inpainting) | Đều có giấy phép thoáng (OpenCV 4.5+ dùng Apache-2.0) |
 | D7 | **Tránh thư viện AGPL:** PyMuPDF/MuPDF, Ghostscript, iText | Giữ quyền bán app mã nguồn đóng sau này |
 | D8 | Build bằng **GitHub Actions** cho 3 OS (A8) | Chủ dự án không cần có đủ 3 máy |
 | D9 | Tính năng chủ lực ★: **Chuyển thành bản scan** (K), **Ký số** (I), **Quy trình tự động** (O) | Chủ dự án yêu cầu |
@@ -59,6 +59,7 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D21 | Định dạng trung gian là **mô hình tài liệu JSON** (khối, vị trí, kiểu chữ, độ tin cậy). Markdown chỉ là một định dạng xuất | Markdown làm mất bố cục |
 | D22 | **Gói nâng cấp nhận dạng** (Q) gồm OCR, mô hình AI chạy trên máy, hoặc API nhận dạng trả phí. Làm ở **phiên bản nâng cấp sau này**, không thuộc 1.0. Mô hình đóng thành gói tải riêng; API mặc định tắt | Chủ dự án xác nhận ngày 2026-10-31 |
 | D23 | **Chốt cây tính năng 1.0** gồm 182 tính năng, 4 mức (Bản 1.0 / Sau 1.0 / Nâng cấp / Ý tưởng). Các mục từng đánh dấu 🤔 đã được xếp mức. Lập kế hoạch và ước lượng làm ở bước sau | Chủ dự án yêu cầu |
+| D24 | Thêm **trình sửa ảnh trang** và **xóa ngón tay** vào bản 1.0 (L9–L14), làm bằng thuật toán xử lý ảnh cổ điển (OpenCV). Bản tự động hoàn toàn bằng mô hình nằm ở gói nâng cấp (Q11, Q12) | Chủ dự án bổ sung; đánh giá là làm được |
 
 ## Kiến trúc dự kiến
 
@@ -70,7 +71,8 @@ Chef PDF
     ├── pikepdf: ghép/tách/xoay, mật khẩu, nén, content stream
     ├── pypdfium2: render trang, liệt kê/sửa đối tượng trang
     ├── pyHanko: ký số PAdES (B-B, B-T, B-LT, B-LTA), PKCS#11, PFX, TSA, kiểm tra chữ ký
-    └── Pillow + img2pdf: xử lý ảnh, tạo PDF ảnh (nhúng JPEG không nén lại)
+    ├── Pillow + img2pdf: xử lý ảnh, tạo PDF ảnh (nhúng JPEG không nén lại)
+    └── OpenCV: làm đẹp bản scan, trình sửa ảnh trang, xóa ngón tay
 → GitHub Actions build: .exe / .msi / .dmg / .AppImage / .deb / .rpm
 (Gói nâng cấp Q: các mô hình OCR/bố cục tải riêng, chạy trong cùng Python sidecar)
 ```
@@ -104,6 +106,19 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
   - Luôn hiện danh sách ứng viên kèm xem trước, **không tự xóa**.
 - Gỡ watermark dùng cho tài liệu người dùng có quyền chỉnh sửa (tài liệu của mình hoặc của công ty mình).
 
+### Trình sửa ảnh trang & xóa ngón tay (L9–L14)
+- Trang scan trong PDF thường là 1 ảnh mỗi trang. Sửa xong thì thay ảnh vào đúng chỗ (cùng cơ chế với D6). Lưu ảnh gốc cùng danh sách thao tác để hoàn nguyên được.
+- **Tô màu nền giấy:** ước lượng màu giấy từ vùng xung quanh (trung vị), thêm nhiễu nhẹ giống hạt giấy. Vùng nhỏ nằm sát chữ thì dùng inpainting của OpenCV (Telea / Navier-Stokes).
+- **Xóa ngón tay:** ngón tay hầu như luôn nằm ở lề trang và chạm mép. Cách làm:
+  1. Tìm vùng có màu da trong không gian màu YCrCb/HSV.
+  2. Chỉ giữ những vùng nối liền với mép trang.
+  3. Nới rộng vùng một chút (dilate) cho trùm cả bóng ngón tay.
+  4. Tô bằng màu nền giấy.
+  - **Dễ sai khi:** giấy ngả vàng gần màu da, ánh sáng vàng, da tối màu, có ảnh người trên trang. Vì vậy luôn **đề xuất rồi cho người dùng chỉnh**, không tự áp dụng.
+  - Chữ bị ngón tay che thì không khôi phục được. vFlat cũng không làm được việc này.
+- **Làm phẳng trang cong:** dò các dòng chữ, khớp một bề mặt cong rồi kéo phẳng. Đã có thuật toán mã nguồn mở theo hướng này (ví dụ dự án page-dewarp), cần kiểm tra giấy phép. Trang ít chữ hoặc cong mạnh thì cần mô hình (Q12).
+- Bộ công cụ này kết hợp với chụp bằng điện thoại (L5) tạo thành quy trình **chụp sách** hoàn chỉnh. Nên xem lại việc đưa L6 (tách trang đôi) vào bản 1.0.
+
 ### Đặc thù Việt Nam
 - **Dấu giáp lai (F4):** một ảnh dấu cắt thành N phần, mỗi phần đặt ở mép phải một trang.
 - **Đánh số trang theo Nghị định 30/2020/NĐ-CP (F8):** số Ả Rập, canh giữa trong lề trên, không hiển thị số ở trang đầu.
@@ -130,6 +145,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-10-31 (7):** Thêm sau khi chốt: trình sửa ảnh trang kiểu ABBYY OCR Editor và xóa ngón tay kiểu vFlat Scan → L9–L14 (v0.7), Q11–Q12 (nâng cấp). Thêm OpenCV vào thư viện lõi (D6), thêm D24. Tổng còn 190 tính năng.
 - **2026-10-31 (6):** Chủ dự án xác nhận: mô hình AI chạy trên máy hoặc API nhận dạng trả phí để dành cho phiên bản nâng cấp sau; chưa cần chạy thử file mẫu. Yêu cầu tổng hợp thành cây tính năng chuẩn và chốt. Claude viết lại FEATURES.md thành **bản 1.0 đã chốt**: 7 khu vực, 17 nhóm A–Q, **đánh lại toàn bộ mã** cho liền mạch, xếp mọi mục 🤔 vào một trong 4 mức, tách phần OCR/AI thành nhóm Q (gói nâng cấp). Tổng 182 tính năng. Viết lại NOTES.md (D2, D20, D22 cập nhật; thêm D23). Bước tiếp theo: lập kế hoạch và ước lượng.
 - **2026-10-31 (5):** Chủ dự án hỏi về tính năng rã PDF thành Markdown rồi tái tạo ra định dạng khác. Claude đánh giá theo mức khó và đề xuất dùng mô hình tài liệu JSON làm định dạng trung gian.
 - **2026-10-31 (4):** Bỏ trợ lý AI. Chủ dự án cần hỗ trợ token Viettel, VNPT, FPT, Cơ yếu, MISA… Claude tra cứu và ghi vào `docs/TOKENS.md`. Thêm danh bạ driver, quét driver, chẩn đoán token, cảnh báo PIN. Chủ dự án muốn liệt kê tính năng trước, lập kế hoạch sau.

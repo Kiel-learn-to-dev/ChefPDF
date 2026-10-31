@@ -328,6 +328,12 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | L6 | Tách trang đôi | Ảnh chụp 2 trang sách mở thành 2 trang | Ý tưởng |
 | L7 | Tách nhiều ảnh trên một bản scan | Nhiều hóa đơn / thẻ trên một mặt kính thành từng ảnh riêng | Ý tưởng |
 | L8 | Quét từ máy scan | TWAIN/WIA (Windows), ICA (macOS), SANE (Linux) | Ý tưởng |
+| L9 | **Trình sửa ảnh trang** | Chế độ sửa ảnh riêng cho trang scan / trang ảnh, giống công cụ sửa ảnh trong OCR Editor của ABBYY. Sửa **không phá hủy**: luôn giữ ảnh gốc, có lịch sử thao tác, hoàn nguyên được. Áp dụng cho trang hiện tại, các trang chọn hoặc mọi trang. Gom các công cụ L1–L4, L10–L14 vào một chỗ | v0.7 |
+| L10 | Tẩy & tô | Cọ tẩy, chọn vùng chữ nhật hoặc vẽ tự do; tô bằng **màu nền giấy tự dò** (có thêm hạt giấy để vùng tô không bị lộ) hoặc màu tự chọn | v0.7 |
+| L11 | Xóa vết màu | Xóa nét bút bi, bút dạ quang, con dấu theo màu; chọn màu bằng ống hút (dùng chung công cụ tách màu với I22) | v0.7 |
+| L12 | Chỉnh mức sáng & độ phân giải | Levels/Curves, đảo màu (âm bản), đổi độ phân giải ảnh (giảm hoặc tăng DPI) | v0.7 |
+| L13 | Làm phẳng trang cong (cơ bản) | Nắn trang sách bị cong ở gáy bằng cách dò các dòng chữ rồi kéo cho thẳng. Hợp với trang cong nhẹ; trang cong mạnh để Q12 | v0.7 |
+| L14 | **Xóa ngón tay (bán tự động)** | Dò vùng màu da chạm mép trang (ngón tay giữ giấy khi chụp), đề xuất vùng xóa; người dùng chỉnh lại bằng cọ, xong tô bằng màu nền giấy. Không khôi phục được chữ nằm dưới ngón tay | v0.7 |
 
 ## M. Tối ưu, chuyển đổi & sửa lỗi
 
@@ -411,6 +417,8 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 | Q8 | Gỡ watermark trên bản scan | Watermark đã dính vào ảnh | Nâng cấp |
 | Q9 | Gói mô hình tải riêng | Vài trăm MB, không đi kèm bản cài chính; tùy chọn dùng GPU | Nâng cấp |
 | Q10 | Kết nối API nhận dạng trả phí | Người dùng tự nhập khóa API; mặc định tắt vì gửi dữ liệu ra ngoài | Nâng cấp |
+| Q11 | Xóa ngón tay tự động hoàn toàn | Dùng mô hình nhận dạng bàn tay để tách ngón tay chính xác (kể cả da tối, giấy ngả vàng, ánh sáng xấu), rồi dùng mô hình vẽ lại vùng bị che (inpainting). Nâng cấp từ L14 | Nâng cấp |
+| Q12 | Làm phẳng trang cong bằng mô hình | Trang cong mạnh, chụp nghiêng, trang không có nhiều chữ. Nâng cấp từ L13 | Nâng cấp |
 
 ---
 
@@ -418,11 +426,11 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.8) | 147 |
+| Bản 1.0 (v0.1–v0.8) | 153 |
 | Sau 1.0 | 4 |
-| Nâng cấp | 10 |
+| Nâng cấp | 12 |
 | Ý tưởng | 21 |
-| **Tổng** | 182 |
+| **Tổng** | 190 |
 
 ## Thay đổi sau khi chốt
 
@@ -430,4 +438,5 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
-| | | | |
+| 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |
+| 2026-10-31 | Q11–Q12 | Thêm xóa ngón tay tự động hoàn toàn và làm phẳng trang cong bằng mô hình | Bản nâng cấp của L14, L13 |
