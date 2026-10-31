@@ -238,7 +238,8 @@ def test_encrypted_round_trip(harness: Harness, corpus: dict[str, Path], tmp_pat
         assert not pdf.is_encrypted
     meta_text = (_session_dir(harness, sid) / "meta.json").read_text()
     assert "password" not in meta_text
-    assert "1234" not in meta_text.replace(str(path), "")
+    # the source path is stored JSON-escaped (backslashes doubled on Windows)
+    assert "1234" not in meta_text.replace(json.dumps(str(path))[1:-1], "")
 
     harness.op("page.delete", {"pages": [0]}, sid)
     out = tmp_path / "saved.pdf"

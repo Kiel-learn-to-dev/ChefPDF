@@ -87,8 +87,14 @@ def merge(ctx: OpContext, p: FileMergeParams) -> OpOutput:
                 with dst.open_outline() as outline:
                     outline.root.extend(outline_items)
             ctx.progress(total, total)
-            # Sources must stay open until the output is written (pikepdf reads lazily).
-            atomic_save(dst, out_path)
+            # Sources must stay open until the output is written (pikepdf reads lazily), but
+            # closed before the rename: the output may overwrite one of the inputs, and Windows
+            # refuses to replace an open file.
+            def close_sources() -> None:
+                for s in sources:
+                    s.close()
+
+            atomic_save(dst, out_path, before_replace=close_sources)
     finally:
         for src in sources:
             src.close()

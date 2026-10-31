@@ -68,9 +68,16 @@ def _temp_path_in(directory: Path, stem: str) -> Path:
     return Path(name)
 
 
-def atomic_write(dest: str | Path, writer: Callable[[Path], None]) -> None:
+def atomic_write(
+    dest: str | Path,
+    writer: Callable[[Path], None],
+    before_replace: Callable[[], None] | None = None,
+) -> None:
     """Write ``dest`` atomically: ``writer(tmp)`` writes a temp file in the same directory,
-    which is then fsynced and renamed over ``dest``."""
+    which is then fsynced and renamed over ``dest``.
+
+    ``before_replace`` runs after the temp file is complete and just before the rename; use it
+    to release handles on ``dest`` (Windows refuses to replace a file that is still open)."""
     target = Path(dest)
     directory = target.parent
     if not directory.is_dir():
@@ -82,6 +89,8 @@ def atomic_write(dest: str | Path, writer: Callable[[Path], None]) -> None:
         writer(tmp)
         with open(tmp, "rb+") as fh:
             os.fsync(fh.fileno())
+        if before_replace is not None:
+            before_replace()
         os.replace(tmp, target)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -89,14 +98,19 @@ def atomic_write(dest: str | Path, writer: Callable[[Path], None]) -> None:
         raise
 
 
-def atomic_save(pdf: pikepdf.Pdf, dest: str | Path, **save_kwargs: Any) -> None:
+def atomic_save(
+    pdf: pikepdf.Pdf,
+    dest: str | Path,
+    before_replace: Callable[[], None] | None = None,
+    **save_kwargs: Any,
+) -> None:
     """Save ``pdf`` to ``dest`` atomically. Encryption is dropped unless given explicitly."""
     save_kwargs.setdefault("encryption", False)
 
     def write(tmp: Path) -> None:
         pdf.save(tmp, **save_kwargs)
 
-    atomic_write(dest, write)
+    atomic_write(dest, write, before_replace)
 
 
 def atomic_copy(src: str | Path, dest: str | Path) -> None:
