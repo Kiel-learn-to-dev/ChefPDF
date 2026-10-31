@@ -6,22 +6,20 @@
 ## Trạng thái hiện tại
 
 - **Giai đoạn:** ✅ **Đã chốt cây tính năng 1.0** ([FEATURES.md](FEATURES.md), ngày 2026-10-31). **Chưa viết code.**
-- **Phạm vi đã chốt:** 196 tính năng (gồm 14 tính năng thêm sau khi chốt), trong đó:
+- **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
   |---|---|
-  | Bản 1.0 (v0.1–v0.8) | 158 |
+  | Bản 1.0 (v0.1–v0.8) | 160 |
   | Sau 1.0 | 4 |
-  | Gói nâng cấp OCR/AI | 13 |
-  | Ý tưởng chưa cam kết | 21 |
+  | Gói nâng cấp OCR/AI | 12 |
+  | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
 - **Việc tiếp theo:** **Lập kế hoạch và ước lượng dev**: chia việc theo từng bản v0.1 → v0.8, ước lượng công sức, xác định rủi ro và thứ phải làm trước. Sau đó dựng khung dự án Electron cho v0.1.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
   - App để tự dùng hay sẽ phát hành/bán? Câu này ảnh hưởng chi phí ký mã (Apple Developer 99 USD/năm, chứng thư code signing cho Windows).
-  - Có đưa **L6 (tách 2 trang sách)** vào bản 1.0 để đủ quy trình chụp sách không?
-  - Mô hình dò viền trang (Q13) rất nhẹ (vài MB). Có cho làm ngoại lệ, đưa vào bản 1.0 không, hay giữ nguyên tắc "không mô hình AI ở 1.0"?
   - Cần **token thật** (Viettel, VNPT, FPT, Ban Cơ yếu, MISA…) để thử ký số. Xem [TOKENS.md](TOKENS.md).
 
 ## Mục tiêu sản phẩm
@@ -30,7 +28,7 @@
 - Chạy được trên **Windows, macOS, Linux**.
 - **Offline hoàn toàn**, không tải file lên server.
 - **Tiếng Việt là ưu tiên số 1**: giao diện, font, tìm không dấu, thể thức văn bản hành chính, chữ ký số Việt Nam.
-- **Bản 1.0 không có OCR, không có AI.**
+- **Bản 1.0 không có OCR, không có AI.** Ngoại lệ duy nhất: mô hình dò viền trang loại nhỏ (L20).
 
 ## Các quyết định đã chốt
 
@@ -62,7 +60,9 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D22 | **Gói nâng cấp nhận dạng** (Q) gồm OCR, mô hình AI chạy trên máy, hoặc API nhận dạng trả phí. Làm ở **phiên bản nâng cấp sau này**, không thuộc 1.0. Mô hình đóng thành gói tải riêng; API mặc định tắt | Chủ dự án xác nhận ngày 2026-10-31 |
 | D23 | **Chốt cây tính năng 1.0** gồm 182 tính năng, 4 mức (Bản 1.0 / Sau 1.0 / Nâng cấp / Ý tưởng). Các mục từng đánh dấu 🤔 đã được xếp mức. Lập kế hoạch và ước lượng làm ở bước sau | Chủ dự án yêu cầu |
 | D24 | Thêm **trình sửa ảnh trang** và **xóa ngón tay** vào bản 1.0 (L9–L14), làm bằng thuật toán xử lý ảnh cổ điển (OpenCV). Bản tự động hoàn toàn bằng mô hình nằm ở gói nâng cấp (Q11, Q12) | Chủ dự án bổ sung; đánh giá là làm được |
-| D25 | Thêm **tự dò viền trang & cắt** (L15–L19) vào bản 1.0, làm bằng thuật toán OpenCV. Bản dùng mô hình ở gói nâng cấp (Q13). Phân biệt rõ: cắt trang PDF thường thì đặt lại CropBox (C7); cắt ảnh scan thì cắt điểm ảnh thật (L15–L19) | Chủ dự án bổ sung; đánh giá là làm được |
+| D25 | Thêm **tự dò viền trang & cắt** (L15–L19) vào bản 1.0, làm bằng thuật toán OpenCV. Bản dùng mô hình ở gói nâng cấp (ban đầu là Q13, nay đã thành L20, xem D26). Phân biệt rõ: cắt trang PDF thường thì đặt lại CropBox (C7); cắt ảnh scan thì cắt điểm ảnh thật (L15–L19) | Chủ dự án bổ sung; đánh giá là làm được |
+| D26 | **Ngoại lệ AI duy nhất ở bản 1.0:** mô hình dò viền trang loại nhỏ (**L20**, vài MB, ONNX Runtime trên CPU, đi kèm bản cài). Chạy song song với thuật toán L15, lấy kết quả tin cậy hơn. Mã Q13 bỏ | Chủ dự án đồng ý; mô hình nhẹ mà khắc phục đúng điểm yếu của thuật toán |
+| D27 | **L6 (tách trang đôi)** vào bản 1.0 (v0.7). Thêm quy trình mẫu **"Chụp sách"** vào O7 | Chủ dự án đồng ý; để đủ quy trình chụp sách |
 
 ## Kiến trúc dự kiến
 
@@ -75,7 +75,8 @@ Chef PDF
     ├── pypdfium2: render trang, liệt kê/sửa đối tượng trang
     ├── pyHanko: ký số PAdES (B-B, B-T, B-LT, B-LTA), PKCS#11, PFX, TSA, kiểm tra chữ ký
     ├── Pillow + img2pdf: xử lý ảnh, tạo PDF ảnh (nhúng JPEG không nén lại)
-    └── OpenCV: làm đẹp bản scan, trình sửa ảnh trang, xóa ngón tay
+    ├── OpenCV: làm đẹp bản scan, trình sửa ảnh trang, xóa ngón tay, dò viền trang
+    └── ONNX Runtime (MIT): chạy mô hình dò viền trang L20
 → GitHub Actions build: .exe / .msi / .dmg / .AppImage / .deb / .rpm
 (Gói nâng cấp Q: các mô hình OCR/bố cục tải riêng, chạy trong cùng Python sidecar)
 ```
@@ -126,7 +127,7 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 - **Bản scan máy:** dò viền tối hoặc vùng bóng quanh tờ giấy bằng ngưỡng màu và hình chiếu theo hàng/cột. Dễ, độ chính xác cao.
 - **Ảnh chụp điện thoại:** dò cạnh (Canny) → tìm đường thẳng (Hough/LSD) → tạo các tứ giác ứng viên → **chấm điểm theo độ tương phản giữa trong và ngoài viền** → chọn tứ giác tốt nhất → nắn phối cảnh. Dropbox mô tả quy trình tương tự (dò cạnh + Hough) cho app scan của họ; có một bài báo đề xuất chấm điểm tứ giác theo độ tương phản để giảm lỗi khi nền gần màu giấy.
 - **Dễ hỏng khi:** giấy và nền cùng màu, nền nhiều họa tiết, cạnh giấy bị ngón tay che hoặc đứt đoạn, trang sách cong. Cách xử lý: điểm tin cậy thấp thì không tự cắt mà đánh dấu để người dùng sửa (L18); sửa tay bằng kéo 4 góc (L17).
-- **Mô hình (Q13):** DocAligner (DocsaidLab) dò 4 góc bằng mô hình nhẹ chạy ONNX trên CPU; trang tổng hợp ghi giấy phép Apache-2.0, **cần kiểm tra lại**.
+- **Mô hình (L20, thuộc bản 1.0 theo D26):** ứng viên DocAligner (DocsaidLab) dò 4 góc bằng mô hình nhẹ chạy ONNX trên CPU; trang tổng hợp ghi giấy phép Apache-2.0, **cần kiểm tra giấy phép cả code lẫn trọng số mô hình**. Nếu giấy phép không ổn thì phải tìm mô hình khác hoặc tự huấn luyện. ONNX Runtime làm bản cài nặng thêm khoảng vài chục MB.
 - Dùng chung với chụp bằng điện thoại (L5): dò viền ngay khi ảnh về máy.
 
 ### Đặc thù Việt Nam
@@ -155,6 +156,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-10-31 (9):** Chủ dự án đồng ý: (1) mô hình dò viền nhẹ vào bản 1.0, thành **L20**, mã Q13 bỏ (D26); (2) **L6** tách trang đôi lên v0.7, thêm quy trình mẫu "Chụp sách" (D27). Thêm ONNX Runtime vào kiến trúc. Bản 1.0 hiện có 160 tính năng, tổng 196.
 - **2026-10-31 (8):** Thêm sau khi chốt: tự dò viền trang & tự cắt, cắt thủ công, cắt hàng loạt, tự nhận khổ giấy → L15–L19 (v0.7); dò viền bằng mô hình → Q13. Thêm D25. Tổng 196 tính năng. Hỏi chủ dự án: đưa L6 vào 1.0? Cho mô hình dò viền nhẹ làm ngoại lệ ở 1.0?
 - **2026-10-31 (7):** Thêm sau khi chốt: trình sửa ảnh trang kiểu ABBYY OCR Editor và xóa ngón tay kiểu vFlat Scan → L9–L14 (v0.7), Q11–Q12 (nâng cấp). Thêm OpenCV vào thư viện lõi (D6), thêm D24. Tổng còn 190 tính năng.
 - **2026-10-31 (6):** Chủ dự án xác nhận: mô hình AI chạy trên máy hoặc API nhận dạng trả phí để dành cho phiên bản nâng cấp sau; chưa cần chạy thử file mẫu. Yêu cầu tổng hợp thành cây tính năng chuẩn và chốt. Claude viết lại FEATURES.md thành **bản 1.0 đã chốt**: 7 khu vực, 17 nhóm A–Q, **đánh lại toàn bộ mã** cho liền mạch, xếp mọi mục 🤔 vào một trong 4 mức, tách phần OCR/AI thành nhóm Q (gói nâng cấp). Tổng 182 tính năng. Viết lại NOTES.md (D2, D20, D22 cập nhật; thêm D23). Bước tiếp theo: lập kế hoạch và ước lượng.

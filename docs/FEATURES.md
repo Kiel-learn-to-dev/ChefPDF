@@ -21,7 +21,7 @@
 2. **Offline hoàn toàn**: không tải tài liệu lên đâu cả. Ngoại lệ duy nhất là những thứ người dùng tự bật: ký từ xa, dấu thời gian TSA, kiểm tra OCSP/CRL, API nhận dạng trả phí.
 3. **Chạy trên Windows, macOS, Linux.**
 4. **Tiếng Việt là ưu tiên số 1**: giao diện, font, tìm kiếm không dấu, thể thức văn bản hành chính, chữ ký số Việt Nam.
-5. **Bản 1.0 không có OCR và không có AI.** Phần đó nằm trong gói nâng cấp (nhóm Q).
+5. **Bản 1.0 không có OCR và không có AI.** Phần đó nằm trong gói nâng cấp (nhóm Q). **Ngoại lệ duy nhất:** mô hình dò viền trang loại nhỏ (L20), chạy offline, đi kèm bản cài.
 
 ## Sơ đồ tổng quan
 
@@ -325,7 +325,7 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | L3 | Làm trắng nền | Nền giấy ngả vàng/xám thành trắng, chữ rõ hơn | v0.7 |
 | L4 | Khử nhiễu, chỉnh sáng | Xóa chấm bẩn; chỉnh sáng, tương phản | v0.7 |
 | L5 | **Chụp tài liệu bằng điện thoại** | App hiện mã QR, điện thoại quét mã (cùng Wi-Fi, không qua internet), chụp xong ảnh về thẳng máy tính, tự cắt và nắn (L2). Không cần cài app trên điện thoại | v0.7 |
-| L6 | Tách trang đôi | Ảnh chụp 2 trang sách mở thành 2 trang | Ý tưởng |
+| L6 | **Tách trang đôi** | Ảnh chụp 2 trang sách mở thành 2 trang riêng: tự dò đường gáy sách (vùng tối/cong giữa 2 trang), cho chỉnh tay đường cắt; thứ tự trang trái → phải. Là một bước của quy trình **chụp sách** | v0.7 |
 | L7 | Tách nhiều ảnh trên một bản scan | Nhiều hóa đơn / thẻ trên một mặt kính thành từng ảnh riêng | Ý tưởng |
 | L8 | Quét từ máy scan | TWAIN/WIA (Windows), ICA (macOS), SANE (Linux) | Ý tưởng |
 | L9 | **Trình sửa ảnh trang** | Chế độ sửa ảnh riêng cho trang scan / trang ảnh, giống công cụ sửa ảnh trong OCR Editor của ABBYY. Sửa **không phá hủy**: luôn giữ ảnh gốc, có lịch sử thao tác, hoàn nguyên được. Áp dụng cho trang hiện tại, các trang chọn hoặc mọi trang. Gom các công cụ L1–L4, L10–L14 vào một chỗ | v0.7 |
@@ -339,6 +339,7 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | L17 | Cắt thủ công: kéo 4 góc | Kéo từng góc độc lập cho trang chụp xiên, xem trước kết quả nắn phối cảnh ngay; kết hợp xoay tinh (±0,1°) | v0.7 |
 | L18 | Cắt hàng loạt & duyệt nhanh | Tự dò viền mọi trang, hiện lưới thumbnail có khung viền đè lên; **trang dò kém được đánh dấu** để chỉ phải sửa tay vài trang. Hoặc dùng một khung cắt cho mọi trang, riêng trang chẵn/lẻ (khi chụp sách) | v0.7 |
 | L19 | Tự nhận khổ giấy | Sau khi cắt, đoán khổ theo tỉ lệ cạnh (A4, A5, Letter, CCCD…) và đặt đúng kích thước trang PDF; hoặc giữ nguyên kích thước thật | v0.7 |
+| L20 | **Dò viền trang bằng mô hình nhẹ** | Mô hình dò 4 góc tờ giấy loại nhỏ (vài MB, chạy ONNX trên CPU, ứng viên: DocAligner), **đi kèm bản cài**. Xử lý các trường hợp thuật toán L15 hay sai: giấy trắng trên bàn trắng, nền lộn xộn, góc bị ngón tay che, ánh sáng xấu. App chạy cả hai cách và chọn kết quả có điểm tin cậy cao hơn. **Ngoại lệ** của nguyên tắc "1.0 không có AI" | v0.7 |
 
 ## M. Tối ưu, chuyển đổi & sửa lỗi
 
@@ -391,7 +392,7 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | O4 | Quy tắc đặt tên đầu ra | `{ten}_{ngay}_da-ky.pdf` | v0.7 |
 | O5 | Tự sắp xếp thứ tự an toàn | Bước "bản scan" luôn đứng trước "ký số", có cảnh báo | v0.7 |
 | O6 | Đổi tên file hàng loạt | Theo mẫu, theo tiêu đề trong metadata, hoặc theo dòng chữ đầu tiên của trang 1 | v0.7 |
-| O7 | Quy trình mẫu có sẵn | "Nộp hồ sơ online" (ghép → bản scan 200 dpi xám → nén ≤ 5MB → ký số); "Phát hành văn bản" (đánh số theo NĐ 30 → ký số → dấu giáp lai) | v0.7 |
+| O7 | Quy trình mẫu có sẵn | "Nộp hồ sơ online" (ghép → bản scan 200 dpi xám → nén ≤ 5MB → ký số); "Phát hành văn bản" (đánh số theo NĐ 30 → ký số → dấu giáp lai); "Chụp sách" (chụp bằng điện thoại → dò viền & cắt → tách trang đôi → làm phẳng trang cong → xóa ngón tay → làm trắng nền → ghép thành PDF) | v0.7 |
 | O8 | Kéo thả lên quy trình | Kéo file thả lên một quy trình ở màn hình Start là chạy | v0.7 |
 | O9 | Dòng lệnh `chefpdf` | Dùng chung lõi xử lý, chạy từ script | Ý tưởng |
 
@@ -424,7 +425,6 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 | Q10 | Kết nối API nhận dạng trả phí | Người dùng tự nhập khóa API; mặc định tắt vì gửi dữ liệu ra ngoài | Nâng cấp |
 | Q11 | Xóa ngón tay tự động hoàn toàn | Dùng mô hình nhận dạng bàn tay để tách ngón tay chính xác (kể cả da tối, giấy ngả vàng, ánh sáng xấu), rồi dùng mô hình vẽ lại vùng bị che (inpainting). Nâng cấp từ L14 | Nâng cấp |
 | Q12 | Làm phẳng trang cong bằng mô hình | Trang cong mạnh, chụp nghiêng, trang không có nhiều chữ. Nâng cấp từ L13 | Nâng cấp |
-| Q13 | Dò viền trang bằng mô hình | Các trường hợp thuật toán thường làm hỏng: giấy trắng trên bàn trắng, nền lộn xộn, góc giấy bị ngón tay che, ánh sáng xấu. Mô hình dò 4 góc loại nhỏ (vài MB, ví dụ kiểu DocAligner). Nâng cấp từ L15 | Nâng cấp |
 
 ---
 
@@ -432,10 +432,10 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.8) | 158 |
+| Bản 1.0 (v0.1–v0.8) | 160 |
 | Sau 1.0 | 4 |
-| Nâng cấp | 13 |
-| Ý tưởng | 21 |
+| Nâng cấp | 12 |
+| Ý tưởng | 20 |
 | **Tổng** | 196 |
 
 ## Thay đổi sau khi chốt
@@ -445,5 +445,8 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
 | 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |
+| 2026-10-31 | L6 | Từ "Ý tưởng" lên **v0.7**, mô tả chi tiết hơn | Chủ dự án đồng ý, để đủ quy trình chụp sách |
+| 2026-10-31 | L20, Q13 | Mô hình dò viền trang đưa vào bản 1.0 thành **L20** (ngoại lệ của nguyên tắc không AI). **Mã Q13 bỏ, không dùng lại** | Chủ dự án đồng ý |
+| 2026-10-31 | O7 | Thêm quy trình mẫu "Chụp sách" | Gom L5, L15, L6, L13, L14, L3 thành một quy trình |
 | 2026-10-31 | L15–L19, Q13 | Thêm tự dò viền trang & tự cắt, cắt thủ công (khung chữ nhật, kéo 4 góc), cắt hàng loạt & duyệt nhanh, tự nhận khổ giấy; bản dò viền bằng mô hình ở gói nâng cấp. Làm rõ C7 và L2 | Chủ dự án bổ sung |
 | 2026-10-31 | Q11–Q12 | Thêm xóa ngón tay tự động hoàn toàn và làm phẳng trang cong bằng mô hình | Bản nâng cấp của L14, L13 |
