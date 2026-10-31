@@ -14,6 +14,9 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "pnpm -r test",
+    "e2e": "pnpm --filter @chef/e2e e2e",
+    "build:core": "node packaging/build-core.mjs",
+    "package": "node packaging/package.mjs",
     "codegen": "pnpm --filter @chef/contracts codegen"
   },
   "devDependencies": {

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chef PDF</title>
+    <link rel="stylesheet" href="fallback.css" />
+    <script src="fallback.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Chef PDF</h1>
+      <p class="muted">
+        Chưa có bản dựng giao diện (<code>apps/ui/dist</code>) hoặc máy chủ dev. Đây là trang dự
+        phòng của vỏ ứng dụng.
+      </p>
+      <dl>
+        <dt>Phiên bản</dt>
+        <dd id="version">…</dd>
+        <dt>Nền tảng</dt>
+        <dd id="platform">…</dd>
+        <dt>Lõi xử lý</dt>
+        <dd id="core-status">…</dd>
+        <dt>Ping</dt>
+        <dd id="ping">…</dd>
+      </dl>
+      <p>
+        <button id="ping-btn" type="button">Ping lõi</button>
+        <button id="open-btn" type="button">Mở tệp…</button>
+      </p>
+      <h2>Sự kiện</h2>
+      <ol id="events"></ol>
+    </main>
+  </body>
+</html>
