@@ -135,7 +135,7 @@ Sẽ chốt lại khi lập kế hoạch.
 | C4 | Ghép file | Nhiều file thành 1, sắp thứ tự, tùy chọn tạo bookmark theo tên file | v0.1 |
 | C5 | Tách file | Theo khoảng trang, mỗi N trang, theo bookmark, theo dung lượng, trang chẵn/lẻ | v0.1 |
 | C6 | Thay thế trang | Thay trang X bằng trang từ file khác | v0.4 |
-| C7 | Cắt lề / đổi khổ | Cắt lề trắng (tự dò), đưa về A4/Letter, co giãn nội dung | v0.4 |
+| C7 | Cắt lề / đổi khổ | Cắt lề trắng (tự dò), đưa về A4/Letter, co giãn nội dung. Áp cho trang PDF thường bằng cách đặt lại khung trang (CropBox), không mất nội dung. Cắt ảnh scan thật sự thì dùng L15–L19 | v0.4 |
 | C8 | Xóa trang trắng | Tự tìm trang trắng (hay gặp khi scan 2 mặt), xem trước rồi mới xóa | v0.4 |
 | C9 | Chia đôi trang | Trang A3 / trang đôi thành 2 trang A4; hoặc cắt trang thành lưới N phần | v0.4 |
 | C10 | Tách thông minh | Tách file mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách | v0.4 |
@@ -321,7 +321,7 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
 | L1 | Chỉnh nghiêng | Tự dò và xoay thẳng trang | v0.7 |
-| L2 | Cắt & nắn | Cắt viền thừa; nắn trang chụp xiên thành hình chữ nhật | v0.7 |
+| L2 | Cắt & nắn | Cắt viền thừa; nắn trang chụp xiên thành hình chữ nhật. Chi tiết ở L15–L19 | v0.7 |
 | L3 | Làm trắng nền | Nền giấy ngả vàng/xám thành trắng, chữ rõ hơn | v0.7 |
 | L4 | Khử nhiễu, chỉnh sáng | Xóa chấm bẩn; chỉnh sáng, tương phản | v0.7 |
 | L5 | **Chụp tài liệu bằng điện thoại** | App hiện mã QR, điện thoại quét mã (cùng Wi-Fi, không qua internet), chụp xong ảnh về thẳng máy tính, tự cắt và nắn (L2). Không cần cài app trên điện thoại | v0.7 |
@@ -334,6 +334,11 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | L12 | Chỉnh mức sáng & độ phân giải | Levels/Curves, đảo màu (âm bản), đổi độ phân giải ảnh (giảm hoặc tăng DPI) | v0.7 |
 | L13 | Làm phẳng trang cong (cơ bản) | Nắn trang sách bị cong ở gáy bằng cách dò các dòng chữ rồi kéo cho thẳng. Hợp với trang cong nhẹ; trang cong mạnh để Q12 | v0.7 |
 | L14 | **Xóa ngón tay (bán tự động)** | Dò vùng màu da chạm mép trang (ngón tay giữ giấy khi chụp), đề xuất vùng xóa; người dùng chỉnh lại bằng cọ, xong tô bằng màu nền giấy. Không khôi phục được chữ nằm dưới ngón tay | v0.7 |
+| L15 | **Tự dò viền trang & tự cắt** | Hai trường hợp. **Bản scan máy:** cắt viền đen/xám của nắp máy scan và bóng mép giấy. **Ảnh chụp điện thoại:** tìm 4 góc tờ giấy (dò cạnh → tìm đường thẳng → chấm điểm các tứ giác theo độ tương phản trong/ngoài), rồi nắn phối cảnh thành hình chữ nhật. Mỗi trang có **điểm tin cậy** | v0.7 |
+| L16 | Cắt thủ công: khung chữ nhật | Kéo 8 tay nắm; **kính lúp** phóng to góc khi kéo; tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do, giữ tỉ lệ khổ giấy); nhập số đo bằng mm; khung tự hít vào viền đã dò | v0.7 |
+| L17 | Cắt thủ công: kéo 4 góc | Kéo từng góc độc lập cho trang chụp xiên, xem trước kết quả nắn phối cảnh ngay; kết hợp xoay tinh (±0,1°) | v0.7 |
+| L18 | Cắt hàng loạt & duyệt nhanh | Tự dò viền mọi trang, hiện lưới thumbnail có khung viền đè lên; **trang dò kém được đánh dấu** để chỉ phải sửa tay vài trang. Hoặc dùng một khung cắt cho mọi trang, riêng trang chẵn/lẻ (khi chụp sách) | v0.7 |
+| L19 | Tự nhận khổ giấy | Sau khi cắt, đoán khổ theo tỉ lệ cạnh (A4, A5, Letter, CCCD…) và đặt đúng kích thước trang PDF; hoặc giữ nguyên kích thước thật | v0.7 |
 
 ## M. Tối ưu, chuyển đổi & sửa lỗi
 
@@ -419,6 +424,7 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 | Q10 | Kết nối API nhận dạng trả phí | Người dùng tự nhập khóa API; mặc định tắt vì gửi dữ liệu ra ngoài | Nâng cấp |
 | Q11 | Xóa ngón tay tự động hoàn toàn | Dùng mô hình nhận dạng bàn tay để tách ngón tay chính xác (kể cả da tối, giấy ngả vàng, ánh sáng xấu), rồi dùng mô hình vẽ lại vùng bị che (inpainting). Nâng cấp từ L14 | Nâng cấp |
 | Q12 | Làm phẳng trang cong bằng mô hình | Trang cong mạnh, chụp nghiêng, trang không có nhiều chữ. Nâng cấp từ L13 | Nâng cấp |
+| Q13 | Dò viền trang bằng mô hình | Các trường hợp thuật toán thường làm hỏng: giấy trắng trên bàn trắng, nền lộn xộn, góc giấy bị ngón tay che, ánh sáng xấu. Mô hình dò 4 góc loại nhỏ (vài MB, ví dụ kiểu DocAligner). Nâng cấp từ L15 | Nâng cấp |
 
 ---
 
@@ -426,11 +432,11 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.8) | 153 |
+| Bản 1.0 (v0.1–v0.8) | 158 |
 | Sau 1.0 | 4 |
-| Nâng cấp | 12 |
+| Nâng cấp | 13 |
 | Ý tưởng | 21 |
-| **Tổng** | 190 |
+| **Tổng** | 196 |
 
 ## Thay đổi sau khi chốt
 
@@ -439,4 +445,5 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
 | 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |
+| 2026-10-31 | L15–L19, Q13 | Thêm tự dò viền trang & tự cắt, cắt thủ công (khung chữ nhật, kéo 4 góc), cắt hàng loạt & duyệt nhanh, tự nhận khổ giấy; bản dò viền bằng mô hình ở gói nâng cấp. Làm rõ C7 và L2 | Chủ dự án bổ sung |
 | 2026-10-31 | Q11–Q12 | Thêm xóa ngón tay tự động hoàn toàn và làm phẳng trang cong bằng mô hình | Bản nâng cấp của L14, L13 |
