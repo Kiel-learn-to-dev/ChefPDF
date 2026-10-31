@@ -1,4 +1,3 @@
-/* global console */
 // Generates dev/sample.pdf: a multi-page Vietnamese document with an outline,
 // used by the mock bridge (?demo) and UI screenshots. Not shipped.
 // Run: NODE_PATH=$(npm root -g) node scripts/make-sample-pdf.mjs

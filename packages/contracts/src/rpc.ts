@@ -73,7 +73,10 @@ export interface RpcMethods {
   /** Starts a job and returns immediately. Result arrives via job.finished. */
   'ops.run': [{ sessionId?: SessionId; opId: string; params: unknown }, { jobId: JobId }];
   'jobs.cancel': [{ jobId: JobId }, null];
-  'session.open': [{ path: string; password?: string }, { state: SessionState; info: DocumentInfo }];
+  'session.open': [
+    { path: string; password?: string },
+    { state: SessionState; info: DocumentInfo },
+  ];
   'session.create': [Record<string, never>, { state: SessionState; info: DocumentInfo }];
   'session.close': [{ sessionId: SessionId }, null];
   'session.state': [{ sessionId: SessionId }, SessionState];
@@ -93,7 +96,7 @@ export interface RpcNotifications {
   'job.finished': { jobId: JobId; result: OpResult };
   'job.failed': { jobId: JobId; error: RpcError };
   'job.cancelled': { jobId: JobId };
-  'log': { level: 'debug' | 'info' | 'warning' | 'error'; message: string };
+  log: { level: 'debug' | 'info' | 'warning' | 'error'; message: string };
 }
 
 export type RpcNotification = keyof RpcNotifications;

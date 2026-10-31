@@ -6,3 +6,4 @@ core/
 docs/
 *.md
 packages/contracts/src/generated/
+.claude/

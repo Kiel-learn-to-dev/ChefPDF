@@ -1,4 +1,4 @@
-/* global console, process, localStorage */
+/* global localStorage */
 // Takes UI screenshots against the dev server (mock bridge) in light and dark themes.
 // Run: pnpm --filter @chef/ui dev   (in another terminal), then
 //      NODE_PATH=$(npm root -g) node scripts/screenshots.mjs [outDir]

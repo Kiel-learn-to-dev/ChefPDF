@@ -158,13 +158,11 @@ export function Viewer({ doc }: { doc: DocTab }) {
     eventBus.on(
       'updatefindcontrolstate',
       (e: { state: number; matchesCount: { current: number; total: number } }) =>
-        useFind
-          .getState()
-          .set({
-            status: statusFromPdfjs(e.state),
-            current: e.matchesCount.current,
-            total: e.matchesCount.total,
-          }),
+        useFind.getState().set({
+          status: statusFromPdfjs(e.state),
+          current: e.matchesCount.current,
+          total: e.matchesCount.total,
+        }),
     );
 
     const unregister = registerViewer(docId, {

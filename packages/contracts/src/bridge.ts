@@ -2,13 +2,7 @@
  * API exposed by the preload script on `window.chef` (contextBridge).
  * Source of truth: docs/CONTRACTS.md. Keep both in sync.
  */
-import type {
-  RpcMethod,
-  RpcNotification,
-  RpcNotifications,
-  RpcParams,
-  RpcResult,
-} from './rpc';
+import type { RpcMethod, RpcNotification, RpcNotifications, RpcParams, RpcResult } from './rpc';
 
 export interface FileFilter {
   name: string;

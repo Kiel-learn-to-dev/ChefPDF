@@ -105,15 +105,13 @@ export function previewNames(
   groups: PageGroup[],
   limit = 5,
 ): string[] {
-  return groups
-    .slice(0, limit)
-    .map((g, i) =>
-      renderName(template, {
-        name: sourceName,
-        index: i + 1,
-        total: groups.length,
-        start: g.start,
-        end: g.end,
-      }),
-    );
+  return groups.slice(0, limit).map((g, i) =>
+    renderName(template, {
+      name: sourceName,
+      index: i + 1,
+      total: groups.length,
+      start: g.start,
+      end: g.end,
+    }),
+  );
 }

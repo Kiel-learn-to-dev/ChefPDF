@@ -1,4 +1,4 @@
-/* global console, process, document, URL */
+/* global document */
 // Interaction smoke test against the dev server with the mock bridge.
 // Run: pnpm --filter @chef/ui dev, then NODE_PATH=$(npm root -g) node scripts/smoke.mjs
 import { createRequire } from 'node:module';

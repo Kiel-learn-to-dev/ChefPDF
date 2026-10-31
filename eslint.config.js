@@ -28,6 +28,8 @@ const browserGlobals = readonly(['window', 'document', 'console', 'setTimeout', 
 export default tseslint.config(
   {
     ignores: [
+      '.claude/**',
+      'spikes/**',
       '**/dist/**',
       '**/out/**',
       '**/release/**',
