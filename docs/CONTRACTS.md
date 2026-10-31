@@ -73,7 +73,9 @@ All signatures are in `RpcMethods` (`rpc.ts`).
 ## 5. Viewer file access
 
 - The renderer loads revision files via `chef.files.toUrl(absPath)`, which returns `chef-file://f/<encodeURIComponent(absPath)>`.
-- Main registers the `chef-file` protocol and **only** serves files that are (a) inside `<data-dir>/sessions` or `<data-dir>/cache`, or (b) paths returned by `files.openDialog` / passed by the OS in this app run. Anything else → 403.
+- Dropped files: `chef.files.pathForFile(file)` returns the absolute path (Electron `webUtils.getPathForFile`) and grants it to `chef-file`.
+- Folder picker: `chef.files.openDialog({ directory: true })`.
+- Main registers the `chef-file` protocol and **only** serves files that are (a) inside `<data-dir>/sessions` or `<data-dir>/cache`, or (b) paths returned by `files.openDialog`, passed by the OS, or dropped (`files.pathForFile`) in this app run. Anything else → 403.
 - pdf.js must be configured with `isEvalSupported: false` and scripting disabled.
 
 ## 6. Operations

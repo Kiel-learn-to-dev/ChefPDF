@@ -107,8 +107,11 @@ export function useThumbnail(
 ): string | undefined {
   const key = `${pageIndex}@${width}`;
   const cached = docCache(doc).pages.get(key);
-  // Last image rendered by this hook: shown while a newer revision renders (no flash).
-  const [rendered, setRendered] = useState<string | undefined>(undefined);
+  // Last image rendered by this hook: shown while a newer revision renders (no flash),
+  // but only when page identities did not shift (lastChange is a page list). After a
+  // structural change ('all': delete, reorder, insert…) a stale image could belong to a
+  // different page, so a placeholder is shown instead.
+  const [rendered, setRendered] = useState<{ url: string; version: number } | undefined>(undefined);
   const version = doc.version;
 
   useEffect(() => {
@@ -124,7 +127,7 @@ export function useThumbnail(
         if (!u) return;
         // Only cache when the pdf matches the doc's current version.
         if (docCache(doc).version === version) c.pages.set(key, u);
-        if (!cancelled) setRendered(u);
+        if (!cancelled) setRendered({ url: u, version });
       })
       .catch(() => undefined);
     return () => {
@@ -133,7 +136,10 @@ export function useThumbnail(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id, version, pdf, key, visible]);
 
-  return cached ?? rendered;
+  if (cached) return cached;
+  if (!rendered) return undefined;
+  if (rendered.version === version || doc.lastChange !== 'all') return rendered.url;
+  return undefined;
 }
 
 /** IntersectionObserver-based visibility for lazy rendering. */

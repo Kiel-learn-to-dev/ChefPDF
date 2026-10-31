@@ -61,6 +61,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Sync core (real-core integration tests)
+        working-directory: core
+        run: uv sync --locked
       - name: Build UI
         run: pnpm --filter @chef/ui build
       - name: E2E tests (Linux, virtual display)

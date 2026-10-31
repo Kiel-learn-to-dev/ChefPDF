@@ -46,7 +46,7 @@
 | T1.04 | Operation registry + job runner (tiến độ, hủy, process pool) + codegen pydantic → JSON Schema → kiểu TS | | 2 | T1.03 | ✅ |
 | T1.05 | Phiên tài liệu: bản sao làm việc, bản sửa, journal, hoàn tác/làm lại, danh sách trang thay đổi, Lưu / Lưu thành an toàn | A6 | 2,5 | T1.04 | ✅ |
 | T1.06 | Đóng gói: PyInstaller onedir + electron-builder; GitHub Actions build 3 OS; đo dung lượng bộ cài và thời gian khởi động | A8 | 2,5 | T1.02, T1.03 | ✅ |
-| T1.07 | Hạ tầng test: pytest, Vitest, Playwright-Electron; script sinh bộ PDF mẫu tiếng Việt; workflow `ci.yml` | | 1,5 | T1.01 | 🔄 |
+| T1.07 | Hạ tầng test: pytest, Vitest, Playwright-Electron; script sinh bộ PDF mẫu tiếng Việt; workflow `ci.yml` | | 1,5 | T1.01 | ✅ |
 
 ### Spike (thử nghiệm sớm để giảm rủi ro)
 
@@ -59,27 +59,27 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T1.10 | Design system: token sáng/tối, thành phần nền (Radix), icon, font, i18n vi/en | A4 | 2,5 | T1.02 | 🔄 |
-| T1.11 | App shell: tab tài liệu, tab chức năng + toolbar ngữ cảnh, thanh bên, panel thuộc tính, thanh trạng thái, job panel | A2 | 2,5 | T1.10 | 🔄 |
-| T1.12 | Mẫu "Task dialog" dùng chung: preset, tùy chọn chính, nâng cao, xem trước, ước tính, áp dụng nhiều file | | 1,5 | T1.11, T1.04 | 🔄 |
-| T1.13 | Màn hình Start: ô nhiệm vụ, file gần đây, kéo thả | A1 | 1,5 | T1.11 | 🔄 |
-| T1.14 | Bảng lệnh `Ctrl+K`, tìm không dấu | A3 | 1 | T1.11 | 🔄 |
-| T1.15 | Cài đặt: lưu/đọc settings, màn hình cài đặt | A4 | 1 | T1.10 | 🔄 |
-| T1.16 | Trình xem pdf.js: render trong worker, ảo hóa trang, zoom, xoay khung nhìn; chế độ một trang / liên tục / hai trang / sách / trình chiếu | B1, B2 | 3 | T1.11 | 🔄 |
-| T1.17 | Thanh bên: thumbnail, mục lục | B3 | 1,5 | T1.16 | 🔄 |
-| T1.18 | Tìm kiếm có tô sáng, **tìm không dấu** | B4 | 1,5 | T1.16 | 🔄 |
-| T1.19 | Chọn & copy chữ; chụp một vùng thành ảnh | B5 | 1 | T1.16 | 🔄 |
-| T1.20 | Hỏi mật khẩu khi mở; xem thuộc tính tài liệu | B6, B7 | 1 | T1.16 | 🔄 |
+| T1.10 | Design system: token sáng/tối, thành phần nền (Radix), icon, font, i18n vi/en | A4 | 2,5 | T1.02 | ✅ |
+| T1.11 | App shell: tab tài liệu, tab chức năng + toolbar ngữ cảnh, thanh bên, panel thuộc tính, thanh trạng thái, job panel | A2 | 2,5 | T1.10 | ✅ |
+| T1.12 | Mẫu "Task dialog" dùng chung: preset, tùy chọn chính, nâng cao, xem trước, ước tính, áp dụng nhiều file | | 1,5 | T1.11, T1.04 | ✅ |
+| T1.13 | Màn hình Start: ô nhiệm vụ, file gần đây, kéo thả | A1 | 1,5 | T1.11 | ✅ |
+| T1.14 | Bảng lệnh `Ctrl+K`, tìm không dấu | A3 | 1 | T1.11 | ✅ |
+| T1.15 | Cài đặt: lưu/đọc settings, màn hình cài đặt | A4 | 1 | T1.10 | ✅ |
+| T1.16 | Trình xem pdf.js: render trong worker, ảo hóa trang, zoom, xoay khung nhìn; chế độ một trang / liên tục / hai trang / sách / trình chiếu | B1, B2 | 3 | T1.11 | ✅ |
+| T1.17 | Thanh bên: thumbnail, mục lục | B3 | 1,5 | T1.16 | ✅ |
+| T1.18 | Tìm kiếm có tô sáng, **tìm không dấu** | B4 | 1,5 | T1.16 | ✅ |
+| T1.19 | Chọn & copy chữ; chụp một vùng thành ảnh | B5 | 1 | T1.16 | ✅ |
+| T1.20 | Hỏi mật khẩu khi mở; xem thuộc tính tài liệu | B6, B7 | 1 | T1.16 | ✅ |
 | T1.21 | Mở file từ OS, liên kết đuôi `.pdf`, "Open with" | A5 | 1 | T1.06 | ✅ |
-| T1.22 | In qua hộp thoại của OS, chọn trang | A7 | 1 | T1.16 | 🔄 |
+| T1.22 | In qua hộp thoại của OS, chọn trang | A7 | 1 | T1.16 | ✅ |
 
 ### Sắp xếp trang
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
 | T1.23 | Operation trang: xoay, xóa, nhân bản, trích; chèn trang trắng / từ file / từ ảnh / từ clipboard | C2, C3 | 2 | T1.05 | ✅ |
-| T1.24 | Lưới thumbnail: kéo thả đổi thứ tự, chọn nhiều | C1 | 2 | T1.17, T1.23 | 🔄 |
-| T1.25 | Ghép file (kèm tạo bookmark theo tên file), tách file (theo khoảng, mỗi N trang, bookmark, dung lượng, chẵn/lẻ) | C4, C5 | 2 | T1.12, T1.23 | 🔄 |
+| T1.24 | Lưới thumbnail: kéo thả đổi thứ tự, chọn nhiều | C1 | 2 | T1.17, T1.23 | ✅ |
+| T1.25 | Ghép file (kèm tạo bookmark theo tên file), tách file (theo khoảng, mỗi N trang, bookmark, dung lượng, chẵn/lẻ) | C4, C5 | 2 | T1.12, T1.23 | ✅ |
 
 ---
 

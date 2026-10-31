@@ -5,7 +5,7 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** ✅ Đã chốt cây tính năng 1.0 ([FEATURES.md](FEATURES.md)). ✅ **Đã lập kế hoạch**: [BLUEPRINT.md](BLUEPRINT.md) (kiến trúc, quy ước, mốc, rủi ro) và [TASKS.md](TASKS.md) (118 task, 262 điểm). **Chưa viết code.**
+- **Giai đoạn:** ✅ Đã chốt cây tính năng 1.0. ✅ Đã lập kế hoạch ([BLUEPRINT.md](BLUEPRINT.md), [TASKS.md](TASKS.md)). ✅ **Code xong mốc v0.1** (24/25 task; T1.08 chờ token thật). Chờ chủ dự án dùng thử và duyệt v0.1.
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
@@ -16,7 +16,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo:** Chủ dự án duyệt blueprint → trả lời CH1 (OS chính, token của CA nào) → bắt đầu **v0.1** từ T1.01 (dựng monorepo). Trạng thái từng task theo dõi trong TASKS.md.
+- **Việc tiếp theo:** Chủ dự án chạy thử v0.1 (`pnpm install && (cd core && uv sync) && pnpm dev`, hoặc bộ cài từ CI) và chạy `spikes/s1_token_probe.py` với token thật → bắt đầu **v0.2 (Bản scan)**.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
   - **CH1:** máy chính chạy OS nào? Token của CA nào? → chạy `cd spikes && uv sync && uv run python s1_token_probe.py` trên máy có token, gửi lại `token_probe_report.json` (hướng dẫn ở `docs/spikes/S1-pkcs11.md` mục 9)
@@ -165,6 +165,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-10-31 (14):** **Hoàn thành code v0.1.** Ghép nhánh UI; bổ sung cầu nối `files.pathForFile` (kéo thả file) và `openDialog({directory})`; sửa lỗi thumbnail cũ hiện sai vị trí ngay sau khi xóa/chèn trang; thêm test tích hợp **lõi thật + UI thật** (`tests/e2e/specs/integration.spec.ts`). Kết quả: lõi 101 test, desktop 72, UI 71, e2e 14 (gồm 4 test lõi thật), lint/typecheck/mypy/ruff sạch. Đóng gói Linux với lõi PyInstaller thật: AppImage 156MB, deb 127MB, rpm 113MB; bản đóng gói hiện trang đầu sau ~0,8s. **Tốc độ:** v0.1 (42 điểm) xong trong một phiên làm việc với 4 agent song song. Bộ cài Windows/macOS sẽ do CI build.
 - **2026-10-31 (13):** Ghép spike. **S1** (SoftHSM2): ký ẩn, ký hiển thị tiếng Việt + ảnh trong suốt, B-T/B-LT/B-LTA, 2 người ký, certify đều hợp lệ; đọc lại được MST/CCCD; 10 file một lần PIN mất 0,3s. Mọi TSA công khai bị proxy chặn nên thử bằng TSA cục bộ. **S2**: stack giấy phép thoáng đủ sức, giữ D7 (D33). Thêm D34. Ước lượng: v0.3 31,5; v0.6 21,5.
 - **2026-10-31 (12):** Ghép nhánh desktop: T1.02, T1.06, T1.21 xong; phần main/CI của T1.07, T1.15 xong (72 unit test, 10 e2e). Hạ TypeScript từ 7.0 xuống **6.0.3** vì typescript-eslint chưa hỗ trợ TS 7. UI chạy dưới scheme `chef-app://ui/`. CI thêm bước kiểm tra codegen. Bộ cài Linux (chưa có UI, lõi giả): AppImage ~132MB; khởi động nguội ~0,5s.
 - **2026-10-31 (11):** Bắt đầu code v0.1 với 4 sub agent song song (core, desktop, UI, spike). T1.01 xong (khung monorepo + `docs/CONTRACTS.md`). Ghép nhánh core: T1.03–T1.05, T1.23 xong; phần lõi của T1.20, T1.25, T1.07 xong (101 test). Bổ sung hợp đồng: `OpResult.state` có thể null (op standalone), `session.save` trả thêm `warnings`, bảng mã lỗi chi tiết. **Quyết định mặc định:** file đã có chữ ký thì chặn các thao tác ghi lại tài liệu (`BLOCKED_BY_SIGNATURE`), cho phép trích/tách/ghép.
