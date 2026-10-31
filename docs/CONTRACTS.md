@@ -34,6 +34,8 @@ Renderer (apps/ui)  --window.chef (preload)-->  Main (apps/desktop)  --JSON-RPC 
   - JSON-RPC codes: `-32700` parse error and `-32600` invalid request (`kind: INVALID_PARAMS`), `-32601` method not found (`kind: OP_NOT_FOUND`), `-32602` invalid params (`kind: INVALID_PARAMS`), `-32000` application error (all other kinds, incl. unknown `opId` in `ops.run` → `OP_NOT_FOUND`, request aborted by shutdown → `CANCELLED`).
   - `jobs.cancel` on an unknown or already finished job returns `null` (no error).
 - Large binary data never goes through stdio. Pass file paths instead.
+- **Renderer side:** `chef.rpc()` rejects with a plain object `{ name: 'RpcError', code, message, data: { kind, detail? } }` (not an `Error`, because contextBridge strips custom properties from `Error`). If the core is down, in-flight requests reject with `kind: 'INTERNAL'`.
+- `system.shutdown` can only be called by main; from the renderer it is rejected with `INVALID_PARAMS`.
 
 ## 4. Methods
 
@@ -105,6 +107,8 @@ All signatures are in `RpcMethods` (`rpc.ts`).
 
 - Stored by main in `<userData>/settings.json` (`Settings` in `bridge.ts`, `version: 1`).
 - `recentFiles` keeps the 20 most recent, newest first, de-duplicated by path.
+- `settings.set(patch)` merges **shallowly**: each top-level key replaces the whole value (e.g. `prefs` is replaced, not deep-merged). Unknown keys or invalid values reject the call.
+- Production UI is served from `chef-app://ui/` (so the UI build must use relative asset paths, Vite `base: './'`). CSP: `script-src 'self' 'wasm-unsafe-eval'`, no inline scripts, no `eval`.
 
 ## 8. Conventions
 

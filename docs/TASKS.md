@@ -41,11 +41,11 @@
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
 | T1.01 | Dựng monorepo: pnpm workspaces, uv, ruff/mypy, ESLint/Prettier, editorconfig; **chốt và ghim phiên bản** các công nghệ | | 1 | | ✅ |
-| T1.02 | Electron shell: main/preload/renderer, cấu hình bảo mật (contextIsolation, sandbox, CSP), cửa sổ, menu, một phiên bản app duy nhất | | 1,5 | T1.01 | 🔄 |
+| T1.02 | Electron shell: main/preload/renderer, cấu hình bảo mật (contextIsolation, sandbox, CSP), cửa sổ, menu, một phiên bản app duy nhất | | 1,5 | T1.01 | ✅ |
 | T1.03 | Sidecar Python: JSON-RPC qua stdio, khởi động / theo dõi / tự khởi động lại, log, `ping` | | 2 | T1.01 | ✅ |
 | T1.04 | Operation registry + job runner (tiến độ, hủy, process pool) + codegen pydantic → JSON Schema → kiểu TS | | 2 | T1.03 | ✅ |
 | T1.05 | Phiên tài liệu: bản sao làm việc, bản sửa, journal, hoàn tác/làm lại, danh sách trang thay đổi, Lưu / Lưu thành an toàn | A6 | 2,5 | T1.04 | ✅ |
-| T1.06 | Đóng gói: PyInstaller onedir + electron-builder; GitHub Actions build 3 OS; đo dung lượng bộ cài và thời gian khởi động | A8 | 2,5 | T1.02, T1.03 | 🔄 |
+| T1.06 | Đóng gói: PyInstaller onedir + electron-builder; GitHub Actions build 3 OS; đo dung lượng bộ cài và thời gian khởi động | A8 | 2,5 | T1.02, T1.03 | ✅ |
 | T1.07 | Hạ tầng test: pytest, Vitest, Playwright-Electron; script sinh bộ PDF mẫu tiếng Việt; workflow `ci.yml` | | 1,5 | T1.01 | 🔄 |
 
 ### Spike (thử nghiệm sớm để giảm rủi ro)
@@ -70,7 +70,7 @@
 | T1.18 | Tìm kiếm có tô sáng, **tìm không dấu** | B4 | 1,5 | T1.16 | 🔄 |
 | T1.19 | Chọn & copy chữ; chụp một vùng thành ảnh | B5 | 1 | T1.16 | 🔄 |
 | T1.20 | Hỏi mật khẩu khi mở; xem thuộc tính tài liệu | B6, B7 | 1 | T1.16 | 🔄 |
-| T1.21 | Mở file từ OS, liên kết đuôi `.pdf`, "Open with" | A5 | 1 | T1.06 | 🔄 |
+| T1.21 | Mở file từ OS, liên kết đuôi `.pdf`, "Open with" | A5 | 1 | T1.06 | ✅ |
 | T1.22 | In qua hộp thoại của OS, chọn trang | A7 | 1 | T1.16 | 🔄 |
 
 ### Sắp xếp trang

@@ -44,6 +44,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
+      - run: uv run python -m chef_core.codegen --check
 
   e2e:
     name: E2E (${{ matrix.os }})
