@@ -140,6 +140,13 @@ export interface BorderStyle {
   width?: number;
 }
 
+export interface CropBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface FixedPlacement {
   kind: 'fixed';
   /** @default "bottom-right" */
@@ -850,6 +857,176 @@ export interface CompressPdfParams {
   recompressStreams?: boolean;
   /** Store objects in compressed object streams. */
   useObjectStreams?: boolean;
+}
+
+/** Edit the pixels of one image placement; the result is a new image XObject. */
+export interface ContentAdjustImageParams {
+  pageIndex: number;
+  objectId: string;
+  /** Crop rectangle in pixels. */
+  crop?: CropBox;
+  /**
+   * Clockwise degrees: 0, 90, 180 or 270.
+   * @default 0
+   */
+  rotate?: number;
+  /** @default "none" */
+  flip?: 'none' | 'h' | 'v';
+  /** @default false */
+  grayscale?: boolean;
+  /** @default false */
+  invert?: boolean;
+  /** @default 0 */
+  brightness?: number;
+  /** @default 0 */
+  contrast?: number;
+  /** @default 0 */
+  saturation?: number;
+  /** @default 1.0 */
+  gamma?: number;
+}
+
+/** Delete objects. Text keeps the position of the text after it. */
+export interface ContentDeleteParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+}
+
+/** Copy objects, displaced by dx, dy (displayed frame, points, y downwards). */
+export interface ContentDuplicateParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+  /** @default 0.0 */
+  dx?: number;
+  /** @default 0.0 */
+  dy?: number;
+}
+
+/** Write the original image of a placement to a file. */
+export interface ContentExtractImageParams {
+  pageIndex: number;
+  objectId: string;
+  outputPath: string;
+}
+
+/** Objects under a point of a page. */
+export interface ContentHitTestParams {
+  pageIndex: number;
+  x: number;
+  /** Points from the top (unit 'pt') or user space y (unit 'user'). */
+  y: number;
+  /**
+   * Coordinates to use.
+   * @default "pt"
+   */
+  unit?: 'pt' | 'user';
+  /**
+   * Test the objects of forms.
+   * @default true
+   */
+  includeForms?: boolean;
+}
+
+/** List the paint objects of one page. */
+export interface ContentListObjectsParams {
+  /** 0-based page. */
+  pageIndex: number;
+  /**
+   * Also list objects drawn by forms.
+   * @default false
+   */
+  includeForms?: boolean;
+  /** Only these kinds. */
+  kinds?: ('text' | 'image' | 'path' | 'shading' | 'form')[];
+}
+
+/** Move objects by a displacement in the displayed frame (points, y downwards). */
+export interface ContentMoveParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+  /** @default 0.0 */
+  dx?: number;
+  /** @default 0.0 */
+  dy?: number;
+}
+
+/** Change the stacking order: front, back, one step forward or one step backward. */
+export interface ContentReorderParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+  mode: 'front' | 'back' | 'forward' | 'backward';
+}
+
+/** Replace an image placement by another image file. */
+export interface ContentReplaceImageParams {
+  pageIndex: number;
+  objectId: string;
+  /** PNG or JPEG file. */
+  path: string;
+  /** @default "contain" */
+  fit?: 'stretch' | 'contain' | 'cover';
+  /**
+   * False forces stretch: the image fills the old box.
+   * @default true
+   */
+  keepAspectBox?: boolean;
+}
+
+/** Set the fill and/or stroke colour of text and paths ('#rrggbb'). */
+export interface ContentSetColorParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+  fill?: string;
+  stroke?: string;
+}
+
+/** Set the opacity of objects (0 transparent .. 1 opaque). */
+export interface ContentSetOpacityParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+  opacity: number;
+}
+
+/** Transform objects by a matrix in page user space (PDF order a b c d e f). */
+export interface ContentTransformParams {
+  /** Object ids of the current revision. */
+  ids: string[];
+  /**
+   * Allow editing objects drawn by forms (the page's forms are inlined).
+   * @default false
+   */
+  flattenForms?: boolean;
+  matrix: number[];
 }
 
 /** Make a PDF with one page per image, in the order given. */
@@ -2531,6 +2708,18 @@ export interface OpParams {
   'compress.file': CompressFileParams;
   'compress.fitSize': CompressFitSizeParams;
   'compress.pdf': CompressPdfParams;
+  'content.adjustImage': ContentAdjustImageParams;
+  'content.delete': ContentDeleteParams;
+  'content.duplicate': ContentDuplicateParams;
+  'content.extractImage': ContentExtractImageParams;
+  'content.hitTest': ContentHitTestParams;
+  'content.listObjects': ContentListObjectsParams;
+  'content.move': ContentMoveParams;
+  'content.reorder': ContentReorderParams;
+  'content.replaceImage': ContentReplaceImageParams;
+  'content.setColor': ContentSetColorParams;
+  'content.setOpacity': ContentSetOpacityParams;
+  'content.transform': ContentTransformParams;
   'convert.imagesToPdf': ConvertImagesToPdfParams;
   'convert.pdfToImages': ConvertPdfToImagesParams;
   'doc.attachments.add': DocAttachmentsAddParams;
@@ -2624,6 +2813,18 @@ export const OP_IDS = [
   'compress.file',
   'compress.fitSize',
   'compress.pdf',
+  'content.adjustImage',
+  'content.delete',
+  'content.duplicate',
+  'content.extractImage',
+  'content.hitTest',
+  'content.listObjects',
+  'content.move',
+  'content.reorder',
+  'content.replaceImage',
+  'content.setColor',
+  'content.setOpacity',
+  'content.transform',
   'convert.imagesToPdf',
   'convert.pdfToImages',
   'doc.attachments.add',

@@ -37,6 +37,8 @@ BUILTIN_MODULES = (
     "chef_core.ops.convert",
     "chef_core.ops.color",
     "chef_core.ops.pageedit",
+    "chef_core.ops.content",
+    "chef_core.ops.content_image",
 )
 
 
