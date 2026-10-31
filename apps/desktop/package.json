@@ -1,5 +1,6 @@
 {
   "name": "@chef/desktop",
+  "productName": "Chef PDF",
   "version": "0.1.0",
   "private": true,
   "description": "Chef PDF desktop shell (Electron main + preload)",
@@ -9,12 +10,10 @@
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run --passWithNoTests"
-  },
-  "dependencies": {
-    "@chef/contracts": "workspace:*"
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@chef/contracts": "workspace:*",
     "@types/node": "^26.6.6",
     "electron": "45.2.1",
     "electron-builder": "^26.18.0",

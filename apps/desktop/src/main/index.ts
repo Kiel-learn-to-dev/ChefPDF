@@ -1,0 +1,274 @@
+/**
+ * Electron main entry: wires window, menu, protocols, sidecar, settings and OS file opening.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { app, BrowserWindow, dialog, nativeTheme, protocol, session, shell } from 'electron';
+import type { ChefEvent, RpcNotification, RpcNotifications, Settings } from '@chef/contracts';
+import { APP_SCHEME, FILE_SCHEME, IpcChannels } from '../shared/ipc';
+import { PathAllowlist } from './allowlist';
+import { buildCsp } from './csp';
+import { defaultOpenFilters, registerIpc } from './ipc';
+import { labelsFor } from './labels';
+import { RotatingLog } from './logger';
+import { installMenu } from './menu';
+import { OpenFilesController, argvSkipCount, parseFileArgs } from './openFiles';
+import { repoRootFrom, resolveUi } from './paths';
+import { createAppHandler, createFileHandler, privilegedSchemes } from './protocol';
+import { SettingsStore } from './settings';
+import { SidecarManager, resolveCoreCommand, type CoreStatus } from './sidecar';
+import { createMainWindow, trustedOrigins } from './window';
+
+const APP_TITLE = 'Chef PDF';
+const isDev = !app.isPackaged;
+const devServerUrl = isDev ? process.env.CHEF_DEV_SERVER_URL || undefined : undefined;
+
+// --- Paths (must be settled before the single-instance lock, which keys on userData) ---
+app.setName(APP_TITLE);
+if (process.env.CHEF_USER_DATA_DIR) {
+  app.setPath('userData', path.resolve(process.env.CHEF_USER_DATA_DIR));
+} else if (isDev) {
+  app.setPath('userData', path.join(app.getPath('appData'), `${APP_TITLE} (dev)`));
+}
+const userData = app.getPath('userData');
+const logsDir = path.join(userData, 'logs');
+const sessionsDir = path.join(userData, 'sessions');
+const cacheDir = path.join(userData, 'cache');
+for (const dir of [logsDir, sessionsDir, cacheDir]) fs.mkdirSync(dir, { recursive: true });
+
+const mainLog = new RotatingLog(path.join(logsDir, 'main.log'));
+const log = (message: string): void => {
+  mainLog.line(message);
+  if (process.env.CHEF_STARTUP_TRACE) console.log(`[chef] ${message}`);
+};
+process.on('uncaughtException', (err) => log(`uncaughtException: ${err.stack ?? err.message}`));
+process.on('unhandledRejection', (err) => log(`unhandledRejection: ${String(err)}`));
+
+// Sandbox every renderer. Skipped only when Chromium's OS sandbox is explicitly disabled with
+// --no-sandbox (CI containers running as root), where forcing it would crash child processes.
+// Windows still get `sandbox: true` in their webPreferences either way.
+if (!app.commandLine.hasSwitch('no-sandbox')) app.enableSandbox();
+protocol.registerSchemesAsPrivileged(privilegedSchemes);
+
+const allowlist = new PathAllowlist([sessionsDir, cacheDir]);
+const openFiles = new OpenFilesController((file) => allowlist.addFile(file));
+const skip = argvSkipCount(app.isPackaged, Boolean(process.defaultApp));
+
+let mainWindow: BrowserWindow | null = null;
+let sidecar: SidecarManager | null = null;
+let coreStatus: CoreStatus = 'starting';
+
+function broadcast(event: ChefEvent): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send(IpcChannels.event, event);
+  }
+}
+
+function focusMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+const gotLock = app.requestSingleInstanceLock({ argv: process.argv, cwd: process.cwd() });
+if (!gotLock) {
+  app.quit();
+} else {
+  // Files passed at launch.
+  openFiles.add(parseFileArgs(process.argv, { cwd: process.cwd(), skip }));
+
+  // macOS delivers "Open with" / double-click via open-file, possibly before `ready`.
+  app.on('open-file', (event, file) => {
+    event.preventDefault();
+    openFiles.add([path.resolve(file)]);
+    if (app.isReady() && !mainWindow) openMainWindow();
+    else focusMainWindow();
+  });
+
+  app.on('second-instance', (_event, argv, cwd, additionalData) => {
+    const data = (additionalData ?? {}) as { argv?: unknown; cwd?: unknown };
+    const args =
+      Array.isArray(data.argv) && data.argv.every((a) => typeof a === 'string') ? data.argv : argv;
+    const dir = typeof data.cwd === 'string' ? data.cwd : cwd;
+    openFiles.add(parseFileArgs(args as string[], { cwd: dir, skip }));
+    if (!mainWindow) openMainWindow();
+    else focusMainWindow();
+  });
+
+  void app.whenReady().then(onReady);
+}
+
+let settings: SettingsStore;
+let csp = '';
+let openMainWindow: () => void = () => {};
+
+async function onReady(): Promise<void> {
+  log(
+    `startup: app ready at ${Math.round(process.uptime() * 1000)} ms (v${app.getVersion()}, ${isDev ? 'dev' : 'packaged'})`,
+  );
+  settings = new SettingsStore(userData);
+  let current: Settings = await settings.load();
+  nativeTheme.themeSource = current.theme;
+
+  csp = buildCsp({ devServerUrl });
+  hardenSession();
+
+  const ui = resolveUi(app.getAppPath(), app.isPackaged, process.env.CHEF_UI_DIR);
+  if (ui.fallback) log(`UI build not found; serving fallback page from ${ui.root}`);
+  protocol.handle(APP_SCHEME, createAppHandler({ root: ui.root, index: ui.index, csp }));
+  protocol.handle(FILE_SCHEME, createFileHandler(allowlist));
+
+  startSidecar();
+
+  const origins = trustedOrigins(devServerUrl);
+  registerIpc({
+    sidecar: sidecar!,
+    settings,
+    allowlist,
+    openFiles,
+    trustedOrigins: origins,
+    labels: () => labelsFor(settings.get().language),
+    log,
+  });
+
+  const menuActions = {
+    open: () => void showOpenFromMenu(),
+    about: () => void showAbout(),
+    openLogs: () => void shell.openPath(logsDir),
+    openDataDir: () => void shell.openPath(userData),
+  };
+  const applyMenu = (s: Settings): void =>
+    installMenu(labelsFor(s.language), menuActions, { platform: process.platform, isDev });
+  applyMenu(current);
+  settings.onChange((next) => {
+    if (next.language !== current.language) applyMenu(next);
+    if (next.theme !== current.theme) nativeTheme.themeSource = next.theme;
+    current = next;
+  });
+
+  openMainWindow = () => {
+    const win = createMainWindow({
+      preloadPath: path.join(__dirname, '../preload/index.js'),
+      statePath: path.join(userData, 'window-state.json'),
+      appVersion: app.getVersion(),
+      devServerUrl,
+      title: APP_TITLE,
+      log,
+    });
+    mainWindow = win;
+    win.webContents.on('did-finish-load', () => {
+      log(`startup: renderer loaded at ${Math.round(process.uptime() * 1000)} ms`);
+      win.webContents.send(IpcChannels.event, {
+        type: 'core-status',
+        status: coreStatus,
+      } satisfies ChefEvent);
+      openFiles.attach((paths) => {
+        broadcast({ type: 'open-files', paths });
+        focusMainWindow();
+      });
+    });
+    win.on('closed', () => {
+      if (mainWindow === win) {
+        mainWindow = null;
+        openFiles.detach();
+      }
+    });
+  };
+  openMainWindow();
+
+  app.on('activate', () => {
+    if (!mainWindow) openMainWindow();
+  });
+}
+
+function startSidecar(): void {
+  const core = resolveCoreCommand({
+    dataDir: userData,
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    resourcesPath: process.resourcesPath,
+    repoRoot: repoRootFrom(app.getAppPath()),
+    override: process.env.CHEF_CORE_CMD,
+  });
+  sidecar = new SidecarManager({
+    core,
+    log: new RotatingLog(path.join(logsDir, 'core.log')),
+  });
+  sidecar.on('status', (status) => {
+    coreStatus = status;
+    log(`core status: ${status}`);
+    broadcast({ type: 'core-status', status });
+  });
+  sidecar.on('notification', (method, params) => {
+    broadcast({
+      type: 'rpc',
+      name: method as RpcNotification,
+      payload: params as RpcNotifications[RpcNotification],
+    });
+  });
+  sidecar.start();
+}
+
+function hardenSession(): void {
+  const ses = session.defaultSession;
+  const allowedPermissions = new Set(['fullscreen', 'clipboard-sanitized-write']);
+  ses.setPermissionRequestHandler((_wc, permission, callback) =>
+    callback(allowedPermissions.has(permission)),
+  );
+  ses.setPermissionCheckHandler((_wc, permission) => allowedPermissions.has(permission));
+  if (devServerUrl) {
+    // The dev server's HTML has no CSP header; add ours so dev matches production behaviour.
+    const filter = { urls: [`${new URL(devServerUrl).origin}/*`] };
+    ses.webRequest.onHeadersReceived(filter, (details, callback) => {
+      const headers = { ...details.responseHeaders };
+      if (details.resourceType === 'mainFrame') headers['Content-Security-Policy'] = [csp];
+      callback({ responseHeaders: headers });
+    });
+  }
+}
+
+async function showOpenFromMenu(): Promise<void> {
+  const l = labelsFor(settings.get().language);
+  const opts = {
+    properties: ['openFile', 'multiSelections'] as Array<'openFile' | 'multiSelections'>,
+    filters: defaultOpenFilters(l),
+  };
+  const res = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, opts)
+    : await dialog.showOpenDialog(opts);
+  if (!res.canceled && res.filePaths.length > 0) openFiles.add(res.filePaths);
+}
+
+async function showAbout(): Promise<void> {
+  const l = labelsFor(settings.get().language);
+  const v = process.versions;
+  const opts = {
+    type: 'info' as const,
+    title: l.about,
+    message: APP_TITLE,
+    detail: l.aboutDetail(app.getVersion(), v.electron ?? '', v.chrome ?? '', v.node ?? ''),
+  };
+  if (mainWindow) await dialog.showMessageBox(mainWindow, opts);
+  else await dialog.showMessageBox(opts);
+}
+
+// --- Lifecycle ---
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+let shutdownDone = false;
+app.on('before-quit', (event) => {
+  if (shutdownDone || !sidecar) return;
+  event.preventDefault();
+  const s = sidecar;
+  sidecar = null;
+  log('quitting: stopping core');
+  const deadline = new Promise<void>((resolve) => setTimeout(resolve, 8000));
+  void Promise.race([Promise.all([s.stop(), settings?.flush()]), deadline]).finally(() => {
+    shutdownDone = true;
+    log('quitting: done');
+    app.quit();
+  });
+});
