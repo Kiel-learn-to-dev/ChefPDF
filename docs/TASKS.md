@@ -131,18 +131,18 @@
 |---|---|---|---|---|---|
 | T4.01 | Engine lớp phủ: vẽ chữ/ảnh lên trang, nhúng font Unicode (subset), gắn nhãn `/Artifact` (D14) | | 3 | T1.05 | ✅ |
 | T4.02 | Thêm chữ, thêm ảnh lên trang | D1, D2 | 2 | T4.01 | 🔄 |
-| T4.03 | Sửa mục lục (bookmark) | D3 | 1,5 | T1.17 | ⬜ |
+| T4.03 | Sửa mục lục (bookmark) | D3 | 1,5 | T1.17 | 🔄 |
 | T4.04 | Watermark chữ/ảnh | F1 | 1,5 | T4.01 | 🔄 |
-| T4.05 | Con dấu chữ, con dấu ảnh, con dấu động, thư viện dấu | F2, F3, F5 | 2 | T4.01, T3.11 | ⬜ |
-| T4.06 | Dấu giáp lai; chữ ký nháy | F4, F6 | 1,5 | T4.05 | ⬜ |
-| T4.07 | Header/footer có biến; đánh số trang (gồm preset NĐ 30); đánh số Bates qua nhiều file | F7, F8, F9 | 2,5 | T4.01 | ⬜ |
-| T4.08 | Mã QR / mã vạch | F10 | 1 | T4.01 | ⬜ |
+| T4.05 | Con dấu chữ, con dấu ảnh, con dấu động, thư viện dấu | F2, F3, F5 | 2 | T4.01, T3.11 | 🔄 |
+| T4.06 | Dấu giáp lai; chữ ký nháy | F4, F6 | 1,5 | T4.05 | 🔄 |
+| T4.07 | Header/footer có biến; đánh số trang (gồm preset NĐ 30); đánh số Bates qua nhiều file | F7, F8, F9 | 2,5 | T4.01 | 🔄 |
+| T4.08 | Mã QR / mã vạch | F10 | 1 | T4.01 | 🔄 |
 | T4.09 | Chồng lên giấy tiêu đề | F11 | 1 | T4.01 | 🔄 |
 | T4.10 | Quản lý & gỡ những gì Chef PDF đã thêm | F12 | 1,5 | T4.04, T4.07 | ⬜ |
 | T4.11 | Ký bằng kho chứng thư OS (Windows CNG, macOS Keychain) | I8 | 3 | T3.06 | ⬜ |
-| T4.12 | Tách chữ ký & con dấu theo màu | I22 | 1,5 | T3.11 | ⬜ |
-| T4.13 | Ký kèm đóng dấu (ký số + giáp lai + ký nháy) | I33 | 1 | T4.06, T3.13 | ⬜ |
-| T4.14 | Kiểm tra chữ ký hàng loạt, xuất Excel/CSV | I36 | 1 | T3.08 | ⬜ |
+| T4.12 | Tách chữ ký & con dấu theo màu | I22 | 1,5 | T3.11 | 🔄 |
+| T4.13 | Ký kèm đóng dấu (ký số + giáp lai + ký nháy) | I33 | 1 | T4.06, T3.13 | 🔄 |
+| T4.14 | Kiểm tra chữ ký hàng loạt, xuất Excel/CSV | I36 | 1 | T3.08 | 🔄 |
 
 ---
 

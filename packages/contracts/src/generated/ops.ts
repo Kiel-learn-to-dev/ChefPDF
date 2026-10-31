@@ -78,6 +78,58 @@ export interface BatchOutput {
   folder?: string;
 }
 
+export interface BatesFile {
+  /** Path of the PDF to number. */
+  path: string;
+  /** Password of this PDF, when it is encrypted. Never stored or echoed back. */
+  password?: string;
+}
+
+export interface BatesOutput {
+  /**
+   * suffix: next to each input, name + suffix. folder: all into one folder. overwrite: replace each input (atomic).
+   * @default "suffix"
+   */
+  mode?: 'suffix' | 'folder' | 'overwrite';
+  /**
+   * Used in suffix mode.
+   * @default "_bates"
+   */
+  suffix?: string;
+  /** For folder mode. */
+  folder?: string;
+}
+
+export interface BookmarkNode {
+  title: string;
+  /** 0-based page; null for none. */
+  page?: number;
+  view?: BookmarkView;
+  /**
+   * Shown expanded (only with children).
+   * @default true
+   */
+  open?: boolean;
+  color?: string;
+  /** @default false */
+  bold?: boolean;
+  /** @default false */
+  italic?: boolean;
+  children?: BookmarkNode[];
+}
+
+/**
+ * Where the bookmark opens the page. `fit` shows the whole page; `xyz` uses the position
+ * and zoom (null keeps the viewer's current value).
+ */
+export interface BookmarkView {
+  /** @default "fit" */
+  type?: 'fit' | 'xyz';
+  left?: number;
+  top?: number;
+  zoom?: number;
+}
+
 export interface BorderStyle {
   /** @default "#1F3A93" */
   color?: string;
@@ -128,6 +180,18 @@ export interface InvisiblePlacement {
   kind: 'invisible';
 }
 
+/** Distances from the page edges, in millimetres, on the displayed page. */
+export interface Margins {
+  /** @default 10.0 */
+  top?: number;
+  /** @default 10.0 */
+  bottom?: number;
+  /** @default 20.0 */
+  left?: number;
+  /** @default 20.0 */
+  right?: number;
+}
+
 export interface MergeInput {
   /** PDF file to merge. */
   path: string;
@@ -145,12 +209,31 @@ export interface PfxSigner {
   password?: string;
 }
 
+/** Values shown in the box. Missing values are left out, as in a real signature. */
+export interface PreviewValues {
+  /** @default "" */
+  signerName?: string;
+  organization?: string;
+  taxCode?: string;
+  citizenId?: string;
+  reason?: string;
+  location?: string;
+  contact?: string;
+  /** ISO 8601 date and time. Default: now (local time). */
+  date?: string;
+}
+
 export interface RectPlacement {
   kind: 'rect';
   /** 0-based page. */
   page: number;
   /** [x1, y1, x2, y2] in PDF points, the same on every file. */
   rect: number[];
+}
+
+/** A file to check. Encrypted PDFs are reported as errors (no password is used here). */
+export interface ReportFile {
+  path: string;
 }
 
 /** Parameters for one scanner look. The defaults are neutral (no effect). */
@@ -174,6 +257,12 @@ export interface ScanEffects {
   /** @default false */
   jitter?: boolean;
   seed?: number;
+}
+
+export interface Section {
+  /** 0-based page where the section starts. */
+  page: number;
+  title: string;
 }
 
 export interface SeparationLayer {
@@ -205,6 +294,81 @@ export interface SignOptions {
   template?: SignatureTemplate;
   /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
   certify?: 'no-changes' | 'form-fill' | 'annotate';
+}
+
+/** Sign the document with a certificate file (PAdES). Same options as sign.padesToken. */
+export interface SignPadesParams {
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER files, or folders of them) for B-LT and B-LTA. The bundled and user trust stores are always used. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
+  /** Signature field name. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** 0-based page for a visible signature. Needs rect. */
+  page?: number;
+  /** [x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing empty field of that name. */
+  rect?: number[];
+  /** Path to the .pfx or .p12 file. */
+  pfxPath: string;
+  /** Password of the certificate file. Never stored, logged or echoed back. */
+  password?: string;
+}
+
+/** Sign the document with a key on a USB token (PAdES). Same options as sign.pades. */
+export interface SignPadesTokenParams {
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER files, or folders of them) for B-LT and B-LTA. The bundled and user trust stores are always used. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
+  /** Signature field name. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** 0-based page for a visible signature. Needs rect. */
+  page?: number;
+  /** [x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing empty field of that name. */
+  rect?: number[];
+  /** Path of the PKCS#11 driver file (.dll, .dylib or .so). */
+  modulePath: string;
+  /** Slot of the token. */
+  slotId?: number;
+  /** Serial of the token, instead of slotId. */
+  tokenSerial?: string;
+  /** CKA_ID of the signing certificate, in hex (from sign.listTokens). */
+  certId: string;
+  /** Token PIN. Used for one login and then dropped. Never stored, logged or echoed back. */
+  pin: string;
+  /**
+   * Must be true to use the PIN when the token reports only one try left.
+   * @default false
+   */
+  confirmFinalTry?: boolean;
 }
 
 /** Look of a visible signature (I10-I18). Defaults give a plain text box. */
@@ -275,6 +439,14 @@ export interface SignatureTemplate {
   logo?: ImageSlot;
 }
 
+/** One stamp operation with its own parameters, exactly as that operation takes them. */
+export interface StampStep {
+  /** Stamp operation id. */
+  op: 'stamp.text' | 'stamp.image' | 'stamp.seam' | 'stamp.initials' | 'overlay.watermark' | 'overlay.addText' | 'overlay.addImage';
+  /** Params of that operation. */
+  params?: Record<string, unknown>;
+}
+
 export interface StrokeParams {
   points: StrokePointParams[];
 }
@@ -305,6 +477,16 @@ export interface TemplateLine {
   enabled?: boolean;
 }
 
+/** Up to three zones of one band (header or footer). Each zone is a template. */
+export interface TextZones {
+  /** @default "" */
+  left?: string;
+  /** @default "" */
+  center?: string;
+  /** @default "" */
+  right?: string;
+}
+
 export interface TokenSigner {
   kind: 'token';
   /** Path of the PKCS#11 driver file. */
@@ -322,6 +504,38 @@ export interface TokenSigner {
    * @default false
    */
   confirmFinalTry?: boolean;
+}
+
+/** No parameters: removes every bookmark. */
+export interface BookmarksClearParams {
+}
+
+/**
+ * One bookmark per selected page. `template` takes the page variables (default
+ * "Trang {page}"). `mode` replace drops the existing outline, append adds at the end.
+ */
+export interface BookmarksFromPagesParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** @default "Trang {page}" */
+  template?: string;
+  /** @default 1 */
+  startNumber?: number;
+  /** @default "replace" */
+  mode?: 'replace' | 'append';
+  /** @default "dd/MM/yyyy" */
+  dateFormat?: string;
+}
+
+/** No parameters: reads the outline of the current revision. */
+export interface BookmarksGetParams {
+}
+
+/** Replace the whole outline with `bookmarks` (an empty list clears it). */
+export interface BookmarksSetParams {
+  bookmarks?: BookmarkNode[];
 }
 
 /** Merge several PDFs (in order) into a new file. */
@@ -451,12 +665,21 @@ export interface ImageRemoveBackgroundParams {
   padding?: number;
 }
 
-/** Split an image into one transparent PNG per colour (I22). */
+/**
+ * Split an image into one transparent PNG per colour (I22).
+ *
+ * mode "layers": the colours are given in `layers`. mode "auto-two": the two dominant ink
+ * colours are found by themselves (a red seal and a blue signature come out as two layers,
+ * named "Con dấu" and "Chữ ký" when the colours say so).
+ */
 export interface ImageSeparateColorsParams {
   inputPath: string;
   /** Existing folder for the layer files. */
   outputDir: string;
-  layers: SeparationLayer[];
+  /** @default "layers" */
+  mode?: 'layers' | 'auto-two';
+  /** Needed in mode layers. */
+  layers?: SeparationLayer[];
 }
 
 /** Typed text rendered as a transparent signature image (I19). */
@@ -569,6 +792,151 @@ export interface OverlayAddTextParams {
 }
 
 /**
+ * A linear barcode: Code 128 (any ASCII), EAN-13 (12 or 13 digits) or Code 39 (no check
+ * digit added). `moduleWidth` is the width of the narrowest bar; `height` the bar height.
+ */
+export interface OverlayBarcodeParams {
+  /** Anchor point, from the left edge of the displayed page. */
+  x: number;
+  /** Anchor point, from the top edge of the displayed page. */
+  y: number;
+  /** @default "mm" */
+  unit?: 'pt' | 'mm';
+  /**
+   * Which point of the object is at x, y.
+   * @default "top-left"
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Degrees, counter-clockwise.
+   * @default 0.0
+   */
+  rotation?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /**
+   * True puts it beneath the page content.
+   * @default false
+   */
+  under?: boolean;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** @default "code128" */
+  kind?: 'code128' | 'ean13' | 'code39';
+  content: string;
+  /** @default 0.33 */
+  moduleWidth?: number;
+  /** @default 15.0 */
+  height?: number;
+  /**
+   * Modules of white border.
+   * @default 10
+   */
+  quietZone?: number;
+  /** @default "#000000" */
+  color?: string;
+  /** None: transparent. */
+  background?: string;
+  /** Text below. */
+  label?: string;
+  /** @default 8.0 */
+  labelFontSize?: number;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 1 */
+  startNumber?: number;
+  /** @default "dd/MM/yyyy" */
+  dateFormat?: string;
+}
+
+/** Bates numbers on every page of many PDFs, one running sequence in list order. */
+export interface OverlayBatesParams {
+  files: BatesFile[];
+  /**
+   * Text before the number.
+   * @default ""
+   */
+  prefix?: string;
+  /**
+   * Text after the number.
+   * @default ""
+   */
+  suffix?: string;
+  /** @default 1 */
+  startNumber?: number;
+  /**
+   * Zero padding of the number.
+   * @default 6
+   */
+  digits?: number;
+  /** @default "bottom-right" */
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'outside-alternating';
+  margins?: Margins;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 9.0 */
+  fontSize?: number;
+  /** @default false */
+  bold?: boolean;
+  /** @default "#000000" */
+  color?: string;
+  /** @default 1.0 */
+  opacity?: number;
+  output?: BatesOutput;
+  /**
+   * Stop after the first failed file; the rest are skipped.
+   * @default false
+   */
+  stopOnError?: boolean;
+}
+
+/**
+ * Header and footer text on the selected pages. Each band has left, centre and right zones.
+ * Variables: {page} {pages} {page_roman} {page_alpha} {date} {time} {filename} {title}
+ * {author} {bates} {section}; `{{` writes a brace. `mirrorOddEven` swaps the left and right
+ * zones (and their margins) on even pages, for two-sided printing.
+ */
+export interface OverlayHeaderFooterParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  header?: TextZones;
+  footer?: TextZones;
+  margins?: Margins;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 10.0 */
+  fontSize?: number;
+  /** @default false */
+  bold?: boolean;
+  /** @default "#000000" */
+  color?: string;
+  /** @default 1.0 */
+  opacity?: number;
+  /** @default "dd/MM/yyyy" */
+  dateFormat?: string;
+  /**
+   * Leave the first page alone.
+   * @default false
+   */
+  skipFirst?: boolean;
+  /** @default 1 */
+  startNumber?: number;
+  /** @default false */
+  mirrorOddEven?: boolean;
+  sections?: Section[];
+  /** @default "" */
+  batesPrefix?: string;
+  /** @default "" */
+  batesSuffix?: string;
+  /** @default 6 */
+  batesDigits?: number;
+}
+
+/**
  * Place a page of another PDF (the letterhead) on the selected pages. `sourcePage` (0-based)
  * is used for every page. `first`, `odd`, `even` and `rest` (0-based source pages)
  * choose by target page: the first page, odd-numbered pages (1, 3, 5...), even-numbered pages,
@@ -594,6 +962,108 @@ export interface OverlayLetterheadParams {
 
 /** No parameters: lists the overlays of the current revision. */
 export interface OverlayListOverlaysParams {
+}
+
+/**
+ * Page numbers. `template` may hold other variables; {page} and {pages} use
+ * `numberFormat`. `preset: nd30` applies the Nghị định 30/2020/NĐ-CP rule (see module).
+ */
+export interface OverlayPageNumbersParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  preset?: 'nd30';
+  /** @default "arabic" */
+  numberFormat?: 'arabic' | 'roman' | 'ROMAN' | 'alpha' | 'ALPHA';
+  /** @default "{page}" */
+  template?: string;
+  /** @default "bottom-center" */
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'outside-alternating';
+  margins?: Margins;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 12.0 */
+  fontSize?: number;
+  /** @default false */
+  bold?: boolean;
+  /** @default "#000000" */
+  color?: string;
+  /** @default 1.0 */
+  opacity?: number;
+  /** @default 1 */
+  startNumber?: number;
+  /** @default false */
+  skipFirst?: boolean;
+  skipPages?: number[];
+  /**
+   * Also set /PageLabels on the document.
+   * @default false
+   */
+  writeLabels?: boolean;
+  /** @default "dd/MM/yyyy" */
+  dateFormat?: string;
+}
+
+/**
+ * A QR code. `size` is the side of the whole box, quiet zone included. The default unit is
+ * millimetres. `content` may use page variables such as {page} or {filename}.
+ */
+export interface OverlayQrCodeParams {
+  /** Anchor point, from the left edge of the displayed page. */
+  x: number;
+  /** Anchor point, from the top edge of the displayed page. */
+  y: number;
+  /** @default "mm" */
+  unit?: 'pt' | 'mm';
+  /**
+   * Which point of the object is at x, y.
+   * @default "top-left"
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Degrees, counter-clockwise.
+   * @default 0.0
+   */
+  rotation?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /**
+   * True puts it beneath the page content.
+   * @default false
+   */
+  under?: boolean;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  content: string;
+  /**
+   * L, M, Q or H.
+   * @default "M"
+   */
+  errorCorrection?: 'L' | 'M' | 'Q' | 'H';
+  /**
+   * Modules of white border.
+   * @default 4
+   */
+  quietZone?: number;
+  /** @default 25.0 */
+  size?: number;
+  /** @default "#000000" */
+  color?: string;
+  /** None: transparent. */
+  background?: string;
+  /** Text below. */
+  label?: string;
+  /** @default 8.0 */
+  labelFontSize?: number;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 1 */
+  startNumber?: number;
+  /** @default "dd/MM/yyyy" */
+  dateFormat?: string;
 }
 
 /**
@@ -1070,6 +1540,32 @@ export interface SignPlaceFromAnchorParams {
   clampToPage?: boolean;
 }
 
+/** Stamps first, then one PAdES signature with a certificate file (PFX / P12). */
+export interface SignStampAndSignParams {
+  stamps: StampStep[];
+  sign: SignPadesParams;
+}
+
+/** Stamps first, then one PAdES signature with a key on a USB token. */
+export interface SignStampAndSignTokenParams {
+  stamps: StampStep[];
+  sign: SignPadesTokenParams;
+}
+
+/** Render a signature template with sample values to a PNG file. */
+export interface SignTemplatePreviewParams {
+  template?: SignatureTemplate;
+  values?: PreviewValues;
+  /** Box width in points. */
+  width: number;
+  /** Box height in points. */
+  height: number;
+  /** PNG file to write. */
+  outputPath: string;
+  /** @default 144 */
+  dpi?: number;
+}
+
 /** Trust the certificates of a file (a root or an intermediate CA). */
 export interface SignTrustAddParams {
   /** Certificate file: PEM (one or more) or DER. */
@@ -1112,6 +1608,38 @@ export interface SignVerifyParams {
   timeoutSeconds?: number;
 }
 
+/** Check many PDFs and write the report. Give `files` or `folder`, not both. */
+export interface SignVerifyBatchParams {
+  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled and user trust stores are always used. */
+  trustRootPaths?: string[];
+  /**
+   * none: no revocation check. soft: a failed check is a warning. hard: a failed check makes the signature unknown.
+   * @default "soft"
+   */
+  checkRevocation?: 'none' | 'soft' | 'hard';
+  /**
+   * False: treat an unreachable revocation server like hard mode.
+   * @default true
+   */
+  allowOffline?: boolean;
+  /**
+   * Timeout of each CRL or OCSP request.
+   * @default 15
+   */
+  timeoutSeconds?: number;
+  files?: ReportFile[];
+  folder?: string;
+  /**
+   * Folder mode: include subfolders.
+   * @default false
+   */
+  recursive?: boolean;
+  /** Report file to write (replaced atomically). */
+  reportPath: string;
+  /** @default "csv" */
+  format?: 'csv' | 'xlsx';
+}
+
 /** Verify the signatures of a PDF file (no session needed). */
 export interface SignVerifyFileParams {
   /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled and user trust stores are always used. */
@@ -1135,8 +1663,207 @@ export interface SignVerifyFileParams {
   path: string;
 }
 
+/**
+ * A PNG (with alpha) or JPEG stamp. Give width or height; the other follows the aspect
+ * ratio. Default width is 150 pt. `blendMultiply` makes white transparent and lets the ink
+ * darken what is below, like a real seal.
+ */
+export interface StampImageParams {
+  /** Anchor point, from the left edge of the displayed page. */
+  x: number;
+  /** Anchor point, from the top edge of the displayed page. */
+  y: number;
+  /** @default "pt" */
+  unit?: 'pt' | 'mm';
+  /**
+   * Which point of the object is at x, y.
+   * @default "top-left"
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Degrees, counter-clockwise.
+   * @default 0.0
+   */
+  rotation?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /**
+   * True puts it beneath the page content.
+   * @default false
+   */
+  under?: boolean;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** Absolute path of the image file. */
+  path: string;
+  width?: number;
+  height?: number;
+  /** @default false */
+  blendMultiply?: boolean;
+}
+
+/**
+ * Initials (text or a small image) at the same corner or edge of every selected page.
+ * For alternate pages use `pageRange` "odd" or "even".
+ */
+export interface StampInitialsParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  text?: string;
+  /** PNG or JPEG of the initials. */
+  path?: string;
+  /**
+   * Corner or edge of the page.
+   * @default "bottom-right"
+   */
+  position?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /** @default 10.0 */
+  marginMm?: number;
+  /**
+   * Image width (image only).
+   * @default 25.0
+   */
+  widthMm?: number;
+  /**
+   * Text size (text only).
+   * @default 14.0
+   */
+  fontSize?: number;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default false */
+  bold?: boolean;
+  /** @default "#1F4E9A" */
+  color?: string;
+  /** @default 1.0 */
+  opacity?: number;
+  /** @default false */
+  blendMultiply?: boolean;
+}
+
+/** No parameters: the built-in text stamp presets. */
+export interface StampPresetsParams {
+}
+
+/**
+ * Dấu giáp lai: one seal image cut into N vertical strips, one strip flush against the
+ * right (or left) edge of each selected page. Fanned out, the pages show the whole seal.
+ *
+ * N is the number of selected pages, or `groupSize` pages per set (a 30-page document with
+ * groupSize 10 gives three sets of ten strips). `cutFirstPage` false leaves the first page of
+ * each set without a strip, so the strips go to the remaining pages.
+ * `overlapMm` widens every strip into its neighbour by that amount (a shared band).
+ * `scaleWidthMm` is the width of the whole seal across all strips (default: natural size at
+ * 96 dpi). `vertical` is "center", "top", "bottom", or a number of mm from the top edge.
+ */
+export interface StampSeamParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** Absolute path of the seal image (PNG or JPEG). */
+  path: string;
+  /** @default "right" */
+  side?: 'right' | 'left';
+  /**
+   * Equal strips: the seal width is split into N equal parts.
+   * @default "even"
+   */
+  sliceMode?: 'even';
+  groupSize?: number;
+  /** @default true */
+  cutFirstPage?: boolean;
+  /** @default "center" */
+  vertical?: 'center' | 'top' | 'bottom' | number;
+  /** @default 0.0 */
+  overlapMm?: number;
+  scaleWidthMm?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /** @default false */
+  blendMultiply?: boolean;
+}
+
+/**
+ * A bordered text stamp such as "ĐÃ DUYỆT". Lines are separated by line breaks. The
+ * placeholders {date}, {time}, {datetime} and {user} are filled when the stamp is made.
+ */
+export interface StampTextParams {
+  /** Anchor point, from the left edge of the displayed page. */
+  x: number;
+  /** Anchor point, from the top edge of the displayed page. */
+  y: number;
+  /** @default "pt" */
+  unit?: 'pt' | 'mm';
+  /**
+   * Which point of the object is at x, y.
+   * @default "top-left"
+   */
+  anchor?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  /**
+   * Degrees, counter-clockwise.
+   * @default 0.0
+   */
+  rotation?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /**
+   * True puts it beneath the page content.
+   * @default false
+   */
+  under?: boolean;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** 1-based ranges such as "1-3,5,7-" or "odd" / "even" / "all". */
+  pageRange?: string;
+  /** Lines separated by \n. Placeholders: {date} {time} {datetime} {user}. */
+  text: string;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /** @default 24.0 */
+  fontSize?: number;
+  /** @default true */
+  bold?: boolean;
+  /**
+   * Text and border colour.
+   * @default "#C00000"
+   */
+  color?: string;
+  /** Box fill; none = transparent. */
+  fill?: string;
+  /** Default: the text colour. */
+  borderColor?: string;
+  /**
+   * Points; 0 = no border.
+   * @default 2.0
+   */
+  borderWidth?: number;
+  /**
+   * Points inside the border.
+   * @default 6.0
+   */
+  padding?: number;
+  /** @default 1.2 */
+  lineHeight?: number;
+  /** Value of {user}. */
+  user?: string;
+  /**
+   * Multiply: the ink darkens the text.
+   * @default false
+   */
+  blendMultiply?: boolean;
+}
+
 /** Params type of every operation, by op id. */
 export interface OpParams {
+  'bookmarks.clear': BookmarksClearParams;
+  'bookmarks.fromPages': BookmarksFromPagesParams;
+  'bookmarks.get': BookmarksGetParams;
+  'bookmarks.set': BookmarksSetParams;
   'file.merge': FileMergeParams;
   'file.split': FileSplitParams;
   'image.cleanup': ImageCleanupParams;
@@ -1146,8 +1873,13 @@ export interface OpParams {
   'image.textSignature': ImageTextSignatureParams;
   'overlay.addImage': OverlayAddImageParams;
   'overlay.addText': OverlayAddTextParams;
+  'overlay.barcode': OverlayBarcodeParams;
+  'overlay.bates': OverlayBatesParams;
+  'overlay.headerFooter': OverlayHeaderFooterParams;
   'overlay.letterhead': OverlayLetterheadParams;
   'overlay.listOverlays': OverlayListOverlaysParams;
+  'overlay.pageNumbers': OverlayPageNumbersParams;
+  'overlay.qrCode': OverlayQrCodeParams;
   'overlay.remove': OverlayRemoveParams;
   'overlay.watermark': OverlayWatermarkParams;
   'page.delete': PageDeleteParams;
@@ -1173,16 +1905,29 @@ export interface OpParams {
   'sign.pades': SignPadesParams;
   'sign.padesToken': SignPadesTokenParams;
   'sign.placeFromAnchor': SignPlaceFromAnchorParams;
+  'sign.stampAndSign': SignStampAndSignParams;
+  'sign.stampAndSignToken': SignStampAndSignTokenParams;
+  'sign.templatePreview': SignTemplatePreviewParams;
   'sign.trustAdd': SignTrustAddParams;
   'sign.trustList': SignTrustListParams;
   'sign.trustRemove': SignTrustRemoveParams;
   'sign.verify': SignVerifyParams;
+  'sign.verifyBatch': SignVerifyBatchParams;
   'sign.verifyFile': SignVerifyFileParams;
+  'stamp.image': StampImageParams;
+  'stamp.initials': StampInitialsParams;
+  'stamp.presets': StampPresetsParams;
+  'stamp.seam': StampSeamParams;
+  'stamp.text': StampTextParams;
 }
 
 export type OpId = keyof OpParams;
 
 export const OP_IDS = [
+  'bookmarks.clear',
+  'bookmarks.fromPages',
+  'bookmarks.get',
+  'bookmarks.set',
   'file.merge',
   'file.split',
   'image.cleanup',
@@ -1192,8 +1937,13 @@ export const OP_IDS = [
   'image.textSignature',
   'overlay.addImage',
   'overlay.addText',
+  'overlay.barcode',
+  'overlay.bates',
+  'overlay.headerFooter',
   'overlay.letterhead',
   'overlay.listOverlays',
+  'overlay.pageNumbers',
+  'overlay.qrCode',
   'overlay.remove',
   'overlay.watermark',
   'page.delete',
@@ -1219,9 +1969,18 @@ export const OP_IDS = [
   'sign.pades',
   'sign.padesToken',
   'sign.placeFromAnchor',
+  'sign.stampAndSign',
+  'sign.stampAndSignToken',
+  'sign.templatePreview',
   'sign.trustAdd',
   'sign.trustList',
   'sign.trustRemove',
   'sign.verify',
+  'sign.verifyBatch',
   'sign.verifyFile',
+  'stamp.image',
+  'stamp.initials',
+  'stamp.presets',
+  'stamp.seam',
+  'stamp.text',
 ] as const;

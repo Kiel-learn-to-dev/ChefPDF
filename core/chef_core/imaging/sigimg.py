@@ -126,10 +126,8 @@ def _solid_colour(alpha: Image.Image, color: Rgb) -> Image.Image:
 # -- colour detection -----------------------------------------------------------------------
 
 
-def auto_ink_color(rgb: Image.Image) -> Rgb | None:
-    """Dominant ink colour: the most common colour bin among coloured or dark pixels.
-
-    Paper (bright, low chroma) is ignored. Returns None when no ink-like pixel exists."""
+def _ink_bins(rgb: Image.Image) -> dict[tuple[int, int, int], list[int]]:
+    """Ink-like pixels grouped by colour bin: [count, sum R, sum G, sum B] per bin."""
     thumb = flatten_on_white(rgb)
     thumb.thumbnail((THUMB, THUMB))
     bins: dict[tuple[int, int, int], list[int]] = {}
@@ -146,10 +144,45 @@ def auto_ink_color(rgb: Image.Image) -> Rgb | None:
         entry[1] += r
         entry[2] += g
         entry[3] += b
+    return bins
+
+
+def _bin_mean(entry: list[int]) -> Rgb:
+    count, sr, sg, sb = entry
+    return (sr // count, sg // count, sb // count)
+
+
+def colour_distance(a: Rgb, b: Rgb) -> int:
+    """Largest per-channel difference between two colours (the same measure as ``chebyshev``)."""
+    return max(abs(a[0] - b[0]), abs(a[1] - b[1]), abs(a[2] - b[2]))
+
+
+def auto_ink_color(rgb: Image.Image) -> Rgb | None:
+    """Dominant ink colour: the most common colour bin among coloured or dark pixels.
+
+    Paper (bright, low chroma) is ignored. Returns None when no ink-like pixel exists."""
+    bins = _ink_bins(rgb)
     if not bins:
         return None
-    count, sr, sg, sb = max(bins.values(), key=lambda e: e[0])
-    return (sr // count, sg // count, sb // count)
+    return _bin_mean(max(bins.values(), key=lambda e: e[0]))
+
+
+def auto_two_colors(rgb: Image.Image, min_distance: int = 90) -> tuple[Rgb, Rgb] | None:
+    """The two dominant ink colours (I22 "auto-two").
+
+    The most common colour bin is the first ink. The second is the most common bin whose mean
+    colour is at least ``min_distance`` away from the first, so the two inks of one stamp and a
+    signature come out as two colours. None when there is no second clearly different ink."""
+    bins = _ink_bins(rgb)
+    if not bins:
+        return None
+    ranked = sorted(bins.values(), key=lambda e: e[0], reverse=True)
+    first = _bin_mean(ranked[0])
+    for entry in ranked[1:]:
+        candidate = _bin_mean(entry)
+        if colour_distance(first, candidate) >= min_distance:
+            return first, candidate
+    return None
 
 
 # -- background removal (I20) ----------------------------------------------------------------

@@ -205,16 +205,48 @@ class SeparationLayer(WireModel):
 
 
 class SeparateColorsParams(WireModel):
-    """Split an image into one transparent PNG per colour (I22)."""
+    """Split an image into one transparent PNG per colour (I22).
+
+    mode "layers": the colours are given in ``layers``. mode "auto-two": the two dominant ink
+    colours are found by themselves (a red seal and a blue signature come out as two layers,
+    named "Con dấu" and "Chữ ký" when the colours say so)."""
 
     input_path: str = Field(min_length=1)
     output_dir: str = Field(min_length=1, description="Existing folder for the layer files.")
-    layers: list[SeparationLayer] = Field(min_length=1, max_length=8)
+    mode: Literal["layers", "auto-two"] = Field(default="layers")
+    layers: list[SeparationLayer] | None = Field(
+        default=None, min_length=1, max_length=8, description="Needed in mode layers."
+    )
+
+    @model_validator(mode="after")
+    def _layers_for_mode(self) -> SeparateColorsParams:
+        if self.mode == "layers" and not self.layers:
+            raise ValueError("mode layers needs at least one entry in layers")
+        if self.mode == "auto-two" and self.layers is not None:
+            raise ValueError("mode auto-two finds the colours itself; do not give layers")
+        return self
 
 
 def _layer_file_name(index: int, name: str) -> str:
     slug = re.sub(r"[^\w\-]+", "_", name, flags=re.UNICODE).strip("_") or "layer"
     return f"{index + 1:02d}-{slug}.png"
+
+
+def _auto_layers(img: Image.Image) -> list[sigimg.ColorLayer]:
+    colours = sigimg.auto_two_colors(img)
+    if colours is None:
+        raise invalid_params("No two different ink colours were found", {"field": "mode"})
+    named: list[sigimg.ColorLayer] = []
+    for index, colour in enumerate(colours):
+        r, g, b = colour
+        if r > max(g, b) + 40:
+            name = "Con dấu"
+        elif b > max(r, g) + 40:
+            name = "Chữ ký"
+        else:
+            name = f"Lớp {index + 1}"
+        named.append(sigimg.ColorLayer(name=name, rgb=colour, tolerance=60))
+    return named
 
 
 @operation(
@@ -232,10 +264,13 @@ def separate_colors_op(ctx: OpContext, p: SeparateColorsParams) -> OpOutput:
             ErrorKind.FILE_NOT_FOUND, "Output folder does not exist", {"path": str(out_dir)}
         )
     ctx.check_cancelled()
-    layers = [
-        sigimg.ColorLayer(name=layer.name, rgb=_rgb(layer.color_hex), tolerance=layer.tolerance)
-        for layer in p.layers
-    ]
+    if p.mode == "auto-two":
+        layers = _auto_layers(img)
+    else:
+        layers = [
+            sigimg.ColorLayer(name=layer.name, rgb=_rgb(layer.color_hex), tolerance=layer.tolerance)
+            for layer in p.layers or []
+        ]
     results = sigimg.separate_layers(img, layers)
     outputs: list[str] = []
     rows: list[dict[str, object]] = []

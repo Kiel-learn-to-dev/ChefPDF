@@ -21,6 +21,14 @@ BUILTIN_MODULES = (
     "chef_core.ops.sign_batch",
     "chef_core.ops.image_sig",
     "chef_core.ops.overlay",
+    "chef_core.ops.overlay_header",
+    "chef_core.ops.overlay_bates",
+    "chef_core.ops.overlay_code",
+    "chef_core.ops.bookmarks",
+    "chef_core.ops.stamp",
+    "chef_core.ops.sign_stamp",
+    "chef_core.ops.sign_preview",
+    "chef_core.ops.sign_report",
 )
 
 

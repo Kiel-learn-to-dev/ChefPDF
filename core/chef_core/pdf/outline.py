@@ -9,9 +9,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 import pikepdf
-from pikepdf import Array, Name, OutlineItem
+from pikepdf import Array, Name, OutlineItem, OutlineItemFlag
 
 log = logging.getLogger(__name__)
 
@@ -81,6 +82,9 @@ class Bookmark:
     view: list[pikepdf.Object]
     is_open: bool
     children: list[Bookmark] = field(default_factory=list)
+    color: tuple[float, float, float] | None = None
+    bold: bool = False
+    italic: bool = False
     # Original destination/action when no page could be resolved (e.g. a URI action).
     # Only reused when rewriting the outline of the same document.
     raw_destination: pikepdf.Array | pikepdf.String | pikepdf.Name | int | None = None
@@ -106,6 +110,9 @@ def read_bookmarks(pdf: pikepdf.Pdf) -> list[Bookmark]:
                     children=convert(list(item.children)),
                     raw_destination=item.destination if page is None else None,
                     raw_action=item.action if page is None else None,
+                    color=_colour(item.color),
+                    bold=bool(item.bold),
+                    italic=bool(item.italic),
                 )
             )
         return result
@@ -116,6 +123,27 @@ def read_bookmarks(pdf: pikepdf.Pdf) -> list[Bookmark]:
     except Exception as exc:
         log.warning("could not read outline: %s", exc)
         return []
+
+
+def _colour(value: object) -> tuple[float, float, float] | None:
+    """The /C colour of an outline item as RGB floats, or None when absent or malformed."""
+    if value is None:
+        return None
+    try:
+        red, green, blue = (float(v) for v in value)  # type: ignore[attr-defined]
+    except (TypeError, ValueError):
+        return None
+    return (red, green, blue)
+
+
+def _style(bm: Bookmark) -> dict[str, Any]:
+    """Colour and style keywords for an outline item (the /C and /F entries)."""
+    flags = OutlineItemFlag.NONE
+    if bm.bold:
+        flags |= OutlineItemFlag.Bold
+    if bm.italic:
+        flags |= OutlineItemFlag.Italic
+    return {"color": bm.color, "flags": flags}
 
 
 def _copy_view(view: list[pikepdf.Object]) -> list[pikepdf.Object]:
@@ -153,11 +181,11 @@ def build_items(
             result.extend(children)
             continue
         if target is not None:
-            item = OutlineItem(bm.title, Array([target, *_copy_view(bm.view)]))
+            item = OutlineItem(bm.title, Array([target, *_copy_view(bm.view)]), **_style(bm))
         elif same_document and (bm.raw_destination is not None or bm.raw_action is not None):
-            item = OutlineItem(bm.title, bm.raw_destination, action=bm.raw_action)
+            item = OutlineItem(bm.title, bm.raw_destination, action=bm.raw_action, **_style(bm))
         elif children:
-            item = OutlineItem(bm.title)
+            item = OutlineItem(bm.title, **_style(bm))
         else:
             continue
         item.children.extend(children)

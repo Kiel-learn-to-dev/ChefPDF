@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "note": "Built-in text stamp presets (F2). Placeholders {date} {time} {datetime} {user} are filled when the stamp is made (F5).",
+  "presets": [
+    {"id": "approved-vi", "lang": "vi", "title": "Đã duyệt", "text": "ĐÃ DUYỆT", "color": "#C00000", "borderWidth": 2, "bold": true, "fontSize": 26},
+    {"id": "checked-vi", "lang": "vi", "title": "Đã kiểm tra", "text": "ĐÃ KIỂM TRA", "color": "#C00000", "borderWidth": 2, "bold": true, "fontSize": 24},
+    {"id": "copy-vi", "lang": "vi", "title": "Bản sao", "text": "BẢN SAO", "color": "#1F4E9A", "borderWidth": 2, "bold": true, "fontSize": 26},
+    {"id": "copy-true-vi", "lang": "vi", "title": "Bản sao y", "text": "BẢN SAO Y", "color": "#1F4E9A", "borderWidth": 2, "bold": true, "fontSize": 24},
+    {"id": "true-copy-vi", "lang": "vi", "title": "Sao y bản chính", "text": "SAO Y BẢN CHÍNH", "color": "#1F4E9A", "borderWidth": 2, "bold": true, "fontSize": 20},
+    {"id": "urgent-vi", "lang": "vi", "title": "Khẩn", "text": "KHẨN", "color": "#C00000", "borderWidth": 3, "bold": true, "fontSize": 30},
+    {"id": "secret-vi", "lang": "vi", "title": "Mật", "text": "MẬT", "color": "#C00000", "borderWidth": 3, "bold": true, "fontSize": 30},
+    {"id": "paid-vi", "lang": "vi", "title": "Đã thanh toán", "text": "ĐÃ THANH TOÁN", "color": "#1E8E3E", "borderWidth": 2, "bold": true, "fontSize": 24},
+    {"id": "received-vi", "lang": "vi", "title": "Đã nhận (có ngày giờ, người nhận)", "text": "ĐÃ NHẬN\n{time} {date}\n{user}", "color": "#C00000", "borderWidth": 2, "bold": true, "fontSize": 16},
+    {"id": "draft-en", "lang": "en", "title": "Draft", "text": "DRAFT", "color": "#808080", "borderWidth": 2, "bold": true, "fontSize": 30},
+    {"id": "approved-en", "lang": "en", "title": "Approved", "text": "APPROVED", "color": "#1E8E3E", "borderWidth": 2, "bold": true, "fontSize": 28},
+    {"id": "confidential-en", "lang": "en", "title": "Confidential", "text": "CONFIDENTIAL", "color": "#C00000", "borderWidth": 2, "bold": true, "fontSize": 24},
+    {"id": "received-en", "lang": "en", "title": "Received (with date and user)", "text": "RECEIVED\n{datetime}\n{user}", "color": "#1F4E9A", "borderWidth": 2, "bold": true, "fontSize": 16}
+  ]
+}
