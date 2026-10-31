@@ -23,6 +23,29 @@ export interface MergeInput {
   pages?: number[];
 }
 
+/** Parameters for one scanner look. The defaults are neutral (no effect). */
+export interface ScanEffects {
+  /** @default 0.0 */
+  rotationDegrees?: number;
+  /** @default 0.0 */
+  noise?: number;
+  /** @default 0.0 */
+  paperTint?: number;
+  /** @default "#f4efe1" */
+  tintColor?: string;
+  /** @default 0.0 */
+  edgeShadow?: number;
+  /** @default 0.0 */
+  blur?: number;
+  /** @default 1.0 */
+  contrast?: number;
+  /** @default 1.0 */
+  brightness?: number;
+  /** @default false */
+  jitter?: boolean;
+  seed?: number;
+}
+
 /** Merge several PDFs (in order) into a new file. */
 export interface FileMergeParams {
   inputs: MergeInput[];
@@ -119,6 +142,110 @@ export interface PageRotateParams {
   angle: 90 | 180 | 270;
 }
 
+/** Rasterize parameters are the starting point; the search only lowers dpi and quality. */
+export interface ScanFitSizeParams {
+  /**
+   * Render resolution in dpi.
+   * @default 200
+   */
+  dpi?: number;
+  /**
+   * 'color' (JPEG RGB), 'gray' (JPEG gray) or 'bw' (1-bit G4).
+   * @default "gray"
+   */
+  color?: 'color' | 'gray' | 'bw';
+  /**
+   * bw only: gray level from which a pixel is white.
+   * @default 128
+   */
+  threshold?: number;
+  /**
+   * bw only: Floyd-Steinberg dithering.
+   * @default false
+   */
+  dithering?: boolean;
+  /**
+   * JPEG quality (color, gray).
+   * @default 75
+   */
+  jpegQuality?: number;
+  /** 0-based pages to convert; default all. */
+  pages?: number[];
+  /**
+   * Remove the document information dictionary and XMP.
+   * @default true
+   */
+  stripMetadata?: boolean;
+  /** Scanner look applied to each page before encoding. */
+  effects?: ScanEffects;
+  /** Name of a built-in effects preset; ignored if effects is set. */
+  effectsPreset?: 'none' | 'light' | 'photocopy' | 'old-paper';
+  /**
+   * Seed for the effects' randomness: same seed, same output.
+   * @default 0
+   */
+  seed?: number;
+  /** Largest acceptable size of the result in bytes. */
+  targetBytes: number;
+  /**
+   * Lowest dpi to try.
+   * @default 100
+   */
+  minDpi?: number;
+  /**
+   * Lowest JPEG quality.
+   * @default 30
+   */
+  minJpegQuality?: number;
+}
+
+/** Rasterize parameters plus the pages to preview. */
+export interface ScanPreviewParams {
+  /**
+   * Render resolution in dpi.
+   * @default 200
+   */
+  dpi?: number;
+  /**
+   * 'color' (JPEG RGB), 'gray' (JPEG gray) or 'bw' (1-bit G4).
+   * @default "gray"
+   */
+  color?: 'color' | 'gray' | 'bw';
+  /**
+   * bw only: gray level from which a pixel is white.
+   * @default 128
+   */
+  threshold?: number;
+  /**
+   * bw only: Floyd-Steinberg dithering.
+   * @default false
+   */
+  dithering?: boolean;
+  /**
+   * JPEG quality (color, gray).
+   * @default 75
+   */
+  jpegQuality?: number;
+  /** 0-based pages to convert; default all. */
+  pages?: number[];
+  /**
+   * Remove the document information dictionary and XMP.
+   * @default true
+   */
+  stripMetadata?: boolean;
+  /** Scanner look applied to each page before encoding. */
+  effects?: ScanEffects;
+  /** Name of a built-in effects preset; ignored if effects is set. */
+  effectsPreset?: 'none' | 'light' | 'photocopy' | 'old-paper';
+  /**
+   * Seed for the effects' randomness: same seed, same output.
+   * @default 0
+   */
+  seed?: number;
+  /** 0-based pages to preview (at most 3); default: first and middle selected. */
+  samplePages?: number[];
+}
+
 /** Convert pages to images. Selected pages lose their text, links and form fields. */
 export interface ScanRasterizeParams {
   /**
@@ -153,6 +280,15 @@ export interface ScanRasterizeParams {
    * @default true
    */
   stripMetadata?: boolean;
+  /** Scanner look applied to each page before encoding. */
+  effects?: ScanEffects;
+  /** Name of a built-in effects preset; ignored if effects is set. */
+  effectsPreset?: 'none' | 'light' | 'photocopy' | 'old-paper';
+  /**
+   * Seed for the effects' randomness: same seed, same output.
+   * @default 0
+   */
+  seed?: number;
 }
 
 /** Params type of every operation, by op id. */
@@ -167,6 +303,8 @@ export interface OpParams {
   'page.insertImages': PageInsertImagesParams;
   'page.reorder': PageReorderParams;
   'page.rotate': PageRotateParams;
+  'scan.fitSize': ScanFitSizeParams;
+  'scan.preview': ScanPreviewParams;
   'scan.rasterize': ScanRasterizeParams;
 }
 
@@ -183,5 +321,7 @@ export const OP_IDS = [
   'page.insertImages',
   'page.reorder',
   'page.rotate',
+  'scan.fitSize',
+  'scan.preview',
   'scan.rasterize',
 ] as const;

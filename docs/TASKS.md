@@ -95,7 +95,7 @@
 | T2.04 | Xử lý theo luồng + song song, giới hạn RAM; benchmark 500 trang ở 600 dpi | | 1 | T2.02 | ⬜ |
 | T2.05 | Xem trước gốc/kết quả (chia đôi, thanh trượt, zoom 100%); ước tính dung lượng và thời gian | K5, K6 | 1,5 | T1.12, T2.03 | ⬜ |
 | T2.06 | Preset có sẵn và tự tạo; cảnh báo mất chữ/link/form/chữ ký | K8, K9 | 1 | T2.05 | ⬜ |
-| T2.07 | "Nén sao cho ≤ X MB": tìm DPI/chất lượng phù hợp bằng tìm kiếm nhị phân trên trang mẫu | K10 | 1 | T2.05 | ⬜ |
+| T2.07 | "Nén sao cho ≤ X MB": tìm DPI/chất lượng phù hợp bằng tìm kiếm nhị phân trên trang mẫu | K10 | 1 | T2.05 | ✅ |
 | T2.08 | Dialog "Chuyển thành bản scan" hoàn chỉnh + ô nhiệm vụ trên Start + test golden image | | 1,5 | T2.06 | ⬜ |
 
 ---

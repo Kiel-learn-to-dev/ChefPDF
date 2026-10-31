@@ -15,23 +15,35 @@ from collections.abc import Generator
 from concurrent.futures import Future, ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pikepdf
 import pypdfium2 as pdfium
+from PIL import Image
 from pydantic import Field
 
+from chef_core.errors import invalid_params
+from chef_core.imaging.effects import ScanEffects, apply_scan_effects, get_preset
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
 from chef_core.pdf.outline import read_bookmarks
-from chef_core.pdf.pages import check_indices, replace_page_order, unique_sorted
-from chef_core.pdf.rasterize import ColorMode, encode_image_page, rasterize_page
+from chef_core.pdf.pages import check_indices, display_size, replace_page_order, unique_sorted
+from chef_core.pdf.rasterize import (
+    ColorMode,
+    convert_mode,
+    encode_image_page,
+    rasterize_page,
+)
+from chef_core.session.info import has_signatures
 
 PageIndex = Annotated[int, Field(ge=0)]
+EffectPresetName = Literal["none", "light", "photocopy", "old-paper"]
 
 # Rendering is CPU-bound and PDFium is single-threaded, so processes, not threads.
 MAX_WORKERS = min(os.cpu_count() or 1, 4)
 POOL_MIN_PAGES = 8  # below this, rendering inline is cheaper than starting workers
+# Largest rendered page accepted (about 200 MB as RGBA). A4 is about 720 dpi at this limit.
+MAX_PAGE_PIXELS = 50_000_000
 
 TEXT_SHOW_OPERATORS = frozenset({"Tj", "TJ", "'", '"'})
 
@@ -43,6 +55,8 @@ class EncodeOptions:
     threshold: int
     dithering: bool
     jpeg_quality: int
+    effects: ScanEffects | None = None
+    seed: int = 0
 
 
 # -- loss warnings --------------------------------------------------------------------
@@ -82,16 +96,72 @@ def scan_loss_warnings(pdf: pikepdf.Pdf) -> list[str]:
         warnings.append("Bookmarks will be lost.")
     if _has_form_fields(pdf):
         warnings.append("Form fields will be lost.")
+    if has_signatures(pdf):
+        warnings.append("Digital signatures will be lost.")
     return warnings
 
 
 # -- rendering ------------------------------------------------------------------------
 
 
+def resolve_effects(p: RasterizeParams) -> ScanEffects | None:
+    """Explicit ``effects`` win over ``effectsPreset``; neither given means no effects."""
+    if p.effects is not None:
+        return p.effects
+    if p.effects_preset is not None:
+        return get_preset(p.effects_preset)
+    return None
+
+
+def encode_options(p: RasterizeParams) -> EncodeOptions:
+    return EncodeOptions(
+        dpi=p.dpi,
+        color=p.color,
+        threshold=p.threshold,
+        dithering=p.dithering,
+        jpeg_quality=p.jpeg_quality,
+        effects=resolve_effects(p),
+        seed=p.seed,
+    )
+
+
+def render_result_page(source: pdfium.PdfDocument, index: int, opts: EncodeOptions) -> Image.Image:
+    """The page image that scan.rasterize encodes: rendered, optionally with effects."""
+    if opts.effects is None:
+        return rasterize_page(source, index, opts.dpi, opts.color, opts.threshold, opts.dithering)
+    # Effects need grey levels, so they run before a bw threshold, never on the 1-bit result.
+    grey_mode: ColorMode = "color" if opts.color == "color" else "gray"
+    img = rasterize_page(source, index, opts.dpi, grey_mode)
+    img = apply_scan_effects(img, opts.effects, index, opts.seed)
+    return convert_mode(img, opts.color, opts.threshold, opts.dithering)
+
+
+def encode_result_page(source: pdfium.PdfDocument, index: int, opts: EncodeOptions) -> bytes:
+    """One page as the one-page image PDF that is copied into the document."""
+    img = render_result_page(source, index, opts)
+    return encode_image_page(img, opts.dpi, opts.color, opts.jpeg_quality)
+
+
 def _render_to_file(source: pdfium.PdfDocument, index: int, opts: EncodeOptions, out: Path) -> Path:
-    img = rasterize_page(source, index, opts.dpi, opts.color, opts.threshold, opts.dithering)
-    out.write_bytes(encode_image_page(img, opts.dpi, opts.color, opts.jpeg_quality))
+    out.write_bytes(encode_result_page(source, index, opts))
     return out
+
+
+def check_page_budget(pdf: pikepdf.Pdf, pages: list[int], dpi: int) -> None:
+    """Refuse a dpi whose rendered pages would exceed MAX_PAGE_PIXELS."""
+    max_dpi = 1200.0
+    for index in pages:
+        width, height, _ = display_size(pdf.pages[index])
+        if width <= 0 or height <= 0:
+            continue
+        allowed = 72 * (MAX_PAGE_PIXELS / (width * height)) ** 0.5
+        max_dpi = min(max_dpi, allowed)
+    if dpi > max_dpi:
+        limit = int(max_dpi)
+        raise invalid_params(
+            f"Pages are too large for {dpi} dpi (at most {limit} dpi for this document).",
+            {"field": "dpi", "maxDpi": limit},
+        )
 
 
 # Per worker process: the source document stays open while the pool lives (one pool per job).
@@ -175,6 +245,22 @@ class RasterizeParams(WireModel):
     strip_metadata: bool = Field(
         default=True, description="Remove the document information dictionary and XMP."
     )
+    effects: ScanEffects | None = Field(
+        default=None, description="Scanner look applied to each page before encoding."
+    )
+    effects_preset: EffectPresetName | None = Field(
+        default=None, description="Name of a built-in effects preset; ignored if effects is set."
+    )
+    seed: int = Field(
+        default=0, ge=0, description="Seed for the effects' randomness: same seed, same output."
+    )
+
+
+def selected_pages(pages: list[int] | None, count: int) -> list[int]:
+    """Validated, sorted 0-based pages; all pages when ``pages`` is None."""
+    if pages is None:
+        return list(range(count))
+    return unique_sorted(check_indices(pages, count))
 
 
 @operation(
@@ -185,20 +271,11 @@ class RasterizeParams(WireModel):
     destructive=True,
 )
 def rasterize(ctx: OpContext, p: RasterizeParams) -> OpOutput:
-    opts = EncodeOptions(
-        dpi=p.dpi,
-        color=p.color,
-        threshold=p.threshold,
-        dithering=p.dithering,
-        jpeg_quality=p.jpeg_quality,
-    )
+    opts = encode_options(p)
     with ctx.open_input() as pdf:
         count = len(pdf.pages)
-        selected = (
-            unique_sorted(check_indices(p.pages, count))
-            if p.pages is not None
-            else list(range(count))
-        )
+        selected = selected_pages(p.pages, count)
+        check_page_budget(pdf, selected, p.dpi)
         for message in scan_loss_warnings(pdf):
             ctx.warn(message)
         originals = [page.obj for page in pdf.pages]

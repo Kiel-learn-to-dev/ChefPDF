@@ -11,6 +11,7 @@ from typing import Any, BinaryIO
 import chef_core
 from chef_core import ops
 from chef_core.errors import invalid_params
+from chef_core.ops.scan_presets import describe_presets
 from chef_core.rpc.jobs import JobRunner
 from chef_core.rpc.server import Deferred, JsonDict, RpcServer
 from chef_core.session.manager import SessionManager
@@ -49,6 +50,7 @@ class CoreApp:
         r("system.shutdown", self.shutdown)
         r("ops.list", self.ops_list)
         r("ops.run", self.ops_run)
+        r("scan.presets", self.scan_presets)
         r("jobs.cancel", self.jobs_cancel)
         r("session.open", self.session_open)
         r("session.create", self.session_create)
@@ -75,6 +77,9 @@ class CoreApp:
 
     def ops_run(self, params: JsonDict) -> Deferred:
         return self.jobs.run(params.get("opId"), params.get("params"), params.get("sessionId"))
+
+    def scan_presets(self, _params: JsonDict) -> list[dict[str, Any]]:
+        return describe_presets()
 
     def jobs_cancel(self, params: JsonDict) -> None:
         self.jobs.cancel(params.get("jobId"))

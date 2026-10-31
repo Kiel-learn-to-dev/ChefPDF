@@ -6,7 +6,13 @@ import importlib
 
 from chef_core.ops.base import OpContext, OpOutput, OpSpec, get_op, operation, registry
 
-BUILTIN_MODULES = ("chef_core.ops.page", "chef_core.ops.file", "chef_core.ops.scan")
+BUILTIN_MODULES = (
+    "chef_core.ops.page",
+    "chef_core.ops.file",
+    "chef_core.ops.scan",
+    "chef_core.ops.scan_preview",
+    "chef_core.ops.scan_fit",
+)
 
 
 def load_builtin_ops() -> None:

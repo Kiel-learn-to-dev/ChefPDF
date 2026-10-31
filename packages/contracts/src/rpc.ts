@@ -84,6 +84,11 @@ export interface RpcMethods {
   'session.undo': [{ sessionId: SessionId }, OpResult];
   'session.redo': [{ sessionId: SessionId }, OpResult];
   'session.save': [{ sessionId: SessionId; path?: string }, SessionState & { warnings: string[] }];
+  /** Built-in presets for scan.rasterize; params is a ScanRasterizeParams wire object. */
+  'scan.presets': [
+    Record<string, never>,
+    { name: string; labelVi: string; labelEn: string; params: Record<string, unknown> }[],
+  ];
 }
 
 export type RpcMethod = keyof RpcMethods;
