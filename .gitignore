@@ -1,0 +1,26 @@
+node_modules/
+dist/
+out/
+release/
+build/
+*.tsbuildinfo
+.vite/
+coverage/
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Generated test corpus and artifacts
+tests/corpus/generated/
+test-results/
+playwright-report/
+
+# Local env
+.env

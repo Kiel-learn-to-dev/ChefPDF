@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist/
+out/
+release/
+core/
+docs/
+*.md
+packages/contracts/src/generated/
