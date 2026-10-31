@@ -1,0 +1,334 @@
+import { useTranslation } from 'react-i18next';
+import {
+  BookOpen,
+  ChevronDown,
+  Columns2,
+  Ellipsis,
+  FilePlus,
+  Minus,
+  Plus,
+  RectangleVertical,
+  Redo2,
+  Save,
+  Sparkles,
+  StretchVertical,
+  Undo2,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useCommands, findCommand, type Command } from './commands';
+import { useActiveDoc } from './state/documents';
+import { READY_TABS, useUi } from './state/ui';
+import { useView, ZOOM_STEPS, type ViewMode } from './state/viewer';
+import { IconButton } from '../components/Button';
+import { DropdownMenu, type MenuEntry } from '../components/Menu';
+import { Separator } from '../components/Misc';
+import { Slider } from '../components/Slider';
+import { getViewer } from '../features/viewer/controllers';
+import { usePageStore, useSelection } from '../features/pages/pageStore';
+
+type Item =
+  | { kind: 'cmd'; id: string; label?: boolean; pressed?: boolean }
+  | { kind: 'zoom' }
+  | { kind: 'viewMode' }
+  | { kind: 'insert' }
+  | { kind: 'sep'; id: string };
+
+function CmdButton({
+  cmd,
+  label,
+  pressed,
+}: {
+  cmd: Command | undefined;
+  label?: boolean;
+  pressed?: boolean;
+}) {
+  if (!cmd) return null;
+  return (
+    <IconButton
+      label={label && cmd.short ? cmd.short : cmd.title}
+      icon={cmd.icon}
+      shortcut={cmd.shortcut}
+      showLabel={label}
+      pressed={pressed}
+      disabled={!cmd.enabled}
+      onClick={() => cmd.run()}
+      className="toolbar__btn"
+    />
+  );
+}
+
+function ZoomControl({ docId }: { docId: string }) {
+  const { t } = useTranslation();
+  const view = useView(docId);
+  const v = () => getViewer(docId);
+  const entries: MenuEntry[] = [
+    {
+      id: 'fw',
+      label: t('cmd.fitWidth'),
+      checked: view.scaleValue === 'page-width',
+      onSelect: () => v()?.setScaleValue('page-width'),
+    },
+    {
+      id: 'fp',
+      label: t('cmd.fitPage'),
+      checked: view.scaleValue === 'page-fit',
+      onSelect: () => v()?.setScaleValue('page-fit'),
+    },
+    {
+      id: 'auto',
+      label: t('zoom.auto'),
+      checked: view.scaleValue === 'auto',
+      onSelect: () => v()?.setScaleValue('auto'),
+    },
+    { type: 'separator', id: 's' },
+    ...ZOOM_STEPS.filter((z) => z >= 0.5 && z <= 4).map<MenuEntry>((z) => ({
+      id: String(z),
+      label: `${Math.round(z * 100)}%`,
+      checked:
+        Math.abs(view.scale - z) < 0.001 &&
+        !['page-width', 'page-fit', 'auto'].includes(view.scaleValue),
+      onSelect: () => v()?.setScaleValue(String(z)),
+    })),
+  ];
+  return (
+    <div className="zoom" role="group" aria-label={t('zoom.label')}>
+      <IconButton
+        size="sm"
+        label={t('cmd.zoomOut')}
+        shortcut="Mod+-"
+        icon={<Minus size={15} />}
+        onClick={() => v()?.zoomBy(-1)}
+      />
+      <DropdownMenu
+        entries={entries}
+        trigger={
+          <button type="button" className="zoom__value" aria-label={t('zoom.choose')}>
+            {Math.round(view.scale * 100)}%
+            <ChevronDown size={13} />
+          </button>
+        }
+      />
+      <IconButton
+        size="sm"
+        label={t('cmd.zoomIn')}
+        shortcut="Mod+="
+        icon={<Plus size={15} />}
+        onClick={() => v()?.zoomBy(1)}
+      />
+    </div>
+  );
+}
+
+const MODE_ICONS: Record<ViewMode, ReactNode> = {
+  single: <RectangleVertical size={16} />,
+  continuous: <StretchVertical size={16} />,
+  twoPage: <Columns2 size={16} />,
+  book: <BookOpen size={16} />,
+};
+
+function ViewModeMenu({ docId, commands }: { docId: string; commands: Command[] }) {
+  const { t } = useTranslation();
+  const view = useView(docId);
+  const ids: [ViewMode, string][] = [
+    ['single', 'view.single'],
+    ['continuous', 'view.continuous'],
+    ['twoPage', 'view.twoPage'],
+    ['book', 'view.book'],
+  ];
+  return (
+    <DropdownMenu
+      entries={ids.map(([mode, id]) => {
+        const c = findCommand(commands, id)!;
+        return { id, label: c.title, checked: view.mode === mode, onSelect: c.run };
+      })}
+      trigger={
+        <button type="button" className="icon-btn toolbar__btn" aria-label={t('viewMode.label')}>
+          {MODE_ICONS[view.mode]}
+          <span className="icon-btn__label">{t(`viewMode.${view.mode}`)}</span>
+          <ChevronDown size={13} />
+        </button>
+      }
+    />
+  );
+}
+
+function InsertMenu({ commands }: { commands: Command[] }) {
+  const { t } = useTranslation();
+  const ids = [
+    'pages.insertBlank',
+    'pages.insertFromFile',
+    'pages.insertImages',
+    'pages.insertClipboard',
+  ];
+  const cmds = ids.map((id) => findCommand(commands, id)!);
+  return (
+    <DropdownMenu
+      entries={cmds.map((c) => ({
+        id: c.id,
+        label: c.title,
+        icon: c.icon,
+        disabled: !c.enabled,
+        onSelect: c.run,
+      }))}
+      trigger={
+        <button type="button" className="icon-btn toolbar__btn" disabled={!cmds[0]?.enabled}>
+          <FilePlus size={16} />
+          <span className="icon-btn__label">{t('toolbar.insert')}</span>
+          <ChevronDown size={13} />
+        </button>
+      }
+    />
+  );
+}
+
+const VIEW_ITEMS: Item[] = [
+  { kind: 'zoom' },
+  { kind: 'cmd', id: 'view.rotateCw' },
+  { kind: 'viewMode' },
+  { kind: 'sep', id: 's1' },
+  { kind: 'cmd', id: 'view.find', label: true },
+  { kind: 'cmd', id: 'view.snapshot', label: true },
+  { kind: 'cmd', id: 'view.presentation', label: true },
+  { kind: 'cmd', id: 'file.print', label: true },
+];
+const VIEW_OVERFLOW = [
+  'view.fitWidth',
+  'view.fitPage',
+  'view.rotateCcw',
+  'view.selectText',
+  'view.outline',
+  'file.saveAs',
+  'file.properties',
+  'view.sidebar',
+  'view.panel',
+];
+
+const PAGES_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'pages.rotateLeft', label: true },
+  { kind: 'cmd', id: 'pages.rotateRight', label: true },
+  { kind: 'cmd', id: 'pages.delete', label: true },
+  { kind: 'cmd', id: 'pages.duplicate', label: true },
+  { kind: 'cmd', id: 'pages.extract', label: true },
+  { kind: 'insert' },
+  { kind: 'sep', id: 's1' },
+  { kind: 'cmd', id: 'tools.merge', label: true },
+  { kind: 'cmd', id: 'tools.split', label: true },
+];
+const PAGES_OVERFLOW = ['pages.selectAll', 'file.saveAs', 'file.print', 'view.panel'];
+
+/** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */
+export function Toolbar() {
+  const { t } = useTranslation();
+  const doc = useActiveDoc();
+  const tab = useUi((s) => s.functionTab);
+  const tool = useUi((s) => s.tool);
+  const findOpen = useUi((s) => s.findOpen);
+  const commands = useCommands();
+  const selection = useSelection(doc?.id);
+  const thumbWidth = usePageStore((s) => s.thumbWidth);
+  const setThumbWidth = usePageStore((s) => s.setThumbWidth);
+  void selection; // re-render when the selection changes (page command enablement)
+  if (!doc) return null;
+  const cmd = (id: string) => findCommand(commands, id);
+
+  const items = tab === 'view' ? VIEW_ITEMS : tab === 'pages' ? PAGES_ITEMS : [];
+  const overflow = tab === 'view' ? VIEW_OVERFLOW : tab === 'pages' ? PAGES_OVERFLOW : [];
+  const pressed: Record<string, boolean> = {
+    'view.snapshot': tool === 'snapshot',
+    'view.find': findOpen,
+  };
+
+  return (
+    <div className="toolbar" role="toolbar" aria-label={t('shell.toolbar')}>
+      <div className="toolbar__group">
+        <IconButton
+          label={cmd('file.save')!.title}
+          shortcut="Mod+S"
+          icon={<Save size={16} />}
+          disabled={!doc.state.dirty && !!doc.state.sourcePath}
+          onClick={() => cmd('file.save')?.run()}
+        />
+        <IconButton
+          label={cmd('edit.undo')!.title}
+          shortcut="Mod+Z"
+          icon={<Undo2 size={16} />}
+          disabled={!doc.state.canUndo}
+          onClick={() => cmd('edit.undo')?.run()}
+        />
+        <IconButton
+          label={cmd('edit.redo')!.title}
+          shortcut="Mod+Y"
+          icon={<Redo2 size={16} />}
+          disabled={!doc.state.canRedo}
+          onClick={() => cmd('edit.redo')?.run()}
+        />
+      </div>
+      <Separator />
+      {READY_TABS.has(tab) ? (
+        <div className="toolbar__group toolbar__main">
+          {items.map((item, i) => {
+            switch (item.kind) {
+              case 'cmd':
+                return (
+                  <CmdButton
+                    key={item.id}
+                    cmd={cmd(item.id)}
+                    label={item.label}
+                    pressed={pressed[item.id]}
+                  />
+                );
+              case 'zoom':
+                return <ZoomControl key="zoom" docId={doc.id} />;
+              case 'viewMode':
+                return <ViewModeMenu key="mode" docId={doc.id} commands={commands} />;
+              case 'insert':
+                return <InsertMenu key="insert" commands={commands} />;
+              case 'sep':
+                return <Separator key={item.id + i} />;
+            }
+          })}
+          <DropdownMenu
+            align="end"
+            entries={overflow.map((id) => {
+              const c = cmd(id)!;
+              return {
+                id,
+                label: c.title,
+                icon: c.icon,
+                shortcut: c.shortcut,
+                disabled: !c.enabled,
+                onSelect: c.run,
+              };
+            })}
+            trigger={
+              <IconButton
+                label={t('toolbar.more')}
+                icon={<Ellipsis size={16} />}
+                className="toolbar__btn"
+              />
+            }
+          />
+        </div>
+      ) : (
+        <div className="toolbar__soon">
+          <Sparkles size={15} aria-hidden />
+          <span>{t('toolbar.comingSoon', { tab: t(`tabs.${tab}`) })}</span>
+        </div>
+      )}
+      <div className="toolbar__spacer" />
+      {tab === 'pages' && (
+        <div className="toolbar__size">
+          <span className="sr-only">{t('pages.thumbSize')}</span>
+          <Slider
+            value={thumbWidth}
+            min={96}
+            max={260}
+            step={4}
+            onChange={setThumbWidth}
+            label={t('pages.thumbSize')}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
