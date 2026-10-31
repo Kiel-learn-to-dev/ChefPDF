@@ -1,0 +1,65 @@
+{
+  "pymupdf_version": "2.0",
+  "redact": {
+    "ms": 21.8,
+    "verify": {
+      "gone_pdfium": {
+        "001234567890": true,
+        "Tràng Tiền": false
+      },
+      "gone_poppler": {
+        "001234567890": true,
+        "Tràng Tiền": false
+      },
+      "kept_pdfium": {
+        "Họ tên: Nguyễn Văn A": true,
+        "SĐT: 0912 345 678": true,
+        "Hoàn Kiếm": true,
+        "Điều 1. Phạm vi điều chỉnh. Văn bản này ": true
+      },
+      "poppler_errors": [],
+      "image_region": [
+        {
+          "xobject": "/Im2",
+          "px_box": [
+            109,
+            140,
+            240,
+            299
+          ],
+          "mean_in_region": 255.0,
+          "size": [
+            240,
+            300
+          ]
+        }
+      ],
+      "original_streams_still_in_file": [],
+      "size": 160483
+    },
+    "kept_chars_max_x_drift_pt": 0.20000000000004547,
+    "kept_chars_same_sequence": true
+  },
+  "edit_text": {
+    "ms": 44.7,
+    "new_text_extractable": true,
+    "old_text_gone": true,
+    "size": 211292,
+    "size_before": 208042,
+    "original_font": "DejaVuSans"
+  },
+  "layout_blocks": {
+    "sort=False": {
+      "blocks": 41,
+      "paragraphs_after_merge": 37,
+      "paragraphs_exact_match": 34,
+      "reading_order_similarity": 0.9979
+    },
+    "sort=True": {
+      "blocks": 41,
+      "paragraphs_after_merge": 37,
+      "paragraphs_exact_match": 32,
+      "reading_order_similarity": 0.3533
+    }
+  }
+}

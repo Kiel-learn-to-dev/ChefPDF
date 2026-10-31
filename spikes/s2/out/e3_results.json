@@ -1,0 +1,147 @@
+{
+  "naive_pdfium": {
+    "rects": [
+      [
+        207.7,
+        716.2,
+        291.2,
+        725.6
+      ],
+      [
+        80.4,
+        7.4,
+        131.9,
+        19.1
+      ],
+      [
+        495.0,
+        690.0,
+        530.0,
+        725.0
+      ]
+    ],
+    "stats": {
+      "text_objs_rebuilt": 2,
+      "text_objs_deleted": 0,
+      "chars_removed": 22,
+      "images_painted": 1,
+      "paths_deleted": 0,
+      "new_text_objs": 20,
+      "runs_via_settext": 20,
+      "generate_content_ok": true,
+      "total_ms": 46.0
+    },
+    "verify": {
+      "gone_pdfium": {
+        "001234567890": true,
+        "Tràng Tiền": false
+      },
+      "gone_poppler": {
+        "001234567890": true,
+        "Tràng Tiền": true
+      },
+      "kept_pdfium": {
+        "Họ tên: Nguyễn Văn A": true,
+        "SĐT: 0912 345 678": true,
+        "Hoàn Kiếm": true,
+        "Điều 1. Phạm vi điều chỉnh. Văn bản này ": true
+      },
+      "poppler_errors": [
+        "Syntax Error (100385): No font in show/space",
+        "Syntax Error: Unknown font tag 'F1'"
+      ],
+      "image_region": [
+        {
+          "xobject": "/FXX2",
+          "px_box": [
+            109,
+            140,
+            240,
+            299
+          ],
+          "mean_in_region": 0.0,
+          "size": [
+            240,
+            300
+          ]
+        }
+      ],
+      "original_streams_still_in_file": [
+        "form /Stampfa70525a5ba84ec2b44570b236c35ad7"
+      ],
+      "size": 165742
+    },
+    "kept_chars_max_x_drift_pt": 0.010000000000005116,
+    "kept_chars_same_sequence": true
+  },
+  "recommended_pdfium_pikepdf": {
+    "rects": [
+      [
+        207.7,
+        716.2,
+        291.2,
+        725.6
+      ],
+      [
+        175.7,
+        732.4,
+        227.7,
+        744.1
+      ],
+      [
+        495.0,
+        690.0,
+        530.0,
+        725.0
+      ]
+    ],
+    "stats": {
+      "text_objs_rebuilt": 2,
+      "text_objs_deleted": 0,
+      "chars_removed": 22,
+      "images_painted": 1,
+      "paths_deleted": 0,
+      "new_text_objs": 20,
+      "runs_via_charcodes": 20,
+      "generate_content_ok": true,
+      "total_ms": 49.3
+    },
+    "verify": {
+      "gone_pdfium": {
+        "001234567890": true,
+        "Tràng Tiền": true
+      },
+      "gone_poppler": {
+        "001234567890": true,
+        "Tràng Tiền": true
+      },
+      "kept_pdfium": {
+        "Họ tên: Nguyễn Văn A": true,
+        "SĐT: 0912 345 678": true,
+        "Hoàn Kiếm": true,
+        "Điều 1. Phạm vi điều chỉnh. Văn bản này ": true
+      },
+      "poppler_errors": [],
+      "image_region": [
+        {
+          "xobject": "/FXX2",
+          "px_box": [
+            109,
+            140,
+            240,
+            299
+          ],
+          "mean_in_region": 0.0,
+          "size": [
+            240,
+            300
+          ]
+        }
+      ],
+      "original_streams_still_in_file": [],
+      "size": 164836
+    },
+    "kept_chars_max_x_drift_pt": 0.010000000000005116,
+    "kept_chars_same_sequence": true
+  }
+}

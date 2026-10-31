@@ -1,0 +1,382 @@
+{
+  "enumerate_ms": 5.4,
+  "object_count": 89,
+  "by_type": {
+    "image": 2,
+    "path": 3,
+    "text": 83,
+    "form": 1
+  },
+  "sample_objects": [
+    {
+      "type": "image",
+      "level": 0,
+      "bounds": [
+        40.0,
+        746.9,
+        95.0,
+        801.9
+      ],
+      "matrix": [
+        55.0,
+        0.0,
+        0.0,
+        55.0,
+        40.0,
+        746.89
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "px_size": [
+        200,
+        200
+      ],
+      "filters": [
+        "FlateDecode"
+      ],
+      "raw_sha1": "2ecd9b8c9989"
+    },
+    {
+      "type": "image",
+      "level": 0,
+      "bounds": [
+        470.0,
+        689.9,
+        525.0,
+        755.9
+      ],
+      "matrix": [
+        55.0,
+        0.0,
+        0.0,
+        66.0,
+        470.0,
+        689.89
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "px_size": [
+        240,
+        300
+      ],
+      "filters": [
+        "FlateDecode"
+      ],
+      "raw_sha1": "53f1621d9fdb"
+    },
+    {
+      "type": "path",
+      "level": 0,
+      "bounds": [
+        28.5,
+        28.5,
+        566.8,
+        813.4
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "segments": 5
+    },
+    {
+      "type": "path",
+      "level": 0,
+      "bounds": [
+        38.5,
+        700.4,
+        456.8,
+        703.4
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "segments": 2
+    },
+    {
+      "type": "path",
+      "level": 0,
+      "bounds": [
+        497.3,
+        763.9,
+        533.3,
+        799.9
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "segments": 13
+    },
+    {
+      "type": "form",
+      "level": 0,
+      "bounds": [
+        110.1,
+        732.9,
+        327.5,
+        743.6
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        100.0,
+        725.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": []
+    },
+    {
+      "type": "text",
+      "level": 0,
+      "bounds": [
+        105.7,
+        778.9,
+        329.4,
+        796.2
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        105.0,
+        781.89
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "text": "CÔNG TY TNHH THỬ NGHIỆM",
+      "font": "DejaVuSans-Bold",
+      "font_embedded": true,
+      "font_size": 14.0
+    },
+    {
+      "type": "text",
+      "level": 0,
+      "bounds": [
+        105.1,
+        761.6,
+        334.2,
+        772.8
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        105.0,
+        763.89
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "text": "Đơn vị: Công ty TNHH Thử Nghiệm Hà Nội",
+      "font": "DejaVuSans",
+      "font_embedded": true,
+      "font_size": 11.0
+    },
+    {
+      "type": "text",
+      "level": 0,
+      "bounds": [
+        41.1,
+        714.6,
+        404.0,
+        726.5
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        40.0,
+        716.89
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "text": "Họ tên: Nguyễn Văn A, CCCD: 001234567890, SĐT: 0912 345 678",
+      "font": "DejaVuSans",
+      "font_embedded": true,
+      "font_size": 11.0
+    },
+    {
+      "type": "text",
+      "level": 0,
+      "bounds": [
+        280.3,
+        38.1,
+        314.1,
+        46.6
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        280.279,
+        40.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [],
+      "text": "Trang 1",
+      "font": "DejaVuSans",
+      "font_embedded": true,
+      "font_size": 9.0
+    },
+    {
+      "type": "text",
+      "level": 0,
+      "bounds": [
+        99.9,
+        275.4,
+        445.5,
+        621.0
+      ],
+      "matrix": [
+        0.707,
+        0.707,
+        -0.707,
+        0.707,
+        147.401,
+        270.708
+      ],
+      "rotation": 45.0,
+      "fill_alpha": 64,
+      "marks": [],
+      "text": "BẢN NHÁP",
+      "font": "DejaVuSans-Bold",
+      "font_embedded": true,
+      "font_size": 72.0
+    },
+    {
+      "type": "text",
+      "level": 0,
+      "bounds": [
+        467.9,
+        54.1,
+        533.7,
+        86.0
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        465.276,
+        60.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 77,
+      "marks": [
+        "Artifact{Subtype=<name?>,Type=<name?>}"
+      ],
+      "text": "MẬT",
+      "font": "DejaVuSans-Bold",
+      "font_embedded": true,
+      "font_size": 28.0
+    },
+    {
+      "type": "text",
+      "level": 1,
+      "bounds": [
+        10.1,
+        7.9,
+        227.5,
+        18.6
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        10.0,
+        10.0
+      ],
+      "rotation": 0.0,
+      "fill_alpha": 255,
+      "marks": [
+        "Tx",
+        "Span{ActualText=\u0001\u0010\u001e\u0000a\u0000 \u0000c\u0000h\u001e\u0000:\u0000 \u0000S\u001e\u0000 \u00001\u0000 \u0000T\u0000r\u0000\u0000n\u0000g\u0000 \u0000T\u0000i\u001e\u0000n\u0000,\u0000 \u0000H\u0000o\u0000\u0000n\u0000 \u0000K\u0000i\u001e\u0000m\u0000,\u0000 \u0000H\u0000\u0000 \u0000N\u001e\u0000i}"
+      ],
+      "text": "Địa chỉ: Số 1 Tràng Tiền, Hoàn Kiếm, Hà Nội",
+      "font": "CUHIGX+DejaVuSans",
+      "font_embedded": true,
+      "font_size": 10.0
+    }
+  ],
+  "hit_tests": {
+    "header line (200,767) [quad]": "text L0: Đơn vị: Công ty TNHH Thử Nghiệm Hà Nội",
+    "header line (200,767) [aabb]": "text L0: Đơn vị: Công ty TNHH Thử Nghiệm Hà Nội",
+    "watermark centre (297,421) [quad]": "text L0: BẢN NHÁP",
+    "watermark centre (297,421) [aabb]": "text L0: BẢN NHÁP",
+    "inside watermark AABB but outside its rotated quad (120,600) [quad]": null,
+    "inside watermark AABB but outside its rotated quad (120,600) [aabb]": "text L0: BẢN NHÁP",
+    "CID line in Form XObject (150,738) [quad]": "text L1: Địa chỉ: Số 1 Tràng Tiền, Hoàn Kiếm, Hà ",
+    "CID line in Form XObject (150,738) [aabb]": "text L1: Địa chỉ: Số 1 Tràng Tiền, Hoàn Kiếm, Hà ",
+    "logo (60,770) [quad]": "image L0: ",
+    "logo (60,770) [aabb]": "image L0: ",
+    "empty margin (15,15) [quad]": null,
+    "empty margin (15,15) [aabb]": null
+  },
+  "edit_and_generate_ms": 5.0,
+  "generate_content_ok": true,
+  "checks": {
+    "pii_text_gone_page1": true,
+    "pii_text_still_on_page2": true,
+    "other_text_unchanged_page1": true,
+    "content_hash_before": [
+      "558581521735",
+      "eaa2dfd966da",
+      "aa37330e8512"
+    ],
+    "content_hash_after": [
+      "f99ab2cba2d1",
+      "eaa2dfd966da",
+      "aa37330e8512"
+    ],
+    "bdc_tags_before_p1": [
+      "/Artifact {'/Type': pikepdf.Name(\"/Pagination\"), '/Subtype': pikepdf.Name(\"/Watermark\")}"
+    ],
+    "bdc_tags_after_p1": [
+      "/Artifact {'/Type': pikepdf.Name(\"/Pagination\"), '/Subtype': pikepdf.Name(\"/Watermark\")}"
+    ],
+    "streams_in_file_before": 27,
+    "streams_in_file_after_pdfium_save": 27,
+    "streams_after_qpdf_rewrite": 29,
+    "size_before": 208042,
+    "size_after_pdfium": 207595,
+    "size_after_qpdf": 201502,
+    "old_content_stream_still_in_file_after_pdfium_save": false,
+    "old_content_stream_still_in_file_after_qpdf": false
+  }
+}

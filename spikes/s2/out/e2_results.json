@@ -1,0 +1,115 @@
+{
+  "xobject_resource_entries_before": 7,
+  "heuristic_candidates": [
+    {
+      "label": "BẢN NHÁP",
+      "type": "text",
+      "score": 6,
+      "why": [
+        "lặp trên 3/3 trang",
+        "xoay 45.0°",
+        "trong suốt (alpha 64)",
+        "chiếm 23% trang"
+      ]
+    },
+    {
+      "label": "MẬT",
+      "type": "text",
+      "score": 6,
+      "why": [
+        "lặp trên 3/3 trang",
+        "trong suốt (alpha 77)",
+        "marked content /Artifact"
+      ]
+    },
+    {
+      "label": "path 5",
+      "type": "path",
+      "score": 2,
+      "why": [
+        "lặp trên 3/3 trang",
+        "chiếm 84% trang"
+      ]
+    },
+    {
+      "label": "image 2ecd9b8c9989",
+      "type": "image",
+      "score": 1,
+      "why": [
+        "lặp trên 3/3 trang"
+      ]
+    },
+    {
+      "label": "CÔNG TY TNHH THỬ NGHIỆM",
+      "type": "text",
+      "score": 1,
+      "why": [
+        "lặp trên 3/3 trang"
+      ]
+    },
+    {
+      "label": "Đơn vị: Công ty TNHH Thử Nghiệm Hà Nội",
+      "type": "text",
+      "score": 1,
+      "why": [
+        "lặp trên 3/3 trang"
+      ]
+    },
+    {
+      "label": "Họ tên: Nguyễn Văn A, CCCD: 001234567890, SĐT: 091",
+      "type": "text",
+      "score": 1,
+      "why": [
+        "lặp trên 3/3 trang"
+      ]
+    },
+    {
+      "label": "path 2",
+      "type": "path",
+      "score": 1,
+      "why": [
+        "lặp trên 3/3 trang"
+      ]
+    },
+    {
+      "label": "path 13",
+      "type": "path",
+      "score": 1,
+      "why": [
+        "lặp trên 3/3 trang"
+      ]
+    }
+  ],
+  "tagged_watermarks_pikepdf": [
+    {
+      "page": 0,
+      "props": {
+        "/Subtype": "/Watermark",
+        "/Type": "/Pagination"
+      }
+    },
+    {
+      "page": 1,
+      "props": {
+        "/Subtype": "/Watermark",
+        "/Type": "/Pagination"
+      }
+    },
+    {
+      "page": 2,
+      "props": {
+        "/Subtype": "/Watermark",
+        "/Type": "/Pagination"
+      }
+    }
+  ],
+  "pdfium_removed_objects": 6,
+  "xobject_resource_entries_after_pdfium": 4,
+  "xobject_resource_entries_after_prune": 4,
+  "watermark_text_left": 0,
+  "body_text_kept": true,
+  "image_streams_left": 1,
+  "image_streams_before": 2,
+  "pikepdf_tagged_blocks_removed": 3,
+  "tagged_text_left_after_B": 0
+}

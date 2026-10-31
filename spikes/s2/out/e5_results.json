@@ -1,0 +1,14 @@
+{
+  "pages": 3,
+  "body_chars": 6186,
+  "ms_total": 90.4,
+  "lines_extracted": 168,
+  "lines_matching_text_objects": 168,
+  "paragraph_fragments_before_merge": 38,
+  "paragraphs_after_merge": 36,
+  "truth_paragraphs": 36,
+  "paragraphs_exact_match": 36,
+  "reading_order_similarity_ours": 1.0,
+  "reading_order_similarity_pdfium_builtin": 0.9137,
+  "first_mismatches": []
+}
