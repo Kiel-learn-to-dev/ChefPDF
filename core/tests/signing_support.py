@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -22,7 +23,13 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID, ObjectIdentifier
+from cryptography.x509 import ocsp
+from cryptography.x509.oid import (
+    AuthorityInformationAccessOID,
+    ExtendedKeyUsageOID,
+    NameOID,
+    ObjectIdentifier,
+)
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign.timestamps.dummy_client import DummyTimeStamper
 from pyhanko.sign.validation import validate_pdf_signature, validate_pdf_timestamp
@@ -45,7 +52,9 @@ class LocalServices:
     def __init__(self) -> None:
         self.crls: dict[str, bytes] = {}
         self.tsa: DummyTimeStamper | None = None
-        self.hits: dict[str, int] = {"crl": 0, "tsa": 0}
+        # POST /ocsp body (DER OCSPRequest) -> DER OCSPResponse. None: the path answers 404.
+        self.ocsp_handler: Callable[[bytes], bytes] | None = None
+        self.hits: dict[str, int] = {"crl": 0, "tsa": 0, "ocsp": 0}
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), _handler_for(self))
         self.base_url = f"http://127.0.0.1:{self._server.server_address[1]}"
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
@@ -86,6 +95,10 @@ def _handler_for(services: LocalServices) -> type[BaseHTTPRequestHandler]:
                 reply = services.tsa.request_tsa_response(request).dump()
                 self._reply(200, reply, "application/timestamp-reply")
                 return
+            if self.path == "/ocsp" and services.ocsp_handler is not None:
+                services.hits["ocsp"] += 1
+                self._reply(200, services.ocsp_handler(body), "application/ocsp-response")
+                return
             self._reply(404, b"", "text/plain")
 
     return Handler
@@ -109,6 +122,12 @@ class Pki:
     tsa: Identity
     root_pem: Path
     directory: Path
+    # Leaves that only point at the loopback OCSP responder (no CRL distribution point).
+    ocsp_good: Identity  # answered "good"
+    ocsp_revoked: Identity  # answered "revoked"
+    ocsp_unknown: Identity  # answered "unknown"
+    ocsp_dead: Identity  # OCSP URL where nothing listens
+    short: Identity  # expires in two days (CERT_EXPIRED_NOW tests verify later)
 
     def pfx(
         self, name: str, identity: Identity, password: str | None, chain: list[x509.Certificate]
@@ -291,8 +310,28 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
         *,
         not_before: dt.datetime,
         not_after: dt.datetime,
+        ocsp_url: str | None = None,
+        crl: bool = True,
     ) -> Identity:
         key = _key()
+        extensions: list[tuple[x509.ExtensionType, bool]] = [
+            (x509.BasicConstraints(ca=False, path_length=None), True),
+            (_signer_usage(), True),
+            (
+                x509.ExtendedKeyUsage(
+                    [ExtendedKeyUsageOID.CLIENT_AUTH, ExtendedKeyUsageOID.EMAIL_PROTECTION]
+                ),
+                False,
+            ),
+            (x509.AuthorityKeyIdentifier.from_issuer_public_key(inter_key.public_key()), False),
+        ]
+        if crl:
+            extensions.append((_crl_point(f"{base}/crl/inter.crl"), False))
+        if ocsp_url is not None:
+            access = x509.AccessDescription(
+                AuthorityInformationAccessOID.OCSP, x509.UniformResourceIdentifier(ocsp_url)
+            )
+            extensions.append((x509.AuthorityInformationAccess([access]), False))
         cert = _cert(
             subject,
             inter_name,
@@ -300,18 +339,7 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
             inter_key,
             not_before=not_before,
             not_after=not_after,
-            extensions=[
-                (x509.BasicConstraints(ca=False, path_length=None), True),
-                (_signer_usage(), True),
-                (
-                    x509.ExtendedKeyUsage(
-                        [ExtendedKeyUsageOID.CLIENT_AUTH, ExtendedKeyUsageOID.EMAIL_PROTECTION]
-                    ),
-                    False,
-                ),
-                (x509.AuthorityKeyIdentifier.from_issuer_public_key(inter_key.public_key()), False),
-                (_crl_point(f"{base}/crl/inter.crl"), False),
-            ],
+            extensions=extensions,
         )
         return Identity(key, cert)
 
@@ -361,6 +389,79 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
         not_after=year,
     )
 
+    ocsp_url = f"{base}/ocsp"
+    ocsp_good = signer(
+        person("OCSP Tốt", (UID_OID, "CCCD:002000000001")),
+        not_before=NOW - dt.timedelta(days=1),
+        not_after=year,
+        ocsp_url=ocsp_url,
+        crl=False,
+    )
+    ocsp_revoked = signer(
+        person("OCSP Bị Thu Hồi", (UID_OID, "CCCD:002000000002")),
+        not_before=NOW - dt.timedelta(days=1),
+        not_after=year,
+        ocsp_url=ocsp_url,
+        crl=False,
+    )
+    ocsp_unknown = signer(
+        person("OCSP Không Biết", (UID_OID, "CCCD:002000000003")),
+        not_before=NOW - dt.timedelta(days=1),
+        not_after=year,
+        ocsp_url=ocsp_url,
+        crl=False,
+    )
+    ocsp_dead = signer(
+        person("OCSP Mất Kết Nối", (UID_OID, "CCCD:002000000004")),
+        not_before=NOW - dt.timedelta(days=1),
+        not_after=year,
+        ocsp_url=dead_url().removesuffix("/tsa") + "/ocsp",
+        crl=False,
+    )
+    short = signer(
+        person("Sắp Hết Hạn", (UID_OID, "CCCD:002000000005")),
+        not_before=NOW - dt.timedelta(days=1),
+        not_after=NOW + dt.timedelta(days=2),
+    )
+
+    # OCSP responder: signed by the intermediate CA (the issuer of every OCSP leaf above).
+    answers: dict[int, tuple[ocsp.OCSPCertStatus, dt.datetime | None]] = {
+        ocsp_good.cert.serial_number: (ocsp.OCSPCertStatus.GOOD, None),
+        ocsp_revoked.cert.serial_number: (ocsp.OCSPCertStatus.REVOKED, NOW - dt.timedelta(days=2)),
+        ocsp_unknown.cert.serial_number: (ocsp.OCSPCertStatus.UNKNOWN, None),
+    }
+    leaves = {
+        ident.cert.serial_number: ident.cert for ident in (ocsp_good, ocsp_revoked, ocsp_unknown)
+    }
+
+    def respond(body: bytes) -> bytes:
+        request = ocsp.load_der_ocsp_request(body)
+        serial = request.serial_number
+        if serial not in answers:
+            failed = ocsp.OCSPResponseBuilder.build_unsuccessful(
+                ocsp.OCSPResponseStatus.UNAUTHORIZED
+            )
+            return failed.public_bytes(serialization.Encoding.DER)
+        status, revoked_at = answers[serial]
+        response = (
+            ocsp.OCSPResponseBuilder()
+            .add_response(
+                cert=leaves[serial],
+                issuer=inter_cert,
+                algorithm=hashes.SHA1(),
+                cert_status=status,
+                this_update=NOW - dt.timedelta(hours=1),
+                next_update=NOW + dt.timedelta(days=1),
+                revocation_time=revoked_at,
+                revocation_reason=None,
+            )
+            .responder_id(ocsp.OCSPResponderEncoding.HASH, inter_cert)
+            .sign(inter_key, hashes.SHA256())
+        )
+        return response.public_bytes(serialization.Encoding.DER)
+
+    services.ocsp_handler = respond
+
     tsa_key = _key()
     tsa_cert = _cert(
         _name((NameOID.COUNTRY_NAME, "VN"), (NameOID.COMMON_NAME, "Chef Test TSA")),
@@ -404,6 +505,11 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
         tsa=Identity(tsa_key, tsa_cert),
         root_pem=root_pem,
         directory=directory,
+        ocsp_good=ocsp_good,
+        ocsp_revoked=ocsp_revoked,
+        ocsp_unknown=ocsp_unknown,
+        ocsp_dead=ocsp_dead,
+        short=short,
     )
 
 

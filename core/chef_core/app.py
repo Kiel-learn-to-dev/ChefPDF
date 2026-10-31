@@ -15,6 +15,7 @@ from chef_core.ops.scan_presets import describe_presets
 from chef_core.rpc.jobs import JobRunner
 from chef_core.rpc.server import Deferred, JsonDict, RpcServer
 from chef_core.session.manager import SessionManager
+from chef_core.signing.trust import set_user_trust_dir
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class CoreApp:
         ops.load_builtin_ops()
         self.server = RpcServer(inp, out)
         self.sessions = SessionManager(data_dir)
+        set_user_trust_dir(data_dir / "trust")
         self.sessions.cleanup_stale()
         self.jobs = JobRunner(self.server.notify, self.sessions)
         # Requests that may take a while but do not belong to a session (open/create/info).

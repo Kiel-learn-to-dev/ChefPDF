@@ -19,7 +19,7 @@ from pydantic import Field
 
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
-from chef_core.signing.trust import TrustStore, load_trust_paths
+from chef_core.signing.trust import default_trust_store, load_trust_paths
 from chef_core.signing.verify import VerifyOptions, extract_revision, verify_document
 
 PATH_DOC = "Path of the PDF file."
@@ -31,7 +31,7 @@ class VerifyParams(WireModel):
     trust_root_paths: list[str] = Field(
         default_factory=list,
         description="Extra trust roots: certificate files (PEM or DER) or folders of them. "
-        "The bundled trust folder is always used.",
+        "The bundled and user trust stores are always used.",
     )
     check_revocation: Literal["none", "soft", "hard"] = Field(
         default="soft",
@@ -65,7 +65,7 @@ class ExtractRevisionParams(WireModel):
 
 def _options(p: VerifyParams) -> VerifyOptions:
     return VerifyOptions(
-        trust=TrustStore(user_dir=None),
+        trust=default_trust_store(),
         extra_trust_roots=load_trust_paths(p.trust_root_paths),
         check_revocation=p.check_revocation,
         allow_offline=p.allow_offline,

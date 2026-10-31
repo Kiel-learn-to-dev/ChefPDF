@@ -207,3 +207,31 @@ class TrustStore:
 
     def _bundled(self) -> builtins.list[TrustEntry]:
         return [e for e in self._raw_entries() if e.source == "bundled"]
+
+
+# -- the app's trust folders (set once by the core at start-up) -----------------------------
+
+_USER_TRUST_DIR: Path | None = None
+
+
+def set_user_trust_dir(path: Path | None) -> None:
+    """The user trust folder of this process (``<data-dir>/trust``), or None for none."""
+    global _USER_TRUST_DIR
+    _USER_TRUST_DIR = path
+
+
+def user_trust_dir() -> Path | None:
+    return _USER_TRUST_DIR
+
+
+def default_trust_store() -> TrustStore:
+    """Bundled roots plus the user's own certificates: what every verification trusts."""
+    return TrustStore(user_dir=_USER_TRUST_DIR)
+
+
+def default_trust_roots() -> list[Path]:
+    """The folders behind ``default_trust_store`` (bundled first, then the user folder)."""
+    folders = [BUNDLED_CERTS_DIR]
+    if _USER_TRUST_DIR is not None:
+        folders.append(_USER_TRUST_DIR)
+    return folders

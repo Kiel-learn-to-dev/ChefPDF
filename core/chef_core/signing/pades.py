@@ -17,7 +17,6 @@ import datetime as dt
 import math
 import re
 import unicodedata
-from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import count
 from pathlib import Path
@@ -38,6 +37,7 @@ from chef_core.pdf.io import opened_pdf
 from chef_core.signing.certinfo import describe_identity
 from chef_core.signing.fields import certification_level, list_signature_fields
 from chef_core.signing.pfx import PfxCertificate
+from chef_core.signing.trust import default_trust_store
 from chef_core.signing.tsa import FallbackTimeStamper
 
 SigningLevel = Literal["B-B", "B-T", "B-LT", "B-LTA"]
@@ -150,30 +150,10 @@ def next_field_name(existing: set[str]) -> str:
     raise AssertionError("unreachable")  # pragma: no cover
 
 
-def load_certificate_files(paths: Sequence[str | Path]) -> tuple[x509.Certificate, ...]:
-    """Read PEM or DER certificates from files (used for extra trust roots)."""
-    certs: list[x509.Certificate] = []
-    for raw in paths:
-        path = Path(raw)
-        if not path.is_file():
-            raise ChefError(ErrorKind.FILE_NOT_FOUND, "File not found", {"path": str(path)})
-        data = path.read_bytes()
-        try:
-            certs.append(
-                x509.load_pem_x509_certificate(data)
-                if b"-----BEGIN" in data
-                else x509.load_der_x509_certificate(data)
-            )
-        except ValueError as exc:
-            raise ChefError(
-                ErrorKind.SIGN_BAD_CERT, "Not a certificate file", {"path": str(path)}
-            ) from exc
-    return tuple(certs)
-
-
 def _trust_anchors(req: PadesRequest) -> list[asn1_x509.Certificate]:
-    """Explicit trust roots, plus self-signed certificates that came with the signer."""
+    """Explicit trust roots, the trust store's roots, and self-signed certificates of the signer."""
     candidates = list(req.trust_roots)
+    candidates += default_trust_store().anchors()
     candidates += [c for c in (req.signer.certificate, *req.signer.chain) if c.subject == c.issuer]
     seen: set[bytes] = set()
     anchors: list[asn1_x509.Certificate] = []
@@ -253,6 +233,34 @@ def check_changes_allowed(
         )
 
 
+def preflight_pades(
+    source: Path,
+    *,
+    field_name: str | None,
+    visible: bool,
+    certify: MDPPerm | None,
+    op_id: str,
+) -> None:
+    """Refuse a signing that the document cannot take, before anything is signed.
+
+    Token operations call this before they log in, so a refused signing never uses the PIN.
+    """
+    with opened_pdf(source) as pdf:
+        fields = {f.name: f for f in list_signature_fields(pdf)}
+    target = fields.get(field_name) if field_name else None
+    if target is not None and target.signed:
+        raise invalid_params(
+            f"The signature field {target.name} is already signed",
+            {"field": "fieldName"},
+        )
+    check_changes_allowed(
+        source,
+        creates_field=visible or target is None,
+        certify=certify,
+        op_id=op_id,
+    )
+
+
 def sign_pades(req: PadesRequest) -> PadesResult:
     """Sign ``req.source`` into ``req.destination``. Raises ``ChefError`` on every failure."""
     timestamper = FallbackTimeStamper(req.tsa_urls) if req.level in TIMESTAMP_LEVELS else None
@@ -260,20 +268,16 @@ def sign_pades(req: PadesRequest) -> PadesResult:
         raise invalid_params("This level needs a timestamp server")
     validation = _validation_context(req) if req.level in VALIDATION_LEVELS else None
 
-    with opened_pdf(req.source) as pdf:
-        fields = {f.name: f for f in list_signature_fields(pdf)}
-    target = fields.get(req.field_name) if req.field_name else None
-    if target is not None and target.signed:
-        raise invalid_params(
-            f"The signature field {target.name} is already signed",
-            {"field": "fieldName"},
-        )
-    check_changes_allowed(
+    preflight_pades(
         req.source,
-        creates_field=req.spot is not None or target is None,
+        field_name=req.field_name,
+        visible=req.spot is not None,
         certify=req.certify,
         op_id="sign.pades",
     )
+    with opened_pdf(req.source) as pdf:
+        fields = {f.name: f for f in list_signature_fields(pdf)}
+    target = fields.get(req.field_name) if req.field_name else None
 
     with req.source.open("rb") as src:
         writer = IncrementalPdfFileWriter(src, strict=False)

@@ -30,8 +30,9 @@ import pikepdf
 from asn1crypto import x509 as asn1_x509
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
 from cryptography.x509 import ocsp
-from cryptography.x509.oid import AuthorityInformationAccessOID
+from cryptography.x509.oid import AuthorityInformationAccessOID, ExtendedKeyUsageOID
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign.diff_analysis import ModificationLevel, SuspiciousModification
 from pyhanko.sign.fields import MDPPerm
@@ -269,11 +270,76 @@ def _crl_status(
     return "revoked" if crl.get_revoked_certificate_by_serial_number(cert.serial_number) else "good"
 
 
-def _ocsp_status(response: ocsp.OCSPResponse, cert: x509.Certificate) -> str | None:
+def _signed_by(response: ocsp.OCSPResponse, signer: x509.Certificate) -> bool:
+    """True when the response signature verifies with the public key of ``signer``."""
+    try:
+        hash_algorithm = response.signature_hash_algorithm
+        if hash_algorithm is None:
+            return False
+        key: Any = signer.public_key()
+        if isinstance(key, rsa.RSAPublicKey):
+            key.verify(
+                response.signature,
+                response.tbs_response_bytes,
+                padding.PKCS1v15(),
+                hash_algorithm,
+            )
+        elif isinstance(key, ec.EllipticCurvePublicKey):
+            key.verify(
+                response.signature,
+                response.tbs_response_bytes,
+                ec.ECDSA(hash_algorithm),
+            )
+        else:
+            return False
+    except Exception:
+        return False
+    return True
+
+
+def _is_ocsp_signer(cert: x509.Certificate, issuer: x509.Certificate) -> bool:
+    """A certificate the issuer delegated to answer OCSP requests (id-kp-OCSPSigning)."""
+    try:
+        cert.verify_directly_issued_by(issuer)
+        usage = cert.extensions.get_extension_for_class(x509.ExtendedKeyUsage).value
+    except Exception:
+        return False
+    return ExtendedKeyUsageOID.OCSP_SIGNING in usage
+
+
+def _response_is_authentic(response: ocsp.OCSPResponse, issuer: x509.Certificate) -> bool:
+    """Signed by the issuer itself, or by a delegated responder that the issuer certified."""
+    if _signed_by(response, issuer):
+        return True
+    try:
+        delegated = list(response.certificates)
+    except Exception:
+        return False
+    return any(_is_ocsp_signer(c, issuer) and _signed_by(response, c) for c in delegated)
+
+
+def _ocsp_status(
+    response: ocsp.OCSPResponse,
+    cert: x509.Certificate,
+    issuer: x509.Certificate,
+    now: dt.datetime,
+) -> str | None:
+    """ "good" or "revoked" for ``cert`` when the response is genuine and current; else None.
+
+    A response that the issuer did not sign (forged, or from another CA) is ignored, and so is a
+    response past its nextUpdate (an old "good" answer proves nothing about today).
+    """
     try:
         if response.response_status != ocsp.OCSPResponseStatus.SUCCESSFUL:
             return None
         if response.serial_number != cert.serial_number:
+            return None
+        next_update = response.next_update_utc
+        if next_update is None or next_update < now:
+            return None
+        if response.this_update_utc > now:
+            return None
+        if not _response_is_authentic(response, issuer):
             return None
         if response.certificate_status == ocsp.OCSPCertStatus.GOOD:
             return "good"
@@ -304,7 +370,7 @@ def _revocation_for(
             if status is not None:
                 return _Revocation(cert, "embedded", status, crl=raw)
         for raw, response in embedded.ocsps:
-            status = _ocsp_status(response, cert)
+            status = _ocsp_status(response, cert, issuer, now)
             if status is not None:
                 return _Revocation(cert, "embedded", status, ocsp=raw)
     if mode == "none":
@@ -326,7 +392,7 @@ def _revocation_for(
             response = ocsp.load_der_ocsp_response(raw)
         except Exception:
             continue
-        status = _ocsp_status(response, cert)
+        status = _ocsp_status(response, cert, issuer, now)
         if status is not None:
             return _Revocation(cert, "ocsp", status, ocsp=raw)
     return _Revocation(cert, "none", "unknown")
@@ -676,16 +742,20 @@ def _unsigned_item(name: str) -> dict[str, Any]:
 
 
 def verify_document(
-    path: Path, options: VerifyOptions, fetch: FetchFn | None = None
+    path: Path,
+    options: VerifyOptions,
+    fetch: FetchFn | None = None,
+    now: dt.datetime | None = None,
 ) -> dict[str, Any]:
     """Verify every signature of ``path``. Returns ``{"signatures": [...]}``.
 
-    ``fetch`` replaces the network (tests use it to simulate unreachable servers).
-    Raises ``ChefError`` only when the file cannot be opened or read as a PDF.
+    ``fetch`` replaces the network (tests use it to simulate unreachable servers); ``now``
+    replaces the clock (tests check a document at a later date). Raises ``ChefError`` only when
+    the file cannot be opened or read as a PDF.
     """
     if options.check_revocation not in ("none", "soft", "hard"):
         raise invalid_params("checkRevocation must be none, soft or hard")
-    now = dt.datetime.now(dt.UTC)
+    now = now if now is not None else dt.datetime.now(dt.UTC)
     with opened_pdf(path) as pdf:
         fields = list_signature_fields(pdf)
         embedded = _read_dss(pdf)

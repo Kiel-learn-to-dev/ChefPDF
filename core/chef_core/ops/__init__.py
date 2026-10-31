@@ -17,6 +17,8 @@ BUILTIN_MODULES = (
     "chef_core.ops.sign_token",
     "chef_core.ops.sign_verify",
     "chef_core.ops.sign_anchor",
+    "chef_core.ops.sign_trust",
+    "chef_core.ops.sign_batch",
     "chef_core.ops.image_sig",
 )
 

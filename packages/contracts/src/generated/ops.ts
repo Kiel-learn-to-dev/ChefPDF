@@ -4,6 +4,42 @@
  * Regenerate: cd core && uv run python -m chef_core.codegen
  */
 
+export interface AnchorPlacement {
+  kind: 'anchor';
+  /** Text to find on each file. */
+  text: string;
+  /** @default "below" */
+  position?: 'below' | 'above' | 'right' | 'left' | 'over';
+  /** Displayed width in points. */
+  width: number;
+  /** Displayed height in points. */
+  height: number;
+  /** @default 0.0 */
+  offsetX?: number;
+  /** @default 0.0 */
+  offsetY?: number;
+  /** @default "center" */
+  align?: 'left' | 'center' | 'right';
+  /** @default true */
+  ignoreDiacritics?: boolean;
+  /**
+   * all: one signature per match, each in its own box, in one output file.
+   * @default "first"
+   */
+  whichMatch?: 'first' | 'last' | 'all';
+  /**
+   * skip: the file is skipped. fail: the file fails. fallback-fixed: a fixed box at fallbackCorner / fallbackPage.
+   * @default "skip"
+   */
+  onMissing?: 'skip' | 'fail' | 'fallback-fixed';
+  /** @default "bottom-right" */
+  fallbackCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  /** @default "last" */
+  fallbackPage?: 'first' | 'last' | number;
+  /** @default 36.0 */
+  fallbackMargin?: number;
+}
+
 /** An anchor as returned by sign.findAnchors (only the parts that placement needs). */
 export interface AnchorRef {
   pageIndex: number;
@@ -20,6 +56,28 @@ export interface BackgroundStyle {
   opacity?: number;
 }
 
+export interface BatchFile {
+  /** Path of the PDF to sign. */
+  path: string;
+  /** Password of this PDF, when it is encrypted. Never stored or echoed back. */
+  password?: string;
+}
+
+export interface BatchOutput {
+  /**
+   * suffix: next to each input, name + suffix. folder: all into one folder. overwrite: replace each input (atomic).
+   * @default "suffix"
+   */
+  mode?: 'suffix' | 'folder' | 'overwrite';
+  /**
+   * Used in suffix mode.
+   * @default "_signed"
+   */
+  suffix?: string;
+  /** For folder mode. */
+  folder?: string;
+}
+
 export interface BorderStyle {
   /** @default "#1F3A93" */
   color?: string;
@@ -28,6 +86,23 @@ export interface BorderStyle {
    * @default 0.8
    */
   width?: number;
+}
+
+export interface FixedPlacement {
+  kind: 'fixed';
+  /** @default "bottom-right" */
+  corner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  /** Points. */
+  width: number;
+  /** Points. */
+  height: number;
+  /**
+   * Points from both edges.
+   * @default 36.0
+   */
+  margin?: number;
+  /** @default "last" */
+  page?: 'first' | 'last' | number;
 }
 
 export interface ImageDataUrlSource {
@@ -49,6 +124,10 @@ export interface ImageSlot {
   opacity?: number;
 }
 
+export interface InvisiblePlacement {
+  kind: 'invisible';
+}
+
 export interface MergeInput {
   /** PDF file to merge. */
   path: string;
@@ -56,6 +135,22 @@ export interface MergeInput {
   password?: string;
   /** 0-based pages to take; default all. */
   pages?: number[];
+}
+
+export interface PfxSigner {
+  kind: 'pfx';
+  /** Path to the .pfx or .p12 file. */
+  pfxPath: string;
+  /** Password of the certificate file. */
+  password?: string;
+}
+
+export interface RectPlacement {
+  kind: 'rect';
+  /** 0-based page. */
+  page: number;
+  /** [x1, y1, x2, y2] in PDF points, the same on every file. */
+  rect: number[];
 }
 
 /** Parameters for one scanner look. The defaults are neutral (no effect). */
@@ -88,6 +183,28 @@ export interface SeparationLayer {
   colorHex: string;
   /** @default 60 */
   tolerance?: number;
+}
+
+/** Options of one signature, without any placement. */
+export interface SignOptions {
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER files, or folders of them) for B-LT and B-LTA. The bundled and user trust stores are always used. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
 }
 
 /** Look of a visible signature (I10-I18). Defaults give a plain text box. */
@@ -186,6 +303,25 @@ export interface TemplateLine {
   fontSize?: number;
   /** @default true */
   enabled?: boolean;
+}
+
+export interface TokenSigner {
+  kind: 'token';
+  /** Path of the PKCS#11 driver file. */
+  modulePath: string;
+  /** Slot of the token. */
+  slotId?: number;
+  /** Serial of the token, instead of slotId. */
+  tokenSerial?: string;
+  /** CKA_ID of the signing certificate, in hex (from sign.listTokens). */
+  certId: string;
+  /** Token PIN: one login for the whole batch. */
+  pin: string;
+  /**
+   * Must be true to use the PIN when the token reports only one try left.
+   * @default false
+   */
+  confirmFinalTry?: boolean;
 }
 
 /** Merge several PDFs (in order) into a new file. */
@@ -577,6 +713,26 @@ export interface SignAddFieldParams {
   signerLabel?: string;
 }
 
+/** Sign many PDFs with one certificate (PFX or token). One set of options for all files. */
+export interface SignBatchParams {
+  files: BatchFile[];
+  signer: PfxSigner | TokenSigner;
+  common?: SignOptions;
+  /** Where the visible box goes on each file. Default: no box. */
+  placement?: RectPlacement | FixedPlacement | AnchorPlacement | InvisiblePlacement;
+  output?: BatchOutput;
+  /**
+   * Stop after the first failed file; the rest are skipped.
+   * @default false
+   */
+  stopOnError?: boolean;
+  /**
+   * Check each output with the verifier (verification field).
+   * @default false
+   */
+  verifyAfter?: boolean;
+}
+
 /** Read the certificate in a .pfx / .p12 file without signing anything. */
 export interface SignCertInfoParams {
   /** Path to the .pfx or .p12 file. */
@@ -644,12 +800,8 @@ export interface SignListTokensParams {
   modulePath: string;
 }
 
-/** Sign the document with a certificate file (PAdES). */
+/** Sign the document with a certificate file (PAdES). Same options as sign.padesToken. */
 export interface SignPadesParams {
-  /** Path to the .pfx or .p12 file. */
-  pfxPath: string;
-  /** Password of the certificate file. Never stored, logged or echoed back. */
-  password?: string;
   /**
    * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
    * @default "B-B"
@@ -659,25 +811,53 @@ export interface SignPadesParams {
   digest?: 'sha256' | 'sha384' | 'sha512';
   /** Timestamp servers, tried in order. Required for B-T and above. */
   tsaUrls?: string[];
-  /** Extra trust roots (PEM or DER) for B-LT and B-LTA. */
+  /** Extra trust roots (PEM or DER files, or folders of them) for B-LT and B-LTA. The bundled and user trust stores are always used. */
   trustRootPaths?: string[];
   reason?: string;
   location?: string;
   contactInfo?: string;
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
   /** Signature field name. Default: the first free Signature<N>. */
   fieldName?: string;
   /** 0-based page for a visible signature. Needs rect. */
   page?: number;
   /** [x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing empty field of that name. */
   rect?: number[];
-  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
-  certify?: 'no-changes' | 'form-fill' | 'annotate';
-  /** Look of a visible signature. Default: a plain text box. */
-  template?: SignatureTemplate;
+  /** Path to the .pfx or .p12 file. */
+  pfxPath: string;
+  /** Password of the certificate file. Never stored, logged or echoed back. */
+  password?: string;
 }
 
 /** Sign the document with a key on a USB token (PAdES). Same options as sign.pades. */
 export interface SignPadesTokenParams {
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER files, or folders of them) for B-LT and B-LTA. The bundled and user trust stores are always used. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
+  /** Signature field name. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** 0-based page for a visible signature. Needs rect. */
+  page?: number;
+  /** [x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing empty field of that name. */
+  rect?: number[];
   /** Path of the PKCS#11 driver file (.dll, .dylib or .so). */
   modulePath: string;
   /** Slot of the token. */
@@ -693,26 +873,6 @@ export interface SignPadesTokenParams {
    * @default false
    */
   confirmFinalTry?: boolean;
-  /**
-   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
-   * @default "B-B"
-   */
-  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
-  /** @default "sha256" */
-  digest?: 'sha256' | 'sha384' | 'sha512';
-  /** Timestamp servers, tried in order. Required for B-T and above. */
-  tsaUrls?: string[];
-  /** Extra trust roots (PEM or DER) for B-LT and B-LTA. */
-  trustRootPaths?: string[];
-  reason?: string;
-  location?: string;
-  contactInfo?: string;
-  /** Signature field name. Default: the first free Signature<N>. */
-  fieldName?: string;
-  /** 0-based page for a visible signature. Needs rect. */
-  page?: number;
-  /** [x1, y1, x2, y2] in PDF points. Needs page. */
-  rect?: number[];
 }
 
 /** Signature boxes next to anchors (I26). Positions are in the displayed frame. */
@@ -751,9 +911,30 @@ export interface SignPlaceFromAnchorParams {
   clampToPage?: boolean;
 }
 
+/** Trust the certificates of a file (a root or an intermediate CA). */
+export interface SignTrustAddParams {
+  /** Certificate file: PEM (one or more) or DER. */
+  path: string;
+  /**
+   * vn-public-ca: a public CA of Vietnam. vn-gov-ca: the government CA. user: anything else. Shown in the trust list.
+   * @default "user"
+   */
+  group?: 'vn-public-ca' | 'vn-gov-ca' | 'user';
+}
+
+/** No parameters: the bundled and the user certificates. */
+export interface SignTrustListParams {
+}
+
+/** Stop trusting a certificate that was added by the user. */
+export interface SignTrustRemoveParams {
+  /** SHA-256 fingerprint as listed by sign.trustList (colons optional). */
+  fingerprintSha256: string;
+}
+
 /** Verify the signatures of the document. */
 export interface SignVerifyParams {
-  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled trust folder is always used. */
+  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled and user trust stores are always used. */
   trustRootPaths?: string[];
   /**
    * none: no revocation check. soft: a failed check is a warning. hard: a failed check makes the signature unknown.
@@ -774,7 +955,7 @@ export interface SignVerifyParams {
 
 /** Verify the signatures of a PDF file (no session needed). */
 export interface SignVerifyFileParams {
-  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled trust folder is always used. */
+  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled and user trust stores are always used. */
   trustRootPaths?: string[];
   /**
    * none: no revocation check. soft: a failed check is a warning. hard: a failed check makes the signature unknown.
@@ -816,6 +997,7 @@ export interface OpParams {
   'scan.preview': ScanPreviewParams;
   'scan.rasterize': ScanRasterizeParams;
   'sign.addField': SignAddFieldParams;
+  'sign.batch': SignBatchParams;
   'sign.certInfo': SignCertInfoParams;
   'sign.diagnoseToken': SignDiagnoseTokenParams;
   'sign.driverScan': SignDriverScanParams;
@@ -826,6 +1008,9 @@ export interface OpParams {
   'sign.pades': SignPadesParams;
   'sign.padesToken': SignPadesTokenParams;
   'sign.placeFromAnchor': SignPlaceFromAnchorParams;
+  'sign.trustAdd': SignTrustAddParams;
+  'sign.trustList': SignTrustListParams;
+  'sign.trustRemove': SignTrustRemoveParams;
   'sign.verify': SignVerifyParams;
   'sign.verifyFile': SignVerifyFileParams;
 }
@@ -852,6 +1037,7 @@ export const OP_IDS = [
   'scan.preview',
   'scan.rasterize',
   'sign.addField',
+  'sign.batch',
   'sign.certInfo',
   'sign.diagnoseToken',
   'sign.driverScan',
@@ -862,6 +1048,9 @@ export const OP_IDS = [
   'sign.pades',
   'sign.padesToken',
   'sign.placeFromAnchor',
+  'sign.trustAdd',
+  'sign.trustList',
+  'sign.trustRemove',
   'sign.verify',
   'sign.verifyFile',
 ] as const;
