@@ -1,7 +1,7 @@
 # USB token chữ ký số ở Việt Nam: tra cứu
 
 > Tra cứu ngày 2026-10-31 qua tìm kiếm web. Đây là **ghi chú nghiên cứu, chưa kiểm chứng trên token thật**.
-> Tên file driver và đường dẫn phải xác minh lại bằng bộ cài chính thức của từng CA trước khi đưa vào danh bạ driver (K6).
+> Tên file driver và đường dẫn phải xác minh lại bằng bộ cài chính thức của từng CA trước khi đưa vào danh bạ driver (I4).
 
 ## 1. Hai hệ thống chứng thực song song
 
@@ -10,7 +10,7 @@
 | **CA công cộng** | Các doanh nghiệp được cấp phép (Viettel-CA, VNPT-CA, FPT-CA, MISA-CA…) | Doanh nghiệp, cá nhân: thuế, hải quan, BHXH, hóa đơn điện tử, hợp đồng | Root CA quốc gia do Trung tâm Chứng thực điện tử quốc gia (NEAC) quản lý |
 | **CA chuyên dùng Chính phủ** | Ban Cơ yếu Chính phủ (Cục Chứng thực số và Bảo mật thông tin) | Cán bộ, cơ quan nhà nước: văn bản điều hành, quản lý văn bản | Root CA riêng, tải tại `rootca.gov.vn` |
 
-→ App phải tin cậy **cả hai** hệ Root CA (K41). Thiếu một hệ thì chữ ký của hệ đó sẽ bị báo "không tin cậy".
+→ App phải tin cậy **cả hai** hệ Root CA (I35). Thiếu một hệ thì chữ ký của hệ đó sẽ bị báo "không tin cậy".
 
 **Pháp lý:** Điều kiện cấp phép CA công cộng hiện nằm ở Nghị định 23/2025/NĐ-CP. Năm 2025, Bộ TT&TT đã sáp nhập vào Bộ Khoa học và Công nghệ, nên danh sách doanh nghiệp được cấp phép nay đăng trên cổng của Bộ KH&CN (mst.gov.vn) và neac.gov.vn.
 
@@ -50,12 +50,12 @@ Các CA Việt Nam phần lớn **không tự sản xuất token**. Họ mua tok
 
 ## 4. Hệ quả cho thiết kế Chef PDF
 
-1. **Danh bạ driver (K6)** phải là file dữ liệu tách khỏi code, theo cấu trúc *CA → đời token → OS → đường dẫn thư viện*, để bổ sung mà không cần ra bản app mới.
-2. **Quét tìm driver (K7)** là bắt buộc, vì không thể liệt kê đủ mọi đời token. Cách làm: thử nạp từng thư viện ứng viên, gọi `C_GetFunctionList`, rồi kiểm tra xem có slot nào đang có token không.
-3. **Ưu tiên PKCS#11 hơn CSP/KSP trên Windows**, vì một số driver CSP tự bật cửa sổ PIN riêng (trường hợp Viettel-CA V6). Kho chứng thư Windows (K3) chỉ là đường dự phòng.
+1. **Danh bạ driver (I4)** phải là file dữ liệu tách khỏi code, theo cấu trúc *CA → đời token → OS → đường dẫn thư viện*, để bổ sung mà không cần ra bản app mới.
+2. **Quét tìm driver (I5)** là bắt buộc, vì không thể liệt kê đủ mọi đời token. Cách làm: thử nạp từng thư viện ứng viên, gọi `C_GetFunctionList`, rồi kiểm tra xem có slot nào đang có token không.
+3. **Ưu tiên PKCS#11 hơn CSP/KSP trên Windows**, vì một số driver CSP tự bật cửa sổ PIN riêng (trường hợp Viettel-CA V6). Kho chứng thư Windows (I8) chỉ là đường dự phòng.
 4. **macOS và Linux:** chưa rõ CA nào có driver. MISA có bản cho macOS; Feitian ePass2003 có driver cho cả 3 OS. **Cần thử bằng token thật.**
-5. **Chẩn đoán token (K8)** có giá trị lớn: lỗi cài driver là vấn đề phổ biến nhất mà người dùng gặp, nhìn vào số lượng bài hướng dẫn "xử lý lỗi USB token" trên mạng là thấy.
-6. **Ký từ xa (K4)**, để sau: VNPT SmartCA, Viettel MySign, MISA eSign; FPT và Bkav có thể cũng có dịch vụ tương tự. Mỗi bên một API riêng, thường phải ký hợp đồng tích hợp.
+5. **Chẩn đoán token (I6)** có giá trị lớn: lỗi cài driver là vấn đề phổ biến nhất mà người dùng gặp, nhìn vào số lượng bài hướng dẫn "xử lý lỗi USB token" trên mạng là thấy.
+6. **Ký từ xa (I9)**, để sau: VNPT SmartCA, Viettel MySign, MISA eSign; FPT và Bkav có thể cũng có dịch vụ tương tự. Mỗi bên một API riêng, thường phải ký hợp đồng tích hợp.
 
 ## 5. Việc cần làm trước khi dev phần ký số
 
