@@ -5,10 +5,10 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** Đang brainstorm và chốt cây tính năng ([FEATURES.md](FEATURES.md), bản nháp 3). **Chưa viết code.**
-- **Việc tiếp theo:** Chờ chủ dự án góp ý cây tính năng → chốt phạm vi v0.1 → dựng khung dự án Electron.
+- **Giai đoạn:** Đang liệt kê tính năng ([FEATURES.md](FEATURES.md), bản nháp 3.1). **Chưa viết code.** Chủ dự án muốn liệt kê đủ trước, **lập kế hoạch và ước lượng dev sau**.
+- **Việc tiếp theo:** Chủ dự án góp ý thêm tính năng → lập kế hoạch (plan) và ước lượng → chốt phạm vi v0.1 → dựng khung dự án Electron.
 - **Câu hỏi còn mở:**
-  - Chủ dự án dùng USB token của hãng nào (VNPT-CA, Viettel-CA, BKAV-CA, FPT-CA, MISA…)? Cần token thật để thử ký số.
+  - Cần hỗ trợ token của Viettel, VNPT, FPT, Ban Cơ yếu, MISA… (chủ dự án nêu). Kết quả tra cứu ở [TOKENS.md](TOKENS.md). Vẫn cần **token thật** để thử.
   - App để tự dùng hay sẽ phát hành/bán? Câu này ảnh hưởng chi phí ký mã (Apple Developer 99 USD/năm, chứng thư code signing Windows).
 
 ## Mục tiêu sản phẩm
@@ -39,6 +39,9 @@
 | D15 | Ký số có **Studio mẫu chữ ký** đầy đủ (tham khảo Foxit): chọn dòng thông tin, định dạng ngày, lý do/nơi ký, bố cục, font, logo, biểu tượng ✓; mẫu gắn với từng chứng thư | Chủ dự án yêu cầu |
 | D16 | Một **thư viện ảnh chữ ký & con dấu dùng chung** (tách nền, làm sạch, đổi màu mực, mã hóa khi lưu) cho ký số, đóng dấu ảnh, chữ ký nháy, dấu giáp lai | Tránh làm trùng; ảnh chữ ký/con dấu là dữ liệu nhạy cảm |
 | D17 | Thông tin hiển thị trên chữ ký mặc định lấy từ chứng thư; người dùng được ghi đè chữ hiển thị, nhưng panel kiểm tra luôn hiện thông tin thật | Chống hiểu nhầm/giả mạo người ký |
+
+| D18 | **Không làm tính năng AI** | Chủ dự án: chưa cần thiết. Cũng khớp với nguyên tắc offline |
+| D19 | Ký số hỗ trợ **cả CA công cộng và CA chuyên dùng Chính phủ (Ban Cơ yếu)**; tin cậy cả 2 hệ Root CA; driver token quản lý bằng danh bạ dữ liệu + quét tự động + màn hình chẩn đoán | Xem [TOKENS.md](TOKENS.md) |
 
 ## Kiến trúc dự kiến
 
@@ -103,6 +106,7 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 
 ## Nhật ký
 
+- **2026-10-31 (4):** Bỏ trợ lý AI (P6). Chủ dự án cần hỗ trợ token Viettel, VNPT, FPT, Cơ yếu, MISA… Claude tra cứu và ghi vào `docs/TOKENS.md`: có 2 hệ CA (công cộng / chuyên dùng Chính phủ), token đa số là chip Feitian/SafeNet/Bit4id đóng gói lại, driver khác nhau theo từng đời token. Thêm K6–K9 (danh bạ driver, quét driver, chẩn đoán token, cảnh báo PIN). Chủ dự án: liệt kê tính năng trước, lập plan và ước lượng sau.
 - **2026-10-31 (3):** Chủ dự án yêu cầu tùy chỉnh chữ ký số kiểu Foxit (ảnh ký, tách nền, người ký, ngày, nơi ký, lý do…). Claude mở rộng nhóm K thành 5 phần (K-A nguồn chứng thư, K-B Studio mẫu chữ ký, K-C ảnh chữ ký & con dấu, K-D đặt chữ ký & ký, K-E kiểm tra), **đánh lại mã nhóm K**. Đối chiếu với PDF24, Stirling-PDF, Acrobat, Smallpdf, iLovePDF, thêm: xóa trang trắng, chia đôi trang, tách thông minh, chỉnh ảnh trong PDF, giấy tiêu đề, QR/mã vạch, chữ ký nháy, chụp tài liệu bằng điện thoại qua QR, soi file, kiểm tra trước khi gửi, chuyển màu/tiết kiệm mực, web/Markdown → PDF, đổi tên hàng loạt, quy trình mẫu, trợ lý AI tùy chọn. (Không mở được trang danh sách đầy đủ của PDF24 và tài liệu Stirling-PDF vì mạng phiên bị chặn, nên tổng hợp từ kết quả tìm kiếm.)
 - **2026-10-31 (2):** Chủ dự án bổ sung: sửa chữ PDF, bóc tách lớp để gỡ watermark, thêm watermark/con dấu ảnh, số trang, header/footer. Claude đối chiếu với ABBYY và thêm: chọn/sửa đối tượng, tẩy vùng, thay ảnh, tìm & thay thế, dấu giáp lai, tách nền ảnh dấu, dấu động, Bates, gỡ nền, làm đẹp bản scan, sửa file hỏng, file đính kèm, metadata, máy in ảo, quét từ máy scan. Sắp xếp lại cây thành 5 khu vực, **đánh lại mã** (bản nháp 2). Lộ trình kéo dài đến v0.7.
 - **2026-10-31:** Bắt đầu dự án. Chốt tên Chef PDF, Electron, Python sidecar, bỏ OCR ở bản đầu, ưu tiên "Chuyển thành bản scan" và "Ký số". Soạn cây tính năng bản nháp 1 (`docs/FEATURES.md`), chờ chủ dự án góp ý.

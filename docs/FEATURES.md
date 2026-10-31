@@ -1,6 +1,6 @@
 # Chef PDF: Cây tính năng
 
-> **Trạng thái:** Bản nháp 3 (2026-10-31), chờ chủ dự án góp ý.
+> **Trạng thái:** Bản nháp 3.1 (2026-10-31). Chủ dự án muốn liệt kê đủ tính năng trước, **lập kế hoạch và ước lượng dev sau**.
 > Bản nháp 2 đã **đánh lại mã toàn bộ** so với bản nháp 1. Bản nháp 3 giữ nguyên mã cũ, chỉ thêm mã mới (riêng nhóm K được đánh lại vì mở rộng nhiều).
 > Mỗi tính năng có mã (ví dụ `F4`) để tiện góp ý. Cột "Bản" là phiên bản dự kiến làm.
 > ★ = tính năng chủ lực. = mới thêm ở bản nháp 2. 🤔 = chưa chắc có cần không, chờ chủ dự án quyết.
@@ -202,11 +202,15 @@ Nhóm này được **đánh lại mã** ở bản nháp 3 và chia thành 5 ph�
 
 | Mã | Tính năng | Chi tiết | Bản |
 |---|---|---|---|
-| K1 | USB token | Qua PKCS#11, tự dò driver các CA Việt Nam; chọn chứng thư nếu token có nhiều | v0.3 |
+| K1 | USB token | Qua PKCS#11; chọn chứng thư nếu token có nhiều. Hỗ trợ token của **cả CA công cộng** (Viettel-CA, VNPT-CA, FPT-CA, MISA-CA, Bkav-CA, CA2, EFY-CA, NewTel-CA, SAFE-CA, SmartSign, TrustCA, FastCA, CMC-CA…) **và CA chuyên dùng Chính phủ** (Ban Cơ yếu). Xem [TOKENS.md](TOKENS.md) | v0.3 |
 | K2 | File chứng thư | `.pfx` / `.p12`, có tùy chọn ghi nhớ (mật khẩu lưu trong kho bảo mật của hệ điều hành) | v0.3 |
-| K3 | Kho chứng thư hệ điều hành | Windows Certificate Store, macOS Keychain | Sau 🤔 |
+| K3 | Kho chứng thư hệ điều hành | Windows Certificate Store (CNG/CSP), macOS Keychain. Là **đường dự phòng** cho token chỉ có driver CSP trên Windows, không có PKCS#11 | Sau 🤔 |
 | K4 | Ký từ xa qua cloud | VNPT SmartCA, Viettel MySign… | Sau |
 | K5 🆕 | Thông tin chứng thư | Xem chi tiết: chủ sở hữu, đơn vị cấp, hạn dùng, **MST / CCCD** (CA Việt Nam thường ghi trong chứng thư); **nhắc trước khi chứng thư hết hạn** | v0.3 |
+| K6 🆕 | Danh bạ driver token | File dữ liệu liệt kê tên và đường dẫn thư viện PKCS#11 của từng CA, từng đời token, trên từng OS. Cập nhật được mà không cần ra bản app mới | v0.3 |
+| K7 🆕 | Tự dò & quét driver | Cắm token là app dò theo danh bạ (K6). Không thấy thì nút "Quét tìm driver": thử nạp các thư viện nghi là PKCS#11 trong thư mục hệ thống, giữ lại cái nào thấy token. Vẫn cho chọn file thủ công | v0.3 |
+| K8 🆕 | **Chẩn đoán token** | Một màn hình kiểm tra từng bước: đã thấy token chưa → đã nạp driver chưa → có chứng thư không → chứng thư còn hạn không → chuỗi chứng thư có tin cậy không. Mỗi lỗi có hướng dẫn sửa bằng tiếng Việt và link tải driver của đúng CA | v0.3 |
+| K9 🆕 | Cảnh báo PIN | Báo khi token báo "còn ít lần nhập PIN" hoặc "lần nhập cuối" trước khi bị khóa; không bao giờ tự thử lại PIN sai | v0.3 |
 
 ### K-B. 🆕 Studio mẫu chữ ký (giao diện chữ ký)
 
@@ -256,7 +260,7 @@ Thư viện ảnh **dùng chung** cho ký số (K-B), đóng dấu ảnh (F3), c
 | Mã | Tính năng | Chi tiết | Bản |
 |---|---|---|---|
 | K40 | Kiểm tra chữ ký | Panel trạng thái (✅ hợp lệ / ⚠️ đã bị sửa / ❌ không tin cậy), chuỗi chứng thư, kiểm tra OCSP/CRL, xem phiên bản tài liệu lúc ký | v0.3 |
-| K41 | Kho tin cậy | Nạp sẵn Root CA quốc gia Việt Nam, thêm/xóa chứng thư tin cậy | v0.3 |
+| K41 | Kho tin cậy | Nạp sẵn **2 hệ Root CA Việt Nam**: Root CA quốc gia (NEAC, cho CA công cộng) và Root CA chuyên dùng Chính phủ (Ban Cơ yếu, rootca.gov.vn). Thêm/xóa chứng thư tin cậy | v0.3 |
 | K42 | Báo cáo chữ ký | Xuất kết quả kiểm tra ra PDF | Sau 🤔 |
 | K43 🆕 | Kiểm tra hàng loạt | Kiểm tra chữ ký của cả thư mục, xuất bảng kết quả ra Excel/CSV | v0.4 |
 
@@ -326,6 +330,5 @@ Thư viện ảnh **dùng chung** cho ký số (K-B), đóng dấu ảnh (F3), c
 | P3 | PDF hỗ trợ người khiếm thị (tagged PDF / PDF/UA) | Sau 🤔 |
 | P4 | Hệ thống plugin mở rộng | Sau 🤔 |
 | P5 | Bản web rút gọn (không ký số), dùng lại giao diện React | Sau 🤔 |
-| P6 🆕 | Trợ lý AI (tùy chọn, phải tự bật): tóm tắt, hỏi đáp tài liệu, dịch. Gửi nội dung ra ngoài nên **mặc định tắt**, ngược với nguyên tắc offline | Sau 🤔 |
 | P7 🆕 | Tạo hóa đơn / văn bản từ mẫu (PDF24 có công cụ tạo hóa đơn) | Sau 🤔 |
 | P8 🆕 | Bản di động (portable) chạy từ USB, không cần cài đặt | Sau 🤔 |
