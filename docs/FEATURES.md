@@ -8,7 +8,7 @@
 
 | Cột "Mức" | Nghĩa |
 |---|---|
-| **v0.1 … v0.8** | Thuộc phạm vi **bản 1.0**. Số bản là thứ tự làm *dự kiến*, sẽ chốt lại khi lập kế hoạch |
+| **v0.1 … v0.10** | Thuộc phạm vi **bản 1.0**. Số bản là mốc phát triển trong [BLUEPRINT.md](BLUEPRINT.md) mục 13 |
 | **Sau 1.0** | Muốn có, nhưng làm sau bản 1.0 |
 | **Nâng cấp** | Thuộc **gói nâng cấp nhận dạng** (OCR, mô hình AI chạy trên máy, hoặc API trả phí). Để dành cho phiên bản nâng cấp sau này |
 | **Ý tưởng** | Chưa cam kết, xem lại khi lập kế hoạch |
@@ -67,12 +67,25 @@ Chef PDF
 
 **Bố trí trên giao diện:** màn hình **Start** · tab **Xem** (B) · **Trang** (C) · **Chỉnh sửa** (D, E, F) · **Ghi chú** (G) · **Form** (H) · **Ký & Bảo mật** (I, J) · **Xuất** (K, L, M, N) · **Quy trình** (O). So sánh tài liệu (P) mở từ màn hình Start.
 
-## Thứ tự làm dự kiến
+## Thứ tự làm
 
-Sẽ chốt lại khi lập kế hoạch.
+Đã chốt khi lập kế hoạch (2026-10-31). Chi tiết ở [BLUEPRINT.md](BLUEPRINT.md) mục 13 và [TASKS.md](TASKS.md).
 
 | Bản | Trọng tâm |
 |---|---|
+| v0.1 | Nền móng, bộ cài 3 OS, xem PDF, sắp xếp trang |
+| v0.2 | ★ Chuyển thành bản scan |
+| v0.3 | ★ Ký số: token, Studio mẫu chữ ký, ảnh chữ ký & con dấu, kiểm tra chữ ký |
+| v0.4 | Đóng dấu & đánh số: thêm chữ/ảnh, watermark, con dấu, giáp lai, số trang, header/footer, ký kèm đóng dấu |
+| v0.5 | Bảo mật, tối ưu & chuyển đổi; công cụ trang mở rộng; khôi phục khi crash |
+| v0.6 | Bộ máy nội dung: chọn/xóa đối tượng, tẩy vùng, lớp, gỡ watermark, che thông tin mật |
+| v0.7 | Sửa chữ có sẵn, tìm & thay thế, liên kết; ghi chú |
+| v0.8 | Ảnh scan & chụp sách: trình sửa ảnh, dò viền & cắt, tách trang đôi, làm phẳng, xóa ngón tay, chụp bằng điện thoại |
+| v0.9 | Form; quy trình tự động; tự cập nhật |
+| v0.10 | Rã PDF có chữ và tái tạo định dạng |
+| **1.0** | Ổn định & hoàn thiện |
+
+---|---|
 | v0.1 | Khung app, bộ cài 3 OS, xem PDF, sắp xếp trang |
 | v0.2 | ★ Chuyển thành bản scan |
 | v0.3 | ★ Ký số: token, Studio mẫu chữ ký, ảnh chữ ký & con dấu, kiểm tra chữ ký |
@@ -99,8 +112,8 @@ Sẽ chốt lại khi lập kế hoạch.
 | A6 | Hoàn tác / Làm lại | `Ctrl+Z` / `Ctrl+Y` | v0.1 |
 | A7 | In | Hộp thoại in của hệ điều hành, chọn trang | v0.1 |
 | A8 | Bộ cài 3 hệ điều hành | Windows (`.exe`/`.msi`), macOS (`.dmg` cho Intel và Apple Silicon), Linux (`.AppImage`/`.deb`/`.rpm`), build tự động bằng GitHub Actions | v0.1 |
-| A9 | Khôi phục khi crash | Tự lưu nháp, mở lại file đang làm dở | v0.4 |
-| A10 | Tự cập nhật | Kiểm tra và cài bản mới | v0.7 |
+| A9 | Khôi phục khi crash | Tự lưu nháp, mở lại file đang làm dở | v0.5 |
+| A10 | Tự cập nhật | Kiểm tra và cài bản mới | v0.9 |
 | A11 | Phím tắt tùy chỉnh | | Ý tưởng |
 | A12 | Bản portable | Chạy từ USB, không cần cài đặt | Ý tưởng |
 | A13 | Hệ thống plugin | Cho phép bên thứ ba viết thêm tính năng | Ý tưởng |
@@ -117,8 +130,8 @@ Sẽ chốt lại khi lập kế hoạch.
 | B5 | Chọn & copy | Copy chữ; chụp một vùng thành ảnh | v0.1 |
 | B6 | Mở file có mật khẩu | Hỏi mật khẩu khi mở | v0.1 |
 | B7 | Thuộc tính tài liệu | Xem metadata, khổ giấy, font, phiên bản PDF, số trang, dung lượng | v0.1 |
-| B8 | Xem song song | Chia đôi màn hình xem 2 file hoặc 2 vị trí của cùng một file | v0.4 |
-| B9 | Chế độ đọc ban đêm | Đảo màu trang | v0.4 |
+| B8 | Xem song song | Chia đôi màn hình xem 2 file hoặc 2 vị trí của cùng một file | v0.5 |
+| B9 | Chế độ đọc ban đêm | Đảo màu trang | v0.5 |
 | B10 | Đọc to | Đọc chữ bằng giọng đọc có sẵn của hệ điều hành | Ý tưởng |
 
 ---
@@ -134,11 +147,11 @@ Sẽ chốt lại khi lập kế hoạch.
 | C3 | Chèn trang | Trang trắng, trang từ file khác, từ ảnh, từ clipboard | v0.1 |
 | C4 | Ghép file | Nhiều file thành 1, sắp thứ tự, tùy chọn tạo bookmark theo tên file | v0.1 |
 | C5 | Tách file | Theo khoảng trang, mỗi N trang, theo bookmark, theo dung lượng, trang chẵn/lẻ | v0.1 |
-| C6 | Thay thế trang | Thay trang X bằng trang từ file khác | v0.4 |
-| C7 | Cắt lề / đổi khổ | Cắt lề trắng (tự dò), đưa về A4/Letter, co giãn nội dung. Áp cho trang PDF thường bằng cách đặt lại khung trang (CropBox), không mất nội dung. Cắt ảnh scan thật sự thì dùng L15–L19 | v0.4 |
-| C8 | Xóa trang trắng | Tự tìm trang trắng (hay gặp khi scan 2 mặt), xem trước rồi mới xóa | v0.4 |
-| C9 | Chia đôi trang | Trang A3 / trang đôi thành 2 trang A4; hoặc cắt trang thành lưới N phần | v0.4 |
-| C10 | Tách thông minh | Tách file mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách | v0.4 |
+| C6 | Thay thế trang | Thay trang X bằng trang từ file khác | v0.5 |
+| C7 | Cắt lề / đổi khổ | Cắt lề trắng (tự dò), đưa về A4/Letter, co giãn nội dung. Áp cho trang PDF thường bằng cách đặt lại khung trang (CropBox), không mất nội dung. Cắt ảnh scan thật sự thì dùng L15–L19 | v0.5 |
+| C8 | Xóa trang trắng | Tự tìm trang trắng (hay gặp khi scan 2 mặt), xem trước rồi mới xóa | v0.5 |
+| C9 | Chia đôi trang | Trang A3 / trang đôi thành 2 trang A4; hoặc cắt trang thành lưới N phần | v0.5 |
+| C10 | Tách thông minh | Tách file mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách | v0.5 |
 | C11 | In ghép trang | N-up (2/4 trang trên 1 tờ), in kiểu sổ tay (booklet) | Ý tưởng |
 | C12 | Trang dài | Ghép nhiều trang thành 1 trang dài và ngược lại | Ý tưởng |
 
@@ -153,25 +166,25 @@ Sẽ chốt lại khi lập kế hoạch.
 | D1 | Thêm chữ | Hộp chữ mới, hỗ trợ đầy đủ tiếng Việt (nhúng font Unicode) | v0.4 |
 | D2 | Thêm ảnh | Logo, ảnh, kéo thả lên trang | v0.4 |
 | D3 | Sửa mục lục | Thêm/sửa/xóa/sắp xếp bookmark | v0.4 |
-| D4 | Chọn & sửa đối tượng | Click chọn chữ, ảnh, hình vẽ có sẵn; di chuyển, đổi kích thước, xoay, xóa, đưa lên trên / xuống dưới | v0.5 |
-| D5 | Tẩy vùng | Quét chọn vùng rồi xóa toàn bộ nội dung bên trong, không để lại ô đen (khác với che thông tin mật J6) | v0.5 |
-| D6 | Thay ảnh | Thay một ảnh trong PDF bằng ảnh khác, giữ vị trí và kích thước | v0.5 |
-| D7 | Chỉnh ảnh trong PDF | Cắt, xoay, lật, xóa nền, chỉnh sáng/tương phản ngay trong PDF | v0.5 |
-| D8 | **Sửa chữ có sẵn: mức dòng** | Click vào dòng chữ để sửa. Dùng lại font gốc nếu còn đủ ký tự; thiếu (hay gặp với tiếng Việt) thì tự thay bằng font gần giống | v0.6 |
-| D9 | **Sửa chữ có sẵn: mức đoạn** | Gom các dòng thành đoạn, sửa và tự xuống dòng lại, đổi font/cỡ/màu/căn lề | v0.6 |
-| D10 | Tìm & thay thế chữ | Thay một cụm từ trên toàn tài liệu | v0.6 |
-| D11 | Liên kết | Thêm/sửa/xóa link (trang nội bộ, web, email) | v0.6 |
-| D12 | Tự tạo mục lục | Dò các dòng tiêu đề (cỡ chữ lớn, in đậm) để tạo bookmark | v0.8 |
+| D4 | Chọn & sửa đối tượng | Click chọn chữ, ảnh, hình vẽ có sẵn; di chuyển, đổi kích thước, xoay, xóa, đưa lên trên / xuống dưới | v0.6 |
+| D5 | Tẩy vùng | Quét chọn vùng rồi xóa toàn bộ nội dung bên trong, không để lại ô đen (khác với che thông tin mật J6) | v0.6 |
+| D6 | Thay ảnh | Thay một ảnh trong PDF bằng ảnh khác, giữ vị trí và kích thước | v0.6 |
+| D7 | Chỉnh ảnh trong PDF | Cắt, xoay, lật, xóa nền, chỉnh sáng/tương phản ngay trong PDF | v0.6 |
+| D8 | **Sửa chữ có sẵn: mức dòng** | Click vào dòng chữ để sửa. Dùng lại font gốc nếu còn đủ ký tự; thiếu (hay gặp với tiếng Việt) thì tự thay bằng font gần giống | v0.7 |
+| D9 | **Sửa chữ có sẵn: mức đoạn** | Gom các dòng thành đoạn, sửa và tự xuống dòng lại, đổi font/cỡ/màu/căn lề | v0.7 |
+| D10 | Tìm & thay thế chữ | Thay một cụm từ trên toàn tài liệu | v0.7 |
+| D11 | Liên kết | Thêm/sửa/xóa link (trang nội bộ, web, email) | v0.7 |
+| D12 | Tự tạo mục lục | Dò các dòng tiêu đề (cỡ chữ lớn, in đậm) để tạo bookmark | v0.10 |
 
 ## E. Lớp & gỡ watermark
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| E1 | Bảng lớp (Layers) | Hiện các lớp nội dung có trong file; bật/tắt, đổi tên, xóa, làm phẳng lớp | v0.5 |
-| E2 | Xem theo loại nội dung | Bật/tắt riêng chữ, ảnh, hình vẽ, ghi chú, nền | v0.5 |
-| E3 | Gỡ watermark tự động | App dò ứng viên (watermark gắn nhãn chuẩn, lớp tên "watermark", ghi chú kiểu watermark, đối tượng lặp ở cùng vị trí trên nhiều trang, đối tượng xoay chéo hoặc trong suốt), hiện danh sách kèm xem trước để người dùng tích chọn. **Không tự xóa** | v0.5 |
-| E4 | Gỡ "đối tượng giống thế này" | Chọn một đối tượng (ví dụ logo chìm), gỡ nó trên mọi trang | v0.5 |
-| E5 | Gỡ / đổi nền trang | Xóa màu nền hoặc ảnh nền; đặt nền mới | v0.5 |
+| E1 | Bảng lớp (Layers) | Hiện các lớp nội dung có trong file; bật/tắt, đổi tên, xóa, làm phẳng lớp | v0.6 |
+| E2 | Xem theo loại nội dung | Bật/tắt riêng chữ, ảnh, hình vẽ, ghi chú, nền | v0.6 |
+| E3 | Gỡ watermark tự động | App dò ứng viên (watermark gắn nhãn chuẩn, lớp tên "watermark", ghi chú kiểu watermark, đối tượng lặp ở cùng vị trí trên nhiều trang, đối tượng xoay chéo hoặc trong suốt), hiện danh sách kèm xem trước để người dùng tích chọn. **Không tự xóa** | v0.6 |
+| E4 | Gỡ "đối tượng giống thế này" | Chọn một đối tượng (ví dụ logo chìm), gỡ nó trên mọi trang | v0.6 |
+| E5 | Gỡ / đổi nền trang | Xóa màu nền hoặc ảnh nền; đặt nền mới | v0.6 |
 | E6 | Tách lớp ra file | Xuất riêng phần chữ, phần ảnh hoặc từng lớp ra file | Ý tưởng |
 
 Gỡ watermark đã dính vào ảnh scan nằm ở Q8 (gói nâng cấp).
@@ -197,19 +210,19 @@ Gỡ watermark đã dính vào ảnh scan nằm ở Q8 (gói nâng cấp).
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| G1 | Đánh dấu chữ | Highlight, gạch chân, gạch ngang | v0.6 |
-| G2 | Ghi chú | Note dán, hộp chữ bình luận | v0.6 |
-| G3 | Vẽ | Bút vẽ tay, đường thẳng, mũi tên, hình chữ nhật, elip | v0.6 |
-| G4 | Danh sách ghi chú | Lọc theo loại/người, trả lời, đánh dấu đã xử lý, xuất bản tổng hợp | v0.6 |
-| G5 | Làm phẳng ghi chú | Biến ghi chú thành nội dung cố định | v0.6 |
+| G1 | Đánh dấu chữ | Highlight, gạch chân, gạch ngang | v0.7 |
+| G2 | Ghi chú | Note dán, hộp chữ bình luận | v0.7 |
+| G3 | Vẽ | Bút vẽ tay, đường thẳng, mũi tên, hình chữ nhật, elip | v0.7 |
+| G4 | Danh sách ghi chú | Lọc theo loại/người, trả lời, đánh dấu đã xử lý, xuất bản tổng hợp | v0.7 |
+| G5 | Làm phẳng ghi chú | Biến ghi chú thành nội dung cố định | v0.7 |
 
 ## H. Form
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| H1 | Điền form | Điền form có sẵn, lưu lại | v0.7 |
-| H2 | Tạo form | Ô chữ, checkbox, radio, dropdown, ô chữ ký | v0.7 |
-| H3 | Làm phẳng form | | v0.7 |
+| H1 | Điền form | Điền form có sẵn, lưu lại | v0.9 |
+| H2 | Tạo form | Ô chữ, checkbox, radio, dropdown, ô chữ ký | v0.9 |
+| H3 | Làm phẳng form | | v0.9 |
 | H4 | Điền hàng loạt | Một mẫu form × N dòng dữ liệu Excel/CSV thành N file | Ý tưởng |
 
 ---
@@ -290,12 +303,12 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| J1 | Đặt mật khẩu | Mật khẩu mở file; giới hạn quyền in/copy/sửa; AES-256 | v0.4 |
-| J2 | Gỡ mật khẩu | Khi đã biết mật khẩu | v0.4 |
-| J3 | Gỡ dữ liệu ẩn | Xóa metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú, lịch sử sửa | v0.4 |
-| J4 | Soi file | Báo cáo file chứa gì: JavaScript, link ra ngoài, file đính kèm, form, chữ ký, font chưa nhúng, lớp ẩn | v0.4 |
-| J5 | **Kiểm tra trước khi gửi** | Một nút chạy checklist: metadata, ghi chú còn sót, form chưa làm phẳng, dung lượng vượt giới hạn (5/10/25MB), chữ ký còn hợp lệ. Bấm để sửa từng mục | v0.4 |
-| J6 | Che thông tin mật | Chọn vùng hoặc chữ; tìm và che hàng loạt (CCCD, số điện thoại, email, số tài khoản); **xóa hẳn nội dung bên dưới** | v0.5 |
+| J1 | Đặt mật khẩu | Mật khẩu mở file; giới hạn quyền in/copy/sửa; AES-256 | v0.5 |
+| J2 | Gỡ mật khẩu | Khi đã biết mật khẩu | v0.5 |
+| J3 | Gỡ dữ liệu ẩn | Xóa metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú, lịch sử sửa | v0.5 |
+| J4 | Soi file | Báo cáo file chứa gì: JavaScript, link ra ngoài, file đính kèm, form, chữ ký, font chưa nhúng, lớp ẩn | v0.5 |
+| J5 | **Kiểm tra trước khi gửi** | Một nút chạy checklist: metadata, ghi chú còn sót, form chưa làm phẳng, dung lượng vượt giới hạn (5/10/25MB), chữ ký còn hợp lệ. Bấm để sửa từng mục | v0.5 |
+| J6 | Che thông tin mật | Chọn vùng hoặc chữ; tìm và che hàng loạt (CCCD, số điện thoại, email, số tài khoản); **xóa hẳn nội dung bên dưới** | v0.6 |
 
 ---
 
@@ -320,42 +333,42 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| L1 | Chỉnh nghiêng | Tự dò và xoay thẳng trang | v0.7 |
-| L2 | Cắt & nắn | Cắt viền thừa; nắn trang chụp xiên thành hình chữ nhật. Chi tiết ở L15–L19 | v0.7 |
-| L3 | Làm trắng nền | Nền giấy ngả vàng/xám thành trắng, chữ rõ hơn | v0.7 |
-| L4 | Khử nhiễu, chỉnh sáng | Xóa chấm bẩn; chỉnh sáng, tương phản | v0.7 |
-| L5 | **Chụp tài liệu bằng điện thoại** | App hiện mã QR, điện thoại quét mã (cùng Wi-Fi, không qua internet), chụp xong ảnh về thẳng máy tính, tự cắt và nắn (L2). Không cần cài app trên điện thoại | v0.7 |
-| L6 | **Tách trang đôi** | Ảnh chụp 2 trang sách mở thành 2 trang riêng: tự dò đường gáy sách (vùng tối/cong giữa 2 trang), cho chỉnh tay đường cắt; thứ tự trang trái → phải. Là một bước của quy trình **chụp sách** | v0.7 |
+| L1 | Chỉnh nghiêng | Tự dò và xoay thẳng trang | v0.8 |
+| L2 | Cắt & nắn | Cắt viền thừa; nắn trang chụp xiên thành hình chữ nhật. Chi tiết ở L15–L19 | v0.8 |
+| L3 | Làm trắng nền | Nền giấy ngả vàng/xám thành trắng, chữ rõ hơn | v0.8 |
+| L4 | Khử nhiễu, chỉnh sáng | Xóa chấm bẩn; chỉnh sáng, tương phản | v0.8 |
+| L5 | **Chụp tài liệu bằng điện thoại** | App hiện mã QR, điện thoại quét mã (cùng Wi-Fi, không qua internet), chụp xong ảnh về thẳng máy tính, tự cắt và nắn (L2). Không cần cài app trên điện thoại | v0.8 |
+| L6 | **Tách trang đôi** | Ảnh chụp 2 trang sách mở thành 2 trang riêng: tự dò đường gáy sách (vùng tối/cong giữa 2 trang), cho chỉnh tay đường cắt; thứ tự trang trái → phải. Là một bước của quy trình **chụp sách** | v0.8 |
 | L7 | Tách nhiều ảnh trên một bản scan | Nhiều hóa đơn / thẻ trên một mặt kính thành từng ảnh riêng | Ý tưởng |
 | L8 | Quét từ máy scan | TWAIN/WIA (Windows), ICA (macOS), SANE (Linux) | Ý tưởng |
-| L9 | **Trình sửa ảnh trang** | Chế độ sửa ảnh riêng cho trang scan / trang ảnh, giống công cụ sửa ảnh trong OCR Editor của ABBYY. Sửa **không phá hủy**: luôn giữ ảnh gốc, có lịch sử thao tác, hoàn nguyên được. Áp dụng cho trang hiện tại, các trang chọn hoặc mọi trang. Gom các công cụ L1–L4, L10–L14 vào một chỗ | v0.7 |
-| L10 | Tẩy & tô | Cọ tẩy, chọn vùng chữ nhật hoặc vẽ tự do; tô bằng **màu nền giấy tự dò** (có thêm hạt giấy để vùng tô không bị lộ) hoặc màu tự chọn | v0.7 |
-| L11 | Xóa vết màu | Xóa nét bút bi, bút dạ quang, con dấu theo màu; chọn màu bằng ống hút (dùng chung công cụ tách màu với I22) | v0.7 |
-| L12 | Chỉnh mức sáng & độ phân giải | Levels/Curves, đảo màu (âm bản), đổi độ phân giải ảnh (giảm hoặc tăng DPI) | v0.7 |
-| L13 | Làm phẳng trang cong (cơ bản) | Nắn trang sách bị cong ở gáy bằng cách dò các dòng chữ rồi kéo cho thẳng. Hợp với trang cong nhẹ; trang cong mạnh để Q12 | v0.7 |
-| L14 | **Xóa ngón tay (bán tự động)** | Dò vùng màu da chạm mép trang (ngón tay giữ giấy khi chụp), đề xuất vùng xóa; người dùng chỉnh lại bằng cọ, xong tô bằng màu nền giấy. Không khôi phục được chữ nằm dưới ngón tay | v0.7 |
-| L15 | **Tự dò viền trang & tự cắt** | Hai trường hợp. **Bản scan máy:** cắt viền đen/xám của nắp máy scan và bóng mép giấy. **Ảnh chụp điện thoại:** tìm 4 góc tờ giấy (dò cạnh → tìm đường thẳng → chấm điểm các tứ giác theo độ tương phản trong/ngoài), rồi nắn phối cảnh thành hình chữ nhật. Mỗi trang có **điểm tin cậy** | v0.7 |
-| L16 | Cắt thủ công: khung chữ nhật | Kéo 8 tay nắm; **kính lúp** phóng to góc khi kéo; tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do, giữ tỉ lệ khổ giấy); nhập số đo bằng mm; khung tự hít vào viền đã dò | v0.7 |
-| L17 | Cắt thủ công: kéo 4 góc | Kéo từng góc độc lập cho trang chụp xiên, xem trước kết quả nắn phối cảnh ngay; kết hợp xoay tinh (±0,1°) | v0.7 |
-| L18 | Cắt hàng loạt & duyệt nhanh | Tự dò viền mọi trang, hiện lưới thumbnail có khung viền đè lên; **trang dò kém được đánh dấu** để chỉ phải sửa tay vài trang. Hoặc dùng một khung cắt cho mọi trang, riêng trang chẵn/lẻ (khi chụp sách) | v0.7 |
-| L19 | Tự nhận khổ giấy | Sau khi cắt, đoán khổ theo tỉ lệ cạnh (A4, A5, Letter, CCCD…) và đặt đúng kích thước trang PDF; hoặc giữ nguyên kích thước thật | v0.7 |
-| L20 | **Dò viền trang bằng mô hình nhẹ** | Mô hình dò 4 góc tờ giấy loại nhỏ (vài MB, chạy ONNX trên CPU, ứng viên: DocAligner), **đi kèm bản cài**. Xử lý các trường hợp thuật toán L15 hay sai: giấy trắng trên bàn trắng, nền lộn xộn, góc bị ngón tay che, ánh sáng xấu. App chạy cả hai cách và chọn kết quả có điểm tin cậy cao hơn. **Ngoại lệ** của nguyên tắc "1.0 không có AI" | v0.7 |
+| L9 | **Trình sửa ảnh trang** | Chế độ sửa ảnh riêng cho trang scan / trang ảnh, giống công cụ sửa ảnh trong OCR Editor của ABBYY. Sửa **không phá hủy**: luôn giữ ảnh gốc, có lịch sử thao tác, hoàn nguyên được. Áp dụng cho trang hiện tại, các trang chọn hoặc mọi trang. Gom các công cụ L1–L4, L10–L14 vào một chỗ | v0.8 |
+| L10 | Tẩy & tô | Cọ tẩy, chọn vùng chữ nhật hoặc vẽ tự do; tô bằng **màu nền giấy tự dò** (có thêm hạt giấy để vùng tô không bị lộ) hoặc màu tự chọn | v0.8 |
+| L11 | Xóa vết màu | Xóa nét bút bi, bút dạ quang, con dấu theo màu; chọn màu bằng ống hút (dùng chung công cụ tách màu với I22) | v0.8 |
+| L12 | Chỉnh mức sáng & độ phân giải | Levels/Curves, đảo màu (âm bản), đổi độ phân giải ảnh (giảm hoặc tăng DPI) | v0.8 |
+| L13 | Làm phẳng trang cong (cơ bản) | Nắn trang sách bị cong ở gáy bằng cách dò các dòng chữ rồi kéo cho thẳng. Hợp với trang cong nhẹ; trang cong mạnh để Q12 | v0.8 |
+| L14 | **Xóa ngón tay (bán tự động)** | Dò vùng màu da chạm mép trang (ngón tay giữ giấy khi chụp), đề xuất vùng xóa; người dùng chỉnh lại bằng cọ, xong tô bằng màu nền giấy. Không khôi phục được chữ nằm dưới ngón tay | v0.8 |
+| L15 | **Tự dò viền trang & tự cắt** | Hai trường hợp. **Bản scan máy:** cắt viền đen/xám của nắp máy scan và bóng mép giấy. **Ảnh chụp điện thoại:** tìm 4 góc tờ giấy (dò cạnh → tìm đường thẳng → chấm điểm các tứ giác theo độ tương phản trong/ngoài), rồi nắn phối cảnh thành hình chữ nhật. Mỗi trang có **điểm tin cậy** | v0.8 |
+| L16 | Cắt thủ công: khung chữ nhật | Kéo 8 tay nắm; **kính lúp** phóng to góc khi kéo; tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do, giữ tỉ lệ khổ giấy); nhập số đo bằng mm; khung tự hít vào viền đã dò | v0.8 |
+| L17 | Cắt thủ công: kéo 4 góc | Kéo từng góc độc lập cho trang chụp xiên, xem trước kết quả nắn phối cảnh ngay; kết hợp xoay tinh (±0,1°) | v0.8 |
+| L18 | Cắt hàng loạt & duyệt nhanh | Tự dò viền mọi trang, hiện lưới thumbnail có khung viền đè lên; **trang dò kém được đánh dấu** để chỉ phải sửa tay vài trang. Hoặc dùng một khung cắt cho mọi trang, riêng trang chẵn/lẻ (khi chụp sách) | v0.8 |
+| L19 | Tự nhận khổ giấy | Sau khi cắt, đoán khổ theo tỉ lệ cạnh (A4, A5, Letter, CCCD…) và đặt đúng kích thước trang PDF; hoặc giữ nguyên kích thước thật | v0.8 |
+| L20 | **Dò viền trang bằng mô hình nhẹ** | Mô hình dò 4 góc tờ giấy loại nhỏ (vài MB, chạy ONNX trên CPU, ứng viên: DocAligner), **đi kèm bản cài**. Xử lý các trường hợp thuật toán L15 hay sai: giấy trắng trên bàn trắng, nền lộn xộn, góc bị ngón tay che, ánh sáng xấu. App chạy cả hai cách và chọn kết quả có điểm tin cậy cao hơn. **Ngoại lệ** của nguyên tắc "1.0 không có AI" | v0.8 |
 
 ## M. Tối ưu, chuyển đổi & sửa lỗi
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| M1 | Nén PDF | Preset (màn hình / email / in ấn), giảm độ phân giải ảnh, bỏ đối tượng thừa, rút gọn font | v0.4 |
-| M2 | PDF → ảnh | PNG / JPG / TIFF (TIFF nhiều trang), chọn DPI | v0.4 |
-| M3 | Ảnh → PDF | Nhiều ảnh, sắp thứ tự, khổ giấy, lề, tự xoay theo EXIF | v0.4 |
-| M4 | Ảnh chụp màn hình → PDF | Dán từ clipboard hoặc chụp màn hình trực tiếp | v0.4 |
-| M5 | Web / Markdown / HTML → PDF | Dán link trang web hoặc mở file Markdown/HTML để xuất PDF | v0.4 |
-| M6 | Chuyển đổi màu | Thang xám / đen trắng (vẫn giữ chữ, khác K2); tiết kiệm mực in; thay màu | v0.4 |
-| M7 | Trích xuất | Lấy toàn bộ ảnh gốc; lấy text ra `.txt` | v0.4 |
-| M8 | File đính kèm | Xem, thêm, xóa, lưu ra các file nhúng trong PDF | v0.4 |
-| M9 | Sửa metadata | Tiêu đề, tác giả, chủ đề, từ khóa | v0.4 |
-| M10 | Tối ưu cho web | Linearize: mở trang đầu nhanh khi xem qua mạng | v0.4 |
-| M11 | Sửa file PDF hỏng | Thử khôi phục file lỗi, không mở được | v0.4 |
+| M1 | Nén PDF | Preset (màn hình / email / in ấn), giảm độ phân giải ảnh, bỏ đối tượng thừa, rút gọn font | v0.5 |
+| M2 | PDF → ảnh | PNG / JPG / TIFF (TIFF nhiều trang), chọn DPI | v0.5 |
+| M3 | Ảnh → PDF | Nhiều ảnh, sắp thứ tự, khổ giấy, lề, tự xoay theo EXIF | v0.5 |
+| M4 | Ảnh chụp màn hình → PDF | Dán từ clipboard hoặc chụp màn hình trực tiếp | v0.5 |
+| M5 | Web / Markdown / HTML → PDF | Dán link trang web hoặc mở file Markdown/HTML để xuất PDF | v0.5 |
+| M6 | Chuyển đổi màu | Thang xám / đen trắng (vẫn giữ chữ, khác K2); tiết kiệm mực in; thay màu | v0.5 |
+| M7 | Trích xuất | Lấy toàn bộ ảnh gốc; lấy text ra `.txt` | v0.5 |
+| M8 | File đính kèm | Xem, thêm, xóa, lưu ra các file nhúng trong PDF | v0.5 |
+| M9 | Sửa metadata | Tiêu đề, tác giả, chủ đề, từ khóa | v0.5 |
+| M10 | Tối ưu cho web | Linearize: mở trang đầu nhanh khi xem qua mạng | v0.5 |
+| M11 | Sửa file PDF hỏng | Thử khôi phục file lỗi, không mở được | v0.5 |
 | M12 | PDF/A để lưu trữ | Không dùng Ghostscript (vì giấy phép) | Sau 1.0 |
 | M13 | Office → PDF | Qua LibreOffice nếu máy có cài | Ý tưởng |
 | M14 | Máy in ảo "Chef PDF" | In từ app bất kỳ ra PDF | Ý tưởng |
@@ -369,13 +382,13 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| N1 | Rã PDF có chữ | Lấy chữ kèm font, cỡ, đậm/nghiêng; gom dòng → đoạn; nhận tiêu đề theo cỡ chữ; danh sách; link; tách ảnh; thứ tự đọc kể cả văn bản nhiều cột; bỏ header/footer/số trang lặp lại | v0.8 |
-| N2 | Bảng đơn giản | Bảng có đường kẻ trong PDF có chữ → bảng Markdown/HTML/Excel | v0.8 |
-| N3 | **Màn hình kiểm tra & sửa** | Bản gốc một bên, kết quả một bên, click chỗ nào nhảy tới chỗ đó; sửa chữ; đổi loại vùng (đoạn ↔ tiêu đề ↔ bảng ↔ hình). Tô vàng chữ đáng ngờ khi có OCR (gói Q) | v0.8 |
-| N4 | Xuất định dạng | Markdown (kèm thư mục ảnh), DOCX, HTML, EPUB, ODT, TXT, XLSX (chỉ bảng), JSON | v0.8 |
-| N5 | Hai chế độ xuất Word | "Dễ chỉnh sửa" (văn bản chảy, style Heading) và "Giữ bố cục" (khung định vị, cột) | v0.8 |
-| N6 | Làm mới tài liệu | Dàn trang lại thành PDF sạch, font đẹp từ mô hình tài liệu | v0.8 |
-| N7 | Hàng loạt | Rã cả thư mục; dùng làm một bước trong quy trình (O) | v0.8 |
+| N1 | Rã PDF có chữ | Lấy chữ kèm font, cỡ, đậm/nghiêng; gom dòng → đoạn; nhận tiêu đề theo cỡ chữ; danh sách; link; tách ảnh; thứ tự đọc kể cả văn bản nhiều cột; bỏ header/footer/số trang lặp lại | v0.10 |
+| N2 | Bảng đơn giản | Bảng có đường kẻ trong PDF có chữ → bảng Markdown/HTML/Excel | v0.10 |
+| N3 | **Màn hình kiểm tra & sửa** | Bản gốc một bên, kết quả một bên, click chỗ nào nhảy tới chỗ đó; sửa chữ; đổi loại vùng (đoạn ↔ tiêu đề ↔ bảng ↔ hình). Tô vàng chữ đáng ngờ khi có OCR (gói Q) | v0.10 |
+| N4 | Xuất định dạng | Markdown (kèm thư mục ảnh), DOCX, HTML, EPUB, ODT, TXT, XLSX (chỉ bảng), JSON | v0.10 |
+| N5 | Hai chế độ xuất Word | "Dễ chỉnh sửa" (văn bản chảy, style Heading) và "Giữ bố cục" (khung định vị, cột) | v0.10 |
+| N6 | Làm mới tài liệu | Dàn trang lại thành PDF sạch, font đẹp từ mô hình tài liệu | v0.10 |
+| N7 | Hàng loạt | Rã cả thư mục; dùng làm một bước trong quy trình (O) | v0.10 |
 | N8 | Trình sửa Markdown | Sửa Markdown, xem trước, xuất lại | Ý tưởng |
 
 ---
@@ -386,14 +399,14 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 
 | Mã | Tính năng | Mô tả | Mức |
 |---|---|---|---|
-| O1 | Trình tạo quy trình | Ghép các bước thành chuỗi (ví dụ: Ghép → Đánh số trang → Dấu giáp lai → Bản scan 200 dpi xám → Ký số → Lưu); lưu và chia sẻ dưới dạng file | v0.7 |
-| O2 | Chạy hàng loạt | Áp dụng cho nhiều file / cả thư mục; thanh tiến độ; báo lỗi từng file | v0.7 |
-| O3 | Thư mục tự động | Thả file vào thư mục là app tự chạy quy trình | v0.7 |
-| O4 | Quy tắc đặt tên đầu ra | `{ten}_{ngay}_da-ky.pdf` | v0.7 |
-| O5 | Tự sắp xếp thứ tự an toàn | Bước "bản scan" luôn đứng trước "ký số", có cảnh báo | v0.7 |
-| O6 | Đổi tên file hàng loạt | Theo mẫu, theo tiêu đề trong metadata, hoặc theo dòng chữ đầu tiên của trang 1 | v0.7 |
-| O7 | Quy trình mẫu có sẵn | "Nộp hồ sơ online" (ghép → bản scan 200 dpi xám → nén ≤ 5MB → ký số); "Phát hành văn bản" (đánh số theo NĐ 30 → ký số → dấu giáp lai); "Chụp sách" (chụp bằng điện thoại → dò viền & cắt → tách trang đôi → làm phẳng trang cong → xóa ngón tay → làm trắng nền → ghép thành PDF) | v0.7 |
-| O8 | Kéo thả lên quy trình | Kéo file thả lên một quy trình ở màn hình Start là chạy | v0.7 |
+| O1 | Trình tạo quy trình | Ghép các bước thành chuỗi (ví dụ: Ghép → Đánh số trang → Dấu giáp lai → Bản scan 200 dpi xám → Ký số → Lưu); lưu và chia sẻ dưới dạng file | v0.9 |
+| O2 | Chạy hàng loạt | Áp dụng cho nhiều file / cả thư mục; thanh tiến độ; báo lỗi từng file | v0.9 |
+| O3 | Thư mục tự động | Thả file vào thư mục là app tự chạy quy trình | v0.9 |
+| O4 | Quy tắc đặt tên đầu ra | `{ten}_{ngay}_da-ky.pdf` | v0.9 |
+| O5 | Tự sắp xếp thứ tự an toàn | Bước "bản scan" luôn đứng trước "ký số", có cảnh báo | v0.9 |
+| O6 | Đổi tên file hàng loạt | Theo mẫu, theo tiêu đề trong metadata, hoặc theo dòng chữ đầu tiên của trang 1 | v0.9 |
+| O7 | Quy trình mẫu có sẵn | "Nộp hồ sơ online" (ghép → bản scan 200 dpi xám → nén ≤ 5MB → ký số); "Phát hành văn bản" (đánh số theo NĐ 30 → ký số → dấu giáp lai); "Chụp sách" (chụp bằng điện thoại → dò viền & cắt → tách trang đôi → làm phẳng trang cong → xóa ngón tay → làm trắng nền → ghép thành PDF) | v0.9 |
+| O8 | Kéo thả lên quy trình | Kéo file thả lên một quy trình ở màn hình Start là chạy | v0.9 |
 | O9 | Dòng lệnh `chefpdf` | Dùng chung lõi xử lý, chạy từ script | Ý tưởng |
 
 ## P. So sánh tài liệu
@@ -432,7 +445,7 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.8) | 160 |
+| Bản 1.0 (v0.1–v0.10) | 160 |
 | Sau 1.0 | 4 |
 | Nâng cấp | 12 |
 | Ý tưởng | 20 |
@@ -445,6 +458,7 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
 | 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |
+| 2026-10-31 | (nhiều mã) | **Chia lại mốc khi lập kế hoạch:** v0.4 cũ tách thành v0.4 + v0.5; các mốc sau lùi một bậc; v0.7 cũ tách thành v0.8 (ảnh scan) + v0.9 (form, quy trình); rã tài liệu thành v0.10. Không thêm/bớt tính năng | v0.4 cũ có 43 tính năng, quá nặng (D29) |
 | 2026-10-31 | L6 | Từ "Ý tưởng" lên **v0.7**, mô tả chi tiết hơn | Chủ dự án đồng ý, để đủ quy trình chụp sách |
 | 2026-10-31 | L20, Q13 | Mô hình dò viền trang đưa vào bản 1.0 thành **L20** (ngoại lệ của nguyên tắc không AI). **Mã Q13 bỏ, không dùng lại** | Chủ dự án đồng ý |
 | 2026-10-31 | O7 | Thêm quy trình mẫu "Chụp sách" | Gom L5, L15, L6, L13, L14, L3 thành một quy trình |

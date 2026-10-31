@@ -5,21 +5,22 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** ✅ **Đã chốt cây tính năng 1.0** ([FEATURES.md](FEATURES.md), ngày 2026-10-31). **Chưa viết code.**
+- **Giai đoạn:** ✅ Đã chốt cây tính năng 1.0 ([FEATURES.md](FEATURES.md)). ✅ **Đã lập kế hoạch**: [BLUEPRINT.md](BLUEPRINT.md) (kiến trúc, quy ước, mốc, rủi ro) và [TASKS.md](TASKS.md) (118 task, 262 điểm). **Chưa viết code.**
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
   |---|---|
-  | Bản 1.0 (v0.1–v0.8) | 160 |
+  | Bản 1.0 (v0.1–v0.10) | 160 |
   | Sau 1.0 | 4 |
   | Gói nâng cấp OCR/AI | 12 |
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo:** **Lập kế hoạch và ước lượng dev**: chia việc theo từng bản v0.1 → v0.8, ước lượng công sức, xác định rủi ro và thứ phải làm trước. Sau đó dựng khung dự án Electron cho v0.1.
+- **Việc tiếp theo:** Chủ dự án duyệt blueprint → trả lời CH1 (OS chính, token của CA nào) → bắt đầu **v0.1** từ T1.01 (dựng monorepo). Trạng thái từng task theo dõi trong TASKS.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
-  - App để tự dùng hay sẽ phát hành/bán? Câu này ảnh hưởng chi phí ký mã (Apple Developer 99 USD/năm, chứng thư code signing cho Windows).
+  - **CH1:** máy chính chạy OS nào? Token của CA nào? (cần cho spike T1.08)
+  - **CH2:** cách tự cập nhật khi repo private (cần trước T9.08). Xem TASKS.md.
   - Cần **token thật** (Viettel, VNPT, FPT, Ban Cơ yếu, MISA…) để thử ký số. Xem [TOKENS.md](TOKENS.md).
 
 ## Mục tiêu sản phẩm
@@ -46,9 +47,9 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D8 | Build bằng **GitHub Actions** cho 3 OS (A8) | Chủ dự án không cần có đủ 3 máy |
 | D9 | Tính năng chủ lực ★: **Chuyển thành bản scan** (K), **Ký số** (I), **Quy trình tự động** (O) | Chủ dự án yêu cầu |
 | D10 | Bước chuyển thành bản scan luôn đứng **trước** bước ký số; app tự sắp xếp và cảnh báo (O5, K9) | Raster hóa sau khi ký làm mất chữ ký |
-| D11 | **Sửa chữ có sẵn** (D8, D9) thuộc bản 1.0 (v0.6) | Chủ dự án yêu cầu, giống ABBYY |
+| D11 | **Sửa chữ có sẵn** (D8, D9) thuộc bản 1.0 (v0.7 sau khi chia lại mốc) | Chủ dự án yêu cầu, giống ABBYY |
 | D12 | Có nhóm **Lớp & gỡ watermark** (E) | Chủ dự án yêu cầu |
-| D13 | Làm một **"bộ máy nội dung"** dùng chung (v0.5) cho chọn/xóa đối tượng (D4), tẩy vùng (D5), gỡ watermark (E3, E4), che thông tin mật (J6). Sửa chữ (v0.6) xây tiếp trên nền này | Làm một lần, dùng cho nhiều tính năng |
+| D13 | Làm một **"bộ máy nội dung"** dùng chung (v0.6 sau khi chia lại mốc) cho chọn/xóa đối tượng (D4), tẩy vùng (D5), gỡ watermark (E3, E4), che thông tin mật (J6). Sửa chữ (v0.7) xây tiếp trên nền này | Làm một lần, dùng cho nhiều tính năng |
 | D14 | Watermark/header/footer/số trang do Chef PDF thêm phải **gắn nhãn chuẩn**: marked content `/Artifact` với `/Subtype /Watermark` hoặc `/Pagination` (F1, F12) | Để sửa/gỡ được sạch |
 | D15 | Ký số có **Studio mẫu chữ ký** (I-B), tham khảo Foxit; mẫu gắn với từng chứng thư | Chủ dự án yêu cầu |
 | D16 | Một **thư viện ảnh chữ ký & con dấu dùng chung** (I-C) cho ký số, con dấu ảnh (F3), giáp lai (F4), chữ ký nháy (F6); mã hóa khi lưu | Tránh làm trùng; đây là dữ liệu nhạy cảm |
@@ -63,8 +64,15 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D25 | Thêm **tự dò viền trang & cắt** (L15–L19) vào bản 1.0, làm bằng thuật toán OpenCV. Bản dùng mô hình ở gói nâng cấp (ban đầu là Q13, nay đã thành L20, xem D26). Phân biệt rõ: cắt trang PDF thường thì đặt lại CropBox (C7); cắt ảnh scan thì cắt điểm ảnh thật (L15–L19) | Chủ dự án bổ sung; đánh giá là làm được |
 | D26 | **Ngoại lệ AI duy nhất ở bản 1.0:** mô hình dò viền trang loại nhỏ (**L20**, vài MB, ONNX Runtime trên CPU, đi kèm bản cài). Chạy song song với thuật toán L15, lấy kết quả tin cậy hơn. Mã Q13 bỏ | Chủ dự án đồng ý; mô hình nhẹ mà khắc phục đúng điểm yếu của thuật toán |
 | D27 | **L6 (tách trang đôi)** vào bản 1.0 (v0.7). Thêm quy trình mẫu **"Chụp sách"** vào O7 | Chủ dự án đồng ý; để đủ quy trình chụp sách |
+| D28 | **App chỉ để chủ dự án tự dùng**, không phát hành. Hệ quả: không ký mã, không notarize (bỏ qua cảnh báo khi cài); tự cập nhật trên macOS chỉ báo có bản mới; AGPL không còn là rào cản pháp lý, vẫn giữ D7 nhưng được xem lại nếu spike S2 cho thấy cần PyMuPDF | Chủ dự án trả lời ngày 2026-10-31 |
+| D29 | **Chia lại mốc** thành v0.1 → v0.10 → 1.0 (11 mốc), theo BLUEPRINT mục 13. Nhãn "Mức" trong FEATURES.md đã cập nhật | v0.4 cũ có 43 tính năng, quá nặng |
+| D30 | Kiến trúc **mô hình thao tác (Operation)**: mỗi tính năng tác động lên tài liệu là một operation có Params dạng pydantic (sinh JSON Schema và kiểu TS). UI, hàng loạt, quy trình và dòng lệnh dùng chung | Chi tiết ở BLUEPRINT mục 3 |
+| D31 | Main ↔ lõi Python giao tiếp bằng **JSON-RPC 2.0 qua stdin/stdout** (không mở cổng mạng). Dữ liệu lớn truyền bằng đường dẫn file | BLUEPRINT mục 5 |
+| D32 | **Phiên tài liệu** dùng bản sao làm việc và các bản sửa trên đĩa; không động vào file gốc tới khi Lưu; hoàn tác bằng bản sửa | BLUEPRINT mục 4 |
 
 ## Kiến trúc dự kiến
+
+Chi tiết đầy đủ ở [BLUEPRINT.md](BLUEPRINT.md). Tóm tắt:
 
 ```
 Chef PDF
@@ -143,8 +151,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Mô hình chạy trên CPU mất khoảng vài giây mỗi trang. Có GPU thì nhanh hơn nhiều.
 
 ### Phân phối
-- macOS cần notarize (tài khoản Apple Developer 99 USD/năm), nếu không Gatekeeper sẽ chặn app.
-- Windows cần chứng thư code signing, nếu không SmartScreen sẽ cảnh báo.
+- App tự dùng (D28) nên **không ký mã**. Khi cài trên Windows bấm "More info → Run anyway"; trên macOS chuột phải → Open, hoặc `xattr -dr com.apple.quarantine "/Applications/Chef PDF.app"`.
 
 ## Nguyên tắc giao diện (để "gọn gàng như ABBYY")
 - Màn hình Start dạng **ô nhiệm vụ** cộng các quy trình đã lưu.
@@ -156,6 +163,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-10-31 (10):** Chủ dự án: app **tự dùng** (D28). Chuyển sang lập kế hoạch. Claude viết `docs/BLUEPRINT.md` (bối cảnh, kiến trúc, mô hình operation, phiên tài liệu, IPC, giao diện, dữ liệu & bảo mật, cấu trúc repo, công nghệ, kiểm thử, build, quy trình làm việc, mốc, ước lượng, rủi ro) và `docs/TASKS.md` (118 task, 262 điểm, đủ 160 tính năng). Chia lại mốc thành 11 mốc (D29). Thêm D30–D32. Câu hỏi mới: CH1, CH2.
 - **2026-10-31 (9):** Chủ dự án đồng ý: (1) mô hình dò viền nhẹ vào bản 1.0, thành **L20**, mã Q13 bỏ (D26); (2) **L6** tách trang đôi lên v0.7, thêm quy trình mẫu "Chụp sách" (D27). Thêm ONNX Runtime vào kiến trúc. Bản 1.0 hiện có 160 tính năng, tổng 196.
 - **2026-10-31 (8):** Thêm sau khi chốt: tự dò viền trang & tự cắt, cắt thủ công, cắt hàng loạt, tự nhận khổ giấy → L15–L19 (v0.7); dò viền bằng mô hình → Q13. Thêm D25. Tổng 196 tính năng. Hỏi chủ dự án: đưa L6 vào 1.0? Cho mô hình dò viền nhẹ làm ngoại lệ ở 1.0?
 - **2026-10-31 (7):** Thêm sau khi chốt: trình sửa ảnh trang kiểu ABBYY OCR Editor và xóa ngón tay kiểu vFlat Scan → L9–L14 (v0.7), Q11–Q12 (nâng cấp). Thêm OpenCV vào thư viện lõi (D6), thêm D24. Tổng còn 190 tính năng.
