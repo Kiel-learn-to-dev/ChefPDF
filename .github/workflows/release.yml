@@ -1,0 +1,92 @@
+name: Release
+
+# Builds unsigned installers (personal use, see docs/BLUEPRINT.md section 11) on each OS and
+# attaches them to the GitHub Release of the pushed tag.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            builder_args: --win --x64
+          - name: macos-arm64
+            os: macos-latest
+            builder_args: --mac --arm64
+          # Intel macOS: the macos-13 image has been retired; macos-15-intel is its successor.
+          - name: macos-x64
+            os: macos-15-intel
+            builder_args: --mac --x64
+          - name: linux-x64
+            os: ubuntu-latest
+            builder_args: --linux --x64
+    runs-on: ${{ matrix.os }}
+    env:
+      # No signing identity: never let electron-builder look for one in the keychain.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install rpm tooling
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check that the tag matches the app version
+        shell: bash
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match apps/desktop version $version" >&2
+            exit 1
+          fi
+      # Core (PyInstaller onedir) -> UI (Vite) -> main/preload (esbuild) -> electron-builder.
+      - name: Build installers
+        shell: bash # keep the `--` separator intact on Windows (PowerShell would eat it)
+        run: node packaging/package.mjs -- ${{ matrix.builder_args }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chef-pdf-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/*.rpm
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -la artifacts
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --title "Chef PDF $GITHUB_REF_NAME" --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber
