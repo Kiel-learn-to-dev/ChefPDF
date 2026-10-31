@@ -201,6 +201,73 @@ export interface MergeInput {
   pages?: number[];
 }
 
+export interface PageMargins {
+  /**
+   * mm
+   * @default 0
+   */
+  top?: number;
+  /**
+   * mm
+   * @default 0
+   */
+  bottom?: number;
+  /**
+   * mm
+   * @default 0
+   */
+  left?: number;
+  /**
+   * mm
+   * @default 0
+   */
+  right?: number;
+}
+
+/** What a reader may do when the file is opened with the user password. */
+export interface PermissionFlags {
+  /**
+   * Print at low resolution.
+   * @default true
+   */
+  printLowRes?: boolean;
+  /**
+   * Print at high resolution. Needs printLowRes.
+   * @default true
+   */
+  printHighRes?: boolean;
+  /**
+   * Copy text and images.
+   * @default true
+   */
+  copyContent?: boolean;
+  /**
+   * Make other changes to the document.
+   * @default true
+   */
+  modify?: boolean;
+  /**
+   * Add or change comments.
+   * @default true
+   */
+  annotate?: boolean;
+  /**
+   * Fill in form fields.
+   * @default true
+   */
+  fillForms?: boolean;
+  /**
+   * Insert, delete, rotate pages.
+   * @default true
+   */
+  assemble?: boolean;
+  /**
+   * Accessibility tools may read it.
+   * @default true
+   */
+  accessibility?: boolean;
+}
+
 export interface PfxSigner {
   kind: 'pfx';
   /** Path to the .pfx or .p12 file. */
@@ -538,6 +605,412 @@ export interface BookmarksSetParams {
   bookmarks?: BookmarkNode[];
 }
 
+/** Change colours on the selected pages. */
+export interface ColorConvertParams {
+  mode: 'gray' | 'blackwhite' | 'ink-saver' | 'replace-color';
+  /** 0-based; default all. */
+  pages?: number[];
+  /**
+   * blackwhite: the cut-off.
+   * @default 128
+   */
+  threshold?: number;
+  /**
+   * blackwhite: dither the images.
+   * @default false
+   */
+  dithering?: boolean;
+  /**
+   * ink-saver: how far to lighten.
+   * @default 0.5
+   */
+  amount?: number;
+  /** replace-color: '#rrggbb'. */
+  sourceColor?: string;
+  /** replace-color: '#rrggbb'. */
+  targetColor?: string;
+  /**
+   * replace-color: per channel.
+   * @default 24
+   */
+  tolerance?: number;
+}
+
+/** Compression settings. Fields left null take the value of the preset. */
+export interface CompressEstimateParams {
+  /**
+   * screen 96 dpi / q55; ebook 150 dpi / q70; print 300 dpi / q85; archive-light: lossless only (no image resampling); custom: only the fields given.
+   * @default "ebook"
+   */
+  preset?: 'screen' | 'ebook' | 'print' | 'archive-light' | 'custom';
+  /** Largest effective image resolution in dpi. */
+  maxImageDpi?: number;
+  jpegQuality?: number;
+  /**
+   * Convert images to grayscale.
+   * @default false
+   */
+  grayscale?: boolean;
+  /** Drop XObject resources (images, forms) the pages do not use. */
+  removeUnused?: boolean;
+  /**
+   * Remove the document information and XMP metadata.
+   * @default false
+   */
+  removeMetadata?: boolean;
+  /** Remove page thumbnails. */
+  removeThumbnails?: boolean;
+  /**
+   * Remove embedded files.
+   * @default false
+   */
+  removeAttachments?: boolean;
+  /**
+   * Remove annotations (form fields are kept).
+   * @default false
+   */
+  removeAnnotations?: boolean;
+  /**
+   * Composite images with soft masks onto white.
+   * @default false
+   */
+  flattenTransparency?: boolean;
+  /**
+   * Drop font resources the pages do not use. Producers already subset the embedded fonts, so this only removes unused font entries.
+   * @default true
+   */
+  subsetFonts?: boolean;
+  /** Re-encode plain Flate streams at level 9. */
+  recompressStreams?: boolean;
+  /** Store objects in compressed object streams. */
+  useObjectStreams?: boolean;
+}
+
+export interface CompressFileParams {
+  /**
+   * screen 96 dpi / q55; ebook 150 dpi / q70; print 300 dpi / q85; archive-light: lossless only (no image resampling); custom: only the fields given.
+   * @default "ebook"
+   */
+  preset?: 'screen' | 'ebook' | 'print' | 'archive-light' | 'custom';
+  /** Largest effective image resolution in dpi. */
+  maxImageDpi?: number;
+  jpegQuality?: number;
+  /**
+   * Convert images to grayscale.
+   * @default false
+   */
+  grayscale?: boolean;
+  /** Drop XObject resources (images, forms) the pages do not use. */
+  removeUnused?: boolean;
+  /**
+   * Remove the document information and XMP metadata.
+   * @default false
+   */
+  removeMetadata?: boolean;
+  /** Remove page thumbnails. */
+  removeThumbnails?: boolean;
+  /**
+   * Remove embedded files.
+   * @default false
+   */
+  removeAttachments?: boolean;
+  /**
+   * Remove annotations (form fields are kept).
+   * @default false
+   */
+  removeAnnotations?: boolean;
+  /**
+   * Composite images with soft masks onto white.
+   * @default false
+   */
+  flattenTransparency?: boolean;
+  /**
+   * Drop font resources the pages do not use. Producers already subset the embedded fonts, so this only removes unused font entries.
+   * @default true
+   */
+  subsetFonts?: boolean;
+  /** Re-encode plain Flate streams at level 9. */
+  recompressStreams?: boolean;
+  /** Store objects in compressed object streams. */
+  useObjectStreams?: boolean;
+  /** PDF to compress. */
+  inputPath: string;
+  /** PDF to write (may equal the input). */
+  outputPath: string;
+  /** Password of the input file. */
+  password?: string;
+}
+
+export interface CompressFitSizeParams {
+  /**
+   * screen 96 dpi / q55; ebook 150 dpi / q70; print 300 dpi / q85; archive-light: lossless only (no image resampling); custom: only the fields given.
+   * @default "ebook"
+   */
+  preset?: 'screen' | 'ebook' | 'print' | 'archive-light' | 'custom';
+  /** Largest effective image resolution in dpi. */
+  maxImageDpi?: number;
+  jpegQuality?: number;
+  /**
+   * Convert images to grayscale.
+   * @default false
+   */
+  grayscale?: boolean;
+  /** Drop XObject resources (images, forms) the pages do not use. */
+  removeUnused?: boolean;
+  /**
+   * Remove the document information and XMP metadata.
+   * @default false
+   */
+  removeMetadata?: boolean;
+  /** Remove page thumbnails. */
+  removeThumbnails?: boolean;
+  /**
+   * Remove embedded files.
+   * @default false
+   */
+  removeAttachments?: boolean;
+  /**
+   * Remove annotations (form fields are kept).
+   * @default false
+   */
+  removeAnnotations?: boolean;
+  /**
+   * Composite images with soft masks onto white.
+   * @default false
+   */
+  flattenTransparency?: boolean;
+  /**
+   * Drop font resources the pages do not use. Producers already subset the embedded fonts, so this only removes unused font entries.
+   * @default true
+   */
+  subsetFonts?: boolean;
+  /** Re-encode plain Flate streams at level 9. */
+  recompressStreams?: boolean;
+  /** Store objects in compressed object streams. */
+  useObjectStreams?: boolean;
+  /** Largest acceptable size of the result in bytes. */
+  targetBytes: number;
+  /**
+   * Lowest image dpi to try.
+   * @default 72
+   */
+  minDpi?: number;
+  /**
+   * Lowest JPEG quality.
+   * @default 30
+   */
+  minJpegQuality?: number;
+}
+
+/** Compression settings. Fields left null take the value of the preset. */
+export interface CompressPdfParams {
+  /**
+   * screen 96 dpi / q55; ebook 150 dpi / q70; print 300 dpi / q85; archive-light: lossless only (no image resampling); custom: only the fields given.
+   * @default "ebook"
+   */
+  preset?: 'screen' | 'ebook' | 'print' | 'archive-light' | 'custom';
+  /** Largest effective image resolution in dpi. */
+  maxImageDpi?: number;
+  jpegQuality?: number;
+  /**
+   * Convert images to grayscale.
+   * @default false
+   */
+  grayscale?: boolean;
+  /** Drop XObject resources (images, forms) the pages do not use. */
+  removeUnused?: boolean;
+  /**
+   * Remove the document information and XMP metadata.
+   * @default false
+   */
+  removeMetadata?: boolean;
+  /** Remove page thumbnails. */
+  removeThumbnails?: boolean;
+  /**
+   * Remove embedded files.
+   * @default false
+   */
+  removeAttachments?: boolean;
+  /**
+   * Remove annotations (form fields are kept).
+   * @default false
+   */
+  removeAnnotations?: boolean;
+  /**
+   * Composite images with soft masks onto white.
+   * @default false
+   */
+  flattenTransparency?: boolean;
+  /**
+   * Drop font resources the pages do not use. Producers already subset the embedded fonts, so this only removes unused font entries.
+   * @default true
+   */
+  subsetFonts?: boolean;
+  /** Re-encode plain Flate streams at level 9. */
+  recompressStreams?: boolean;
+  /** Store objects in compressed object streams. */
+  useObjectStreams?: boolean;
+}
+
+/** Make a PDF with one page per image, in the order given. */
+export interface ConvertImagesToPdfParams {
+  /** Image files, in page order. */
+  images: string[];
+  /** PDF to write. */
+  outputPath: string;
+  /**
+   * 'fit-image': page = image plus margin; 'a4' / 'letter' / 'custom': image placed on that page.
+   * @default "a4"
+   */
+  pageSize?: 'fit-image' | 'a4' | 'letter' | 'custom';
+  customWidthMm?: number;
+  customHeightMm?: number;
+  /** @default 10 */
+  marginMm?: number;
+  /**
+   * auto: landscape page for landscape images.
+   * @default "auto"
+   */
+  orientation?: 'auto' | 'portrait' | 'landscape';
+  /**
+   * fit: whole image inside the page; fill: cover the page (overflow clipped); center: natural size, centred and clipped to the page.
+   * @default "fit"
+   */
+  fit?: 'fit' | 'fill' | 'center';
+  /** Natural size in dpi; default: image metadata. */
+  dpi?: number;
+}
+
+/** Render pages of a PDF to image files in `outputDir`. */
+export interface ConvertPdfToImagesParams {
+  /** PDF to render. */
+  path: string;
+  /** Password of the PDF. */
+  password?: string;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** @default "png" */
+  format?: 'png' | 'jpeg' | 'tiff' | 'webp';
+  /**
+   * Render resolution.
+   * @default 150
+   */
+  dpi?: number;
+  /**
+   * 'color' RGB, 'gray', or 'bw' (1-bit, threshold 128).
+   * @default "color"
+   */
+  color?: 'color' | 'gray' | 'bw';
+  /**
+   * JPEG and WebP quality.
+   * @default 90
+   */
+  jpegQuality?: number;
+  /**
+   * TIFF only: one file with all pages instead of one per page.
+   * @default false
+   */
+  multiPageTiff?: boolean;
+  /** Directory for the image files. */
+  outputDir: string;
+  /**
+   * File name: {name} (PDF name) and {page} (1-based, zero-padded).
+   * @default "{name}_{page}"
+   */
+  nameTemplate?: string;
+}
+
+/** Attach files to the session document. */
+export interface DocAttachmentsAddParams {
+  /** Files to attach (absolute paths). */
+  paths: string[];
+  /**
+   * Replace an attachment with the same name.
+   * @default false
+   */
+  replace?: boolean;
+}
+
+/** Save attachments to a folder (all of them, or the named ones). */
+export interface DocAttachmentsExtractParams {
+  /** Folder for the attached files. */
+  outputDir: string;
+  /** Default: all. */
+  names?: string[];
+}
+
+/** No parameters. */
+export interface DocAttachmentsListParams {
+}
+
+/** Remove attachments by name. */
+export interface DocAttachmentsRemoveParams {
+  names: string[];
+}
+
+/** Extract the images of the selected pages into a folder (session document). */
+export interface DocExtractImagesParams {
+  /** Folder for the image files. */
+  outputDir: string;
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /**
+   * File name without extension: {name}, {page} (1-based), {index} (1-based on the page). The extension is .jpg, .jp2 or .png.
+   * @default "{page}_{index}"
+   */
+  nameTemplate?: string;
+}
+
+/** Write the text of the session document to a UTF-8 file. */
+export interface DocExtractTextParams {
+  /** Text file to write. */
+  outputPath: string;
+  /**
+   * Put "--- Trang N ---" before each page.
+   * @default false
+   */
+  pageMarkers?: boolean;
+}
+
+/** Write a linearized copy of a PDF file. */
+export interface DocOptimizeWebParams {
+  /** PDF file to read. */
+  inputPath: string;
+  /** Password of the input file. */
+  inputPassword?: string;
+  /** Copy to write. May equal the input. */
+  outputPath: string;
+}
+
+/** Repair a damaged PDF file and write a clean copy. */
+export interface DocRepairParams {
+  /** Damaged PDF file. */
+  inputPath: string;
+  /** Repaired copy to write. */
+  outputPath: string;
+}
+
+/** Set document properties. Null: unchanged. Empty string: removed. */
+export interface DocSetMetadataParams {
+  title?: string;
+  author?: string;
+  subject?: string;
+  keywords?: string;
+  creator?: string;
+  producer?: string;
+  /** ISO 8601 date, e.g. 2024-03-01T09:30:00+07:00. Empty: removed. */
+  creationDate?: string;
+  /** ISO 8601 date. Empty: removed. */
+  modDate?: string;
+  /** Extra Info entries. Empty value removes the key. */
+  custom?: Record<string, string>;
+  /**
+   * Remove all properties before applying.
+   * @default false
+   */
+  clear?: boolean;
+}
+
 /** Merge several PDFs (in order) into a new file. */
 export interface FileMergeParams {
   inputs: MergeInput[];
@@ -562,6 +1035,33 @@ export interface FileSplitParams {
    * File name template: {name}, {index}, {start}, {end}; .pdf is appended.
    * @default "{name}_{index}"
    */
+  nameTemplate?: string;
+}
+
+/** Split one document into files at smart boundaries. */
+export interface FileSplitSmartParams {
+  /** PDF to split. */
+  path: string;
+  password?: string;
+  mode: 'blank' | 'bookmarkLevel' | 'pattern';
+  /**
+   * bookmarkLevel: 1 = top level.
+   * @default 1
+   */
+  level?: number;
+  /** pattern: regular expression. */
+  pattern?: string;
+  /** @default true */
+  ignoreCase?: boolean;
+  /**
+   * blank: leave the blank separator pages out of the files.
+   * @default false
+   */
+  dropSeparatorPages?: boolean;
+  /** @default 0.5 */
+  blankSensitivity?: number;
+  outputDir: string;
+  /** @default "{name}_{index}" */
   nameTemplate?: string;
 }
 
@@ -704,6 +1204,15 @@ export interface ImageTextSignatureParams {
   /** @default 6 */
   padding?: number;
   outputPath: string;
+}
+
+/** Report the hidden data of the session document. */
+export interface InspectHiddenDataParams {
+}
+
+/** Remove the selected categories of hidden data (writes a new revision). */
+export interface InspectRemoveHiddenParams {
+  categories: ('metadata' | 'embeddedFiles' | 'javascript' | 'launchActions' | 'hiddenLayers' | 'comments' | 'formValues' | 'bookmarks' | 'thumbnails' | 'externalLinks' | 'xfa' | 'revisionHistory' | 'unusedObjects')[];
 }
 
 /**
@@ -1112,6 +1621,34 @@ export interface OverlayWatermarkParams {
   under?: boolean;
 }
 
+/** Set the page box of the selected pages. Give exactly one of margins, box or autoTrim. */
+export interface PageCropParams {
+  /** @default "all" */
+  scope?: 'all' | 'odd' | 'even' | 'pages';
+  /** For scope 'pages'. */
+  pages?: number[];
+  /** @default "cropbox" */
+  mode?: 'cropbox' | 'mediabox';
+  /** Cut from the displayed page edges. */
+  margins?: PageMargins;
+  /** x0, y0, x1, y1 in points. */
+  box?: number[];
+  /**
+   * Cut the blank margins around content.
+   * @default false
+   */
+  autoTrim?: boolean;
+  /** @default 3 */
+  trimPaddingMm?: number;
+  /**
+   * Pixels darker count.
+   * @default 240
+   */
+  trimThreshold?: number;
+  /** @default 50 */
+  trimDpi?: number;
+}
+
 /** Delete pages. Deleting every page is not allowed. */
 export interface PageDeleteParams {
   /** 0-based page indices. */
@@ -1130,6 +1667,26 @@ export interface PageExtractParams {
   pages: number[];
   /** Absolute path of the PDF to write. */
   outputPath: string;
+}
+
+export interface PageFindBlankParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /**
+   * 0 = only pure blank; 1 = tolerant of specks.
+   * @default 0.5
+   */
+  sensitivity?: number;
+  /**
+   * Border ignored (edge marks).
+   * @default 5
+   */
+  borderMm?: number;
+  /**
+   * Pages with annotations stay.
+   * @default true
+   */
+  keepIfAnnotations?: boolean;
 }
 
 /** Insert blank pages before index `at` (`at` = page count appends). */
@@ -1167,10 +1724,54 @@ export interface PageInsertImagesParams {
   margin: number;
 }
 
+export interface PageRemoveBlankParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /**
+   * 0 = only pure blank; 1 = tolerant of specks.
+   * @default 0.5
+   */
+  sensitivity?: number;
+  /**
+   * Border ignored (edge marks).
+   * @default 5
+   */
+  borderMm?: number;
+  /**
+   * Pages with annotations stay.
+   * @default true
+   */
+  keepIfAnnotations?: boolean;
+}
+
 /** Reorder pages: new page i = old page `order[i]` (a full permutation). */
 export interface PageReorderParams {
   /** Full permutation of current 0-based indices. */
   order: number[];
+}
+
+/** Replace the given pages with pages of another file (counts may differ). */
+export interface PageReplaceParams {
+  /** 0-based pages to replace. */
+  pages: number[];
+  /** PDF to take the pages from. */
+  path: string;
+  password?: string;
+  /** 0-based pages of that file; default all. */
+  sourcePages?: number[];
+}
+
+/** Put pages on a standard or custom size; the content is scaled to fit or centred. */
+export interface PageResizeParams {
+  /** @default "all" */
+  scope?: 'all' | 'odd' | 'even' | 'pages';
+  pages?: number[];
+  /** @default "A4" */
+  size?: 'A3' | 'A4' | 'Letter' | 'custom';
+  customWidthMm?: number;
+  customHeightMm?: number;
+  /** @default "scale" */
+  fit?: 'scale' | 'center';
 }
 
 /** Rotate pages clockwise, relative to their current rotation. */
@@ -1179,6 +1780,37 @@ export interface PageRotateParams {
   pages: number[];
   /** Clockwise rotation in degrees. */
   angle: 90 | 180 | 270;
+}
+
+/** Split each selected page into rows x cols pieces, each with its own CropBox. */
+export interface PageSplitParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** @default 1 */
+  rows?: number;
+  /** @default 2 */
+  cols?: number;
+  /**
+   * Overlap between pieces.
+   * @default 0
+   */
+  overlapMm?: number;
+  /**
+   * Reading order of the pieces; rtl for right-to-left books.
+   * @default "ltr"
+   */
+  order?: 'ltr' | 'rtl';
+}
+
+/** Run the checklist on the session document. */
+export interface PreflightCheckParams {
+  /** Size limit of the file (for example 10 MB). */
+  maxBytes?: number;
+  /**
+   * Revocation check of the signatures. none: offline.
+   * @default "none"
+   */
+  checkRevocation?: 'none' | 'soft' | 'hard';
 }
 
 /** Rasterize parameters are the starting point; the search only lowers dpi and quality. */
@@ -1328,6 +1960,36 @@ export interface ScanRasterizeParams {
    * @default 0
    */
   seed?: number;
+}
+
+/** Remove the protection of the document on the next save. */
+export interface SecurityDecryptParams {
+  /** Password of the file, checked against the one it was opened with. */
+  password?: string;
+}
+
+/** Password(s) and permissions. At least one password is required. */
+export interface SecurityEncryptParams {
+  /** Password. Empty or null: no password is needed to open the file. */
+  userPassword?: string;
+  /** Password that changes the permissions. Null: the user password is used. */
+  ownerPassword?: string;
+  permissions?: PermissionFlags;
+}
+
+/** Encrypt a PDF file on disk (no session). */
+export interface SecurityEncryptFileParams {
+  /** Password. Empty or null: no password is needed to open the file. */
+  userPassword?: string;
+  /** Password that changes the permissions. Null: the user password is used. */
+  ownerPassword?: string;
+  permissions?: PermissionFlags;
+  /** PDF file to encrypt. */
+  inputPath: string;
+  /** Password of the input file. */
+  inputPassword?: string;
+  /** Path of the encrypted PDF. May be the input path. */
+  outputPath: string;
 }
 
 /** Add an empty signature field to a page. */
@@ -1864,13 +2526,32 @@ export interface OpParams {
   'bookmarks.fromPages': BookmarksFromPagesParams;
   'bookmarks.get': BookmarksGetParams;
   'bookmarks.set': BookmarksSetParams;
+  'color.convert': ColorConvertParams;
+  'compress.estimate': CompressEstimateParams;
+  'compress.file': CompressFileParams;
+  'compress.fitSize': CompressFitSizeParams;
+  'compress.pdf': CompressPdfParams;
+  'convert.imagesToPdf': ConvertImagesToPdfParams;
+  'convert.pdfToImages': ConvertPdfToImagesParams;
+  'doc.attachments.add': DocAttachmentsAddParams;
+  'doc.attachments.extract': DocAttachmentsExtractParams;
+  'doc.attachments.list': DocAttachmentsListParams;
+  'doc.attachments.remove': DocAttachmentsRemoveParams;
+  'doc.extractImages': DocExtractImagesParams;
+  'doc.extractText': DocExtractTextParams;
+  'doc.optimizeWeb': DocOptimizeWebParams;
+  'doc.repair': DocRepairParams;
+  'doc.setMetadata': DocSetMetadataParams;
   'file.merge': FileMergeParams;
   'file.split': FileSplitParams;
+  'file.splitSmart': FileSplitSmartParams;
   'image.cleanup': ImageCleanupParams;
   'image.fromStrokes': ImageFromStrokesParams;
   'image.removeBackground': ImageRemoveBackgroundParams;
   'image.separateColors': ImageSeparateColorsParams;
   'image.textSignature': ImageTextSignatureParams;
+  'inspect.hiddenData': InspectHiddenDataParams;
+  'inspect.removeHidden': InspectRemoveHiddenParams;
   'overlay.addImage': OverlayAddImageParams;
   'overlay.addText': OverlayAddTextParams;
   'overlay.barcode': OverlayBarcodeParams;
@@ -1882,17 +2563,27 @@ export interface OpParams {
   'overlay.qrCode': OverlayQrCodeParams;
   'overlay.remove': OverlayRemoveParams;
   'overlay.watermark': OverlayWatermarkParams;
+  'page.crop': PageCropParams;
   'page.delete': PageDeleteParams;
   'page.duplicate': PageDuplicateParams;
   'page.extract': PageExtractParams;
+  'page.findBlank': PageFindBlankParams;
   'page.insertBlank': PageInsertBlankParams;
   'page.insertFromFile': PageInsertFromFileParams;
   'page.insertImages': PageInsertImagesParams;
+  'page.removeBlank': PageRemoveBlankParams;
   'page.reorder': PageReorderParams;
+  'page.replace': PageReplaceParams;
+  'page.resize': PageResizeParams;
   'page.rotate': PageRotateParams;
+  'page.split': PageSplitParams;
+  'preflight.check': PreflightCheckParams;
   'scan.fitSize': ScanFitSizeParams;
   'scan.preview': ScanPreviewParams;
   'scan.rasterize': ScanRasterizeParams;
+  'security.decrypt': SecurityDecryptParams;
+  'security.encrypt': SecurityEncryptParams;
+  'security.encryptFile': SecurityEncryptFileParams;
   'sign.addField': SignAddFieldParams;
   'sign.batch': SignBatchParams;
   'sign.certInfo': SignCertInfoParams;
@@ -1928,13 +2619,32 @@ export const OP_IDS = [
   'bookmarks.fromPages',
   'bookmarks.get',
   'bookmarks.set',
+  'color.convert',
+  'compress.estimate',
+  'compress.file',
+  'compress.fitSize',
+  'compress.pdf',
+  'convert.imagesToPdf',
+  'convert.pdfToImages',
+  'doc.attachments.add',
+  'doc.attachments.extract',
+  'doc.attachments.list',
+  'doc.attachments.remove',
+  'doc.extractImages',
+  'doc.extractText',
+  'doc.optimizeWeb',
+  'doc.repair',
+  'doc.setMetadata',
   'file.merge',
   'file.split',
+  'file.splitSmart',
   'image.cleanup',
   'image.fromStrokes',
   'image.removeBackground',
   'image.separateColors',
   'image.textSignature',
+  'inspect.hiddenData',
+  'inspect.removeHidden',
   'overlay.addImage',
   'overlay.addText',
   'overlay.barcode',
@@ -1946,17 +2656,27 @@ export const OP_IDS = [
   'overlay.qrCode',
   'overlay.remove',
   'overlay.watermark',
+  'page.crop',
   'page.delete',
   'page.duplicate',
   'page.extract',
+  'page.findBlank',
   'page.insertBlank',
   'page.insertFromFile',
   'page.insertImages',
+  'page.removeBlank',
   'page.reorder',
+  'page.replace',
+  'page.resize',
   'page.rotate',
+  'page.split',
+  'preflight.check',
   'scan.fitSize',
   'scan.preview',
   'scan.rasterize',
+  'security.decrypt',
+  'security.encrypt',
+  'security.encryptFile',
   'sign.addField',
   'sign.batch',
   'sign.certInfo',

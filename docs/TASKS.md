@@ -152,16 +152,16 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T5.01 | Đặt / gỡ mật khẩu, giới hạn quyền, AES-256 | J1, J2 | 1 | T1.05 | ⬜ |
-| T5.02 | Gỡ dữ liệu ẩn; soi file | J3, J4 | 2 | T1.05 | ⬜ |
-| T5.03 | Kiểm tra trước khi gửi (checklist + sửa từng mục) | J5 | 1,5 | T5.02, T3.08 | ⬜ |
-| T5.04 | Nén PDF theo preset (giảm ảnh, bỏ đối tượng thừa, rút gọn font) | M1 | 2,5 | T1.05 | ⬜ |
-| T5.05 | PDF → ảnh; ảnh → PDF; ảnh chụp màn hình / clipboard → PDF | M2, M3, M4 | 2 | T2.01 | ⬜ |
+| T5.01 | Đặt / gỡ mật khẩu, giới hạn quyền, AES-256 | J1, J2 | 1 | T1.05 | 🔄 |
+| T5.02 | Gỡ dữ liệu ẩn; soi file | J3, J4 | 2 | T1.05 | 🔄 |
+| T5.03 | Kiểm tra trước khi gửi (checklist + sửa từng mục) | J5 | 1,5 | T5.02, T3.08 | 🔄 |
+| T5.04 | Nén PDF theo preset (giảm ảnh, bỏ đối tượng thừa, rút gọn font) | M1 | 2,5 | T1.05 | 🔄 |
+| T5.05 | PDF → ảnh; ảnh → PDF; ảnh chụp màn hình / clipboard → PDF | M2, M3, M4 | 2 | T2.01 | 🔄 |
 | T5.06 | Web / Markdown / HTML → PDF (dùng bộ in của Chromium trong Electron) | M5 | 1,5 | T1.02 | ⬜ |
-| T5.07 | Chuyển đổi màu: thang xám, đen trắng, tiết kiệm mực, thay màu | M6 | 2 | T1.05 | ⬜ |
-| T5.08 | Trích ảnh/chữ; file đính kèm; sửa metadata; tối ưu cho web; sửa file hỏng | M7–M11 | 2,5 | T1.05 | ⬜ |
-| T5.09 | Thay trang; cắt lề/đổi khổ (CropBox); xóa trang trắng; chia đôi trang; tách thông minh | C6–C10 | 3,5 | T1.24 | ⬜ |
-| T5.10 | Khôi phục phiên khi crash | A9 | 1,5 | T1.05 | ⬜ |
+| T5.07 | Chuyển đổi màu: thang xám, đen trắng, tiết kiệm mực, thay màu | M6 | 2 | T1.05 | 🔄 |
+| T5.08 | Trích ảnh/chữ; file đính kèm; sửa metadata; tối ưu cho web; sửa file hỏng | M7–M11 | 2,5 | T1.05 | 🔄 |
+| T5.09 | Thay trang; cắt lề/đổi khổ (CropBox); xóa trang trắng; chia đôi trang; tách thông minh | C6–C10 | 3,5 | T1.24 | 🔄 |
+| T5.10 | Khôi phục phiên khi crash | A9 | 1,5 | T1.05 | 🔄 |
 | T5.11 | Xem song song; chế độ đọc ban đêm | B8, B9 | 1,5 | T1.16 | ⬜ |
 
 ---

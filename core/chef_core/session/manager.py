@@ -45,8 +45,9 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-# Keys whose values must never reach journal.jsonl (certificate passwords, token PINs).
-SECRET_PARAM_KEYS = frozenset({"password", "pin"})
+# Keys whose values must never reach journal.jsonl (certificate passwords, token PINs,
+# document protection passwords).
+SECRET_PARAM_KEYS = frozenset({"password", "pin", "inputPassword", "userPassword", "ownerPassword"})
 
 
 def journal_params(value: Any) -> Any:
@@ -85,6 +86,17 @@ def _encryption_state(pdf: pikepdf.Pdf, source: Path, password: str | None) -> E
     return EncryptionState(allow=pdf.allow, user_password=user, owner_password=owner)
 
 
+@dataclass(frozen=True)
+class PendingProtection:
+    """A protection change waiting for the next save: ``state`` None removes protection.
+
+    ``profile`` is the non-secret description written to meta.json (no passwords).
+    """
+
+    state: EncryptionState | None
+    profile: dict[str, Any]
+
+
 class Session:
     def __init__(
         self,
@@ -105,6 +117,7 @@ class Session:
         self.index = 0
         self.next_rev = 1
         self.saved_rev: int | None = 0
+        self.pending: PendingProtection | None = None
         self.closed = False
         self._lock = threading.RLock()
         self._executor = ThreadPoolExecutor(
@@ -131,27 +144,41 @@ class Session:
     def encrypted(self) -> bool:
         return self.encryption is not None
 
+    def effective_protection(self) -> EncryptionState | None:
+        """The protection the next save will apply (a pending change wins)."""
+        with self._lock:
+            pending = self.pending
+            return pending.state if pending is not None else self.encryption
+
     @property
     def doc_name(self) -> str:
         return self.source_path.stem if self.source_path is not None else DEFAULT_DOC_NAME
 
+    @property
+    def dirty(self) -> bool:
+        return self.current_rev != self.saved_rev or self.pending is not None
+
     def state(self) -> dict[str, Any]:
         with self._lock:
-            return {
+            result: dict[str, Any] = {
                 "sessionId": self.id,
                 "sourcePath": str(self.source_path) if self.source_path is not None else None,
                 "revisionPath": str(self.current_path),
                 "revision": self.current_rev,
                 "canUndo": self.index > 0,
                 "canRedo": self.index < len(self.revisions) - 1,
-                "dirty": self.current_rev != self.saved_rev,
+                "dirty": self.dirty,
                 "signed": self.signed,
             }
+            if self.pending is not None:
+                # Optional field: a protection change (set or remove) waits for the save.
+                result["pendingEncryption"] = True
+            return result
 
     def info(self) -> dict[str, Any]:
         with self._lock:
             path = self.current_path
-            dirty = self.current_rev != self.saved_rev
+            dirty = self.dirty
             source = self.source_path
         size_path = source if (not dirty and source is not None and source.is_file()) else path
         with opened_pdf(path) as pdf:
@@ -167,6 +194,10 @@ class Session:
                 "revisions": list(self.revisions),
                 "savedRevision": self.saved_rev,
                 "encrypted": self.encrypted,
+                "closed": self.closed,
+                # Non-secret description of a protection change not yet saved. Passwords are
+                # never stored, so a crash restore loses the change (with a warning).
+                "pendingProtection": self.pending.profile if self.pending is not None else None,
             }
         write_json_atomic(self.dir / "meta.json", json.dumps(meta, ensure_ascii=False, indent=2))
 
@@ -203,6 +234,7 @@ class Session:
         ctx.input_path = self.current_path
         ctx.result_path = self.dir / f".pending-{ctx.job_id}.pdf"
         ctx.doc_name = self.doc_name
+        ctx.protection = self.effective_protection()
         try:
             output = spec.run(ctx, params)
             ctx.check_cancelled()
@@ -213,6 +245,8 @@ class Session:
                 changed = output.changed_pages
             else:
                 changed = []
+            if output.session_effect is not None:
+                output.session_effect(self)
         finally:
             with contextlib.suppress(OSError):
                 ctx.result_path.unlink(missing_ok=True)
@@ -237,10 +271,31 @@ class Session:
         for old in dropped:
             with contextlib.suppress(OSError):
                 self.revision_path(old).unlink(missing_ok=True)
+        self._append_journal(rev, op_id, params)
+        self.write_meta()
+
+    def _append_journal(self, rev: int, op_id: str, params: Any) -> None:
         params_json = params.model_dump(by_alias=True, mode="json") if params is not None else {}
         entry = {"rev": rev, "opId": op_id, "params": journal_params(params_json), "at": _now()}
         with open(self.dir / "journal.jsonl", "a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def set_protection(
+        self,
+        state: EncryptionState | None,
+        profile: dict[str, Any],
+        op_id: str,
+        params: Any,
+    ) -> None:
+        """Record a protection change to apply on the next save (no new revision).
+
+        ``state`` None removes the protection. Passwords stay in memory; the journal and
+        meta.json only get ``profile`` and the journal-safe params.
+        """
+        with self._lock:
+            self.pending = PendingProtection(state=state, profile=profile)
+            rev = self.current_rev
+        self._append_journal(rev, op_id, params)
         self.write_meta()
 
     def mark_signed(self) -> None:
@@ -292,7 +347,8 @@ class Session:
             )
         warnings: list[str] = []
         src = self.current_path
-        enc = self.encryption
+        pending = self.pending
+        enc = self.effective_protection()
         if enc is not None and (enc.user_password or enc.owner_password is not None):
             owner = enc.owner_password
             if owner is None:
@@ -307,7 +363,7 @@ class Session:
             with opened_pdf(src) as pdf:
                 atomic_save(pdf, dest, encryption=encryption)
         else:
-            if enc is not None:
+            if enc is not None and pending is None:
                 warnings.append(
                     "The document had only an unknown owner password (restrictions); "
                     "it was saved without encryption."
@@ -316,14 +372,23 @@ class Session:
         with self._lock:
             self.source_path = dest
             self.saved_rev = self.current_rev
+            if pending is not None:
+                self.encryption = enc  # the new protection applies to later saves too
+                self.pending = None
         self.write_meta()
         log.info("session %s saved (rev %d)", self.id, self.current_rev)
         return {**self.state(), "warnings": warnings}
 
     def close(self) -> None:
-        """Delete the session directory (runs on the executor after queued work)."""
+        """Delete the session directory (runs on the executor after queued work).
+
+        meta.json is marked ``closed`` first, so a directory that survives a failed delete is
+        never offered for crash recovery.
+        """
         with self._lock:
             self.closed = True
+        with contextlib.suppress(OSError):
+            self.write_meta()
         shutil.rmtree(self.dir, ignore_errors=True)
 
     def shutdown_executor(self, wait: bool, cancel_pending: bool = False) -> None:

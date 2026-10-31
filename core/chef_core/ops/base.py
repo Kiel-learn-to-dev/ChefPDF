@@ -13,13 +13,16 @@ import time
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import pikepdf
 
 from chef_core.errors import CancelledError
 from chef_core.models import WireModel
 from chef_core.pdf.io import atomic_save, open_pdf
+
+if TYPE_CHECKING:
+    from chef_core.session.manager import EncryptionState
 
 ChangedPages = list[int] | Literal["all"]
 ProgressSink = Callable[[int, int, str | None], None]
@@ -30,6 +33,9 @@ class OpOutput:
     changed_pages: ChangedPages = "all"
     outputs: list[str] = field(default_factory=list)
     data: Any = None
+    # Called with the Session after a successful run that committed no revision (for
+    # operations that change session state only, such as the protection profile).
+    session_effect: Callable[[Any], None] | None = None
 
 
 RunFn = Callable[["OpContext", Any], OpOutput]
@@ -132,6 +138,8 @@ class OpContext:
         self.doc_name = doc_name
         self.warnings: list[str] = []
         self.modified = False
+        # Protection of the session document (EncryptionState or None), set by the session.
+        self.protection: EncryptionState | None = None
         self._cancel = cancel_event or threading.Event()
         self._sink = progress_sink
         self._last_progress = 0.0

@@ -29,6 +29,14 @@ BUILTIN_MODULES = (
     "chef_core.ops.sign_stamp",
     "chef_core.ops.sign_preview",
     "chef_core.ops.sign_report",
+    "chef_core.ops.security",
+    "chef_core.ops.inspect",
+    "chef_core.ops.preflight",
+    "chef_core.ops.docutils",
+    "chef_core.ops.compress",
+    "chef_core.ops.convert",
+    "chef_core.ops.color",
+    "chef_core.ops.pageedit",
 )
 
 

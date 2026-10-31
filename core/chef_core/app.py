@@ -14,6 +14,7 @@ from chef_core.errors import invalid_params
 from chef_core.ops.scan_presets import describe_presets
 from chef_core.rpc.jobs import JobRunner
 from chef_core.rpc.server import Deferred, JsonDict, RpcServer
+from chef_core.session import recovery
 from chef_core.session.manager import SessionManager
 from chef_core.signing.trust import set_user_trust_dir
 
@@ -62,6 +63,10 @@ class CoreApp:
         r("session.undo", self.session_undo)
         r("session.redo", self.session_redo)
         r("session.save", self.session_save)
+        r("recovery.list", self.recovery_list)
+        r("recovery.restore", self.recovery_restore)
+        r("recovery.discard", self.recovery_discard)
+        r("recovery.cleanup", self.recovery_cleanup)
 
     # -- system -------------------------------------------------------------------------
 
@@ -122,6 +127,24 @@ class CoreApp:
         session = self.sessions.get(params.get("sessionId"))
         path = _str_param(params, "path", required=False)
         return session.submit(lambda: session.save(path))
+
+    # -- crash recovery -----------------------------------------------------------------
+
+    def recovery_list(self, _params: JsonDict) -> list[dict[str, Any]]:
+        return recovery.list_recoverable(self.sessions)
+
+    def recovery_restore(self, params: JsonDict) -> Future[dict[str, Any]]:
+        session_id = _str_param(params, "sessionId")
+        assert session_id is not None
+        return self._requests.submit(recovery.restore, self.sessions, session_id)
+
+    def recovery_discard(self, params: JsonDict) -> None:
+        session_id = _str_param(params, "sessionId")
+        assert session_id is not None
+        recovery.discard(self.sessions, session_id)
+
+    def recovery_cleanup(self, _params: JsonDict) -> dict[str, int]:
+        return {"removed": recovery.cleanup(self.sessions)}
 
     # -- lifecycle ----------------------------------------------------------------------
 
