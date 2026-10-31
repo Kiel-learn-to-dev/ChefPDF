@@ -25,6 +25,9 @@ import {
   MAX_OVERLAY_PRESETS,
   sanitizeOverlayPresets,
   validateOverlayPresets,
+  cleanUserName,
+  validateUserName,
+  MAX_USER_NAME,
 } from '../src/main/settings';
 
 function tmpDir(): string {
@@ -47,6 +50,7 @@ describe('SettingsStore', () => {
       signTemplates: [],
       tsaUrls: [],
       overlayPresets: [],
+      userName: '',
     });
   });
 
@@ -466,5 +470,31 @@ describe('overlay (watermark) presets (F1, overlayPresets)', () => {
     expect((await new SettingsStore(dir).load()).overlayPresets).toEqual([
       { name: 'Đã duyệt', kind: 'watermark', params: look },
     ]);
+  });
+});
+
+describe('user name (F2, {user} stamp variable)', () => {
+  it('defaults to an empty name and reads older files without it', () => {
+    expect(defaultSettings().userName).toBe('');
+    expect(sanitizeSettings({ language: 'en' }).userName).toBe('');
+  });
+
+  it('keeps a trimmed name from disk and drops invalid ones', () => {
+    expect(sanitizeSettings({ userName: '  Nguyễn Văn A ' }).userName).toBe('Nguyễn Văn A');
+    expect(sanitizeSettings({ userName: 'a\u0007b' }).userName).toBe('');
+    expect(sanitizeSettings({ userName: 42 }).userName).toBe('');
+    expect(sanitizeSettings({ userName: 'x'.repeat(MAX_USER_NAME + 1) }).userName).toBe('');
+  });
+
+  it('cleanUserName returns null for invalid values', () => {
+    expect(cleanUserName('  ok  ')).toBe('ok');
+    expect(cleanUserName('line\nbreak')).toBeNull();
+    expect(cleanUserName(null)).toBeNull();
+  });
+
+  it('validates the patch strictly', () => {
+    expect(validatePatch({ userName: 'Minh' })).toEqual({ userName: 'Minh' });
+    expect(() => validatePatch({ userName: 'bad\u0000' })).toThrow(SettingsValidationError);
+    expect(() => validateUserName('y'.repeat(MAX_USER_NAME + 1))).toThrow(SettingsValidationError);
   });
 });

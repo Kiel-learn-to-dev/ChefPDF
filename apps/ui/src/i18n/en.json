@@ -490,7 +490,9 @@
       "invalid": "Invalid address: {{list}}",
       "tooMany": "At most {{max}} addresses.",
       "saved": "TSA list saved."
-    }
+    },
+    "userName": "User name",
+    "userNameHint": "Fills {user} in stamps, for example: Approved by {user}."
   },
   "jobs": {
     "title": "Jobs",
@@ -1744,5 +1746,72 @@
         "skipped": "Skipped"
       }
     }
+  },
+  "stamp": {
+    "cmd": "Stamp…",
+    "title": "Stamp",
+    "description": "Stamp text or a picture onto the selected pages. You can remove it in the overlay manager.",
+    "run": "Stamp",
+    "presetsJob": "Load stamp presets",
+    "textJob": "Text stamp: {{name}}",
+    "imageJob": "Image stamp: {{name}}",
+    "previewLabel": "Preview",
+    "preset": {
+      "custom": "Custom"
+    },
+    "kind": {
+      "label": "Stamp type",
+      "text": "Text",
+      "image": "Image"
+    },
+    "text": {
+      "label": "Text",
+      "hint": "New line splits the text. Insert {date}, {time} or {user} to fill them when stamping."
+    },
+    "chips": {
+      "label": "Insert variable",
+      "date": "Current date (dd/MM/yyyy)",
+      "time": "Current time (HH:mm)",
+      "user": "User name (Settings)"
+    },
+    "color": "Colour",
+    "fontSize": "Font size",
+    "border": "Border (pt)",
+    "rotation": "Rotation (degrees)",
+    "opacity": "Opacity (0–1)",
+    "bold": "Bold",
+    "multiply": "Multiply blend",
+    "multiplyHint": "The ink darkens what is under it instead of covering it.",
+    "image": {
+      "library": "Signature / stamp library",
+      "choose": "Choose an item…",
+      "file": "Choose a file…",
+      "none": "No picture chosen",
+      "width": "Width ({{unit}})"
+    },
+    "err": {
+      "text": "Enter the text (at most 200 characters).",
+      "color": "Colour must look like #RRGGBB.",
+      "fontSize": "Font size from 4 to 120.",
+      "borderWidth": "Border from 0 to 20.",
+      "rotation": "Rotation from -360 to 360.",
+      "opacity": "Opacity from 0 to 1.",
+      "position": "Invalid position.",
+      "pages": "Invalid page range.",
+      "path": "Choose a stamp picture.",
+      "width": "Width from 1 to 2000."
+    }
+  },
+  "recovery": {
+    "title": "Restore documents",
+    "description": "The app closed unexpectedly while these documents were being edited. Do you want to restore the edits?",
+    "untitled": "Untitled document",
+    "meta": "Last change {{time}} · {{pages}} pages",
+    "unsaved": "Unsaved",
+    "restored": "Document restored.",
+    "restore": "Restore",
+    "discard": "Discard",
+    "discardAll": "Discard all",
+    "later": "Later"
   }
 }

@@ -687,6 +687,13 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
         keywords: ['watermark', 'ban sao', 'mat', 'draft', 'da duyet', 'dong dau'],
       },
       {
+        id: 'edit.stamp',
+        title: t('stamp.cmd'),
+        dialog: 'stamp' as const,
+        icon: <Stamp size={I} />,
+        keywords: ['stamp', 'con dau', 'da duyet', 'ban sao', 'dong dau', 'anh dau'],
+      },
+      {
         id: 'edit.headerFooter',
         title: t('overlay.cmd.headerFooter'),
         dialog: 'overlayHeaderFooter' as const,
@@ -779,7 +786,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: true,
       run: () => ui.openDialog('batchSign'),
     },
-    soon('stamp', t('soon.stamp'), <Stamp size={I} />, ['stamp', 'con dau']),
     soon('compress', t('soon.compress'), <Shrink size={I} />, ['compress', 'giam dung luong']),
     soon('editText', t('soon.editText'), <FileText size={I} />, ['edit', 'sua chu']),
     soon('export', t('soon.export'), <FileOutput size={I} />, ['export', 'word', 'docx']),

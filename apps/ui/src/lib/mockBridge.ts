@@ -44,6 +44,7 @@ const defaultSettings: Settings = {
   signTemplates: [],
   tsaUrls: [],
   overlayPresets: [],
+  userName: '',
 };
 
 interface MockSession {
@@ -112,6 +113,9 @@ const OP_IDS: string[] = [
   'overlay.addImage',
   'overlay.watermark',
   'overlay.headerFooter',
+  'stamp.text',
+  'stamp.image',
+  'stamp.presets',
   'overlay.pageNumbers',
   'overlay.bates',
   'overlay.qrCode',
@@ -122,6 +126,40 @@ const OP_IDS: string[] = [
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
+/** Built-in stamp presets (core resources/stamps.json, first entries). */
+const MOCK_STAMP_PRESETS = [
+  {
+    id: 'approved-vi',
+    lang: 'vi',
+    title: 'Đã duyệt',
+    text: 'ĐÃ DUYỆT',
+    color: '#C00000',
+    borderWidth: 2,
+    bold: true,
+    fontSize: 26,
+  },
+  {
+    id: 'checked-vi',
+    lang: 'vi',
+    title: 'Đã kiểm tra',
+    text: 'ĐÃ KIỂM TRA',
+    color: '#C00000',
+    borderWidth: 2,
+    bold: true,
+    fontSize: 24,
+  },
+  {
+    id: 'copy-vi',
+    lang: 'vi',
+    title: 'Bản sao',
+    text: 'BẢN SAO',
+    color: '#1F4E9A',
+    borderWidth: 2,
+    bold: true,
+    fontSize: 26,
+  },
+];
+
 const MOCK_SCAN_PRESETS = [
   {
     name: 'email-light',
@@ -865,6 +903,8 @@ export function createMockBridge(): ChefBridge {
       case 'overlay.addImage':
       case 'overlay.watermark':
       case 'overlay.headerFooter':
+      case 'stamp.text':
+      case 'stamp.image':
       case 'overlay.pageNumbers':
       case 'overlay.qrCode':
       case 'overlay.barcode':
@@ -942,6 +982,15 @@ export function createMockBridge(): ChefBridge {
   }
 
   async function runStandalone(opId: OpId, params: unknown): Promise<OpResult> {
+    if (opId === 'stamp.presets') {
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [],
+        warnings: [],
+        data: { presets: MOCK_STAMP_PRESETS },
+      };
+    }
     if (opId.startsWith('sign.')) return runSignOp(opId, params);
     if (opId.startsWith('image.')) return runImageOp(opId, params);
     if (opId === 'overlay.bates') return runBatesOp(params as OpParams['overlay.bates']);
@@ -1186,6 +1235,14 @@ export function createMockBridge(): ChefBridge {
         }));
       case 'scan.presets':
         return MOCK_SCAN_PRESETS;
+      case 'recovery.list':
+        return [];
+      case 'recovery.cleanup':
+        return { removed: 0 };
+      case 'recovery.discard':
+        return null;
+      case 'recovery.restore':
+        throw new MockRpcError('SESSION_NOT_FOUND', 'No recoverable session in the mock.', -32001);
       case 'ops.run': {
         const p = params as RpcParams<'ops.run'>;
         if (!OP_IDS.includes(p.opId as OpId))

@@ -473,7 +473,9 @@
       "invalid": "Địa chỉ không hợp lệ: {{list}}",
       "tooMany": "Tối đa {{max}} địa chỉ.",
       "saved": "Đã lưu danh sách TSA."
-    }
+    },
+    "userName": "Tên người dùng",
+    "userNameHint": "Điền vào {user} trong con dấu, ví dụ: Người duyệt: {user}."
   },
   "jobs": {
     "title": "Công việc",
@@ -1725,5 +1727,72 @@
         "skipped": "Bỏ qua"
       }
     }
+  },
+  "stamp": {
+    "cmd": "Con dấu…",
+    "title": "Con dấu",
+    "description": "Đóng dấu chữ hoặc hình lên các trang đã chọn. Có thể gỡ trong Quản lý đối tượng.",
+    "run": "Đóng dấu",
+    "presetsJob": "Tải mẫu con dấu",
+    "textJob": "Đóng dấu chữ: {{name}}",
+    "imageJob": "Đóng dấu hình: {{name}}",
+    "previewLabel": "Xem trước",
+    "preset": {
+      "custom": "Tùy chỉnh"
+    },
+    "kind": {
+      "label": "Loại con dấu",
+      "text": "Chữ",
+      "image": "Hình"
+    },
+    "text": {
+      "label": "Nội dung",
+      "hint": "Xuống dòng để tách dòng. Chèn {date}, {time} hoặc {user} để điền khi đóng dấu."
+    },
+    "chips": {
+      "label": "Chèn biến",
+      "date": "Ngày hiện tại (dd/MM/yyyy)",
+      "time": "Giờ hiện tại (HH:mm)",
+      "user": "Tên người dùng (Cài đặt)"
+    },
+    "color": "Màu",
+    "fontSize": "Cỡ chữ",
+    "border": "Viền (pt)",
+    "rotation": "Xoay (độ)",
+    "opacity": "Độ đậm (0–1)",
+    "bold": "In đậm",
+    "multiply": "Hòa màu nhân",
+    "multiplyHint": "Mực đè lên nội dung bên dưới, không che chữ.",
+    "image": {
+      "library": "Thư viện chữ ký / con dấu",
+      "choose": "Chọn mục…",
+      "file": "Chọn tệp…",
+      "none": "Chưa chọn ảnh",
+      "width": "Rộng ({{unit}})"
+    },
+    "err": {
+      "text": "Nhập nội dung (tối đa 200 ký tự).",
+      "color": "Màu phải có dạng #RRGGBB.",
+      "fontSize": "Cỡ chữ từ 4 đến 120.",
+      "borderWidth": "Viền từ 0 đến 20.",
+      "rotation": "Góc xoay từ -360 đến 360.",
+      "opacity": "Độ đậm từ 0 đến 1.",
+      "position": "Vị trí không hợp lệ.",
+      "pages": "Khoảng trang không hợp lệ.",
+      "path": "Chọn một ảnh con dấu.",
+      "width": "Chiều rộng từ 1 đến 2000."
+    }
+  },
+  "recovery": {
+    "title": "Khôi phục tài liệu",
+    "description": "Ứng dụng đã đóng đột ngột khi các tài liệu này đang được sửa. Bạn muốn khôi phục phần đã sửa không?",
+    "untitled": "Tài liệu chưa đặt tên",
+    "meta": "Sửa lần cuối {{time}} · {{pages}} trang",
+    "unsaved": "Chưa lưu",
+    "restored": "Đã khôi phục tài liệu.",
+    "restore": "Khôi phục",
+    "discard": "Bỏ",
+    "discardAll": "Bỏ tất cả",
+    "later": "Để sau"
   }
 }

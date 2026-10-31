@@ -48,6 +48,8 @@ export type DialogId =
   | 'overlayLetterhead'
   | 'overlayBates'
   | 'overlayManager'
+  | 'stamp'
+  | 'recovery'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

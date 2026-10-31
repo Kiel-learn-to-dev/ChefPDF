@@ -31,6 +31,22 @@ export interface SessionState {
   canRedo: boolean;
   dirty: boolean;
   signed: boolean;
+  /** True after a password was set for saving: the next save encrypts (J1). Missing: false. */
+  pendingEncryption?: boolean;
+}
+
+/** One crash-recovery session (A9): a document edited before the app closed. */
+export interface RecoverableSession {
+  sessionId: SessionId;
+  sourcePath: string | null;
+  /** ISO 8601 time the session was opened. */
+  openedAt: string;
+  /** ISO 8601 time of the last change in the recovery file. */
+  lastModified: string;
+  revision: number;
+  dirty: boolean;
+  pages: number;
+  hasUnsavedChanges: boolean;
 }
 
 export type ChangedPages = 'all' | PageIndex[];
@@ -89,6 +105,15 @@ export interface RpcMethods {
     Record<string, never>,
     { name: string; labelVi: string; labelEn: string; params: Record<string, unknown> }[],
   ];
+  /** Sessions left by a crash (A9), newest first. */
+  'recovery.list': [Record<string, never>, RecoverableSession[]];
+  'recovery.restore': [
+    { sessionId: SessionId },
+    { state: SessionState; info: DocumentInfo; warnings: string[] },
+  ];
+  'recovery.discard': [{ sessionId: SessionId }, null];
+  /** Removes recovery files older than the retention period. */
+  'recovery.cleanup': [Record<string, never>, { removed: number }];
 }
 
 export type RpcMethod = keyof RpcMethods;

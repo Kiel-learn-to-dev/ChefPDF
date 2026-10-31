@@ -89,6 +89,8 @@ export interface Settings {
   tsaUrls: string[];
   /** User watermark presets (F1). Missing in older files: []. At most 50. */
   overlayPresets: OverlayUserPreset[];
+  /** Name put in the {user} stamp variable (F2). Missing in older files: ''. At most 80 characters. */
+  userName: string;
 }
 
 /**

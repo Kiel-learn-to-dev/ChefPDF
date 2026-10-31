@@ -238,7 +238,7 @@ const EDIT_ITEMS: Item[] = [
   { kind: 'cmd', id: 'edit.qrBarcode', label: true },
   { kind: 'cmd', id: 'edit.overlays', label: true },
 ];
-const EDIT_OVERFLOW = ['tools.bates'];
+const EDIT_OVERFLOW = ['tools.bates', 'edit.stamp'];
 
 const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.certs', label: true },

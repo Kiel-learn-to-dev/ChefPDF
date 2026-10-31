@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { chef } from '../lib/bridge';
+import { call } from '../lib/rpc';
+import { readRecoverable, sortRecoverable } from '../features/recovery/recoveryModel';
 import { isJobEvent, useJobStore } from '../features/jobs/jobStore';
 import { setLanguage } from '../i18n';
 import { closeDoc, openFiles } from './actions';
@@ -10,6 +12,17 @@ import { useUi } from './state/ui';
 import { useThemeSync } from './theme';
 
 let allowClose = false;
+
+/** Crash recovery (A9): offers the sessions the core kept, then drops old recovery files once. */
+async function checkRecovery() {
+  try {
+    const list = sortRecoverable(readRecoverable(await call('recovery.list', {})));
+    if (list.length > 0) useUi.getState().openDialog('recovery', list);
+    await call('recovery.cleanup', {}).catch(() => undefined);
+  } catch {
+    // The core is not up yet: no prompt this time.
+  }
+}
 
 /** Load settings, wire bridge events, open files passed at launch, guard unsaved changes. */
 export function useBootstrap() {
@@ -50,6 +63,7 @@ export function useBootstrap() {
         .app.initialFiles()
         .catch(() => []);
       if (initial.length) await openFiles(initial);
+      await checkRecovery();
     })();
     return off;
   }, []);

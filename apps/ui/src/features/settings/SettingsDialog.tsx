@@ -14,6 +14,27 @@ import { LANGUAGES } from '../../i18n';
 import './SettingsDialog.css';
 
 /** A4: language, theme, default save folder. Persisted via chef.settings.set. */
+/** Name for the {user} stamp variable (F2). Saved on blur when it changed; at most 80 characters. */
+function UserNameField({ value, onSave }: { value: string; onSave(v: string): void }) {
+  const { t } = useTranslation();
+  const [name, setName] = useState(value);
+  const commit = () => {
+    const v = name.trim();
+    if (v !== value) onSave(v);
+  };
+  return (
+    <Field label={t('settings.userName')} htmlFor="set-user" hint={t('settings.userNameHint')}>
+      <TextInput
+        id="set-user"
+        value={name}
+        maxLength={80}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={commit}
+      />
+    </Field>
+  );
+}
+
 export function SettingsDialog() {
   const { t } = useTranslation();
   const close = useUi((s) => s.closeDialog);
@@ -130,6 +151,7 @@ export function SettingsDialog() {
             </Button>
           </div>
         </Field>
+        <UserNameField value={settings.userName} onSave={(v) => void save({ userName: v })} />
         {settings.recentFiles.length > 0 && (
           <Field label={t('settings.recent')}>
             <div>

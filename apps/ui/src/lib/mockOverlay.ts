@@ -165,6 +165,76 @@ export async function applyMockOverlay(
       }
       break;
     }
+    case 'stamp.text': {
+      const p = params as OpParams['stamp.text'];
+      kind = 'stamp';
+      const now = new Date();
+      const resolved = p.text
+        .replace(
+          /\{datetime\}/g,
+          `${now.toLocaleDateString('en-GB')} ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+        )
+        .replace(/\{date\}/g, now.toLocaleDateString('en-GB'))
+        .replace(
+          /\{time\}/g,
+          now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        )
+        .replace(/\{user\}/g, p.user ?? '');
+      const lines = asciiSafe(resolved).split('\n');
+      label = lines[0]?.slice(0, 40) ?? 'stamp';
+      const size = p.fontSize ?? 24;
+      const widest = Math.max(...lines.map((l) => font.widthOfTextAtSize(l, size)));
+      const boxH = lines.length * size * 1.2 + 8;
+      for (const i of mockPages(p, count)) {
+        await draw(i, (page, _w, h) => {
+          const x = toPoints(p.x, p.unit);
+          const top = toPoints(p.y, p.unit);
+          if ((p.borderWidth ?? 0) > 0) {
+            page.drawRectangle({
+              x,
+              y: h - top - boxH,
+              width: widest + 12,
+              height: boxH,
+              borderColor: hexRgb(p.color),
+              borderWidth: p.borderWidth ?? 0,
+              opacity: p.opacity ?? 1,
+            });
+          }
+          lines.forEach((line, n) =>
+            page.drawText(line, {
+              x: x + 6,
+              y: h - top - size - 4 - n * size * 1.2,
+              size,
+              font: p.bold ? fontBold : font,
+              color: hexRgb(p.color),
+              opacity: p.opacity ?? 1,
+            }),
+          );
+        });
+      }
+      break;
+    }
+    case 'stamp.image': {
+      const p = params as OpParams['stamp.image'];
+      kind = 'stamp';
+      label = p.path.split(/[\\/]/).pop() ?? 'stamp';
+      const img = await embed(p.path);
+      const wPt = toPoints(p.width ?? 40, p.unit);
+      const hPt = (wPt * img.height) / img.width;
+      for (const i of mockPages(p, count)) {
+        await draw(i, (page, _w, ph) =>
+          page.drawImage(img, {
+            x: toPoints(p.x, p.unit),
+            y: ph - toPoints(p.y, p.unit) - hPt,
+            width: wPt,
+            height: hPt,
+            opacity: p.opacity ?? 1,
+            rotate: degrees(p.rotation ?? 0),
+          }),
+        );
+      }
+      break;
+    }
     case 'overlay.headerFooter': {
       const p = params as OpParams['overlay.headerFooter'];
       kind = p.header && Object.values(p.header).some(Boolean) ? 'header' : 'footer';

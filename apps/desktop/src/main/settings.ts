@@ -27,6 +27,7 @@ export const MAX_SIGN_TEMPLATE_NAME = 80;
 export const MAX_TSA_URLS = 5;
 export const MAX_OVERLAY_PRESETS = 50;
 export const MAX_OVERLAY_PRESET_NAME = 60;
+export const MAX_USER_NAME = 80;
 const MAX_OVERLAY_PRESET_PARAMS_BYTES = 2048;
 const OVERLAY_PRESET_KINDS = ['watermark'] as const;
 const MAX_TSA_URL_LENGTH = 2048;
@@ -49,6 +50,7 @@ export function defaultSettings(): Settings {
     signTemplates: [],
     tsaUrls: [],
     overlayPresets: [],
+    userName: '',
   };
 }
 
@@ -379,6 +381,31 @@ function dedupeRecent(list: RecentFile[], platform: NodeJS.Platform): RecentFile
 }
 
 /** Builds a valid Settings object from untrusted JSON, falling back to defaults per field. */
+function hasControlChar(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return true;
+  }
+  return false;
+}
+
+/** The name used by the {user} stamp variable: trimmed text, no control characters. */
+export function cleanUserName(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  if (s.length > MAX_USER_NAME || hasControlChar(s)) return null;
+  return s;
+}
+
+export function validateUserName(value: unknown): string {
+  const s = cleanUserName(value);
+  if (s === null)
+    throw new SettingsValidationError(
+      `userName must be text of at most ${MAX_USER_NAME} characters`,
+    );
+  return s;
+}
+
 export function sanitizeSettings(
   raw: unknown,
   platform: NodeJS.Platform = process.platform,
@@ -405,6 +432,7 @@ export function sanitizeSettings(
   s.signTemplates = sanitizeSignTemplates(raw.signTemplates);
   s.tsaUrls = sanitizeTsaUrls(raw.tsaUrls);
   s.overlayPresets = sanitizeOverlayPresets(raw.overlayPresets);
+  s.userName = cleanUserName(raw.userName) ?? '';
   if (typeof raw.lastDriverPath === 'string' && isAbsoluteDriverPath(raw.lastDriverPath)) {
     s.lastDriverPath = raw.lastDriverPath;
   }
@@ -462,6 +490,9 @@ export function validatePatch(
         break;
       case 'overlayPresets':
         out.overlayPresets = validateOverlayPresets(value);
+        break;
+      case 'userName':
+        out.userName = validateUserName(value);
         break;
       case 'lastDriverPath':
         if (value !== null && !(typeof value === 'string' && isAbsoluteDriverPath(value))) {

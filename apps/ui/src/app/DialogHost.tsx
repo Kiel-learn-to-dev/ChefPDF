@@ -25,6 +25,8 @@ import { QrBarcodeDialog } from '../features/overlay/QrBarcodeDialog';
 import { LetterheadDialog } from '../features/overlay/LetterheadDialog';
 import { BatesDialog } from '../features/overlay/BatesDialog';
 import { OverlayManagerDialog } from '../features/overlay/OverlayManagerDialog';
+import { StampDialog } from '../features/stamps/StampDialog';
+import { RecoveryDialog } from '../features/recovery/RecoveryDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -118,6 +120,10 @@ export function DialogHost() {
       return <BatesDialog />;
     case 'overlayManager':
       return <OverlayManagerDialog />;
+    case 'stamp':
+      return <StampDialog />;
+    case 'recovery':
+      return <RecoveryDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

@@ -40,6 +40,9 @@ import type {
   OverlayQrCodeParams,
   OverlayRemoveParams,
   OverlayWatermarkParams,
+  StampImageParams,
+  StampPresetsParams,
+  StampTextParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -107,6 +110,9 @@ export interface OpParams {
   'overlay.letterhead': OverlayLetterheadParams;
   'overlay.listOverlays': OverlayListOverlaysParams;
   'overlay.remove': OverlayRemoveParams;
+  'stamp.text': StampTextParams;
+  'stamp.image': StampImageParams;
+  'stamp.presets': StampPresetsParams;
 }
 
 export type OpId = keyof OpParams;
@@ -127,4 +133,5 @@ export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'image.fromStrokes',
   'image.textSignature',
   'overlay.bates',
+  'stamp.presets',
 ]);
