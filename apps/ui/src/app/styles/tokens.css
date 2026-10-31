@@ -1,0 +1,155 @@
+/*
+ * Chef PDF design tokens. Light is the default; dark applies with
+ * [data-theme='dark'] on <html> (theme setting system/light/dark, see app/theme.ts).
+ */
+:root {
+  /* Typography */
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Spacing (4px grid) */
+  --space-0: 0;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 20px;
+  --space-8: 24px;
+  --space-9: 32px;
+  --space-10: 40px;
+  --space-11: 56px;
+
+  /* Radius */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 999px;
+
+  /* Sizes */
+  --control-h-sm: 26px;
+  --control-h: 32px;
+  --control-h-lg: 38px;
+  --titlebar-h: 42px;
+  --tabsbar-h: 38px;
+  --toolbar-h: 46px;
+  --statusbar-h: 28px;
+  --sidebar-w: 216px;
+  --panel-w: 272px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 100ms;
+  --dur: 160ms;
+
+  /* Colors: light */
+  color-scheme: light;
+  --c-bg: #f4f5f7;
+  --c-canvas: #e9ebef; /* behind PDF pages */
+  --c-surface: #ffffff;
+  --c-surface-2: #f8f9fb;
+  --c-surface-sunken: #eef0f3;
+  --c-hover: rgba(20, 30, 50, 0.055);
+  --c-active: rgba(20, 30, 50, 0.1);
+  --c-border: #e1e4ea;
+  --c-border-strong: #cdd2da;
+  --c-divider: #eceef2;
+
+  --c-text: #1d2330;
+  --c-text-2: #4d5565;
+  --c-text-3: #7d8494;
+  --c-text-disabled: #a8aeb9;
+  --c-text-on-accent: #ffffff;
+
+  --c-accent: #2f6be4;
+  --c-accent-hover: #255bd0;
+  --c-accent-active: #1f4fb6;
+  --c-accent-soft: #e8effd;
+  --c-accent-soft-2: #d6e3fb;
+  --c-accent-text: #1f56c7;
+
+  --c-brand: #e5533d; /* warm chef accent, logo only */
+
+  --c-success: #1f9d61;
+  --c-success-soft: #e3f5ec;
+  --c-warning: #b7791f;
+  --c-warning-soft: #fdf3e1;
+  --c-danger: #d93d3d;
+  --c-danger-hover: #c53030;
+  --c-danger-soft: #fdeaea;
+
+  --c-focus: rgba(47, 107, 228, 0.45);
+  --c-overlay: rgba(16, 22, 34, 0.38);
+  --c-highlight: rgba(255, 196, 0, 0.42);
+  --c-highlight-selected: rgba(255, 128, 0, 0.55);
+  --c-page-shadow: 0 1px 2px rgba(16, 24, 40, 0.1), 0 2px 8px rgba(16, 24, 40, 0.08);
+
+  --shadow-xs: 0 1px 1px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.09), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.16), 0 2px 8px rgba(16, 24, 40, 0.08);
+  --focus-ring: 0 0 0 2px var(--c-surface), 0 0 0 4px var(--c-focus);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --c-bg: #15171c;
+  --c-canvas: #0f1114;
+  --c-surface: #1d2027;
+  --c-surface-2: #22262e;
+  --c-surface-sunken: #181a20;
+  --c-hover: rgba(255, 255, 255, 0.06);
+  --c-active: rgba(255, 255, 255, 0.11);
+  --c-border: #2d323c;
+  --c-border-strong: #3b414d;
+  --c-divider: #272b34;
+
+  --c-text: #e7e9ee;
+  --c-text-2: #b3b8c3;
+  --c-text-3: #858c99;
+  --c-text-disabled: #5a606c;
+  --c-text-on-accent: #ffffff;
+
+  --c-accent: #5288f0;
+  --c-accent-hover: #6597f3;
+  --c-accent-active: #7aa6f5;
+  --c-accent-soft: rgba(82, 136, 240, 0.16);
+  --c-accent-soft-2: rgba(82, 136, 240, 0.26);
+  --c-accent-text: #8fb3f7;
+
+  --c-brand: #f06a52;
+
+  --c-success: #3cc282;
+  --c-success-soft: rgba(60, 194, 130, 0.14);
+  --c-warning: #e0a443;
+  --c-warning-soft: rgba(224, 164, 67, 0.14);
+  --c-danger: #f06464;
+  --c-danger-hover: #f37b7b;
+  --c-danger-soft: rgba(240, 100, 100, 0.14);
+
+  --c-focus: rgba(82, 136, 240, 0.6);
+  --c-overlay: rgba(0, 0, 0, 0.55);
+  --c-highlight: rgba(255, 196, 0, 0.38);
+  --c-highlight-selected: rgba(255, 128, 0, 0.6);
+  --c-page-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 3px 10px rgba(0, 0, 0, 0.35);
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
