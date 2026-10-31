@@ -5,7 +5,7 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** Đang brainstorm và chốt cây tính năng ([FEATURES.md](FEATURES.md)). **Chưa viết code.**
+- **Giai đoạn:** Đang brainstorm và chốt cây tính năng ([FEATURES.md](FEATURES.md), bản nháp 2). **Chưa viết code.**
 - **Việc tiếp theo:** Chờ chủ dự án góp ý cây tính năng → chốt phạm vi v0.1 → dựng khung dự án Electron.
 - **Câu hỏi còn mở:**
   - Chủ dự án dùng USB token của hãng nào (VNPT-CA, Viettel-CA, BKAV-CA, FPT-CA, MISA…)? Cần token thật để thử ký số.
@@ -32,6 +32,10 @@
 | D8 | Build bằng **GitHub Actions** cho 3 OS: `.exe`/`.msi`, `.dmg` (Intel + Apple Silicon), `.AppImage`/`.deb`/`.rpm` | Chủ dự án không cần có đủ 3 máy |
 | D9 | Tính năng chủ lực: **Chuyển thành bản scan** (PDF chỉ có ảnh, chỉnh DPI/màu/nén/hiệu ứng scan) và **Ký số** (USB token + PFX, PAdES) | Chủ dự án yêu cầu đặc biệt |
 | D10 | Chuyển thành bản scan phải làm **trước** khi ký số. App tự sắp xếp thứ tự và cảnh báo | Raster hóa sau khi ký sẽ làm mất chữ ký |
+| D11 | **Sửa chữ có sẵn** trong PDF được đưa vào lộ trình (v0.6), không còn để "Sau" | Chủ dự án yêu cầu (giống ABBYY) |
+| D12 | Thêm nhóm **Lớp & gỡ watermark** (bảng lớp, xem theo loại nội dung, gỡ watermark tự động) | Chủ dự án yêu cầu |
+| D13 | Làm một **"bộ máy nội dung"** dùng chung (v0.5) cho: chọn/xóa đối tượng, tẩy vùng, gỡ watermark, che thông tin mật. Sửa chữ (v0.6) xây tiếp trên nền này | Làm một lần, dùng cho nhiều tính năng |
+| D14 | Watermark/header/footer/số trang do Chef PDF thêm vào phải **gắn nhãn chuẩn** (marked content `/Artifact` + `/Subtype /Watermark` hoặc `/Pagination`) | Để sau này sửa/gỡ được sạch |
 
 ## Kiến trúc dự kiến
 
@@ -66,6 +70,23 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 - Ký nhiều lần nối tiếp bằng incremental save để không phá chữ ký trước.
 - Ký từ xa qua cloud (VNPT SmartCA, Viettel MySign…) để giai đoạn sau, vì cần tích hợp API riêng của từng nhà cung cấp.
 
+### Bộ máy nội dung, sửa chữ, gỡ watermark
+- pypdfium2 truy cập được API gốc của PDFium: liệt kê page object (chữ/ảnh/vector), xóa, di chuyển, tạo text object mới. pikepdf dùng để đọc/ghi trực tiếp luồng nội dung (content stream) khi cần can thiệp sâu hơn.
+- **Sửa chữ:** khó nhất là font. File PDF thường chỉ nhúng tập con (subset) font, nên hay thiếu ký tự tiếng Việt khi sửa. Cần cơ chế thay font gần giống (đóng gói sẵn vài font Unicode mở như Noto, Be Vietnam Pro…). Làm mức dòng trước, mức đoạn (gom dòng + tự xuống dòng) sau.
+- **Dò watermark**, theo thứ tự độ tin cậy giảm dần:
+  1. Marked content `/Artifact` có `/Subtype /Watermark` (cách Acrobat và các app chuẩn gắn).
+  2. Lớp OCG có tên kiểu "watermark".
+  3. Annotation có kiểu `/Watermark`.
+  4. Heuristic: XObject hoặc chữ lặp lại ở cùng vị trí trên phần lớn số trang, bị xoay chéo, hoặc trong suốt (ExtGState `CA`/`ca` < 1).
+  - Luôn hiện danh sách ứng viên kèm xem trước để người dùng chọn, **không tự xóa**.
+- Watermark đã dính vào ảnh scan thì phải xử lý ảnh, để "Sau".
+- Chức năng gỡ watermark dùng cho tài liệu người dùng có quyền chỉnh sửa (ví dụ tài liệu của chính mình hoặc công ty mình).
+
+### Đặc thù Việt Nam
+- **Dấu giáp lai:** một ảnh dấu được cắt thành N phần, mỗi phần đặt ở mép phải một trang.
+- **Đánh số trang theo Nghị định 30/2020/NĐ-CP:** số Ả Rập, canh giữa trong lề trên, không hiển thị số ở trang đầu.
+- **Tách nền ảnh dấu/chữ ký** chụp bằng điện thoại: lọc theo màu mực (đỏ/xanh), nền thành trong suốt.
+
 ### Phân phối
 - macOS cần notarize (tài khoản Apple Developer 99 USD/năm), nếu không Gatekeeper sẽ chặn app.
 - Windows cần chứng thư code signing, nếu không SmartScreen sẽ cảnh báo.
@@ -79,4 +100,5 @@ Dung lượng cài đặt ước tính khoảng 150MB (Electron ~100MB + Python 
 
 ## Nhật ký
 
+- **2026-10-31 (2):** Chủ dự án bổ sung: sửa chữ PDF, bóc tách lớp để gỡ watermark, thêm watermark/con dấu ảnh, số trang, header/footer. Claude đối chiếu với ABBYY và thêm: chọn/sửa đối tượng, tẩy vùng, thay ảnh, tìm & thay thế, dấu giáp lai, tách nền ảnh dấu, dấu động, Bates, gỡ nền, làm đẹp bản scan, sửa file hỏng, file đính kèm, metadata, máy in ảo, quét từ máy scan. Sắp xếp lại cây thành 5 khu vực, **đánh lại mã** (bản nháp 2). Lộ trình kéo dài đến v0.7.
 - **2026-10-31:** Bắt đầu dự án. Chốt tên Chef PDF, Electron, Python sidecar, bỏ OCR ở bản đầu, ưu tiên "Chuyển thành bản scan" và "Ký số". Soạn cây tính năng bản nháp 1 (`docs/FEATURES.md`), chờ chủ dự án góp ý.
