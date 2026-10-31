@@ -4,6 +4,26 @@
  * Regenerate: cd core && uv run python -m chef_core.codegen
  */
 
+export interface BackgroundStyle {
+  /** @default "#FFFFFF" */
+  color?: string;
+  /**
+   * 0 = transparent.
+   * @default 0.0
+   */
+  opacity?: number;
+}
+
+export interface BorderStyle {
+  /** @default "#1F3A93" */
+  color?: string;
+  /**
+   * Points.
+   * @default 0.8
+   */
+  width?: number;
+}
+
 export interface ImageDataUrlSource {
   /** data: URL (e.g. pasted from clipboard). */
   dataUrl: string;
@@ -12,6 +32,15 @@ export interface ImageDataUrlSource {
 export interface ImagePathSource {
   /** Image file path. */
   path: string;
+}
+
+export interface ImageSlot {
+  /** PNG or JPEG file (PNG alpha is kept). */
+  path: string;
+  /** @default "contain" */
+  fit?: 'contain' | 'cover' | 'stretch';
+  /** @default 1.0 */
+  opacity?: number;
 }
 
 export interface MergeInput {
@@ -44,6 +73,88 @@ export interface ScanEffects {
   /** @default false */
   jitter?: boolean;
   seed?: number;
+}
+
+/** Look of a visible signature (I10-I18). Defaults give a plain text box. */
+export interface SignatureTemplate {
+  /** @default "Mặc định" */
+  name?: string;
+  /**
+   * text-only; image-left / image-right: image column beside the text; image-background: image behind the text. The image is ignored by text-only.
+   * @default "text-only"
+   */
+  layout?: 'text-only' | 'image-left' | 'image-right' | 'image-background';
+  /** @default "Ký số bởi" */
+  header?: string | null;
+  lines?: TemplateLine[];
+  /**
+   * Tokens: yyyy yy MM M dd d HH H mm m ss s. Text in single quotes is literal.
+   * @default "dd/MM/yyyy HH:mm:ss"
+   */
+  dateFormat?: string;
+  /**
+   * Append (UTC+07:00).
+   * @default false
+   */
+  showTimezone?: boolean;
+  /** @default "BeVietnamPro" */
+  fontName?: 'BeVietnamPro';
+  /**
+   * Points.
+   * @default 9
+   */
+  fontSize?: number;
+  /**
+   * Floor for auto-shrink.
+   * @default 5
+   */
+  minFontSize?: number;
+  /** @default true */
+  autoShrink?: boolean;
+  /** @default false */
+  bold?: boolean;
+  /** @default "#000000" */
+  textColor?: string;
+  /** @default "left" */
+  align?: 'left' | 'center' | 'right';
+  /** @default "middle" */
+  valign?: 'top' | 'middle' | 'bottom';
+  /**
+   * Inner margin in points.
+   * @default 4
+   */
+  padding?: number;
+  border?: BorderStyle | null;
+  background?: BackgroundStyle;
+  /**
+   * Vector check mark before the text.
+   * @default false
+   */
+  checkmark?: boolean;
+  /** @default "#1E8E3E" */
+  checkColor?: string;
+  image?: ImageSlot;
+  /**
+   * Image column share.
+   * @default 0.35
+   */
+  imageRatio?: number;
+  /** Logo in its own column at the right. */
+  logo?: ImageSlot;
+}
+
+/** One line of text in the box. Lines are drawn in list order; disabled lines are skipped. */
+export interface TemplateLine {
+  /** Which value fills the line. */
+  source: 'signerName' | 'organization' | 'taxCode' | 'citizenId' | 'reason' | 'location' | 'contact' | 'date' | 'custom';
+  /** E.g. "Ký bởi:". */
+  label?: string;
+  /** Custom text (source custom, required there). For other sources it replaces the value from the certificate or the signing parameters. */
+  text?: string;
+  /** Size of this line; default: the template size. */
+  fontSize?: number;
+  /** @default true */
+  enabled?: boolean;
 }
 
 /** Merge several PDFs (in order) into a new file. */
@@ -291,6 +402,18 @@ export interface ScanRasterizeParams {
   seed?: number;
 }
 
+/** Add an empty signature field to a page. */
+export interface SignAddFieldParams {
+  /** 0-based page of the field. */
+  page: number;
+  /** [x1, y1, x2, y2] in PDF points. */
+  rect: number[];
+  /** Name of the field. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** Who must sign here, e.g. 'Giám đốc'. Stored as the field's tooltip (/TU). */
+  signerLabel?: string;
+}
+
 /** Read the certificate in a .pfx / .p12 file without signing anything. */
 export interface SignCertInfoParams {
   /** Path to the .pfx or .p12 file. */
@@ -299,12 +422,82 @@ export interface SignCertInfoParams {
   password?: string;
 }
 
+/** Run the token checks step by step (driver, token, certificate, PIN state). */
+export interface SignDiagnoseTokenParams {
+  /** Driver to check. Default: the first driver the scan finds. */
+  modulePath?: string;
+  /** Slot of the token to check. */
+  slotId?: number;
+}
+
+/** List the known driver files and whether each exists on this computer. */
+export interface SignDriverScanParams {
+  /**
+   * Also load each driver that exists and list the token labels it sees. No PIN is used.
+   * @default false
+   */
+  probe?: boolean;
+}
+
+/** No parameters: lists the signature fields of the current revision. */
+export interface SignListFieldsParams {
+}
+
+/** Tokens in one driver, with their certificates. No PIN is needed. */
+export interface SignListTokensParams {
+  /** Path of the PKCS#11 driver file (.dll, .dylib or .so). */
+  modulePath: string;
+}
+
 /** Sign the document with a certificate file (PAdES). */
 export interface SignPadesParams {
   /** Path to the .pfx or .p12 file. */
   pfxPath: string;
   /** Password of the certificate file. Never stored, logged or echoed back. */
   password?: string;
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER) for B-LT and B-LTA. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Signature field name. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** 0-based page for a visible signature. Needs rect. */
+  page?: number;
+  /** [x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing empty field of that name. */
+  rect?: number[];
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+}
+
+/** Sign the document with a key on a USB token (PAdES). Same options as sign.pades. */
+export interface SignPadesTokenParams {
+  /** Path of the PKCS#11 driver file (.dll, .dylib or .so). */
+  modulePath: string;
+  /** Slot of the token. */
+  slotId?: number;
+  /** Serial of the token, instead of slotId. */
+  tokenSerial?: string;
+  /** CKA_ID of the signing certificate, in hex (from sign.listTokens). */
+  certId: string;
+  /** Token PIN. Used for one login and then dropped. Never stored, logged or echoed back. */
+  pin: string;
+  /**
+   * Must be true to use the PIN when the token reports only one try left.
+   * @default false
+   */
+  confirmFinalTry?: boolean;
   /**
    * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
    * @default "B-B"
@@ -342,8 +535,14 @@ export interface OpParams {
   'scan.fitSize': ScanFitSizeParams;
   'scan.preview': ScanPreviewParams;
   'scan.rasterize': ScanRasterizeParams;
+  'sign.addField': SignAddFieldParams;
   'sign.certInfo': SignCertInfoParams;
+  'sign.diagnoseToken': SignDiagnoseTokenParams;
+  'sign.driverScan': SignDriverScanParams;
+  'sign.listFields': SignListFieldsParams;
+  'sign.listTokens': SignListTokensParams;
   'sign.pades': SignPadesParams;
+  'sign.padesToken': SignPadesTokenParams;
 }
 
 export type OpId = keyof OpParams;
@@ -362,6 +561,12 @@ export const OP_IDS = [
   'scan.fitSize',
   'scan.preview',
   'scan.rasterize',
+  'sign.addField',
   'sign.certInfo',
+  'sign.diagnoseToken',
+  'sign.driverScan',
+  'sign.listFields',
+  'sign.listTokens',
   'sign.pades',
+  'sign.padesToken',
 ] as const;

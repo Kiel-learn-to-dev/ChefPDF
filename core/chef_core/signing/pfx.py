@@ -13,16 +13,19 @@ from pathlib import Path
 from asn1crypto import pkcs12 as asn1_pkcs12
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import pkcs12
-from pyhanko.sign.signers.pdf_cms import SimpleSigner
+from pyhanko.sign.signers.pdf_cms import Signer, SimpleSigner
 
 from chef_core.errors import ChefError, ErrorKind
 
 
 @dataclass(frozen=True)
 class PfxCertificate:
-    """A loaded signing identity. Holds key material: keep it in memory only."""
+    """A loaded signing identity. Holds key material: keep it in memory only.
 
-    signer: SimpleSigner
+    ``signer`` is any pyHanko signer: a PFX ``SimpleSigner`` or a token signer (T3.01).
+    """
+
+    signer: Signer
     certificate: x509.Certificate
     # Other certificates in the archive (the issuing chain), leaf excluded.
     chain: tuple[x509.Certificate, ...]

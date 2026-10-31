@@ -10,6 +10,12 @@ dependencies = [
   "pillow>=11.0",
   "img2pdf>=0.5",
   "pyhanko>=0.38",
+  "reportlab>=4.2",
+]
+
+[project.optional-dependencies]
+token = [
+    "pyhanko[pkcs11]>=0.38",
 ]
 
 [dependency-groups]
@@ -18,7 +24,7 @@ dev = [
   "pytest-timeout>=2.3",
   "ruff>=0.8",
   "mypy>=1.13",
-  "reportlab>=4.2",
+  "pyhanko[pkcs11]>=0.38",
 ]
 
 [build-system]
@@ -45,3 +51,4 @@ packages = ["chef_core"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 timeout = 120
+markers = ["slow: long-running benchmark-style tests; run with CHEF_SLOW=1"]

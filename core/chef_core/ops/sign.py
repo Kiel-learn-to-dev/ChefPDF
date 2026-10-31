@@ -9,17 +9,17 @@ from __future__ import annotations
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
+from pyhanko.sign.fields import MDPPerm
 
 from chef_core.errors import ChefError, ErrorKind, invalid_params
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
 from chef_core.pdf.io import opened_pdf
+from chef_core.signing.appearance import SignatureTemplate, TemplateAppearance
 from chef_core.signing.certinfo import cert_info
 from chef_core.signing.pades import (
-    AppearanceStreamProvider,
     DigestName,
     PadesRequest,
-    PlaceholderAppearance,
     SigningLevel,
     VisibleSpot,
     load_certificate_files,
@@ -30,6 +30,11 @@ from chef_core.signing.tsa import ALLOWED_SCHEMES
 
 PageIndex = Annotated[int, Field(ge=0)]
 PASSWORD_DOC = "Password of the certificate file. Never stored, logged or echoed back."
+CERTIFY_LEVELS = {
+    "no-changes": MDPPerm.NO_CHANGES,
+    "form-fill": MDPPerm.FILL_FORMS,
+    "annotate": MDPPerm.ANNOTATE,
+}
 
 
 class SignCertInfoParams(WireModel):
@@ -86,7 +91,18 @@ class SignPadesParams(WireModel):
         default=None, description="0-based page for a visible signature. Needs rect."
     )
     rect: Annotated[list[float], Field(min_length=4, max_length=4)] | None = Field(
-        default=None, description="[x1, y1, x2, y2] in PDF points. Needs page."
+        default=None,
+        description="[x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing "
+        "empty field of that name.",
+    )
+    certify: Literal["no-changes", "form-fill", "annotate"] | None = Field(
+        default=None,
+        description="Certify the document (DocMDP) with this signature. Only for the first "
+        "signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3.",
+    )
+    template: SignatureTemplate | None = Field(
+        default=None,
+        description="Look of a visible signature. Default: a plain text box.",
     )
 
     @field_validator("tsa_urls")
@@ -121,6 +137,7 @@ def sign_pades_op(ctx: OpContext, p: SignPadesParams) -> OpOutput:
     if ctx.input_path is None or ctx.result_path is None:
         raise RuntimeError("sign.pades needs a session")
     ctx.check_cancelled()
+    appearance = TemplateAppearance(p.template or SignatureTemplate())
     loaded = load_pfx(p.pfx_path, p.password)
     info = cert_info(loaded.certificate)
     if info.expired:
@@ -142,7 +159,7 @@ def sign_pades_op(ctx: OpContext, p: SignPadesParams) -> OpOutput:
 
     level: SigningLevel = p.level
     digest: DigestName = p.digest
-    appearance: AppearanceStreamProvider = PlaceholderAppearance()
+    certify = CERTIFY_LEVELS[p.certify] if p.certify is not None else None
     result = sign_pades(
         PadesRequest(
             source=ctx.input_path,
@@ -158,10 +175,11 @@ def sign_pades_op(ctx: OpContext, p: SignPadesParams) -> OpOutput:
             location=p.location,
             contact_info=p.contact_info,
             appearance=appearance,
+            certify=certify,
         )
     )
     ctx.modified = True
-    changed = [p.page] if p.page is not None and spot is not None else []
+    changed = [result.page] if result.page is not None else []
     return OpOutput(
         changed_pages=changed,
         data={

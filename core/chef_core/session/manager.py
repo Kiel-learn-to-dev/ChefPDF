@@ -45,10 +45,14 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+# Keys whose values must never reach journal.jsonl (certificate passwords, token PINs).
+SECRET_PARAM_KEYS = frozenset({"password", "pin"})
+
+
 def journal_params(value: Any) -> Any:
-    """Params as stored in journal.jsonl: passwords removed, data URLs elided."""
+    """Params as stored in journal.jsonl: passwords and PINs removed, data URLs elided."""
     if isinstance(value, dict):
-        return {k: journal_params(v) for k, v in value.items() if k != "password"}
+        return {k: journal_params(v) for k, v in value.items() if k not in SECRET_PARAM_KEYS}
     if isinstance(value, list):
         return [journal_params(v) for v in value]
     if isinstance(value, str) and value.startswith("data:") and len(value) > 200:

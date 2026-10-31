@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "updated": "2026-10-31",
+  "note": "Danh bạ driver PKCS#11 (feature I4). Mỗi đường dẫn là một trong ba dạng: tên file (tìm trong thư mục hệ thống của từng OS), mẫu có dấu * hoặc ? (so khớp không phân biệt hoa thường với tên file trong các thư mục đó), hoặc đường dẫn tuyệt đối (có thể dùng %BIẾN_MÔI_TRƯỜNG%). confidence: documented = tên có trong docs/TOKENS.md hoặc tài liệu hãng; reported = thấy trong hướng dẫn bên thứ ba hoặc công cụ mã nguồn mở; unverified = phỏng đoán, phải kiểm chứng trên token thật.",
+  "cas": [
+    {
+      "id": "viettel-ca",
+      "name": "Viettel-CA",
+      "models": [
+        {
+          "id": "v6",
+          "name": "Token V6",
+          "notes": "Dùng module PKCS#11. Không dùng viettel-ca_v6_s.dll (driver CSP tự bật cửa sổ PIN riêng, bỏ qua PIN do app truyền vào).",
+          "drivers": {
+            "windows": [{ "path": "viettel-ca_v6.dll", "confidence": "documented" }],
+            "macos": [],
+            "linux": []
+          }
+        },
+        {
+          "id": "v1-v5",
+          "name": "Token đời cũ (V1, V3, V4, V5)",
+          "drivers": {
+            "windows": [
+              { "path": "viettel-ca_v4.dll", "confidence": "documented" },
+              { "path": "viettel-ca_v3.dll", "confidence": "documented" },
+              { "path": "viettel-ca_v1.dll", "confidence": "documented" },
+              { "path": "Viettel-ca.dll", "confidence": "documented" },
+              { "path": "viettel-ca_v5.dll", "confidence": "unverified" }
+            ],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "vnpt-ca",
+      "name": "VNPT-CA",
+      "models": [
+        {
+          "id": "v6-v10",
+          "name": "Token v6, v8, v10",
+          "notes": "Tên file chưa tìm được. Mẫu tên dựa trên 'VNPT_CA...'. Gói driver của VNPT (Driver Token v8) cài kèm phần mềm Pkcs11 Admin.",
+          "drivers": {
+            "windows": [
+              { "path": "VNPT_CA*.dll", "confidence": "unverified" },
+              { "path": "*vnpt*pkcs11*.dll", "confidence": "unverified" }
+            ],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "fpt-ca",
+      "name": "FPT-CA",
+      "models": [
+        {
+          "id": "v2-v5",
+          "name": "Token v2 đến v5",
+          "notes": "Tên file chưa tìm được. Thường dùng driver SafeNet eToken.",
+          "drivers": {
+            "windows": [
+              { "path": "eTPKCS11.dll", "confidence": "unverified" },
+              { "path": "eTokenPKCS11.dll", "confidence": "unverified" }
+            ],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "bkav-ca",
+      "name": "Bkav-CA",
+      "models": [
+        {
+          "id": "default",
+          "name": "Token Bkav-CA",
+          "notes": "Tên file chưa tìm được. Mẫu tên dựa trên 'BkavCA...'.",
+          "drivers": {
+            "windows": [
+              { "path": "BkavCA*.dll", "confidence": "unverified" },
+              { "path": "*bkav*pkcs11*.dll", "confidence": "unverified" }
+            ],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "misa-ca",
+      "name": "MISA-CA",
+      "models": [
+        {
+          "id": "default",
+          "name": "Token MISA-CA",
+          "notes": "Tên file chưa tìm được. Có phần mềm quản lý token cho Windows và macOS.",
+          "drivers": {
+            "windows": [{ "path": "*misa*pkcs11*.dll", "confidence": "unverified" }],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "nacencomm",
+      "name": "Nacencomm (CA2)",
+      "models": [
+        {
+          "id": "default",
+          "name": "Token CA2",
+          "notes": "Ghi chú cũ ghi 'ep11/CKCSP'; tên file chưa được xác minh.",
+          "drivers": {
+            "windows": [{ "path": "*CKCSP*.dll", "confidence": "unverified" }],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "ban-co-yeu",
+      "name": "Ban Cơ yếu Chính phủ",
+      "models": [
+        {
+          "id": "bit4id",
+          "name": "Token Bit4id (cấp từ 2021)",
+          "notes": "Driver tải tại dichvucong.ca.gov.vn.",
+          "drivers": {
+            "windows": [{ "path": "bit4xpki.dll", "confidence": "reported" }],
+            "macos": [
+              { "path": "/usr/local/lib/libbit4xpki.dylib", "confidence": "unverified" }
+            ],
+            "linux": [{ "path": "/usr/lib/libbit4xpki.so", "confidence": "unverified" }]
+          }
+        },
+        {
+          "id": "safenet",
+          "name": "Token SafeNet (cấp trước 2021)",
+          "drivers": {
+            "windows": [{ "path": "eTPKCS11.dll", "confidence": "reported" }],
+            "macos": [
+              { "path": "/Library/Frameworks/eToken.framework/Versions/A/libeToken.dylib", "confidence": "unverified" },
+              { "path": "/usr/local/lib/libeTPkcs11.dylib", "confidence": "unverified" }
+            ],
+            "linux": [
+              { "path": "/usr/lib/libeTPkcs11.so", "confidence": "unverified" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "safenet-etoken",
+      "name": "SafeNet eToken (chung)",
+      "models": [
+        {
+          "id": "generic",
+          "name": "eToken (Thales/SafeNet)",
+          "drivers": {
+            "windows": [
+              { "path": "eTPKCS11.dll", "confidence": "reported" },
+              { "path": "eTokenPKCS11.dll", "confidence": "unverified" }
+            ],
+            "macos": [
+              { "path": "/Library/Frameworks/eToken.framework/Versions/A/libeToken.dylib", "confidence": "unverified" }
+            ],
+            "linux": [{ "path": "/usr/lib/libeToken.so", "confidence": "unverified" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "feitian-epass",
+      "name": "Feitian ePass",
+      "models": [
+        {
+          "id": "epass2003",
+          "name": "ePass2003",
+          "drivers": {
+            "windows": [
+              { "path": "eps2003csp11.dll", "confidence": "unverified" },
+              { "path": "eps2003csp11v2.dll", "confidence": "unverified" }
+            ],
+            "macos": [
+              { "path": "/usr/local/lib/libePass2003.dylib", "confidence": "unverified" }
+            ],
+            "linux": [{ "path": "/usr/lib/libePass2003.so", "confidence": "reported" }]
+          }
+        },
+        {
+          "id": "epass3003",
+          "name": "ePass3003",
+          "drivers": {
+            "windows": [{ "path": "ShuttleCsp11_3003.dll", "confidence": "unverified" }],
+            "macos": [
+              { "path": "/usr/local/lib/libcastle.1.0.0.dylib", "confidence": "unverified" }
+            ],
+            "linux": [
+              { "path": "/usr/lib/libcastle.so.1.0.0", "confidence": "unverified" },
+              { "path": "/usr/lib/libcastle.so", "confidence": "unverified" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gemalto",
+      "name": "Gemalto / Thales IDPrime",
+      "models": [
+        {
+          "id": "idprime",
+          "name": "IDPrime",
+          "drivers": {
+            "windows": [
+              { "path": "gclib.dll", "confidence": "unverified" },
+              { "path": "IDPrimePKCS11.dll", "confidence": "unverified" }
+            ],
+            "macos": [],
+            "linux": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "opensc",
+      "name": "OpenSC (chung)",
+      "models": [
+        {
+          "id": "generic",
+          "name": "Driver mã nguồn mở OpenSC",
+          "drivers": {
+            "windows": [
+              { "path": "opensc-pkcs11.dll", "confidence": "reported" },
+              { "path": "%ProgramFiles%\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll", "confidence": "reported" }
+            ],
+            "macos": [
+              { "path": "/Library/OpenSC/lib/opensc-pkcs11.so", "confidence": "reported" },
+              { "path": "/opt/homebrew/lib/opensc-pkcs11.so", "confidence": "reported" },
+              { "path": "/usr/local/lib/opensc-pkcs11.so", "confidence": "reported" }
+            ],
+            "linux": [
+              { "path": "opensc-pkcs11.so", "confidence": "reported" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

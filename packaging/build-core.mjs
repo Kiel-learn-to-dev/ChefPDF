@@ -23,6 +23,9 @@ const args = [
   '--project',
   'core',
   '--no-dev',
+  // USB token support (python-pkcs11, optional extra in core/pyproject.toml).
+  '--extra',
+  'token',
   '--with',
   PYINSTALLER,
   'pyinstaller',
@@ -42,6 +45,9 @@ const args = [
   path.join(repoRoot, 'core'),
   // Ops are registered from submodules that may be imported dynamically.
   '--collect-submodules',
+  'chef_core',
+  // Package data: the bundled signature fonts (core/chef_core/resources/fonts).
+  '--collect-data',
   'chef_core',
   '--copy-metadata',
   'chef-core',
