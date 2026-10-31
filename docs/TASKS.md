@@ -89,8 +89,8 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T2.01 | Raster hóa bằng PDFium theo DPI; chế độ màu / xám / đen trắng (ngưỡng, dithering) | K1, K2 | 1,5 | T1.04 | ⬜ |
-| T2.02 | Tạo PDF ảnh: nhúng JPEG không nén lại, Flate, CCITT G4; giữ khổ giấy; chọn trang; xóa metadata | K3, K7 | 1,5 | T2.01 | ⬜ |
+| T2.01 | Raster hóa bằng PDFium theo DPI; chế độ màu / xám / đen trắng (ngưỡng, dithering) | K1, K2 | 1,5 | T1.04 | ✅ |
+| T2.02 | Tạo PDF ảnh: nhúng JPEG không nén lại, Flate, CCITT G4; giữ khổ giấy; chọn trang; xóa metadata | K3, K7 | 1,5 | T2.01 | ✅ |
 | T2.03 | Hiệu ứng scan thật (nghiêng, nhiễu, ám giấy, bóng mép, mờ, tương phản), ngẫu nhiên theo seed từng trang | K4 | 1,5 | T2.01 | ✅ |
 | T2.04 | Xử lý theo luồng + song song, giới hạn RAM; benchmark 500 trang ở 600 dpi | | 1 | T2.02 | ⬜ |
 | T2.05 | Xem trước gốc/kết quả (chia đôi, thanh trượt, zoom 100%); ước tính dung lượng và thời gian | K5, K6 | 1,5 | T1.12, T2.03 | ⬜ |

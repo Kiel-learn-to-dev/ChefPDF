@@ -119,6 +119,42 @@ export interface PageRotateParams {
   angle: 90 | 180 | 270;
 }
 
+/** Convert pages to images. Selected pages lose their text, links and form fields. */
+export interface ScanRasterizeParams {
+  /**
+   * Render resolution in dpi.
+   * @default 200
+   */
+  dpi?: number;
+  /**
+   * 'color' (JPEG RGB), 'gray' (JPEG gray) or 'bw' (1-bit G4).
+   * @default "gray"
+   */
+  color?: 'color' | 'gray' | 'bw';
+  /**
+   * bw only: gray level from which a pixel is white.
+   * @default 128
+   */
+  threshold?: number;
+  /**
+   * bw only: Floyd-Steinberg dithering.
+   * @default false
+   */
+  dithering?: boolean;
+  /**
+   * JPEG quality (color, gray).
+   * @default 75
+   */
+  jpegQuality?: number;
+  /** 0-based pages to convert; default all. */
+  pages?: number[];
+  /**
+   * Remove the document information dictionary and XMP.
+   * @default true
+   */
+  stripMetadata?: boolean;
+}
+
 /** Params type of every operation, by op id. */
 export interface OpParams {
   'file.merge': FileMergeParams;
@@ -131,6 +167,7 @@ export interface OpParams {
   'page.insertImages': PageInsertImagesParams;
   'page.reorder': PageReorderParams;
   'page.rotate': PageRotateParams;
+  'scan.rasterize': ScanRasterizeParams;
 }
 
 export type OpId = keyof OpParams;
@@ -146,4 +183,5 @@ export const OP_IDS = [
   'page.insertImages',
   'page.reorder',
   'page.rotate',
+  'scan.rasterize',
 ] as const;
