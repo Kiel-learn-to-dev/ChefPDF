@@ -4,6 +4,12 @@
  * Regenerate: cd core && uv run python -m chef_core.codegen
  */
 
+/** An anchor as returned by sign.findAnchors (only the parts that placement needs). */
+export interface AnchorRef {
+  pageIndex: number;
+  rect: number[];
+}
+
 export interface BackgroundStyle {
   /** @default "#FFFFFF" */
   color?: string;
@@ -75,6 +81,15 @@ export interface ScanEffects {
   seed?: number;
 }
 
+export interface SeparationLayer {
+  /** E.g. "Con dấu", "Chữ ký". */
+  name: string;
+  /** Reference colour of the layer. */
+  colorHex: string;
+  /** @default 60 */
+  tolerance?: number;
+}
+
 /** Look of a visible signature (I10-I18). Defaults give a plain text box. */
 export interface SignatureTemplate {
   /** @default "Mặc định" */
@@ -143,6 +158,22 @@ export interface SignatureTemplate {
   logo?: ImageSlot;
 }
 
+export interface StrokeParams {
+  points: StrokePointParams[];
+}
+
+export interface StrokePointParams {
+  x: number;
+  y: number;
+  /**
+   * 0 = lightest, 1 = heaviest.
+   * @default 1.0
+   */
+  pressure?: number;
+  /** Time stamp; not used for the drawing. */
+  t?: number;
+}
+
 /** One line of text in the box. Lines are drawn in list order; disabled lines are skipped. */
 export interface TemplateLine {
   /** Which value fills the line. */
@@ -182,6 +213,138 @@ export interface FileSplitParams {
    * @default "{name}_{index}"
    */
   nameTemplate?: string;
+}
+
+/** Clean up a signature or stamp image (I21). All steps are optional. */
+export interface ImageCleanupParams {
+  inputPath: string;
+  outputPath: string;
+  /**
+   * Remove ink blobs smaller than this (0 = off).
+   * @default 0
+   */
+  minBlobPx?: number;
+  /**
+   * Turn the ink's main axis horizontal.
+   * @default false
+   */
+  straighten?: boolean;
+  /**
+   * Tilts beyond this are not corrected (degrees).
+   * @default 15.0
+   */
+  maxTilt?: number;
+  /**
+   * Grow (+) or thin (-) the strokes by N pixels.
+   * @default 0
+   */
+  thicken?: number;
+  /** @default 1.0 */
+  contrast?: number;
+  /** @default 0 */
+  brightness?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  /**
+   * Mirror horizontally.
+   * @default false
+   */
+  flipH?: boolean;
+}
+
+/** Pointer strokes drawn as smooth variable-width ink (I19). */
+export interface ImageFromStrokesParams {
+  strokes: StrokeParams[];
+  /** Canvas size the points refer to. */
+  canvasWidth: number;
+  canvasHeight: number;
+  /** @default "#1F3A93" */
+  colorHex?: string;
+  /**
+   * Width at pressure 0, px.
+   * @default 1.5
+   */
+  minWidth?: number;
+  /**
+   * Width at pressure 1, px.
+   * @default 6.0
+   */
+  maxWidth?: number;
+  /** @default 8 */
+  padding?: number;
+  outputPath: string;
+}
+
+/** Keep the ink and make the paper transparent (I20). */
+export interface ImageRemoveBackgroundParams {
+  /** PNG or JPEG to process. */
+  inputPath: string;
+  /** PNG (RGBA) to write. */
+  outputPath: string;
+  /**
+   * ink-color: keep pixels near the ink colour. paper-white: keep pixels darker than the local paper level. auto: paper-white, then ink-color when that finds little ink.
+   * @default "auto"
+   */
+  mode?: 'ink-color' | 'paper-white' | 'auto';
+  /**
+   * Ink colour as #RRGGBB, or 'auto' for the dominant non-paper colour.
+   * @default "auto"
+   */
+  inkColor?: string;
+  /**
+   * Colour distance for ink-color.
+   * @default 60
+   */
+  tolerance?: number;
+  /**
+   * paper-white: higher keeps fainter ink.
+   * @default 50
+   */
+  sensitivity?: number;
+  /**
+   * Soft edge width in pixels.
+   * @default 1.0
+   */
+  feather?: number;
+  /** Recolour all ink to this colour (default: keep the colour). */
+  outputColor?: string;
+  /**
+   * Transparent margin in pixels.
+   * @default 4
+   */
+  padding?: number;
+}
+
+/** Split an image into one transparent PNG per colour (I22). */
+export interface ImageSeparateColorsParams {
+  inputPath: string;
+  /** Existing folder for the layer files. */
+  outputDir: string;
+  layers: SeparationLayer[];
+}
+
+/** Typed text rendered as a transparent signature image (I19). */
+export interface ImageTextSignatureParams {
+  text: string;
+  /**
+   * A bundled font. Ignored when fontPath is given.
+   * @default "BeVietnamPro"
+   */
+  fontName?: 'BeVietnamPro' | null;
+  /** A TrueType/OpenType file of your choice. */
+  fontPath?: string;
+  /** @default 96 */
+  sizePx?: number;
+  /** @default "#1F3A93" */
+  colorHex?: string;
+  /**
+   * Positive leans right, like italics.
+   * @default 0.0
+   */
+  slantDeg?: number;
+  /** @default 6 */
+  padding?: number;
+  outputPath: string;
 }
 
 /** Delete pages. Deleting every page is not allowed. */
@@ -439,6 +602,38 @@ export interface SignDriverScanParams {
   probe?: boolean;
 }
 
+/** Write the document as it was when one signature was applied. */
+export interface SignExtractRevisionParams {
+  /** Path of the PDF file. */
+  path: string;
+  /** Name of the signed signature field. */
+  fieldName: string;
+  /** Path of the PDF to write. It must not be the source file. */
+  outputPath: string;
+}
+
+/** Search the document for a text (I26). */
+export interface SignFindAnchorsParams {
+  /** The text to find, e.g. 'GIÁM ĐỐC'. Spacing between words is normalised. */
+  text: string;
+  /** @default false */
+  caseSensitive?: boolean;
+  /**
+   * 'giam doc' also finds 'GIÁM ĐỐC'. đ and Đ count as d and D.
+   * @default true
+   */
+  ignoreDiacritics?: boolean;
+  /**
+   * Do not match inside longer words.
+   * @default true
+   */
+  wholeWord?: boolean;
+  /** 0-based pages to search; default all. */
+  pages?: number[];
+  /** @default 200 */
+  maxResults?: number;
+}
+
 /** No parameters: lists the signature fields of the current revision. */
 export interface SignListFieldsParams {
 }
@@ -520,10 +715,95 @@ export interface SignPadesTokenParams {
   rect?: number[];
 }
 
+/** Signature boxes next to anchors (I26). Positions are in the displayed frame. */
+export interface SignPlaceFromAnchorParams {
+  anchors: AnchorRef[];
+  /** Displayed width in points. */
+  width: number;
+  /** Displayed height in points. */
+  height: number;
+  /** @default "below" */
+  position?: 'below' | 'above' | 'right' | 'left' | 'over';
+  /**
+   * Moves the box right.
+   * @default 0.0
+   */
+  offsetX?: number;
+  /**
+   * Moves the box up.
+   * @default 0.0
+   */
+  offsetY?: number;
+  /**
+   * For 'below' and 'above': how the box lines up with the text.
+   * @default "center"
+   */
+  align?: 'left' | 'center' | 'right';
+  /**
+   * Distance from the text, points.
+   * @default 4.0
+   */
+  gap?: number;
+  /**
+   * Move boxes inside the page. When false, boxes crossing the edge are skipped.
+   * @default true
+   */
+  clampToPage?: boolean;
+}
+
+/** Verify the signatures of the document. */
+export interface SignVerifyParams {
+  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled trust folder is always used. */
+  trustRootPaths?: string[];
+  /**
+   * none: no revocation check. soft: a failed check is a warning. hard: a failed check makes the signature unknown.
+   * @default "soft"
+   */
+  checkRevocation?: 'none' | 'soft' | 'hard';
+  /**
+   * False: treat an unreachable revocation server like hard mode.
+   * @default true
+   */
+  allowOffline?: boolean;
+  /**
+   * Timeout of each CRL or OCSP request.
+   * @default 15
+   */
+  timeoutSeconds?: number;
+}
+
+/** Verify the signatures of a PDF file (no session needed). */
+export interface SignVerifyFileParams {
+  /** Extra trust roots: certificate files (PEM or DER) or folders of them. The bundled trust folder is always used. */
+  trustRootPaths?: string[];
+  /**
+   * none: no revocation check. soft: a failed check is a warning. hard: a failed check makes the signature unknown.
+   * @default "soft"
+   */
+  checkRevocation?: 'none' | 'soft' | 'hard';
+  /**
+   * False: treat an unreachable revocation server like hard mode.
+   * @default true
+   */
+  allowOffline?: boolean;
+  /**
+   * Timeout of each CRL or OCSP request.
+   * @default 15
+   */
+  timeoutSeconds?: number;
+  /** Path of the PDF file. */
+  path: string;
+}
+
 /** Params type of every operation, by op id. */
 export interface OpParams {
   'file.merge': FileMergeParams;
   'file.split': FileSplitParams;
+  'image.cleanup': ImageCleanupParams;
+  'image.fromStrokes': ImageFromStrokesParams;
+  'image.removeBackground': ImageRemoveBackgroundParams;
+  'image.separateColors': ImageSeparateColorsParams;
+  'image.textSignature': ImageTextSignatureParams;
   'page.delete': PageDeleteParams;
   'page.duplicate': PageDuplicateParams;
   'page.extract': PageExtractParams;
@@ -539,10 +819,15 @@ export interface OpParams {
   'sign.certInfo': SignCertInfoParams;
   'sign.diagnoseToken': SignDiagnoseTokenParams;
   'sign.driverScan': SignDriverScanParams;
+  'sign.extractRevision': SignExtractRevisionParams;
+  'sign.findAnchors': SignFindAnchorsParams;
   'sign.listFields': SignListFieldsParams;
   'sign.listTokens': SignListTokensParams;
   'sign.pades': SignPadesParams;
   'sign.padesToken': SignPadesTokenParams;
+  'sign.placeFromAnchor': SignPlaceFromAnchorParams;
+  'sign.verify': SignVerifyParams;
+  'sign.verifyFile': SignVerifyFileParams;
 }
 
 export type OpId = keyof OpParams;
@@ -550,6 +835,11 @@ export type OpId = keyof OpParams;
 export const OP_IDS = [
   'file.merge',
   'file.split',
+  'image.cleanup',
+  'image.fromStrokes',
+  'image.removeBackground',
+  'image.separateColors',
+  'image.textSignature',
   'page.delete',
   'page.duplicate',
   'page.extract',
@@ -565,8 +855,13 @@ export const OP_IDS = [
   'sign.certInfo',
   'sign.diagnoseToken',
   'sign.driverScan',
+  'sign.extractRevision',
+  'sign.findAnchors',
   'sign.listFields',
   'sign.listTokens',
   'sign.pades',
   'sign.padesToken',
+  'sign.placeFromAnchor',
+  'sign.verify',
+  'sign.verifyFile',
 ] as const;
