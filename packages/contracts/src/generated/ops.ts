@@ -147,6 +147,19 @@ export interface CropBox {
   h: number;
 }
 
+/** Corners TL, TR, BR, BL as fractions (0..1) of the page image. */
+export interface CropPage {
+  pageIndex: number;
+  corners: CropPoint[];
+  /** Output pixels [w, h]; default from the corners. */
+  outSize?: number[];
+}
+
+export interface CropPoint {
+  x: number;
+  y: number;
+}
+
 export interface FixedPlacement {
   kind: 'fixed';
   /** @default "bottom-right" */
@@ -185,6 +198,15 @@ export interface ImageSlot {
 
 export interface InvisiblePlacement {
   kind: 'invisible';
+}
+
+export interface Levels {
+  /** @default 0 */
+  black?: number;
+  /** @default 255 */
+  white?: number;
+  /** @default 1.0 */
+  gamma?: number;
 }
 
 /** An area to redact by hand (displayed frame, points, origin top-left). */
@@ -301,6 +323,14 @@ export interface PreviewValues {
   contact?: string;
   /** ISO 8601 date and time. Default: now (local time). */
   date?: string;
+}
+
+/** A rectangle as fractions (0..1) of the page image. */
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface RectPlacement {
@@ -2094,6 +2124,175 @@ export interface PageSplitParams {
   order?: 'ltr' | 'rtl';
 }
 
+/** Find the sheet on each page and crop to it; unsure pages are reported (L15, L18, L19). */
+export interface PageimgAutoCropParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /**
+   * Pages below this are left as they are and reported.
+   * @default 0.6
+   */
+  minConfidence?: number;
+  /**
+   * 'auto' keeps the measured proportions.
+   * @default "auto"
+   */
+  paperSize?: 'auto' | 'A4' | 'A5' | 'Letter';
+  /**
+   * Pixels added around the sheet.
+   * @default 0
+   */
+  padding?: number;
+  /** @default false */
+  keepPageSize?: boolean;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Crop a page image by 4 corners, with perspective correction (L2, L16, L17). */
+export interface PageimgCropParams {
+  pages: CropPage[];
+  /**
+   * False: the page follows the new image at its resolution.
+   * @default false
+   */
+  keepPageSize?: boolean;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Straighten the text of scanned pages (L1). */
+export interface PageimgDeskewParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** @default "auto" */
+  mode?: 'auto' | 'angle';
+  /**
+   * mode angle: skew to remove, degrees counter-clockwise (as mode auto reports it).
+   * @default 0.0
+   */
+  angle?: number;
+  /**
+   * mode auto: below this the page is only reported.
+   * @default 0.5
+   */
+  minConfidence?: number;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Detect the corners of the sheet on each page (no change to the document). */
+export interface PageimgDetectQuadParams {
+  /** 0-based; default all. */
+  pages?: number[];
+}
+
+/** Clean up scanned pages: background, specks, levels, colour, resolution (L3, L4, L12). */
+export interface PageimgEnhanceParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** @default false */
+  whiten?: boolean;
+  /** @default 0.8 */
+  whitenStrength?: number;
+  /** @default false */
+  denoise?: boolean;
+  /** @default 0.5 */
+  denoiseStrength?: number;
+  levels?: Levels;
+  /** @default false */
+  invert?: boolean;
+  /** @default false */
+  grayscale?: boolean;
+  /** @default 0 */
+  contrast?: number;
+  /** @default 0 */
+  brightness?: number;
+  /** Resolution in dpi. Resamples the pixels (page keeps its size) unless resizePage is set. */
+  dpi?: number;
+  /**
+   * With dpi: keep the pixels and change the page size so that the image has dpi.
+   * @default false
+   */
+  resizePage?: boolean;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Erase rectangles or a mask on one page image and fill them with paper (L10). */
+export interface PageimgEraseParams {
+  pageIndex: number;
+  rects?: Rect[];
+  /** PNG mask, white = erase (instead of rects). */
+  maskPath?: string;
+  /** @default "paper" */
+  fill?: string;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Propose the finger regions of a page as a mask image (no change to the document). */
+export interface PageimgProposeFingerMaskParams {
+  pageIndex: number;
+}
+
+/** Erase fingers on the edges of scanned pages (L14). Use proposeFingerMask first. */
+export interface PageimgRemoveFingersParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** @default "auto" */
+  mode?: 'auto' | 'mask';
+  /** mode mask: PNG from proposeFingerMask (edited); white = erase. One page. */
+  maskPng?: string;
+  /** @default "paper" */
+  fill?: string;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Erase one ink colour (blue pen, highlighter, red stamp) from page images (L11). */
+export interface PageimgRemoveStainsParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** Hue start in degrees (red 0, yellow 60, green 120, blue 240). */
+  hueMin: number;
+  /** Hue end in degrees; less than hueMin wraps around red. */
+  hueMax: number;
+  /** @default 0.4 */
+  minSaturation?: number;
+  /** @default "paper" */
+  fill?: string;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
+/** Split each page image (a two-page spread) into two pages (L6). */
+export interface PageimgSplitSpreadParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** @default "auto" */
+  mode?: 'auto' | 'x';
+  /** mode x: split at this fraction. */
+  x?: number;
+  /**
+   * ltr: left half first. rtl: right half first (Japanese, Arabic books).
+   * @default "ltr"
+   */
+  order?: 'ltr' | 'rtl';
+  /**
+   * Fraction of the width removed on each side of the split.
+   * @default 0.01
+   */
+  gutterMargin?: number;
+  /**
+   * mode auto: below this, not split.
+   * @default 0.4
+   */
+  minConfidence?: number;
+  /** @default 80 */
+  jpegQuality?: number;
+}
+
 /** Run the checklist on the session document. */
 export interface PreflightCheckParams {
   /** Size limit of the file (for example 10 MB). */
@@ -2841,6 +3040,87 @@ export interface StampTextParams {
   blendMultiply?: boolean;
 }
 
+/** Would this text fit the line's font? Changes nothing. */
+export interface TextCheckTextParams {
+  /** Line id from text.getLines. */
+  lineId: string;
+  /** @default "" */
+  newText?: string;
+  /** @default true */
+  keepStyle?: boolean;
+}
+
+/** Replace the text of one line. Empty text deletes the line. */
+export interface TextEditLineParams {
+  pageIndex: number;
+  lineId: string;
+  newText: string;
+  /**
+   * auto: keep the font when it writes everything, else replace. keep: never replace (error when characters are missing). replace: always replace.
+   * @default "auto"
+   */
+  fontStrategy?: 'auto' | 'keep' | 'replace';
+  /** Replacement font id from text.listFonts (implies replace). */
+  fontName?: string;
+  /**
+   * Replacement font follows the bold/italic/serif style of the line.
+   * @default true
+   */
+  keepStyle?: boolean;
+  /**
+   * none: the line may grow. shrink: lower the size (to 80%). track: lower spacing.
+   * @default "none"
+   */
+  fitWidth?: 'none' | 'shrink' | 'track';
+}
+
+/** Find and replace text across the document, line by line. */
+export interface TextFindReplaceParams {
+  find: string;
+  /** @default "" */
+  replace?: string;
+  /** @default false */
+  caseSensitive?: boolean;
+  /** @default false */
+  ignoreDiacritics?: boolean;
+  /** @default false */
+  wholeWord?: boolean;
+  /**
+   * Python regular expression; \1 refers to groups.
+   * @default false
+   */
+  regex?: boolean;
+  /** 0-based pages (default: all). */
+  pages?: number[];
+  /**
+   * List the matches without changing the file.
+   * @default false
+   */
+  preview?: boolean;
+  /** @default "auto" */
+  fontStrategy?: 'auto' | 'keep' | 'replace';
+  fontName?: string;
+  /** @default true */
+  keepStyle?: boolean;
+  /** @default "none" */
+  fitWidth?: 'none' | 'shrink' | 'track';
+}
+
+/** Lines of one page with their boxes (displayed frame, points, origin top-left). */
+export interface TextGetLinesParams {
+  /** 0-based page. */
+  pageIndex: number;
+  /**
+   * Also list text marked as /Artifact (watermarks, page numbers).
+   * @default false
+   */
+  includeArtifacts?: boolean;
+}
+
+/** The replacement fonts of the registry (no parameters). */
+export interface TextListFontsParams {
+}
+
 /** List the watermark candidates of the document (nothing is changed). */
 export interface WatermarkDetectParams {
 }
@@ -2936,6 +3216,16 @@ export interface OpParams {
   'page.resize': PageResizeParams;
   'page.rotate': PageRotateParams;
   'page.split': PageSplitParams;
+  'pageimg.autoCrop': PageimgAutoCropParams;
+  'pageimg.crop': PageimgCropParams;
+  'pageimg.deskew': PageimgDeskewParams;
+  'pageimg.detectQuad': PageimgDetectQuadParams;
+  'pageimg.enhance': PageimgEnhanceParams;
+  'pageimg.erase': PageimgEraseParams;
+  'pageimg.proposeFingerMask': PageimgProposeFingerMaskParams;
+  'pageimg.removeFingers': PageimgRemoveFingersParams;
+  'pageimg.removeStains': PageimgRemoveStainsParams;
+  'pageimg.splitSpread': PageimgSplitSpreadParams;
   'preflight.check': PreflightCheckParams;
   'redact.apply': RedactApplyParams;
   'redact.find': RedactFindParams;
@@ -2971,6 +3261,11 @@ export interface OpParams {
   'stamp.presets': StampPresetsParams;
   'stamp.seam': StampSeamParams;
   'stamp.text': StampTextParams;
+  'text.checkText': TextCheckTextParams;
+  'text.editLine': TextEditLineParams;
+  'text.findReplace': TextFindReplaceParams;
+  'text.getLines': TextGetLinesParams;
+  'text.listFonts': TextListFontsParams;
   'watermark.detect': WatermarkDetectParams;
   'watermark.remove': WatermarkRemoveParams;
 }
@@ -3054,6 +3349,16 @@ export const OP_IDS = [
   'page.resize',
   'page.rotate',
   'page.split',
+  'pageimg.autoCrop',
+  'pageimg.crop',
+  'pageimg.deskew',
+  'pageimg.detectQuad',
+  'pageimg.enhance',
+  'pageimg.erase',
+  'pageimg.proposeFingerMask',
+  'pageimg.removeFingers',
+  'pageimg.removeStains',
+  'pageimg.splitSpread',
   'preflight.check',
   'redact.apply',
   'redact.find',
@@ -3089,6 +3394,11 @@ export const OP_IDS = [
   'stamp.presets',
   'stamp.seam',
   'stamp.text',
+  'text.checkText',
+  'text.editLine',
+  'text.findReplace',
+  'text.getLines',
+  'text.listFonts',
   'watermark.detect',
   'watermark.remove',
 ] as const;

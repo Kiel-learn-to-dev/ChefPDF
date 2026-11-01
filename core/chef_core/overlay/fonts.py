@@ -55,12 +55,13 @@ class Subset:
 class FontFace:
     """One bundled font: metrics from the full font, subsets from the bundled file."""
 
-    def __init__(self, family: str, *, bold: bool) -> None:
-        if family not in KNOWN_FAMILIES:
+    def __init__(self, family: str, *, bold: bool, path: Path | None = None) -> None:
+        # ``path`` lets the text engine load a font from the resource manifest (T7.02)
+        if path is None and family not in KNOWN_FAMILIES:
             raise ChefError(ErrorKind.INVALID_PARAMS, f"Unknown font: {family}")
         self.family = family
         self.bold = bold
-        self.path: Path = font_path(family, bold=bold)
+        self.path: Path = path if path is not None else font_path(family, bold=bold)
         font = TTFont(self.path)
         try:
             self.units_per_em: int = int(font["head"].unitsPerEm)

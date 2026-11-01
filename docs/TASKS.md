@@ -188,10 +188,10 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T7.01 | Mô hình chữ: gom ký tự → dòng → đoạn; ánh xạ font; kiểm tra font có đủ ký tự tiếng Việt không | | 4 | T6.01 | ⬜ |
-| T7.02 | Sửa chữ mức dòng, tự thay font khi thiếu ký tự | D8 | 4 | T7.01 | ⬜ |
+| T7.01 | Mô hình chữ: gom ký tự → dòng → đoạn; ánh xạ font; kiểm tra font có đủ ký tự tiếng Việt không | | 4 | T6.01 | 🔄 |
+| T7.02 | Sửa chữ mức dòng, tự thay font khi thiếu ký tự | D8 | 4 | T7.01 | 🔄 |
 | T7.03 | Sửa chữ mức đoạn, tự xuống dòng lại, đổi kiểu chữ | D9 | 5 | T7.02 | ⬜ |
-| T7.04 | Tìm & thay thế chữ toàn tài liệu | D10 | 2 | T7.02 | ⬜ |
+| T7.04 | Tìm & thay thế chữ toàn tài liệu | D10 | 2 | T7.02 | 🔄 |
 | T7.05 | Liên kết | D11 | 1 | T6.01 | ⬜ |
 | T7.06 | Ghi chú: highlight/gạch chân/gạch ngang, note, vẽ (tận dụng annotation editor của pdf.js) | G1, G2, G3 | 3 | T1.16 | ⬜ |
 | T7.07 | Danh sách ghi chú (lọc, trả lời, xuất); làm phẳng ghi chú | G4, G5 | 2 | T7.06 | ⬜ |
@@ -204,16 +204,16 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | ⬜ |
-| T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | ⬜ |
-| T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | ⬜ |
-| T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | ⬜ |
+| T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | 🔄 |
+| T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | 🔄 |
+| T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | 🔄 |
+| T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | 🔄 |
 | T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ⬜ |
-| T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | ⬜ |
+| T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | 🔄 |
 | T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | ⬜ |
-| T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | ⬜ |
+| T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | 🔄 |
 | T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | ⬜ |
-| T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | ⬜ |
+| T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | 🔄 |
 | T8.11 | Chụp bằng điện thoại qua QR: máy chủ LAN tạm có token, trang web chụp, nhận ảnh, dò viền ngay. Dùng cho cả chụp chữ ký (I19) | L5, (I19) | 4 | T8.04 | ⬜ |
 
 ---

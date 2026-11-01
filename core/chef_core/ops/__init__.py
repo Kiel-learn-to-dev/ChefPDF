@@ -42,7 +42,9 @@ BUILTIN_MODULES = (
     "chef_core.ops.content_erase",
     "chef_core.ops.content_layers",
     "chef_core.ops.content_watermark",
+    "chef_core.ops.text_edit",
     "chef_core.ops.redact",
+    "chef_core.ops.pageimg",
 )
 
 

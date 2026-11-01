@@ -1,0 +1,26 @@
+{
+  "format": "chef-fonts/1",
+  "comment": "Fonts used to replace text that the original PDF font cannot write (T7.02). One entry per font file. style: sans | serif | mono. Add a font by copying its .ttf/.otf here (OFL or another license that allows embedding) and adding an entry. Entries whose file is missing are ignored.",
+  "fonts": [
+    {
+      "id": "BeVietnamPro-Regular",
+      "file": "BeVietnamPro-Regular.ttf",
+      "family": "Be Vietnam Pro",
+      "style": "sans",
+      "bold": false,
+      "italic": false,
+      "coverage": "vietnamese",
+      "license": "OFL-1.1"
+    },
+    {
+      "id": "BeVietnamPro-Bold",
+      "file": "BeVietnamPro-Bold.ttf",
+      "family": "Be Vietnam Pro",
+      "style": "sans",
+      "bold": true,
+      "italic": false,
+      "coverage": "vietnamese",
+      "license": "OFL-1.1"
+    }
+  ]
+}
