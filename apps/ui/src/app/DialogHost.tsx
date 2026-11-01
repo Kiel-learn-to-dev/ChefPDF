@@ -34,6 +34,7 @@ import { InspectDialog } from '../features/inspect/InspectDialog';
 import { PreflightDialog } from '../features/preflight/PreflightDialog';
 import { CompressDialog } from '../features/compress/CompressDialog';
 import { ImagesToPdfDialog, PdfToImagesDialog } from '../features/convert/ConvertDialogs';
+import { Web2PdfDialog } from '../features/web2pdf/Web2PdfDialog';
 import { VerifyBatchDialog } from '../features/verifyBatch/VerifyBatchDialog';
 import { DocToolsDialog } from '../features/docTools/DocToolsDialog';
 import { RepairDialog } from '../features/docTools/RepairDialog';
@@ -45,6 +46,10 @@ import {
   SmartSplitDialog,
 } from '../features/pagetools/PageToolDialogs';
 import { BlankReviewDialog } from '../features/pagetools/BlankReviewDialog';
+import { WatermarkRemoveDialog } from '../features/cleanup/WatermarkRemoveDialog';
+import { BackgroundDialog } from '../features/cleanup/BackgroundDialog';
+import { RemoveSimilarDialog } from '../features/cleanup/RemoveSimilarDialog';
+import { RedactDialog } from '../features/redact/RedactDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -158,6 +163,8 @@ export function DialogHost() {
       return <PdfToImagesDialog />;
     case 'imagesToPdf':
       return <ImagesToPdfDialog />;
+    case 'web2pdf':
+      return <Web2PdfDialog />;
     case 'verifyBatch':
       return <VerifyBatchDialog />;
     case 'docTools':
@@ -176,6 +183,14 @@ export function DialogHost() {
       return <PageSplitDialog />;
     case 'smartSplit':
       return <SmartSplitDialog />;
+    case 'watermarkRemove':
+      return <WatermarkRemoveDialog />;
+    case 'backgroundRemove':
+      return <BackgroundDialog />;
+    case 'removeSimilar':
+      return <RemoveSimilarDialog />;
+    case 'redact':
+      return <RedactDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:

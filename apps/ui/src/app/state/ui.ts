@@ -20,7 +20,7 @@ export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>([
   'export',
 ]);
 
-export type SidebarTab = 'thumbnails' | 'outline' | 'signatures';
+export type SidebarTab = 'thumbnails' | 'outline' | 'signatures' | 'layers';
 export type ViewerTool = 'select' | 'snapshot';
 export type DialogId =
   | 'merge'
@@ -58,6 +58,7 @@ export type DialogId =
   | 'compress'
   | 'pdfToImages'
   | 'imagesToPdf'
+  | 'web2pdf'
   | 'verifyBatch'
   | 'docTools'
   | 'repair'
@@ -67,6 +68,10 @@ export type DialogId =
   | 'pageBlank'
   | 'pageGridSplit'
   | 'smartSplit'
+  | 'watermarkRemove'
+  | 'backgroundRemove'
+  | 'removeSimilar'
+  | 'redact'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

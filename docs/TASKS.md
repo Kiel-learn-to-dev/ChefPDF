@@ -157,7 +157,7 @@
 | T5.03 | Kiểm tra trước khi gửi (checklist + sửa từng mục) | J5 | 1,5 | T5.02, T3.08 | 🔄 |
 | T5.04 | Nén PDF theo preset (giảm ảnh, bỏ đối tượng thừa, rút gọn font) | M1 | 2,5 | T1.05 | 🔄 |
 | T5.05 | PDF → ảnh; ảnh → PDF; ảnh chụp màn hình / clipboard → PDF | M2, M3, M4 | 2 | T2.01 | 🔄 |
-| T5.06 | Web / Markdown / HTML → PDF (dùng bộ in của Chromium trong Electron) | M5 | 1,5 | T1.02 | ⬜ |
+| T5.06 | Web / Markdown / HTML → PDF (dùng bộ in của Chromium trong Electron) | M5 | 1,5 | T1.02 | ✅ |
 | T5.07 | Chuyển đổi màu: thang xám, đen trắng, tiết kiệm mực, thay màu | M6 | 2 | T1.05 | 🔄 |
 | T5.08 | Trích ảnh/chữ; file đính kèm; sửa metadata; tối ưu cho web; sửa file hỏng | M7–M11 | 2,5 | T1.05 | 🔄 |
 | T5.09 | Thay trang; cắt lề/đổi khổ (CropBox); xóa trang trắng; chia đôi trang; tách thông minh | C6–C10 | 3,5 | T1.24 | 🔄 |
@@ -173,7 +173,7 @@
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
 | T6.01 | Content engine: đọc đối tượng trang, xác định đối tượng dưới con trỏ, chọn, biến đổi, xóa, ghi lại. Gồm bước tiền xử lý bằng pikepdf (mở Form XObject, bỏ ActualText, lấy mã ký tự từ ToUnicode) và bước kiểm chứng độc lập, theo spike S2 | | 6 | T1.09 | ✅ |
-| T6.02 | UI chọn & sửa đối tượng (tay nắm, xoay, thứ tự lớp) | D4 | 2,5 | T6.01 | ⬜ |
+| T6.02 | UI chọn & sửa đối tượng (tay nắm, xoay, thứ tự lớp) | D4 | 2,5 | T6.01 | ✅ |
 | T6.03 | Tẩy vùng: cắt chữ/vector/ảnh theo vùng | D5 | 3 | T6.01 | 🔄 |
 | T6.04 | Thay ảnh; chỉnh ảnh trong PDF | D6, D7 | 2 | T6.01 | 🔄 |
 | T6.05 | Bảng lớp; xem theo loại nội dung | E1, E2 | 2 | T6.01 | 🔄 |

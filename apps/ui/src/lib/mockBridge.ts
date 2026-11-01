@@ -45,6 +45,15 @@ function mockBaseName(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
+import {
+  applyMockContentEdit,
+  applyMockErase,
+  applyMockLayerOp,
+  mockLayersData,
+  mockListObjects,
+  mockViewByType,
+} from './mockObjects';
+
 const SETTINGS_KEY = 'chef-mock-settings';
 
 const defaultSettings: Settings = {
@@ -173,6 +182,14 @@ const OP_IDS: string[] = [
   'doc.extractText',
   'doc.optimizeWeb',
   'doc.repair',
+  'watermark.detect',
+  'watermark.remove',
+  'content.hitTest',
+  'content.removeSimilar',
+  'background.detect',
+  'background.remove',
+  'redact.find',
+  'redact.apply',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -252,6 +269,9 @@ const SIGN_ON_SIGNED_OPS: ReadonlySet<OpId> = new Set<OpId>([
 
 /** Session ops that do not rewrite the document (allowed on signed documents). */
 const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
+  'content.listObjects',
+  'content.viewByType',
+  'layers.list',
   'sign.verify',
   'page.extract',
   'file.split',
@@ -1432,6 +1452,203 @@ export function createMockBridge(): ChefBridge {
         r = { ...result([], [p.outputPath]), data: { pages: pages.length, chars: text.length } };
         break;
       }
+      case 'watermark.detect': {
+        // Mock: one tagged watermark on every page (the detect step changes nothing).
+        modified = false;
+        const pages = Array.from({ length: doc.getPageCount() }, (_, i) => i);
+        const candidates = pages.length
+          ? [
+              {
+                id: 'mock-wm-1',
+                kind: 'Tagged watermark',
+                tier: 1,
+                confidence: 1,
+                pages,
+                count: pages.length,
+                sample: { pageIndex: 0, bbox: [150, 300, 450, 420] },
+                description: { vi: 'Watermark gắn nhãn chuẩn', en: 'Tagged watermark' },
+                evidence: ['Artifact/Watermark'],
+                objectRefs: [],
+                annotRefs: [],
+                layerIds: [],
+                overlayIds: [],
+                preview: pages.map((p) => ({ pageIndex: p, bboxes: [[150, 300, 450, 420]] })),
+              },
+            ]
+          : [];
+        r = { ...result([]), data: { pageCount: pages.length, candidates } };
+        break;
+      }
+      case 'watermark.remove': {
+        const p = params as OpParams['watermark.remove'];
+        const ids = p.all ? ['mock-wm-1'] : (p.candidateIds ?? []);
+        r = {
+          ...result([]),
+          data: {
+            removedObjects: ids.length,
+            removedAnnotations: 0,
+            removedOverlays: 0,
+            removedLayers: 0,
+            candidates: ids,
+          },
+        };
+        break;
+      }
+      case 'content.hitTest': {
+        modified = false;
+        const p = params as OpParams['content.hitTest'];
+        r = {
+          ...result([]),
+          data: {
+            pageIndex: p.pageIndex,
+            object: {
+              id: `mock-obj-${p.pageIndex}`,
+              pageIndex: p.pageIndex,
+              kind: 'image',
+              bbox: [100, 100, 220, 220],
+            },
+            objects: [],
+          },
+        };
+        break;
+      }
+      case 'content.removeSimilar': {
+        const p = params as OpParams['content.removeSimilar'];
+        const matches = [0, 1].map((pageIndex) => ({
+          id: `mock-sim-${pageIndex}`,
+          pageIndex,
+          bbox: [100, 100, 220, 220],
+        }));
+        modified = !(p.dryRun ?? true);
+        r = {
+          ...result([]),
+          data: {
+            dryRun: p.dryRun ?? true,
+            matches,
+            removedObjects: modified ? matches.length : 0,
+          },
+        };
+        break;
+      }
+      case 'background.detect': {
+        modified = false;
+        const pages = Array.from({ length: doc.getPageCount() }, (_, i) => i);
+        r = {
+          ...result([]),
+          data: {
+            backgrounds: pages.map((pageIndex) => ({
+              pageIndex,
+              id: `mock-bg-${pageIndex}`,
+              kind: 'rectangle',
+              bbox: [0, 0, 595, 842],
+              coverage: 0.96,
+              fill: '#F5F5F5',
+            })),
+          },
+        };
+        break;
+      }
+      case 'background.remove': {
+        r = { ...result([]), data: { objects: doc.getPageCount(), mode: 'remove' } };
+        break;
+      }
+      case 'redact.find': {
+        // Mock: one CCCD-like number on page 1 for any pattern set that asks for CCCD or text.
+        modified = false;
+        const p = params as OpParams['redact.find'];
+        const asks = p.patterns.some((x) => x.kind === 'cccd' || x.kind === 'literal');
+        const matches = asks
+          ? [
+              {
+                id: 'mock-match-1',
+                pageIndex: 0,
+                pattern: 'cccd',
+                text: '012345678901',
+                rects: [[72, 100, 220, 114]],
+              },
+            ]
+          : [];
+        r = { ...result([]), data: { matches, count: matches.length } };
+        break;
+      }
+      case 'redact.apply': {
+        const p = params as OpParams['redact.apply'];
+        const rects = p.rects ?? [];
+        const pages = [...new Set(rects.map((x) => x.pageIndex))].sort((a, b) => a - b);
+        r = {
+          ...result([]),
+          data: {
+            redacted: (p.matchIds?.length ?? 0) + rects.length,
+            pages,
+            removedAnnotations: 0,
+            scrubbed: {},
+            removedObjects: 0,
+            splitObjects: 0,
+            modifiedImages: 0,
+            clippedObjects: 0,
+            verification: { ok: true, leaks: [] },
+          },
+        };
+        break;
+      }
+      case 'content.listObjects':
+      case 'content.viewByType': {
+        const p = params as { pageIndex: number };
+        if (p.pageIndex >= doc.getPageCount()) {
+          throw new MockRpcError('INVALID_PARAMS', 'PAGE_OUT_OF_RANGE', -32602);
+        }
+        modified = false;
+        r = {
+          ...result([]),
+          data:
+            opId === 'content.listObjects'
+              ? mockListObjects(s, p.pageIndex, s.rev)
+              : mockViewByType(s, p.pageIndex, s.rev),
+        };
+        break;
+      }
+      case 'layers.list': {
+        modified = false;
+        r = { ...result([]), data: mockLayersData(s) };
+        break;
+      }
+      case 'layers.setVisibility':
+      case 'layers.remove':
+      case 'layers.flatten': {
+        applyMockLayerOp(s, opId, params);
+        r = result('all');
+        break;
+      }
+      case 'content.move':
+      case 'content.delete':
+      case 'content.duplicate':
+      case 'content.reorder':
+      case 'content.setColor':
+      case 'content.setOpacity': {
+        r = result(applyMockContentEdit(s, opId, params, s.rev) ?? []);
+        break;
+      }
+      case 'content.replaceImage':
+      case 'content.adjustImage': {
+        const p = params as { pageIndex: number };
+        r = { ...result([p.pageIndex]), data: { pixelSize: [400, 240] } };
+        break;
+      }
+      case 'content.extractImage': {
+        const p = params as { outputPath: string };
+        putFile(p.outputPath, await placeholderPng('Mock image', 400, 240));
+        modified = false;
+        r = { ...result([], [p.outputPath]), data: { pixelSize: [400, 240] } };
+        break;
+      }
+      case 'content.eraseRegion': {
+        const p = params as Parameters<typeof applyMockErase>[1];
+        r = {
+          ...result(p.pageIndex !== undefined ? [p.pageIndex] : []),
+          data: applyMockErase(s, p),
+        };
+        break;
+      }
       default:
         throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
     }
@@ -2045,6 +2262,12 @@ export function createMockBridge(): ChefBridge {
       },
       async workDir() {
         return MOCK_WORK_DIR;
+      },
+    },
+    convert: {
+      async toPdf(request) {
+        // Mock: no printing in the browser; reports the output as if it had been written.
+        return { outputPath: request.outputPath, sizeBytes: 1024 };
       },
     },
     clipboard: {

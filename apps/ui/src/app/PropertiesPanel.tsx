@@ -21,6 +21,7 @@ import { Badge } from '../components/Misc';
 import { formatBytes, formatPageSize } from '../lib/format';
 import { formatPageRanges } from '../lib/pageRange';
 import { useSelection } from '../features/pages/pageStore';
+import { ObjectPanel } from '../features/objects/ObjectPanel';
 import {
   deletePages,
   duplicatePages,
@@ -199,6 +200,7 @@ export function PropertiesPanel({ doc }: { doc: DocTab }) {
         />
       </div>
       <div className="panel__body">
+        {tab === 'edit' && <ObjectPanel doc={doc} />}
         {tab === 'pages' ? <PagesSection doc={doc} /> : <DocumentSection doc={doc} />}
       </div>
     </aside>

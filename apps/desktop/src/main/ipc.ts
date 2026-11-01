@@ -18,6 +18,7 @@ import path from 'node:path';
 import type { LibraryKind } from '@chef/contracts';
 import { IpcChannels, type RpcEnvelope } from '../shared/ipc';
 import { pdfFilesOf } from './pdfFiles';
+import type { Web2PdfResult } from '@chef/contracts';
 import type { PathAllowlist } from './allowlist';
 import { atomicWriteFile } from './fsutil';
 import { type ChefLibrary, MAX_LIBRARY_IMAGE_BYTES } from './library';
@@ -56,6 +57,8 @@ export interface IpcDeps {
   library: ChefLibrary;
   /** Clipboard PNG saved to the work directory (M4). Resolves to its path, or null. */
   clipboardImage: { capture(): Promise<string | null> };
+  /** "Trang web / Markdown → PDF" (T5.06): validates the request and converts it. */
+  web2pdf(input: unknown): Promise<Web2PdfResult>;
   trustedOrigins: Set<string>;
   labels(): Labels;
   log(message: string): void;
@@ -234,6 +237,8 @@ export function registerIpc(d: IpcDeps): void {
   handle(IpcChannels.libraryWorkDir, () => d.library.workDirPath);
   // Clipboard image to PDF (M4). No arguments; the main process reads the clipboard itself.
   handle(IpcChannels.clipboardReadImage, () => d.clipboardImage.capture());
+
+  handle(IpcChannels.convertToPdf, (_event, request) => d.web2pdf(request));
 
   handle(IpcChannels.appInitialFiles, () => d.openFiles.initialFiles);
 

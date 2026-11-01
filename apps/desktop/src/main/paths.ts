@@ -28,3 +28,15 @@ export function resolveUi(appPath: string, isPackaged: boolean, envUiDir?: strin
 export function repoRootFrom(appPath: string): string {
   return path.resolve(appPath, '../..');
 }
+
+/** Be Vietnam Pro regular and bold files from the first folder that has both, or null. */
+export function resolveBundledFonts(
+  candidates: string[],
+): { regular: string; bold: string } | null {
+  for (const dir of candidates) {
+    const regular = path.join(dir, 'BeVietnamPro-Regular.ttf');
+    const bold = path.join(dir, 'BeVietnamPro-Bold.ttf');
+    if (fs.existsSync(regular) && fs.existsSync(bold)) return { regular, bold };
+  }
+  return null;
+}

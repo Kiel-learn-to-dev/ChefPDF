@@ -1,0 +1,155 @@
+/* Highlight boxes of the cleanup and redaction dialogs, and the redaction dialog layout. */
+.hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+.hl-box {
+  position: absolute;
+  box-sizing: border-box;
+  background: rgba(255, 170, 0, 0.28);
+  border: 2px solid #e08a00;
+  border-radius: 2px;
+}
+
+.rd-warning {
+  border: 1px solid var(--color-danger, #c00000);
+  background: rgba(192, 0, 0, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.rd-warning strong {
+  font-weight: 700;
+}
+
+.rd-verified {
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: rgba(0, 128, 64, 0.1);
+  color: var(--color-success, #13703a);
+  font-weight: 600;
+}
+
+.rd-leaks {
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: rgba(192, 0, 0, 0.08);
+  color: var(--color-danger, #c00000);
+}
+
+.rd-leaks ul {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+
+.rd-section {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.rd-section__title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.rd-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rd-row__value {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.rd-group {
+  border: 1px solid var(--color-border, #d6d6d6);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.rd-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 2px 22px;
+}
+
+.rd-match__text {
+  font-family: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: underline dotted;
+}
+
+.cl-cand {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border, #e3e3e3);
+}
+
+.cl-cand__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cl-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.2);
+  overflow: hidden;
+}
+
+.cl-bar > span {
+  display: block;
+  height: 100%;
+  background: #1f6fd1;
+}
+
+.cl-bar--high > span {
+  background: #1f8a4c;
+}
+
+.cl-bar--low > span {
+  background: #b7791f;
+}
+
+.cl-page {
+  margin-top: 8px;
+}
+
+.cl-page__title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.cl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 2px 0 2px 16px;
+}
+
+.cl-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: inline-block;
+}

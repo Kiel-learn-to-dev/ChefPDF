@@ -1,0 +1,131 @@
+/* Object edit layer (D4) and view-by-type overlay (E2). Pointer events only in the live mode. */
+.obj-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+}
+.obj-layer--live {
+  pointer-events: auto;
+  cursor: default;
+}
+.obj-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--kind-c) 55%, transparent);
+  pointer-events: none;
+}
+.obj-box--text {
+  --kind-c: #2563eb;
+}
+.obj-box--image {
+  --kind-c: #16a34a;
+}
+.obj-box--path {
+  --kind-c: #ea580c;
+}
+.obj-box--shading {
+  --kind-c: #9333ea;
+}
+.obj-box--form {
+  --kind-c: #64748b;
+}
+.obj-box.is-hover {
+  border: 2px solid var(--kind-c);
+  background: color-mix(in srgb, var(--kind-c) 10%, transparent);
+}
+.obj-sel {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px solid var(--c-accent, #2563eb);
+  background: color-mix(in srgb, var(--c-accent, #2563eb) 8%, transparent);
+  pointer-events: none;
+}
+.obj-handle {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -4px;
+  background: #fff;
+  border: 1.5px solid var(--c-accent, #2563eb);
+  border-radius: 1px;
+}
+.obj-handle--nw {
+  left: 0;
+  top: 0;
+}
+.obj-handle--n {
+  left: 50%;
+  top: 0;
+}
+.obj-handle--ne {
+  left: 100%;
+  top: 0;
+}
+.obj-handle--e {
+  left: 100%;
+  top: 50%;
+}
+.obj-handle--se {
+  left: 100%;
+  top: 100%;
+}
+.obj-handle--s {
+  left: 50%;
+  top: 100%;
+}
+.obj-handle--sw {
+  left: 0;
+  top: 100%;
+}
+.obj-handle--w {
+  left: 0;
+  top: 50%;
+}
+.obj-band {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--c-accent, #2563eb);
+  background: color-mix(in srgb, var(--c-accent, #2563eb) 12%, transparent);
+  pointer-events: none;
+}
+.obj-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.72);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.obj-dim {
+  position: absolute;
+  background: rgb(255 255 255 / 0.6);
+  pointer-events: none;
+}
+.obj-typebox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px solid var(--kind-c);
+  background: color-mix(in srgb, var(--kind-c) 22%, transparent);
+  pointer-events: none;
+}
+.obj-typebox--text {
+  --kind-c: #2563eb;
+}
+.obj-typebox--image {
+  --kind-c: #16a34a;
+}
+.obj-typebox--path {
+  --kind-c: #ea580c;
+}
+.obj-typebox--shading {
+  --kind-c: #9333ea;
+}
+.obj-typebox--form {
+  --kind-c: #64748b;
+}

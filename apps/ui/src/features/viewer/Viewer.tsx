@@ -29,6 +29,9 @@ import {
 import { SnapshotLayer } from './SnapshotLayer';
 import { PlacementOverlay } from '../sign/PlacementOverlay';
 import { OverlayPlacementLayer } from '../overlay/OverlayPlacementLayer';
+import { HighlightLayer } from '../redact/HighlightLayer';
+import { ObjectLayer } from '../objects/ObjectLayer';
+import { EraseLayer } from '../erase/EraseLayer';
 import { FindBar } from './FindBar';
 import './Viewer.css';
 
@@ -315,6 +318,9 @@ export function Viewer({ doc }: { doc: DocTab }) {
       {tool === 'snapshot' && <SnapshotLayer getContainer={() => containerRef.current} />}
       <PlacementOverlay doc={doc} getContainer={() => containerRef.current} />
       <OverlayPlacementLayer doc={doc} getContainer={() => containerRef.current} />
+      <HighlightLayer doc={doc} getContainer={() => containerRef.current} />
+      <ObjectLayer doc={doc} getContainer={() => containerRef.current} />
+      <EraseLayer doc={doc} getContainer={() => containerRef.current} />
       {!ready && !error && (
         <div className="viewer__center">
           <Spinner size={22} label={t('viewer.loading')} />

@@ -25,12 +25,14 @@ import { installMenu } from './menu';
 import { ChefLibrary, secretKeyStore } from './library';
 import { captureClipboardPng } from './clipboardImage';
 import { OpenFilesController, argvSkipCount, parseFileArgs } from './openFiles';
-import { repoRootFrom, resolveUi } from './paths';
+import { repoRootFrom, resolveBundledFonts, resolveUi } from './paths';
 import { createAppHandler, createFileHandler, privilegedSchemes } from './protocol';
 import { SecretStore } from './secrets';
 import { SettingsStore } from './settings';
 import { SidecarManager, resolveCoreCommand, type CoreStatus } from './sidecar';
 import { createMainWindow, trustedOrigins } from './window';
+import { createWeb2PdfHandler } from './web2pdf';
+import { renderToPdf } from './web2pdfRender';
 
 const APP_TITLE = 'Chef PDF';
 const isDev = !app.isPackaged;
@@ -154,8 +156,19 @@ async function onReady(): Promise<void> {
     }
     return null;
   };
+  const web2pdf = createWeb2PdfHandler({
+    allowlist,
+    tempDir: path.join(cacheDir, 'web2pdf'),
+    fonts: resolveBundledFonts([
+      path.join(process.resourcesPath, 'fonts'),
+      path.join(repoRootFrom(app.getAppPath()), 'core', 'chef_core', 'resources', 'fonts'),
+    ]),
+    render: renderToPdf,
+    log,
+  });
   registerIpc({
     sidecar: sidecar!,
+    web2pdf,
     clipboardImage: {
       capture: () =>
         captureClipboardPng({

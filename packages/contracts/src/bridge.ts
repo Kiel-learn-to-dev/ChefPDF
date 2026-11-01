@@ -114,6 +114,37 @@ export interface CompressUserPreset {
   params: Record<string, unknown>;
 }
 
+/** Source kinds of "Trang web / Markdown → PDF" (T5.06). `url` is remote; the others are local. */
+export type Web2PdfKind = 'url' | 'html' | 'markdown' | 'file';
+
+export interface Web2PdfOptions {
+  pageSize: 'A4' | 'Letter';
+  landscape: boolean;
+  /** Margins in millimetres, 0 to 50 each. */
+  marginsMm: { top: number; right: number; bottom: number; left: number };
+  printBackground: boolean;
+  /** Rendering scale, 0.1 to 2. */
+  scale: number;
+  /** Page number footer and title header. */
+  headerFooter: boolean;
+}
+
+export interface Web2PdfRequest {
+  kind: Web2PdfKind;
+  /** http(s) URL for `url`; absolute path of a file the user picked for the other kinds. */
+  source: string;
+  /** Absolute path of the .pdf file to write. */
+  outputPath: string;
+  /** Must be true for `url`: the user has confirmed loading the remote page. */
+  confirmed?: boolean;
+  options?: Partial<Web2PdfOptions>;
+}
+
+export interface Web2PdfResult {
+  outputPath: string;
+  sizeBytes: number;
+}
+
 export type ChefEvent =
   | { type: 'rpc'; name: RpcNotification; payload: RpcNotifications[RpcNotification] }
   | { type: 'open-files'; paths: string[] }
@@ -189,6 +220,10 @@ export interface ChefBridge {
     release(absPath: string): Promise<void>;
     /** Absolute path of the work directory for files the core writes (inside the app cache). */
     workDir(): Promise<string>;
+  };
+  /** Web, Markdown and HTML to PDF (T5.06). Runs in the main process; output is a file. */
+  convert: {
+    toPdf(request: Web2PdfRequest): Promise<Web2PdfResult>;
   };
   clipboard: {
     writeText(text: string): Promise<void>;

@@ -54,6 +54,8 @@ import {
   ShieldCheck,
   Wrench,
   Layers,
+  Eraser,
+  MousePointer2,
   Library,
   Landmark,
   Droplets,
@@ -62,12 +64,16 @@ import {
   ScanSearch,
   ClipboardCheck,
   FileStack,
+  Globe,
   PanelTop,
   QrCode,
   Type,
   Palette,
   Repeat,
   Scissors,
+  PaintBucket,
+  MousePointerClick,
+  EyeOff,
 } from 'lucide-react';
 import { closeDoc, openWithDialog, redo, saveDoc, undo } from './actions';
 import { useDocs, type DocTab } from './state/documents';
@@ -88,6 +94,8 @@ import {
 import { getSelection } from '../features/pages/pageStore';
 import { openScanFlow } from '../features/scan/ScanDialog';
 import { usePlacementStore } from '../features/sign/placementStore';
+import { useObjectEdit } from '../features/objects/objectState';
+import { useEraseState } from '../features/erase/eraseState';
 
 export type CommandGroup = 'file' | 'edit' | 'view' | 'pages' | 'tools' | 'app' | 'soon';
 
@@ -763,6 +771,75 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: has,
       run: () => ui.openDialog('overlayManager'),
     },
+    // Chỉnh sửa: dọn watermark, nền và che thông tin mật (E3-E5, J6). Blocked on signed files.
+    ...[
+      {
+        id: 'edit.removeWatermark',
+        title: t('cleanup.wm.cmd'),
+        dialog: 'watermarkRemove' as const,
+        icon: <Droplets size={I} />,
+        keywords: ['watermark', 'go watermark', 'ban sao', 'chim', 'nen', 'remove'],
+      },
+      {
+        id: 'edit.background',
+        title: t('cleanup.background.cmd'),
+        dialog: 'backgroundRemove' as const,
+        icon: <PaintBucket size={I} />,
+        keywords: ['nen', 'nen trang', 'background', 'mau nen', 'doi nen'],
+      },
+      {
+        id: 'edit.removeSimilar',
+        title: t('cleanup.similar.cmd'),
+        dialog: 'removeSimilar' as const,
+        icon: <MousePointerClick size={I} />,
+        keywords: ['giong', 'giong nhau', 'logo chim', 'doi tuong', 'similar'],
+      },
+      {
+        id: 'edit.redact',
+        title: t('redact.cmd'),
+        dialog: 'redact' as const,
+        icon: <EyeOff size={I} />,
+        keywords: ['che', 'mat', 'cccd', 'cmnd', 'so dien thoai', 'email', 'redact', 'bi mat'],
+      },
+    ].map((c) => ({
+      id: c.id,
+      title: c.title,
+      group: 'edit' as const,
+      icon: c.icon,
+      keywords: c.keywords,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => ui.openDialog(c.dialog),
+    })),
+    {
+      id: 'edit.objects',
+      title: t('objects.cmd.toggle'),
+      short: t('objects.cmd.toggle'),
+      keywords: ['doi tuong', 'chon', 'sua', 'object', 'select', 'di chuyen', 'xoa doi tuong'],
+      group: 'edit',
+      icon: <MousePointer2 size={I} />,
+      enabled: has,
+      run: () => {
+        const objects = useObjectEdit.getState();
+        if (!objects.active) useEraseState.getState().setActive(false);
+        objects.setActive(!objects.active);
+      },
+    },
+    {
+      id: 'edit.erase',
+      title: t('erase.cmd'),
+      short: t('erase.cmd'),
+      keywords: ['tay vung', 'xoa vung', 'cat', 'che', 'erase', 'tay'],
+      group: 'edit',
+      icon: <Eraser size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => {
+        const erase = useEraseState.getState();
+        useObjectEdit.getState().setActive(false);
+        erase.setActive(!erase.active);
+      },
+    },
     {
       id: 'tools.bates',
       title: t('overlay.cmd.bates'),
@@ -917,6 +994,16 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       icon: <FileImage size={I} />,
       enabled: has,
       run: () => ui.openDialog('pdfToImages'),
+    },
+    {
+      id: 'tools.web2pdf',
+      title: t('web2pdf.cmd'),
+      short: t('web2pdf.short'),
+      keywords: ['web', 'trang web', 'url', 'markdown', 'md', 'html', 'in web', 'chuyen web'],
+      group: 'tools',
+      icon: <Globe size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('web2pdf'),
     },
     {
       id: 'tools.imagesToPdf',

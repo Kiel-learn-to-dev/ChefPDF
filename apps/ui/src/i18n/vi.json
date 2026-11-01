@@ -114,6 +114,8 @@
   },
   "start": {
     "repairText": "Thử khôi phục file PDF không mở được",
+    "web2pdfTitle": "Trang web → PDF",
+    "web2pdfText": "Chuyển trang web, Markdown hoặc HTML thành PDF",
     "title": "Chào bạn, hôm nay làm gì với PDF?",
     "subtitle": "Mở file, hoặc chọn một việc bên dưới.",
     "tasks": "Việc thường làm",
@@ -165,7 +167,8 @@
     "goToPage": "Đến trang {{page}}",
     "noOutline": "Không có mục lục",
     "noOutlineText": "Tài liệu này không có bookmark.",
-    "signatures": "Chữ ký"
+    "signatures": "Chữ ký",
+    "layers": "Lớp"
   },
   "panel": {
     "label": "Bảng thuộc tính",
@@ -547,6 +550,7 @@
   },
   "errors": {
     "title": "Có lỗi xảy ra",
+    "REDACTION_VERIFY_FAILED": "Che thông tin chưa đạt kiểm chứng: chữ vẫn còn trong file. Không có gì được lưu.",
     "openFailed": "Không mở được {{name}}",
     "opFailed": "{{title}} không thành công",
     "noBridge": "Không kết nối được với Chef PDF ({{message}}).",
@@ -1625,7 +1629,9 @@
       "title": {
         "overlayText": "Đặt chữ",
         "overlayImage": "Đặt ảnh",
-        "overlayCode": "Đặt mã"
+        "overlayCode": "Đặt mã",
+        "redact": "Vẽ vùng cần che",
+        "removeSimilar": "Chọn đối tượng cần gỡ"
       }
     },
     "text": {
@@ -2376,6 +2382,36 @@
       "unusual": "{{count}} ảnh kiểu màu lạ giữ nguyên"
     }
   },
+  "web2pdf": {
+    "cmd": "Trang web / Markdown → PDF…",
+    "short": "Web → PDF",
+    "title": "Trang web / Markdown → PDF",
+    "description": "Chuyển trang web (http/https), file Markdown hoặc HTML thành PDF.",
+    "kind": "Nguồn",
+    "kindUrl": "Trang web (http/https)",
+    "kindFile": "File Markdown hoặc HTML trên máy",
+    "url": "Địa chỉ trang web",
+    "urlHint": "Chỉ http và https. Trang web sẽ được tải về máy để in.",
+    "confirm": "Tôi xác nhận tải trang web này",
+    "pickFile": "Chọn file…",
+    "file": "File nguồn",
+    "needSource": "Nhập địa chỉ trang web hoặc chọn file.",
+    "needConfirm": "Cần xác nhận trước khi tải trang web.",
+    "output": "File PDF đầu ra",
+    "chooseOutput": "Chọn nơi lưu…",
+    "needOutput": "Chọn nơi lưu file PDF.",
+    "pageSize": "Khổ giấy",
+    "landscape": "Khổ ngang",
+    "margin": "Lề (mm)",
+    "printBackground": "In nền và màu",
+    "headerFooter": "Đánh số trang ở chân trang",
+    "scale": "Tỷ lệ",
+    "run": "Chuyển thành PDF",
+    "done": "Đã tạo PDF",
+    "failed": "Không chuyển được",
+    "running": "Đang chuyển…",
+    "mdNote": "Markdown được xử lý an toàn: không chạy script, chỉ hiện ảnh trong cùng thư mục."
+  },
   "convert": {
     "title": "Chuyển đổi",
     "cmdPdfToImages": "PDF → ảnh…",
@@ -2646,5 +2682,319 @@
     "discard": "Bỏ",
     "discardAll": "Bỏ tất cả",
     "later": "Để sau"
+  },
+  "cleanup": {
+    "scope": {
+      "label": "Phạm vi",
+      "all": "Toàn bộ tài liệu",
+      "current": "Trang hiện tại",
+      "range": "Các trang…",
+      "rangeHint": "Ví dụ: 1-3, 5, 8",
+      "invalid": "Khoảng trang không hợp lệ."
+    },
+    "wm": {
+      "cmd": "Gỡ watermark",
+      "title": "Gỡ watermark",
+      "description": "Tìm watermark trong \"{{name}}\". Danh sách chỉ để bạn xem và chọn; chưa có gì bị xóa cho đến khi bạn bấm Gỡ.",
+      "scanning": "Đang tìm watermark…",
+      "empty": "Không tìm thấy watermark tự động",
+      "emptyHint": "Nếu watermark vẫn còn, hãy chọn nó bằng chế độ chọn đối tượng rồi dùng \"Gỡ đối tượng giống thế này\".",
+      "list": "Ứng viên watermark",
+      "pages": "{{count}} trang",
+      "objects": "{{count}} đối tượng",
+      "sample": "Xem trang {{page}}",
+      "confidence": "Độ tin cậy {{percent}}%",
+      "level": {
+        "high": "cao",
+        "medium": "trung bình",
+        "low": "thấp"
+      },
+      "highlight": "Vùng ứng viên được đánh dấu trên trang {{page}}.",
+      "run": "Gỡ {{count}} đã chọn",
+      "jobTitle": "Gỡ watermark: {{name}}",
+      "done": "Đã gỡ {{count}} đối tượng watermark.",
+      "rescan": "Quét lại",
+      "notice": "Chỉ gỡ watermark trong tài liệu bạn có quyền chỉnh sửa (tài liệu của bạn hoặc của công ty bạn)."
+    },
+    "background": {
+      "cmd": "Gỡ / đổi nền trang",
+      "title": "Gỡ hoặc đổi nền trang",
+      "description": "Các nền lớn (màu hoặc ảnh phủ gần hết trang) trong \"{{name}}\".",
+      "scanning": "Đang tìm nền…",
+      "empty": "Không tìm thấy nền trang lớn.",
+      "list": "Nền tìm được",
+      "coverage": "phủ {{percent}}% trang",
+      "kind": {
+        "rectangle": "Hình chữ nhật",
+        "image": "Ảnh",
+        "fill": "Màu"
+      },
+      "mode": "Cách xử lý",
+      "remove": "Xóa nền",
+      "replaceColor": "Đổi sang màu",
+      "color": "Màu nền mới",
+      "colorInvalid": "Chọn một màu hợp lệ.",
+      "run": "Áp dụng",
+      "jobTitle": "Nền trang: {{name}}",
+      "done": "Đã xử lý {{count}} đối tượng nền.",
+      "notice": "Không hoàn tác được sau khi lưu. Chỉ dùng cho tài liệu bạn có quyền chỉnh sửa."
+    },
+    "similar": {
+      "cmd": "Gỡ đối tượng giống thế này",
+      "title": "Gỡ đối tượng giống thế này",
+      "description": "Chọn một đối tượng trên trang (logo, hình chìm…), rồi tìm và gỡ các đối tượng giống nó.",
+      "pick": "Chọn đối tượng trên trang…",
+      "picked": "Đã chọn: {{kind}} ở trang {{page}}",
+      "none": "Không có đối tượng nào ở điểm vừa bấm.",
+      "scope": {
+        "label": "Phạm vi",
+        "all": "Mọi đối tượng giống, kể cả đối tượng đã chọn",
+        "others": "Chỉ các đối tượng khác"
+      },
+      "tolerance": "Sai số vị trí (mm)",
+      "preview": "Xem trước",
+      "found": "Tìm thấy {{count}} đối tượng giống nhau trên {{pages}} trang.",
+      "perPage": "Trang {{page}}: {{count}}",
+      "remove": "Gỡ {{count}} đối tượng",
+      "removed": "Đã gỡ {{count}} đối tượng.",
+      "needPreview": "Hãy xem trước trước khi gỡ.",
+      "noMatches": "Không có đối tượng nào giống nhau.",
+      "jobTitle": "Gỡ đối tượng giống nhau: {{name}}"
+    }
+  },
+  "redact": {
+    "cmd": "Che thông tin mật",
+    "title": "Che thông tin mật",
+    "description": "Tìm và che thông tin nhạy cảm trong \"{{name}}\".",
+    "warning": "CẢNH BÁO: Che thông tin sẽ XÓA VĨNH VIỄN nội dung bên dưới. Sau khi lưu, không thể khôi phục. Chỉ hoàn tác được khi chưa lưu.",
+    "patterns": {
+      "title": "Thông tin cần tìm",
+      "cccd": "CCCD / CMND",
+      "phone": "Số điện thoại",
+      "email": "Email",
+      "bankAccount": "Số tài khoản",
+      "taxCode": "Mã số thuế",
+      "date": "Ngày tháng",
+      "literal": "Chữ cụ thể",
+      "regex": "Biểu thức (regex)"
+    },
+    "custom": {
+      "title": "Chữ hoặc mẫu khác",
+      "literal": "Chữ cụ thể",
+      "regex": "Biểu thức (regex)",
+      "value": "Nhập chữ hoặc biểu thức",
+      "ignoreDiacritics": "Bỏ qua dấu",
+      "remove": "Xóa dòng",
+      "add": "Thêm dòng",
+      "invalidRegex": "Biểu thức không hợp lệ."
+    },
+    "find": "Tìm",
+    "finding": "Đang tìm…",
+    "none": "Không tìm thấy thông tin nào khớp.",
+    "results": "{{count}} vị trí tìm được",
+    "groupCount": "{{count}} vị trí · trang {{pages}}",
+    "allOccurrences": "Nên chọn tất cả các lần xuất hiện của cùng một đoạn chữ. Nếu bỏ sót một lần, bước kiểm chứng sẽ báo còn chữ.",
+    "unchecked": "{{count}} vị trí không được chọn sẽ còn nguyên.",
+    "pageN": "Trang {{page}}",
+    "selectGroup": "Chọn cả nhóm",
+    "areas": {
+      "title": "Vùng che thủ công",
+      "draw": "Vẽ vùng che trên trang…",
+      "drawn": "Vùng {{index}} · trang {{page}}",
+      "remove": "Xóa vùng",
+      "none": "Chưa có vùng nào.",
+      "hint": "Kéo vùng cần che trên trang. Hộp thoại sẽ tạm đóng khi bạn vẽ."
+    },
+    "fill": "Màu che",
+    "alsoMetadata": "Xóa thông tin ẩn (metadata, XMP)",
+    "removeFromAnnotations": "Xóa chú thích và giá trị ô form trong vùng che",
+    "apply": "Che vĩnh viễn {{count}} vị trí",
+    "nothing": "Chưa chọn vị trí nào để che.",
+    "confirmTitle": "Che vĩnh viễn?",
+    "confirmBody": "Nội dung được che sẽ bị xóa khỏi file và không khôi phục được sau khi lưu.",
+    "confirm": "Che và xóa vĩnh viễn",
+    "verified": "✓ Đã kiểm chứng: không còn chữ bên dưới",
+    "leaksTitle": "Vẫn còn chữ sau khi che:",
+    "leakItem": "{{where}} (mẫu: {{pattern}})",
+    "leakHint": "Hãy chọn tất cả các lần xuất hiện của đoạn chữ này rồi che lại.",
+    "jobTitle": "Che thông tin: {{name}}",
+    "done": "Đã che {{count}} vị trí."
+  },
+  "objects": {
+    "title": "Đối tượng",
+    "cmd": {
+      "toggle": "Chọn & sửa đối tượng"
+    },
+    "hint": "Bấm chọn · Shift thêm/bớt · Ctrl chọn khoảng · Alt chọn đối tượng bên dưới · Kéo để di chuyển",
+    "selectedHint": "Đã chọn {{count}} đối tượng · Delete xóa · Ctrl+D nhân bản · Mũi tên nhích 1 pt (Shift: 10 pt)",
+    "rotatedHint": "Đặt xoay trang về 0° để sửa đối tượng",
+    "listing": "Đang đọc đối tượng…",
+    "kind": {
+      "text": "Chữ",
+      "image": "Ảnh",
+      "path": "Hình vẽ",
+      "shading": "Tô chuyển màu",
+      "form": "Form"
+    },
+    "op": {
+      "move": "Di chuyển đối tượng",
+      "delete": "Xóa đối tượng",
+      "duplicate": "Nhân bản đối tượng",
+      "reorder": "Đổi thứ tự lớp",
+      "colour": "Đổi màu",
+      "opacity": "Đổi độ mờ",
+      "replaceImage": "Thay ảnh",
+      "adjustImage": "Chỉnh ảnh",
+      "extractImage": "Lưu ảnh ra file"
+    },
+    "err": {
+      "OVERLAPPING_OBJECTS": "Các đối tượng chồng lên nhau, không thể thao tác cùng lúc.",
+      "CLIPPED_OBJECT_REORDER": "Đối tượng bị cắt bởi vùng nhìn nên không đổi được thứ tự.",
+      "TEXT_TRANSFORM_UNSUPPORTED": "Chữ này không biến đổi được (ví dụ xoay hoặc co giãn).",
+      "STALE_OBJECT_IDS": "Trang đã thay đổi. Hãy chọn lại đối tượng.",
+      "FORM_CHILD_NEEDS_FLATTEN": "Đối tượng nằm trong form. Cần làm phẳng form trước khi sửa.",
+      "INLINE_IMAGE_NOT_SUPPORTED": "Ảnh nội tuyến (inline) chưa hỗ trợ chỉnh sửa.",
+      "NOT_AN_IMAGE": "Đối tượng này không phải ảnh.",
+      "IMAGE_NOT_FOUND": "Không tìm thấy dữ liệu của ảnh.",
+      "CROP_OUTSIDE_IMAGE": "Vùng cắt nằm ngoài ảnh.",
+      "INVALID_OBJECT_ID": "Mã đối tượng không hợp lệ.",
+      "INVALID_ROTATION": "Góc xoay phải là 0, 90, 180 hoặc 270 độ.",
+      "PAGE_OUT_OF_RANGE": "Trang không tồn tại.",
+      "EMPTY_REGION": "Vùng chọn trống.",
+      "INVALID_COLOUR": "Màu không hợp lệ.",
+      "PAGE_SELECTION": "Chưa chọn trang.",
+      "FILE_NOT_FOUND": "Không tìm thấy file ảnh.",
+      "UNREADABLE_IMAGE": "Không đọc được file ảnh."
+    },
+    "panel": {
+      "title": "Đối tượng đã chọn",
+      "none": "Chọn một đối tượng trên trang để xem và sửa."
+    },
+    "prop": {
+      "kind": "Loại",
+      "size": "Kích thước",
+      "position": "Vị trí",
+      "mm": "mm",
+      "font": "Phông",
+      "pixels": "Điểm ảnh",
+      "layer": "Lớp",
+      "noLayer": "Không thuộc lớp",
+      "opacity": "Độ mờ",
+      "clipped": "bị cắt bởi vùng nhìn",
+      "fill": "Màu tô",
+      "stroke": "Màu viền",
+      "opacityValue": "Độ mờ"
+    },
+    "act": {
+      "delete": "Xóa",
+      "duplicate": "Nhân bản",
+      "order": "Thứ tự",
+      "front": "Lên trên cùng",
+      "back": "Xuống dưới cùng",
+      "forward": "Lên một bước",
+      "backward": "Xuống một bước"
+    },
+    "fit": {
+      "contain": "Vừa khung",
+      "cover": "Lấp khung",
+      "stretch": "Kéo đầy khung"
+    },
+    "image": {
+      "replace": "Thay ảnh…",
+      "extract": "Lưu ảnh ra…",
+      "adjust": "Chỉnh ảnh",
+      "fit": "Cách đặt ảnh",
+      "brightness": "Độ sáng",
+      "contrast": "Tương phản",
+      "saturation": "Độ bão hòa",
+      "gamma": "Gamma",
+      "rotate": "Xoay",
+      "rotate0": "Không xoay",
+      "rotate90": "Xoay 90° theo chiều kim đồng hồ",
+      "rotate180": "Xoay 180°",
+      "rotate270": "Xoay 270°",
+      "flip": "Lật",
+      "flipNone": "Không lật",
+      "flipH": "Lật ngang",
+      "flipV": "Lật dọc",
+      "grayscale": "Thang xám",
+      "invert": "Đảo màu",
+      "apply": "Áp dụng chỉnh ảnh",
+      "crop": "Cắt (điểm ảnh): x, y, rộng, cao",
+      "cropX": "x",
+      "cropY": "y",
+      "cropW": "rộng",
+      "cropH": "cao"
+    }
+  },
+  "erase": {
+    "title": "Tẩy vùng",
+    "cmd": "Tẩy vùng",
+    "hint": "Kéo một hình chữ nhật trên trang để chọn vùng cần tẩy",
+    "hintBar": "Chọn chế độ rồi bấm Áp dụng. Esc để bỏ vùng",
+    "rotatedHint": "Đặt xoay trang về 0° để tẩy",
+    "nothing": "Vùng này không có nội dung nào để tẩy",
+    "result": "Đã xóa {{removed}} đối tượng, cắt {{split}}, sửa {{images}} ảnh, cắt mép {{clipped}}",
+    "mode": {
+      "label": "Chế độ tẩy",
+      "cut": "Cắt",
+      "cutHint": "Xóa thật nội dung, không để lại ô đen",
+      "cover": "Che",
+      "coverHint": "Tô một màu lên vùng"
+    },
+    "colour": "Màu tô",
+    "colourAuto": "Tự lấy màu nền",
+    "target": {
+      "text": "Chữ",
+      "images": "Ảnh",
+      "vectors": "Vector"
+    },
+    "wholeOnly": "Chỉ đối tượng nằm trọn trong vùng",
+    "wholeOnlyHint": "Đối tượng chỉ giao một phần với vùng sẽ được giữ nguyên",
+    "imageFill": "Phần ảnh bị cắt",
+    "fill": {
+      "transparent": "Thành trong suốt",
+      "white": "Thành trắng",
+      "auto": "Tự lấy màu nền"
+    },
+    "cancel": "Bỏ vùng",
+    "apply": "Áp dụng"
+  },
+  "layers": {
+    "listing": "Đang đọc các lớp…",
+    "label": "Danh sách lớp",
+    "unnamed": "Lớp không tên",
+    "none": "Không có lớp",
+    "noneText": "Tài liệu này không có lớp nội dung (optional content).",
+    "failed": "Không đọc được các lớp",
+    "failedText": "Thử mở lại tài liệu.",
+    "summary": "{{layers}} lớp · {{hidden}} đang ẩn · {{objects}} đối tượng",
+    "meta": "{{objects}} đối tượng · {{pages}} trang",
+    "hide": "Ẩn lớp",
+    "show": "Hiện lớp",
+    "locked": "Lớp đã khóa",
+    "hiddenBadge": "Ẩn",
+    "remove": "Xóa lớp",
+    "flatten": "Gộp lớp",
+    "removeTitle": "Xóa lớp",
+    "removeMessage": "Xóa lớp “{{name}}”. Giữ nội dung của lớp (thành nội dung thường) hay xóa cả nội dung trong lớp?",
+    "removeKeep": "Giữ nội dung",
+    "removeDrop": "Xóa cả nội dung",
+    "flattenTitle": "Gộp các lớp",
+    "flattenMessage": "Mọi nội dung sẽ hiện và cấu trúc lớp bị bỏ. Có thể hoàn tác bằng Ctrl+Z.",
+    "flattenAction": "Gộp lớp",
+    "filter": {
+      "label": "Xem theo loại nội dung",
+      "text": "Chữ",
+      "image": "Ảnh",
+      "path": "Vector",
+      "shading": "Shading",
+      "form": "Form"
+    },
+    "op": {
+      "visibility": "Bật/tắt lớp",
+      "remove": "Xóa lớp",
+      "flatten": "Gộp lớp"
+    }
   }
 }

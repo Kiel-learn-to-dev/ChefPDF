@@ -25,6 +25,8 @@ import { Separator } from '../components/Misc';
 import { Slider } from '../components/Slider';
 import { getViewer } from '../features/viewer/controllers';
 import { usePageStore, useSelection } from '../features/pages/pageStore';
+import { useObjectEdit } from '../features/objects/objectState';
+import { useEraseState } from '../features/erase/eraseState';
 
 type Item =
   | { kind: 'cmd'; id: string; label?: boolean; pressed?: boolean }
@@ -254,8 +256,9 @@ const EDIT_ITEMS: Item[] = [
   { kind: 'cmd', id: 'edit.letterhead', label: true },
   { kind: 'cmd', id: 'edit.qrBarcode', label: true },
   { kind: 'cmd', id: 'edit.overlays', label: true },
+  { kind: 'cmd', id: 'edit.objects', label: true },
 ];
-const EDIT_OVERFLOW = ['tools.bates', 'edit.stamp', 'edit.seam', 'edit.initials'];
+const EDIT_OVERFLOW = ['tools.bates', 'edit.stamp', 'edit.seam', 'edit.initials', 'edit.erase'];
 
 const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.certs', label: true },
@@ -282,6 +285,8 @@ export function Toolbar() {
   const tool = useUi((s) => s.tool);
   const findOpen = useUi((s) => s.findOpen);
   const commands = useCommands();
+  const objectActive = useObjectEdit((s) => s.active);
+  const eraseActive = useEraseState((s) => s.active);
   const selection = useSelection(doc?.id);
   const thumbWidth = usePageStore((s) => s.thumbWidth);
   const setThumbWidth = usePageStore((s) => s.setThumbWidth);
@@ -316,6 +321,8 @@ export function Toolbar() {
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
     'view.find': findOpen,
+    'edit.objects': objectActive,
+    'edit.erase': eraseActive,
   };
 
   return (

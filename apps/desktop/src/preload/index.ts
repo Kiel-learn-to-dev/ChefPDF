@@ -111,6 +111,10 @@ const bridge: ChefBridge = {
     workDir: () => ipcRenderer.invoke(IpcChannels.libraryWorkDir),
   },
 
+  convert: {
+    toPdf: (request) => ipcRenderer.invoke(IpcChannels.convertToPdf, request),
+  },
+
   clipboard: {
     writeText: (text) => ipcRenderer.invoke(IpcChannels.clipboardWriteText, text),
     writeImagePng: (dataUrl) => ipcRenderer.invoke(IpcChannels.clipboardWriteImagePng, dataUrl),

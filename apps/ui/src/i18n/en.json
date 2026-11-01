@@ -114,6 +114,8 @@
   },
   "start": {
     "repairText": "Try to recover a PDF that will not open",
+    "web2pdfTitle": "Web → PDF",
+    "web2pdfText": "Convert a web page, Markdown or HTML to PDF",
     "title": "Hello! What shall we do with PDFs today?",
     "subtitle": "Open a file, or pick a task below.",
     "tasks": "Common tasks",
@@ -165,7 +167,8 @@
     "goToPage": "Go to page {{page}}",
     "noOutline": "No outline",
     "noOutlineText": "This document has no bookmarks.",
-    "signatures": "Signatures"
+    "signatures": "Signatures",
+    "layers": "Layers"
   },
   "panel": {
     "label": "Properties panel",
@@ -566,6 +569,7 @@
   },
   "errors": {
     "title": "Something went wrong",
+    "REDACTION_VERIFY_FAILED": "Redaction did not pass the check: text is still in the file. Nothing was saved.",
     "openFailed": "Could not open {{name}}",
     "opFailed": "{{title}} failed",
     "noBridge": "Could not connect to Chef PDF ({{message}}).",
@@ -1644,7 +1648,9 @@
       "title": {
         "overlayText": "Place text",
         "overlayImage": "Place image",
-        "overlayCode": "Place code"
+        "overlayCode": "Place code",
+        "redact": "Draw area to redact",
+        "removeSimilar": "Pick the object to remove"
       }
     },
     "text": {
@@ -2395,6 +2401,36 @@
       "unusual": "{{count}} images with unusual colour spaces kept as they are"
     }
   },
+  "web2pdf": {
+    "cmd": "Web page / Markdown → PDF…",
+    "short": "Web → PDF",
+    "title": "Web page / Markdown → PDF",
+    "description": "Convert a web page (http/https), a Markdown or an HTML file to PDF.",
+    "kind": "Source",
+    "kindUrl": "Web page (http/https)",
+    "kindFile": "Markdown or HTML file on this computer",
+    "url": "Web page address",
+    "urlHint": "http and https only. The page is downloaded to print it.",
+    "confirm": "I confirm loading this web page",
+    "pickFile": "Choose file…",
+    "file": "Source file",
+    "needSource": "Enter a web page address or choose a file.",
+    "needConfirm": "Confirm before loading the web page.",
+    "output": "Output PDF file",
+    "chooseOutput": "Choose where to save…",
+    "needOutput": "Choose where to save the PDF file.",
+    "pageSize": "Paper size",
+    "landscape": "Landscape",
+    "margin": "Margins (mm)",
+    "printBackground": "Print backgrounds and colours",
+    "headerFooter": "Page numbers in the footer",
+    "scale": "Scale",
+    "run": "Convert to PDF",
+    "done": "PDF created",
+    "failed": "Conversion failed",
+    "running": "Converting…",
+    "mdNote": "Markdown is handled safely: no scripts run, and only images in the same folder are shown."
+  },
   "convert": {
     "title": "Convert",
     "cmdPdfToImages": "PDF → images…",
@@ -2665,5 +2701,319 @@
     "discard": "Discard",
     "discardAll": "Discard all",
     "later": "Later"
+  },
+  "cleanup": {
+    "scope": {
+      "label": "Scope",
+      "all": "Whole document",
+      "current": "Current page",
+      "range": "Pages…",
+      "rangeHint": "For example: 1-3, 5, 8",
+      "invalid": "Invalid page range."
+    },
+    "wm": {
+      "cmd": "Remove watermark",
+      "title": "Remove watermark",
+      "description": "Look for watermarks in \"{{name}}\". The list is only for review; nothing is removed until you press Remove.",
+      "scanning": "Looking for watermarks…",
+      "empty": "No watermark found automatically",
+      "emptyHint": "If a watermark is still there, select it with object select mode, then use \"Remove objects like this\".",
+      "list": "Watermark candidates",
+      "pages": "{{count}} pages",
+      "objects": "{{count}} objects",
+      "sample": "Show page {{page}}",
+      "confidence": "Confidence {{percent}}%",
+      "level": {
+        "high": "high",
+        "medium": "medium",
+        "low": "low"
+      },
+      "highlight": "Candidate area highlighted on page {{page}}.",
+      "run": "Remove {{count}} selected",
+      "jobTitle": "Remove watermark: {{name}}",
+      "done": "Removed {{count}} watermark objects.",
+      "rescan": "Scan again",
+      "notice": "Only remove watermarks from documents you are entitled to edit (your own or your company's)."
+    },
+    "background": {
+      "cmd": "Remove / replace page background",
+      "title": "Remove or replace page background",
+      "description": "Large backgrounds (colour or image covering most of the page) in \"{{name}}\".",
+      "scanning": "Looking for backgrounds…",
+      "empty": "No large page background found.",
+      "list": "Backgrounds found",
+      "coverage": "covers {{percent}}% of the page",
+      "kind": {
+        "rectangle": "Rectangle",
+        "image": "Image",
+        "fill": "Colour"
+      },
+      "mode": "Action",
+      "remove": "Remove background",
+      "replaceColor": "Replace with colour",
+      "color": "New background colour",
+      "colorInvalid": "Choose a valid colour.",
+      "run": "Apply",
+      "jobTitle": "Page background: {{name}}",
+      "done": "Processed {{count}} background objects.",
+      "notice": "Cannot be undone after saving. Only use it on documents you are entitled to edit."
+    },
+    "similar": {
+      "cmd": "Remove objects like this",
+      "title": "Remove objects like this",
+      "description": "Pick one object on a page (logo, faint image…), then find and remove the objects that look like it.",
+      "pick": "Pick an object on the page…",
+      "picked": "Picked: {{kind}} on page {{page}}",
+      "none": "No object at the point you clicked.",
+      "scope": {
+        "label": "Scope",
+        "all": "All similar objects, including the picked one",
+        "others": "Only the other objects"
+      },
+      "tolerance": "Position tolerance (mm)",
+      "preview": "Preview",
+      "found": "Found {{count}} similar objects on {{pages}} pages.",
+      "perPage": "Page {{page}}: {{count}}",
+      "remove": "Remove {{count}} objects",
+      "removed": "Removed {{count}} objects.",
+      "needPreview": "Preview first before removing.",
+      "noMatches": "No similar objects found.",
+      "jobTitle": "Remove similar objects: {{name}}"
+    }
+  },
+  "redact": {
+    "cmd": "Redact sensitive information",
+    "title": "Redact sensitive information",
+    "description": "Find and redact sensitive information in \"{{name}}\".",
+    "warning": "WARNING: Redaction PERMANENTLY removes the content underneath. It cannot be recovered after saving. Undo works only before saving.",
+    "patterns": {
+      "title": "Information to find",
+      "cccd": "National ID (CCCD / CMND)",
+      "phone": "Phone number",
+      "email": "Email",
+      "bankAccount": "Bank account number",
+      "taxCode": "Tax code",
+      "date": "Dates",
+      "literal": "Exact text",
+      "regex": "Pattern (regex)"
+    },
+    "custom": {
+      "title": "Other text or pattern",
+      "literal": "Exact text",
+      "regex": "Pattern (regex)",
+      "value": "Enter text or a pattern",
+      "ignoreDiacritics": "Ignore diacritics",
+      "remove": "Remove row",
+      "add": "Add row",
+      "invalidRegex": "Invalid pattern."
+    },
+    "find": "Find",
+    "finding": "Searching…",
+    "none": "No matching information found.",
+    "results": "{{count}} places found",
+    "groupCount": "{{count}} places · pages {{pages}}",
+    "allOccurrences": "Select every occurrence of the same text. If one is left out, the check after redaction will report the text is still there.",
+    "unchecked": "{{count}} unchecked places will stay as they are.",
+    "pageN": "Page {{page}}",
+    "selectGroup": "Select the whole group",
+    "areas": {
+      "title": "Manual redaction areas",
+      "draw": "Draw an area on the page…",
+      "drawn": "Area {{index}} · page {{page}}",
+      "remove": "Remove area",
+      "none": "No areas yet.",
+      "hint": "Drag the area to redact on the page. The dialog closes while you draw."
+    },
+    "fill": "Fill colour",
+    "alsoMetadata": "Remove hidden information (metadata, XMP)",
+    "removeFromAnnotations": "Remove annotations and form values inside the areas",
+    "apply": "Permanently redact {{count}} places",
+    "nothing": "No places chosen to redact.",
+    "confirmTitle": "Redact permanently?",
+    "confirmBody": "The redacted content will be removed from the file and cannot be recovered after saving.",
+    "confirm": "Redact and remove permanently",
+    "verified": "✓ Verified: no text remains underneath",
+    "leaksTitle": "Text still present after redaction:",
+    "leakItem": "{{where}} (pattern: {{pattern}})",
+    "leakHint": "Select every occurrence of this text and redact again.",
+    "jobTitle": "Redact information: {{name}}",
+    "done": "Redacted {{count}} places."
+  },
+  "objects": {
+    "title": "Objects",
+    "cmd": {
+      "toggle": "Select & edit objects"
+    },
+    "hint": "Click to select · Shift adds/removes · Ctrl selects a range · Alt picks the object below · Drag to move",
+    "selectedHint": "{{count}} selected · Delete removes · Ctrl+D duplicates · Arrows nudge 1 pt (Shift: 10 pt)",
+    "rotatedHint": "Set the page rotation to 0° to edit objects",
+    "listing": "Reading objects…",
+    "kind": {
+      "text": "Text",
+      "image": "Image",
+      "path": "Vector",
+      "shading": "Shading",
+      "form": "Form"
+    },
+    "op": {
+      "move": "Move objects",
+      "delete": "Delete objects",
+      "duplicate": "Duplicate objects",
+      "reorder": "Change stacking order",
+      "colour": "Change colour",
+      "opacity": "Change opacity",
+      "replaceImage": "Replace image",
+      "adjustImage": "Adjust image",
+      "extractImage": "Save image to file"
+    },
+    "err": {
+      "OVERLAPPING_OBJECTS": "The objects overlap, so they cannot be edited together.",
+      "CLIPPED_OBJECT_REORDER": "The object is clipped by the view, so its order cannot change.",
+      "TEXT_TRANSFORM_UNSUPPORTED": "This text cannot be transformed (for example rotated or scaled).",
+      "STALE_OBJECT_IDS": "The page has changed. Select the objects again.",
+      "FORM_CHILD_NEEDS_FLATTEN": "The object is inside a form. Flatten the form before editing.",
+      "INLINE_IMAGE_NOT_SUPPORTED": "Inline images cannot be edited yet.",
+      "NOT_AN_IMAGE": "This object is not an image.",
+      "IMAGE_NOT_FOUND": "The image data was not found.",
+      "CROP_OUTSIDE_IMAGE": "The crop area lies outside the image.",
+      "INVALID_OBJECT_ID": "The object id is not valid.",
+      "INVALID_ROTATION": "The rotation must be 0, 90, 180 or 270 degrees.",
+      "PAGE_OUT_OF_RANGE": "The page does not exist.",
+      "EMPTY_REGION": "The selected region is empty.",
+      "INVALID_COLOUR": "The colour is not valid.",
+      "PAGE_SELECTION": "No page is selected.",
+      "FILE_NOT_FOUND": "The image file was not found.",
+      "UNREADABLE_IMAGE": "The image file cannot be read."
+    },
+    "panel": {
+      "title": "Selected objects",
+      "none": "Select an object on the page to view and edit it."
+    },
+    "prop": {
+      "kind": "Type",
+      "size": "Size",
+      "position": "Position",
+      "mm": "mm",
+      "font": "Font",
+      "pixels": "Pixels",
+      "layer": "Layer",
+      "noLayer": "No layer",
+      "opacity": "Opacity",
+      "clipped": "clipped by the view",
+      "fill": "Fill",
+      "stroke": "Stroke",
+      "opacityValue": "Opacity"
+    },
+    "act": {
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "order": "Order",
+      "front": "Bring to front",
+      "back": "Send to back",
+      "forward": "Bring forward",
+      "backward": "Send backward"
+    },
+    "fit": {
+      "contain": "Fit inside",
+      "cover": "Fill frame",
+      "stretch": "Stretch to frame"
+    },
+    "image": {
+      "replace": "Replace image…",
+      "extract": "Save image…",
+      "adjust": "Adjust image",
+      "fit": "Placement",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "saturation": "Saturation",
+      "gamma": "Gamma",
+      "rotate": "Rotate",
+      "rotate0": "No rotation",
+      "rotate90": "Rotate 90° clockwise",
+      "rotate180": "Rotate 180°",
+      "rotate270": "Rotate 270°",
+      "flip": "Flip",
+      "flipNone": "No flip",
+      "flipH": "Flip horizontally",
+      "flipV": "Flip vertically",
+      "grayscale": "Greyscale",
+      "invert": "Invert colours",
+      "apply": "Apply image changes",
+      "crop": "Crop (pixels): x, y, width, height",
+      "cropX": "x",
+      "cropY": "y",
+      "cropW": "width",
+      "cropH": "height"
+    }
+  },
+  "erase": {
+    "title": "Erase area",
+    "cmd": "Erase area",
+    "hint": "Drag a rectangle on the page to choose the area to erase",
+    "hintBar": "Choose a mode and press Apply. Esc drops the area",
+    "rotatedHint": "Set the page rotation to 0° to erase",
+    "nothing": "This area has no content to erase",
+    "result": "Removed {{removed}} objects, split {{split}}, changed {{images}} images, clipped {{clipped}}",
+    "mode": {
+      "label": "Erase mode",
+      "cut": "Cut",
+      "cutHint": "Really removes the content, leaves no black box",
+      "cover": "Cover",
+      "coverHint": "Paints the area with one colour"
+    },
+    "colour": "Fill colour",
+    "colourAuto": "Sample background",
+    "target": {
+      "text": "Text",
+      "images": "Images",
+      "vectors": "Vectors"
+    },
+    "wholeOnly": "Only objects lying entirely inside the area",
+    "wholeOnlyHint": "Objects that only partly overlap the area are kept",
+    "imageFill": "Cut image pixels",
+    "fill": {
+      "transparent": "Become transparent",
+      "white": "Become white",
+      "auto": "Sample background"
+    },
+    "cancel": "Drop area",
+    "apply": "Apply"
+  },
+  "layers": {
+    "listing": "Reading layers…",
+    "label": "Layer list",
+    "unnamed": "Unnamed layer",
+    "none": "No layers",
+    "noneText": "This document has no content layers (optional content).",
+    "failed": "Could not read the layers",
+    "failedText": "Try opening the document again.",
+    "summary": "{{layers}} layers · {{hidden}} hidden · {{objects}} objects",
+    "meta": "{{objects}} objects · {{pages}} pages",
+    "hide": "Hide layer",
+    "show": "Show layer",
+    "locked": "Layer is locked",
+    "hiddenBadge": "Hidden",
+    "remove": "Remove layer",
+    "flatten": "Flatten layers",
+    "removeTitle": "Remove layer",
+    "removeMessage": "Remove layer “{{name}}”. Keep its content (as ordinary content) or delete the content in the layer?",
+    "removeKeep": "Keep content",
+    "removeDrop": "Delete content",
+    "flattenTitle": "Flatten layers",
+    "flattenMessage": "All content becomes visible and the layer structure is removed. You can undo with Ctrl+Z.",
+    "flattenAction": "Flatten",
+    "filter": {
+      "label": "View by content type",
+      "text": "Text",
+      "image": "Images",
+      "path": "Vectors",
+      "shading": "Shading",
+      "form": "Form"
+    },
+    "op": {
+      "visibility": "Show/hide layer",
+      "remove": "Remove layer",
+      "flatten": "Flatten layers"
+    }
   }
 }

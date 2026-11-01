@@ -95,3 +95,64 @@ export function isPasswordProblem(kind: ChefError['kind']): boolean {
 export function isTokenPinProblem(kind: ChefError['kind']): boolean {
   return kind === 'TOKEN_PIN_INVALID' || kind === 'TOKEN_PIN_LOCKED';
 }
+
+/**
+ * Codes of the object operations (content.*, layers.*). The core sends them as the message of an
+ * INVALID_PARAMS error. Each one has a Vietnamese text under `objects.err.<CODE>` (i18n).
+ */
+export const OBJECT_ERROR_CODES = [
+  'OVERLAPPING_OBJECTS',
+  'CLIPPED_OBJECT_REORDER',
+  'TEXT_TRANSFORM_UNSUPPORTED',
+  'STALE_OBJECT_IDS',
+  'FORM_CHILD_NEEDS_FLATTEN',
+  'INLINE_IMAGE_NOT_SUPPORTED',
+  'NOT_AN_IMAGE',
+  'IMAGE_NOT_FOUND',
+  'CROP_OUTSIDE_IMAGE',
+  'INVALID_OBJECT_ID',
+  'INVALID_ROTATION',
+  'PAGE_OUT_OF_RANGE',
+  'EMPTY_REGION',
+  'INVALID_COLOUR',
+  'PAGE_SELECTION',
+  'FILE_NOT_FOUND',
+  'UNREADABLE_IMAGE',
+] as const;
+export type ObjectErrorCode = (typeof OBJECT_ERROR_CODES)[number];
+
+/** The object error code of a failed call (null when the error is something else). */
+export function objectErrorCode(e: unknown): ObjectErrorCode | null {
+  const err = toChefError(e);
+  const message = err.message.trim();
+  return (OBJECT_ERROR_CODES as readonly string[]).includes(message)
+    ? (message as ObjectErrorCode)
+    : null;
+}
+
+/** One place where text is still present after a redaction (REDACTION_VERIFY_FAILED). */
+export interface RedactionLeak {
+  where: string;
+  pattern: string;
+}
+
+/**
+ * The leaks of a failed redaction check, or null when the error is another kind. A leak has the
+ * place (for example "page 2 text") and the pattern label, never the text itself.
+ */
+export function redactionLeaks(e: unknown): RedactionLeak[] | null {
+  const err = toChefError(e);
+  if (err.kind !== 'REDACTION_VERIFY_FAILED') return null;
+  const detail = err.detail;
+  const raw =
+    typeof detail === 'object' && detail !== null && 'leaks' in detail
+      ? (detail as { leaks: unknown }).leaks
+      : undefined;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((l): l is Record<string, unknown> => typeof l === 'object' && l !== null)
+    .map((l) => ({
+      where: typeof l.where === 'string' ? l.where : '',
+      pattern: typeof l.pattern === 'string' ? l.pattern : '',
+    }));
+}

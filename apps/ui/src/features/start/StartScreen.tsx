@@ -7,6 +7,7 @@ import {
   Layers,
   FileText,
   FolderOpen,
+  Globe,
   ScanLine,
   Shrink,
   Wrench,
@@ -124,6 +125,14 @@ export function StartScreen() {
       icon: <Wrench size={22} />,
       tone: 'slate',
       onClick: () => useUi.getState().openDialog('repair'),
+    },
+    {
+      id: 'web2pdf',
+      title: t('start.web2pdfTitle'),
+      text: t('start.web2pdfText'),
+      icon: <Globe size={22} />,
+      tone: 'blue',
+      onClick: () => useUi.getState().openDialog('web2pdf'),
     },
   ];
 

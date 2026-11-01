@@ -46,6 +46,7 @@ test('launches securely and exposes the full window.chef bridge', async () => {
   expect(info.keys).toEqual([
     'app',
     'clipboard',
+    'convert',
     'files',
     'library',
     'onEvent',

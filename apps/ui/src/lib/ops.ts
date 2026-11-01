@@ -80,6 +80,30 @@ import type {
   DocOptimizeWebParams,
   DocRepairParams,
   DocSetMetadataParams,
+  ContentAdjustImageParams,
+  ContentDeleteParams,
+  ContentDuplicateParams,
+  ContentEraseRegionParams,
+  ContentExtractImageParams,
+  ContentListObjectsParams,
+  ContentMoveParams,
+  ContentReorderParams,
+  ContentReplaceImageParams,
+  ContentSetColorParams,
+  ContentSetOpacityParams,
+  ContentViewByTypeParams,
+  LayersFlattenParams,
+  LayersListParams,
+  LayersRemoveParams,
+  LayersSetVisibilityParams,
+  BackgroundDetectParams,
+  BackgroundRemoveParams,
+  ContentHitTestParams,
+  ContentRemoveSimilarParams,
+  RedactApplyParams,
+  RedactFindParams,
+  WatermarkDetectParams,
+  WatermarkRemoveParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -187,6 +211,30 @@ export interface OpParams {
   'page.removeBlank': PageRemoveBlankParams;
   'page.split': PageSplitParams;
   'file.splitSmart': FileSplitSmartParams;
+  'content.listObjects': ContentListObjectsParams;
+  'content.viewByType': ContentViewByTypeParams;
+  'content.move': ContentMoveParams;
+  'content.delete': ContentDeleteParams;
+  'content.duplicate': ContentDuplicateParams;
+  'content.reorder': ContentReorderParams;
+  'content.setColor': ContentSetColorParams;
+  'content.setOpacity': ContentSetOpacityParams;
+  'content.replaceImage': ContentReplaceImageParams;
+  'content.adjustImage': ContentAdjustImageParams;
+  'content.extractImage': ContentExtractImageParams;
+  'content.eraseRegion': ContentEraseRegionParams;
+  'layers.list': LayersListParams;
+  'layers.setVisibility': LayersSetVisibilityParams;
+  'layers.remove': LayersRemoveParams;
+  'layers.flatten': LayersFlattenParams;
+  'watermark.detect': WatermarkDetectParams;
+  'watermark.remove': WatermarkRemoveParams;
+  'content.hitTest': ContentHitTestParams;
+  'content.removeSimilar': ContentRemoveSimilarParams;
+  'background.detect': BackgroundDetectParams;
+  'background.remove': BackgroundRemoveParams;
+  'redact.find': RedactFindParams;
+  'redact.apply': RedactApplyParams;
 }
 
 export type OpId = keyof OpParams;

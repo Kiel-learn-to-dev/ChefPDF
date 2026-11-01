@@ -33,6 +33,7 @@ export const IpcChannels = {
   libraryRelease: 'chef:library.release',
   libraryWorkDir: 'chef:library.workDir',
   clipboardReadImage: 'chef:clipboard.readImage',
+  convertToPdf: 'chef:convert.toPdf',
 } as const;
 
 /** Envelope used for `chef:rpc` so structured RPC errors survive IPC. */
