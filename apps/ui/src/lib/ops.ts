@@ -43,6 +43,26 @@ import type {
   StampImageParams,
   StampPresetsParams,
   StampTextParams,
+  SecurityDecryptParams,
+  SecurityEncryptParams,
+  InspectHiddenDataParams,
+  InspectRemoveHiddenParams,
+  PreflightCheckParams,
+  CompressPdfParams,
+  CompressEstimateParams,
+  CompressFitSizeParams,
+  ConvertPdfToImagesParams,
+  ConvertImagesToPdfParams,
+  StampSeamParams,
+  StampInitialsParams,
+  SignStampAndSignParams,
+  SignStampAndSignTokenParams,
+  SignVerifyBatchParams,
+  BookmarksGetParams,
+  BookmarksSetParams,
+  BookmarksFromPagesParams,
+  BookmarksClearParams,
+  ImageSeparateColorsParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -113,12 +133,34 @@ export interface OpParams {
   'stamp.text': StampTextParams;
   'stamp.image': StampImageParams;
   'stamp.presets': StampPresetsParams;
+  'security.encrypt': SecurityEncryptParams;
+  'security.decrypt': SecurityDecryptParams;
+  'inspect.hiddenData': InspectHiddenDataParams;
+  'inspect.removeHidden': InspectRemoveHiddenParams;
+  'preflight.check': PreflightCheckParams;
+  'compress.pdf': CompressPdfParams;
+  'compress.estimate': CompressEstimateParams;
+  'compress.fitSize': CompressFitSizeParams;
+  'convert.pdfToImages': ConvertPdfToImagesParams;
+  'convert.imagesToPdf': ConvertImagesToPdfParams;
+  'stamp.seam': StampSeamParams;
+  'stamp.initials': StampInitialsParams;
+  'sign.stampAndSign': SignStampAndSignParams;
+  'sign.stampAndSignToken': SignStampAndSignTokenParams;
+  'sign.verifyBatch': SignVerifyBatchParams;
+  'bookmarks.get': BookmarksGetParams;
+  'bookmarks.set': BookmarksSetParams;
+  'bookmarks.fromPages': BookmarksFromPagesParams;
+  'bookmarks.clear': BookmarksClearParams;
+  'image.separateColors': ImageSeparateColorsParams;
 }
 
 export type OpId = keyof OpParams;
 
 export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'file.merge',
+  'convert.pdfToImages',
+  'convert.imagesToPdf',
   'sign.certInfo',
   'sign.driverScan',
   'sign.listTokens',
@@ -134,4 +176,6 @@ export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'image.textSignature',
   'overlay.bates',
   'stamp.presets',
+  'sign.verifyBatch',
+  'image.separateColors',
 ]);

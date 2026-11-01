@@ -89,6 +89,8 @@ export interface Settings {
   tsaUrls: string[];
   /** User watermark presets (F1). Missing in older files: []. At most 50. */
   overlayPresets: OverlayUserPreset[];
+  /** User presets of "Nén PDF" (M1). Missing in older files: []. At most 50. */
+  compressPresets: CompressUserPreset[];
   /** Name put in the {user} stamp variable (F2). Missing in older files: ''. At most 80 characters. */
   userName: string;
 }
@@ -100,6 +102,15 @@ export interface Settings {
 export interface OverlayUserPreset {
   name: string;
   kind: 'watermark';
+  params: Record<string, unknown>;
+}
+
+/**
+ * A named set of compression options (M1) saved by the user. `params` holds only the option
+ * values of the compression form: never a file path or a page list.
+ */
+export interface CompressUserPreset {
+  name: string;
   params: Record<string, unknown>;
 }
 
@@ -183,6 +194,11 @@ export interface ChefBridge {
     writeText(text: string): Promise<void>;
     writeImagePng(dataUrl: string): Promise<void>;
     readImagePng(): Promise<string | null>;
+    /**
+     * PNG on the clipboard (M4), saved in the work directory: resolves to its absolute path (the
+     * bytes never reach the renderer), or null when the clipboard holds no PNG image.
+     */
+    readImage(): Promise<string | null>;
   };
 }
 

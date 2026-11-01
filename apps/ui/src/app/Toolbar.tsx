@@ -225,7 +225,12 @@ const PAGES_ITEMS: Item[] = [
 ];
 const PAGES_OVERFLOW = ['pages.selectAll', 'file.saveAs', 'file.print', 'view.panel'];
 
-const EXPORT_ITEMS: Item[] = [{ kind: 'cmd', id: 'tools.scan', label: true }];
+const EXPORT_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'tools.scan', label: true },
+  { kind: 'cmd', id: 'tools.compress', label: true },
+  { kind: 'cmd', id: 'tools.pdfToImages', label: true },
+  { kind: 'cmd', id: 'tools.imagesToPdf', label: true },
+];
 
 /** Chỉnh sửa: eight overlay tools in the bar, Bates in the overflow menu (D1, D2, F1-F12). */
 const EDIT_ITEMS: Item[] = [
@@ -238,7 +243,7 @@ const EDIT_ITEMS: Item[] = [
   { kind: 'cmd', id: 'edit.qrBarcode', label: true },
   { kind: 'cmd', id: 'edit.overlays', label: true },
 ];
-const EDIT_OVERFLOW = ['tools.bates', 'edit.stamp'];
+const EDIT_OVERFLOW = ['tools.bates', 'edit.stamp', 'edit.seam', 'edit.initials'];
 
 const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.certs', label: true },
@@ -249,7 +254,10 @@ const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.placeField', label: true },
   { kind: 'cmd', id: 'sign.signDoc', label: true },
   { kind: 'cmd', id: 'sign.batchSign', label: true },
+  { kind: 'cmd', id: 'sign.security', label: true },
 ];
+/** Sign & security tab overflow: data cleanup and the pre-send checks. */
+const SIGN_OVERFLOW = ['sign.inspect', 'tools.preflight'];
 
 /** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */
 export function Toolbar() {
@@ -285,7 +293,9 @@ export function Toolbar() {
         ? PAGES_OVERFLOW
         : tab === 'edit'
           ? EDIT_OVERFLOW
-          : [];
+          : tab === 'sign'
+            ? SIGN_OVERFLOW
+            : [];
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
     'view.find': findOpen,

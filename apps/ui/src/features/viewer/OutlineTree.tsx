@@ -5,6 +5,8 @@ import type { DocTab } from '../../app/state/documents';
 import { EmptyState, Spinner } from '../../components/Misc';
 import { usePdfDocument } from './pdfCache';
 import { getViewer } from './controllers';
+import { BookmarkEditor } from './BookmarkEditor';
+import { Button } from '../../components/Button';
 
 export interface OutlineNode {
   title: string;
@@ -56,7 +58,24 @@ function OutlineItem({ node, docId, depth }: { node: OutlineNode; docId: string;
   );
 }
 
+/** The outline panel: the read-only tree, or the bookmarks editor (D3) in edit mode. */
 export function OutlineTree({ doc }: { doc: DocTab }) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  if (editing) return <BookmarkEditor doc={doc} onDone={() => setEditing(false)} />;
+  return (
+    <>
+      <div className="outline-toolbar">
+        <Button size="sm" onClick={() => setEditing(true)}>
+          {t('outlineEdit.edit')}
+        </Button>
+      </div>
+      <OutlineView doc={doc} />
+    </>
+  );
+}
+
+function OutlineView({ doc }: { doc: DocTab }) {
   const { t } = useTranslation();
   const { pdf } = usePdfDocument(doc);
   const [outline, setOutline] = useState<OutlineNode[] | null | undefined>(undefined);

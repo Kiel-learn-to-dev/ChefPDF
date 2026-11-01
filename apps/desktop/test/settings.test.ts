@@ -50,6 +50,7 @@ describe('SettingsStore', () => {
       signTemplates: [],
       tsaUrls: [],
       overlayPresets: [],
+      compressPresets: [],
       userName: '',
     });
   });

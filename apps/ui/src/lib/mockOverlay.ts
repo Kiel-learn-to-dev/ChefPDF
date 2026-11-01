@@ -235,6 +235,65 @@ export async function applyMockOverlay(
       }
       break;
     }
+    case 'stamp.seam': {
+      // The mock draws each strip at the page edge without clipping (the core clips it).
+      const p = params as OpParams['stamp.seam'];
+      kind = 'stamp';
+      label = 'Dau giap lai';
+      const img = await embed(p.path);
+      const wPt = toPoints(p.scaleWidthMm ?? 30, 'mm') / 2;
+      const hPt = (wPt * img.height) / img.width;
+      for (const i of mockPages(p, count)) {
+        await draw(i, (page, w, ph) =>
+          page.drawImage(img, {
+            x: p.side === 'left' ? 0 : w - wPt,
+            y: ph / 2 - hPt / 2,
+            width: wPt,
+            height: hPt,
+            opacity: p.opacity ?? 1,
+          }),
+        );
+      }
+      break;
+    }
+    case 'stamp.initials': {
+      const p = params as OpParams['stamp.initials'];
+      kind = 'stamp';
+      label = p.text ?? 'Chu ky nhay';
+      const margin = toPoints(p.marginMm ?? 10, 'mm');
+      const img = p.path ? await embed(p.path) : null;
+      const wPt = img ? toPoints(p.widthMm ?? 25, 'mm') : 0;
+      const hPt = img ? (wPt * img.height) / img.width : 0;
+      for (const i of mockPages(p, count)) {
+        await draw(i, (page, w, ph) => {
+          const pos = p.position ?? 'bottom-right';
+          const boxW = img ? wPt : 40;
+          const x = pos.endsWith('left')
+            ? margin
+            : pos.endsWith('right')
+              ? w - margin - boxW
+              : w / 2 - boxW / 2;
+          const y = pos.startsWith('top')
+            ? ph - margin - (img ? hPt : 14)
+            : pos.startsWith('bottom')
+              ? margin
+              : ph / 2;
+          if (img) {
+            page.drawImage(img, { x, y, width: wPt, height: hPt, opacity: p.opacity ?? 1 });
+            return;
+          }
+          page.drawText(asciiSafe(p.text ?? 'KN'), {
+            x,
+            y,
+            size: p.fontSize ?? 14,
+            font: fontBold,
+            color: rgb(0.12, 0.31, 0.6),
+            opacity: p.opacity ?? 1,
+          });
+        });
+      }
+      break;
+    }
     case 'overlay.headerFooter': {
       const p = params as OpParams['overlay.headerFooter'];
       kind = p.header && Object.values(p.header).some(Boolean) ? 'header' : 'footer';

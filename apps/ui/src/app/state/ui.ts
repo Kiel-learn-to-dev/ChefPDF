@@ -49,7 +49,15 @@ export type DialogId =
   | 'overlayBates'
   | 'overlayManager'
   | 'stamp'
+  | 'seam'
+  | 'initials'
   | 'recovery'
+  | 'security'
+  | 'inspect'
+  | 'preflight'
+  | 'compress'
+  | 'pdfToImages'
+  | 'imagesToPdf'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

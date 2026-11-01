@@ -76,7 +76,7 @@ test('launches securely and exposes the full window.chef bridge', async () => {
     'status',
     'workDir',
   ]);
-  expect(info.clipboard).toEqual(['readImagePng', 'writeImagePng', 'writeText']);
+  expect(info.clipboard).toEqual(['readImage', 'readImagePng', 'writeImagePng', 'writeText']);
   expect(info.version).toMatch(/^\d+\.\d+\.\d+/);
   expect(info.platform).toBe(process.platform);
   expect(info.hasRequire).toBe('undefined');

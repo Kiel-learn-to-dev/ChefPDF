@@ -1,0 +1,44 @@
+/* Dấu giáp lai (F4) and chữ ký nháy (F6): the diagram strip and the result list. */
+.seam-diagram {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 22%;
+  height: 18%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-content: flex-start;
+}
+.seam-diagram__slice {
+  flex: 1 1 0;
+  min-width: 14px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-accent, #1f4e9a);
+  background: color-mix(in srgb, var(--color-accent, #1f4e9a) 14%, transparent);
+  font-size: 10px;
+}
+.seam-diagram__count {
+  position: absolute;
+  left: 15%;
+  top: 44%;
+  font-size: 12px;
+}
+.seam-result {
+  margin-top: 12px;
+  font-size: 13px;
+}
+.seam-result ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 160px;
+  overflow: auto;
+}
+.initials-mark {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: pre;
+  font-size: 14px;
+}

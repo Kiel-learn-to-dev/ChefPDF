@@ -115,6 +115,7 @@ const bridge: ChefBridge = {
     writeText: (text) => ipcRenderer.invoke(IpcChannels.clipboardWriteText, text),
     writeImagePng: (dataUrl) => ipcRenderer.invoke(IpcChannels.clipboardWriteImagePng, dataUrl),
     readImagePng: () => ipcRenderer.invoke(IpcChannels.clipboardReadImagePng),
+    readImage: () => ipcRenderer.invoke(IpcChannels.clipboardReadImage),
   },
 };
 

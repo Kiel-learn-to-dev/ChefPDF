@@ -15,6 +15,7 @@ export const fallbackSettings: Settings = {
   signTemplates: [],
   tsaUrls: [],
   overlayPresets: [],
+  compressPresets: [],
   userName: '',
 };
 

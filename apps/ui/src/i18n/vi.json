@@ -1728,6 +1728,279 @@
       }
     }
   },
+  "security": {
+    "cmd": "Mật khẩu & quyền…",
+    "short": "Mật khẩu",
+    "title": "Mật khẩu & quyền",
+    "description": "Đặt mật khẩu mở file và quyền của người đọc (in, sao chép, sửa, ghi chú, điền form, ghép trang, trợ năng). Mã hóa AES-256.",
+    "userPassword": "Mật khẩu mở file",
+    "userConfirm": "Nhập lại mật khẩu mở file",
+    "ownerPassword": "Mật khẩu quyền (chủ file)",
+    "ownerConfirm": "Nhập lại mật khẩu quyền",
+    "show": "Hiện mật khẩu",
+    "strength": "Độ mạnh: {{level}}",
+    "level": {
+      "empty": "chưa nhập",
+      "weak": "yếu",
+      "fair": "trung bình",
+      "strong": "mạnh"
+    },
+    "permissions": "Quyền của người đọc",
+    "perm": {
+      "printLowRes": "In độ phân giải thấp",
+      "printLowResHint": "Cho phép in ở chất lượng thường.",
+      "printHighRes": "In độ phân giải cao",
+      "printHighResHint": "Cần cho phép in thường trước.",
+      "copyContent": "Sao chép chữ và ảnh",
+      "copyContentHint": "Cho phép copy nội dung ra ngoài.",
+      "modify": "Sửa nội dung",
+      "modifyHint": "Cho phép thay đổi nội dung khác.",
+      "annotate": "Ghi chú",
+      "annotateHint": "Thêm hoặc sửa ghi chú, chú thích.",
+      "fillForms": "Điền form",
+      "fillFormsHint": "Điền các ô trong form.",
+      "assemble": "Ghép trang",
+      "assembleHint": "Chèn, xóa, xoay trang.",
+      "accessibility": "Trình đọc trợ năng",
+      "accessibilityHint": "Cho phép công cụ trợ năng đọc nội dung."
+    },
+    "issue": {
+      "noPassword": "Nhập ít nhất một mật khẩu.",
+      "userMismatch": "Mật khẩu mở file nhập lại chưa khớp.",
+      "ownerMismatch": "Mật khẩu quyền nhập lại chưa khớp.",
+      "ownerNeedsRights": "Chỉ có mật khẩu quyền thì cần giới hạn ít nhất một quyền."
+    },
+    "apply": "Đặt mật khẩu",
+    "remove": "Gỡ bảo vệ",
+    "job": "Đặt mật khẩu: {{name}}",
+    "removeJob": "Gỡ bảo vệ: {{name}}",
+    "applied": "Đã đặt mật khẩu. File sẽ được mã hóa khi bạn lưu.",
+    "removed": "Đã gỡ bảo vệ. Thay đổi có hiệu lực khi bạn lưu.",
+    "removeLabel": "Mật khẩu hiện tại (nếu file đang có mật khẩu)",
+    "removeHint": "Để trống nếu file đã mở mà không cần nhập mật khẩu.",
+    "saveHint": "Mật khẩu chỉ áp dụng khi bạn lưu file. Mật khẩu chỉ giữ trong bộ nhớ, không được ghi ra đĩa.",
+    "encryptedNote": "File này đang được bảo vệ bằng mật khẩu.",
+    "pendingNote": "Có thay đổi bảo vệ chưa lưu.",
+    "pendingChip": "Sẽ mã hóa khi lưu",
+    "signedBlocked": "File đã ký số: không đặt hoặc gỡ mật khẩu được, vì sẽ làm mất chữ ký."
+  },
+  "inspect": {
+    "cmd": "Soi file & dọn dữ liệu ẩn…",
+    "short": "Soi file",
+    "title": "Soi file & dọn dữ liệu ẩn",
+    "description": "Xem file còn chứa gì ngoài các trang nhìn thấy: metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú... Chọn mục muốn dọn rồi bấm dọn.",
+    "job": "Soi file: {{name}}",
+    "removeJob": "Dọn dữ liệu ẩn: {{name}}",
+    "scanning": "Đang soi file…",
+    "clean": "Không tìm thấy dữ liệu ẩn nào.",
+    "count": "{{count}} mục",
+    "showItems": "Xem {{count}} mục",
+    "remove": "Dọn các mục đã chọn ({{count}})",
+    "rescan": "Soi lại",
+    "signedBlocked": "File đã ký số: không dọn được, vì sẽ làm mất chữ ký.",
+    "removedToast": "Đã dọn dữ liệu ẩn.",
+    "summary": "Trước: {{before}} mục · Sau: {{after}} mục",
+    "removedLine": "Đã dọn {{name}}: {{count}} mục",
+    "hiddenTextNote": "Chữ ẩn (chữ màu trắng, chữ nằm ngoài trang) chỉ được báo cáo. Gỡ chúng cần viết lại nội dung trang, nên không tự dọn được.",
+    "severity": {
+      "info": "Thông tin",
+      "warn": "Cảnh báo",
+      "risk": "Rủi ro"
+    },
+    "cat": {
+      "metadata": "Metadata (tác giả, tiêu đề, phần mềm...)",
+      "embeddedFiles": "File đính kèm",
+      "javascript": "JavaScript",
+      "launchActions": "Hành động mở chương trình / file",
+      "hiddenText": "Chữ ẩn",
+      "hiddenLayers": "Lớp ẩn (OCG)",
+      "comments": "Ghi chú và chú thích",
+      "formValues": "Dữ liệu form",
+      "bookmarks": "Mục lục",
+      "thumbnails": "Ảnh thu nhỏ nhúng",
+      "externalLinks": "Liên kết ra ngoài",
+      "xfa": "Form XFA",
+      "revisionHistory": "Lịch sử sửa (bản cũ trong file)",
+      "unusedObjects": "Đối tượng không dùng",
+      "fontsNotEmbedded": "Font chưa nhúng",
+      "images": "Ảnh"
+    },
+    "hint": {
+      "metadata": "Có thể xóa: tác giả, người sửa và phần mềm tạo file có thể lộ thông tin nội bộ.",
+      "embeddedFiles": "File nhúng bên trong PDF. Có thể gỡ hết.",
+      "javascript": "Script có thể chạy khi mở file. Nên gỡ.",
+      "launchActions": "Hành động mở ứng dụng hoặc file khác. Nên gỡ.",
+      "hiddenLayers": "Lớp có thể bật lại để lộ nội dung đã giấu.",
+      "comments": "Ghi chú, chú thích và đánh dấu của người đọc.",
+      "formValues": "Giá trị đã nhập trong form.",
+      "bookmarks": "Mục lục của file.",
+      "thumbnails": "Ảnh thu nhỏ có thể còn giữ nội dung cũ.",
+      "externalLinks": "Liên kết ra trang web hoặc file khác.",
+      "xfa": "Dữ liệu XFA cũ, có thể chứa script.",
+      "revisionHistory": "Các bản cũ còn nằm trong file, có thể chứa nội dung đã xóa.",
+      "unusedObjects": "Đối tượng không còn được tham chiếu. Dọn để file gọn hơn."
+    },
+    "noFix": {
+      "hiddenText": "Chỉ báo cáo. Không tự gỡ được.",
+      "fontsNotEmbedded": "Chỉ báo cáo. Font chưa nhúng có thể hiển thị sai trên máy khác.",
+      "images": "Chỉ báo cáo."
+    },
+    "item": {
+      "page": "trang {{page}}",
+      "chars": "{{count}} ký tự"
+    }
+  },
+  "preflight": {
+    "cmd": "Kiểm tra trước khi gửi…",
+    "short": "Kiểm tra",
+    "title": "Kiểm tra trước khi gửi",
+    "description": "Chạy một lượt kiểm tra: metadata còn sót, ghi chú, form chưa làm phẳng, dung lượng, chữ ký. Bấm Sửa để xử lý từng mục.",
+    "job": "Kiểm tra: {{name}}",
+    "fixJob": "Sửa: {{title}}",
+    "fixed": "Đã sửa. Kiểm tra lại.",
+    "run": "Kiểm tra lại",
+    "limit": "Giới hạn dung lượng",
+    "noLimit": "Không giới hạn",
+    "limitMb": "Tối đa {{mb}} MB",
+    "summary": "Đạt: {{ok}} · Cảnh báo: {{warn}} · Lỗi: {{fail}}",
+    "running": "Đang kiểm tra…",
+    "status": {
+      "ok": "Đạt",
+      "warn": "Cảnh báo",
+      "fail": "Cần sửa"
+    },
+    "fix": "Sửa",
+    "manual": "Không có nút sửa tự động. Xem phần liên quan trong công cụ.",
+    "signedBlocked": "File đã ký số: không sửa được, vì sẽ làm mất chữ ký.",
+    "detail": {
+      "item": "(mục)",
+      "bytes": "Dung lượng",
+      "limitBytes": "Giới hạn",
+      "pages": "Trang",
+      "fonts": "Font",
+      "fields": "Trường",
+      "fieldName": "Trường"
+    }
+  },
+  "compress": {
+    "cmd": "Nén PDF…",
+    "short": "Nén PDF",
+    "title": "Nén PDF",
+    "description": "Giảm dung lượng \"{{name}}\": giảm độ phân giải ảnh, bỏ đối tượng thừa, rút gọn font. Ước tính chính xác nhưng chậm vì phải nén thật.",
+    "estimateJob": "Ước tính nén: {{name}}",
+    "fitJob": "Nén theo dung lượng: {{name}}",
+    "jobTitle": "Nén PDF: {{name}}",
+    "presetCustom": "Tùy chỉnh",
+    "preset": {
+      "screen": "Màn hình (nhẹ nhất)",
+      "ebook": "Sách điện tử",
+      "print": "In ấn (chất lượng cao)",
+      "archive-light": "Lưu trữ nhẹ (không đổi ảnh)"
+    },
+    "presetSave": "Lưu thành preset",
+    "presetDelete": "Xóa preset này",
+    "presetName": "Tên preset",
+    "presetSaveConfirm": "Lưu",
+    "presetIssue": {
+      "empty": "Nhập tên preset.",
+      "tooLong": "Tên tối đa {{max}} ký tự.",
+      "duplicate": "Tên này đã có."
+    },
+    "maxDpi": "Độ phân giải ảnh tối đa (dpi)",
+    "maxDpiHint": "0 = theo preset",
+    "quality": "Chất lượng JPEG (1–100)",
+    "qualityHint": "0 = theo preset",
+    "invalidDpi": "Độ phân giải phải từ 36 đến 1200 dpi.",
+    "invalidQuality": "Chất lượng JPEG phải từ 1 đến 100.",
+    "opt": {
+      "grayscale": "Chuyển ảnh sang thang xám",
+      "grayscaleHint": "Giảm mạnh dung lượng ảnh màu.",
+      "removeUnused": "Bỏ đối tượng không dùng",
+      "removeUnusedHint": "Bỏ ảnh và form không còn trang nào dùng.",
+      "removeThumbnails": "Bỏ ảnh thu nhỏ",
+      "removeAttachments": "Bỏ file đính kèm",
+      "removeAttachmentsHint": "Mất các file nhúng trong PDF.",
+      "removeMetadata": "Bỏ metadata",
+      "subsetFonts": "Rút gọn font (chỉ giữ ký tự dùng)",
+      "flatten": "Làm phẳng độ trong suốt",
+      "flattenHint": "Cần cho một số ảnh có mặt nạ alpha."
+    },
+    "estimating": "Đang ước tính…",
+    "estimateButton": "Ước tính dung lượng",
+    "estimate": {
+      "line": "Ước tính: {{before}} MB → {{after}} MB (giảm {{percent}}%)"
+    },
+    "fitLabel": "Nén sao cho nhỏ hơn (MB)",
+    "fitHint": "Tìm mức nén đầu tiên đạt dung lượng này, rồi điền các tùy chọn tương ứng.",
+    "fitButton": "Nén sao cho ≤ {{mb}} MB",
+    "fit": {
+      "done": "Đạt dưới {{mb}} MB: khoảng {{size}} MB. Đã điền tùy chọn.",
+      "unreachable": "Không đạt {{mb}} MB; mức nhỏ nhất khoảng {{size}} MB. Đã điền mức đó."
+    },
+    "run": "Nén",
+    "signedBlocked": "File đã ký số: không nén được, vì sẽ làm mất chữ ký.",
+    "doneToast": "Đã nén, giảm {{percent}}%.",
+    "resultLabel": "Kết quả nén",
+    "result": {
+      "line": "{{before}} MB → {{after}} MB (giảm {{percent}}%)",
+      "images": "Ảnh đã nén: {{processed}} · Ảnh giữ nguyên: {{skipped}}"
+    },
+    "reason": {
+      "jpeg2000": "{{count}} ảnh JPEG 2000 giữ nguyên",
+      "bilevel": "{{count}} ảnh đen trắng giữ nguyên",
+      "stencil": "{{count}} mặt nạ giữ nguyên",
+      "unusual": "{{count}} ảnh kiểu màu lạ giữ nguyên"
+    }
+  },
+  "convert": {
+    "title": "Chuyển đổi",
+    "cmdPdfToImages": "PDF → ảnh…",
+    "shortPdfToImages": "PDF → ảnh",
+    "cmdImagesToPdf": "Ảnh → PDF…",
+    "shortImagesToPdf": "Ảnh → PDF",
+    "pdfTitle": "PDF → ảnh",
+    "pdfDescription": "Xuất các trang của \"{{name}}\" thành file ảnh.",
+    "pdfJob": "PDF → ảnh: {{name}}",
+    "pdfDone": "Đã xuất {{count}} file ảnh.",
+    "run": "Chuyển",
+    "multiPageTiff": "TIFF nhiều trang trong một file",
+    "multiPageTiffHint": "Chỉ dùng được với định dạng TIFF.",
+    "format": "Định dạng",
+    "dpi": "Độ phân giải (dpi)",
+    "colorMode": "Màu",
+    "color": {
+      "color": "Màu",
+      "gray": "Thang xám",
+      "bw": "Đen trắng"
+    },
+    "quality": "Chất lượng (1–100)",
+    "outputDir": "Thư mục lưu",
+    "needFolder": "Chọn thư mục lưu.",
+    "nameTemplate": "Mẫu tên file",
+    "nameTemplateHint": "{name} là tên PDF, {page} là số trang.",
+    "badName": "Mẫu tên không hợp lệ (không chứa \\ / : * ? \" < > |).",
+    "imagesTitle": "Ảnh → PDF",
+    "imagesDescription": "Ghép nhiều ảnh PNG hoặc JPG thành một PDF. Kéo thứ tự bằng nút mũi tên.",
+    "imagesJob": "Ảnh → PDF: {{name}}",
+    "clipboardEmpty": "Clipboard không có ảnh PNG.",
+    "addImages": "Thêm ảnh…",
+    "fromClipboard": "Dán ảnh từ clipboard",
+    "noImages": "Chưa có ảnh nào. Thêm ảnh hoặc dán ảnh chụp màn hình từ clipboard.",
+    "pageSizeLabel": "Khổ trang",
+    "pageSize": {
+      "image": "Theo kích thước ảnh",
+      "custom": "Tùy chỉnh"
+    },
+    "fitLabel": "Cách đặt ảnh",
+    "fit": {
+      "fit": "Vừa khổ trang",
+      "fill": "Lấp đầy (có thể cắt)",
+      "center": "Giữa trang, giữ kích thước"
+    },
+    "widthMm": "Rộng (mm)",
+    "heightMm": "Cao (mm)",
+    "marginMm": "Lề (mm)"
+  },
   "stamp": {
     "cmd": "Con dấu…",
     "title": "Con dấu",
@@ -1782,6 +2055,161 @@
       "path": "Chọn một ảnh con dấu.",
       "width": "Chiều rộng từ 1 đến 2000."
     }
+  },
+  "seam": {
+    "cmd": "Dấu giáp lai…",
+    "title": "Dấu giáp lai",
+    "description": "Một con dấu cắt đều qua mép các trang: mỗi trang nhận một dải, ghép lại thành con dấu đầy đủ. Có thể gỡ trong Quản lý đối tượng.",
+    "run": "Đóng dấu giáp lai",
+    "job": "Dấu giáp lai: {{name}}",
+    "previewLabel": "Xem trước",
+    "diagram": {
+      "label": "Sơ đồ các dải",
+      "slices": "{{count}} dải mỗi bộ",
+      "pages": "{{count}} trang nhận dải"
+    },
+    "overlap": "Chồng lấn giữa các dải (mm)",
+    "opacity": "Độ đậm (0–1)",
+    "multiply": "Hòa màu nhân",
+    "multiplyHint": "Mực đè lên nội dung bên dưới, không che chữ.",
+    "image": {
+      "label": "Ảnh con dấu",
+      "library": "Thư viện con dấu",
+      "choose": "Chọn mục…",
+      "file": "Chọn tệp…",
+      "none": "Chưa chọn ảnh"
+    },
+    "side": {
+      "label": "Mép dán",
+      "right": "Mép phải",
+      "left": "Mép trái"
+    },
+    "groupSize": "Số trang mỗi bộ (0 = một bộ)",
+    "scaleWidth": "Rộng toàn con dấu (mm, 0 = cỡ gốc)",
+    "vertical": {
+      "label": "Vị trí dọc",
+      "center": "Giữa trang",
+      "top": "Sát mép trên",
+      "bottom": "Sát mép dưới",
+      "mm": "Cách mép trên (mm)"
+    },
+    "verticalMm": "Cách mép trên (mm)",
+    "cutFirstPage": "Trang đầu của mỗi bộ cũng có dải",
+    "result": {
+      "title": "Đã đóng dấu giáp lai",
+      "summary": "{{strips}} dải trên {{pages}} trang, {{sets}} bộ.",
+      "line": "Trang {{page}}: dải {{strip}}/{{of}}"
+    },
+    "err": {
+      "path": "Chọn một ảnh con dấu.",
+      "groupSize": "Số trang mỗi bộ là số nguyên từ 0 đến 10000.",
+      "overlapMm": "Chồng lấn từ 0 đến 50 mm.",
+      "scaleWidthMm": "Rộng từ 0 đến 1000 mm.",
+      "verticalMm": "Khoảng cách từ mép trên từ 0 đến 10000 mm.",
+      "opacity": "Độ đậm từ 0 đến 1.",
+      "pages": "Khoảng trang không hợp lệ.",
+      "cutFirstPage": "Không trang nào nhận dải. Hãy chọn thêm trang hoặc bật dải trên trang đầu."
+    }
+  },
+  "initials": {
+    "cmd": "Chữ ký nháy…",
+    "title": "Chữ ký nháy",
+    "description": "Đóng tắt chữ ký hoặc chữ viết tắt lên góc, mép hoặc giữa các trang đã chọn. Có thể gỡ trong Quản lý đối tượng.",
+    "run": "Đóng chữ ký nháy",
+    "job": "Chữ ký nháy: {{name}}",
+    "previewLabel": "Xem trước",
+    "none": "Chưa chọn ảnh",
+    "kind": {
+      "label": "Loại",
+      "text": "Chữ viết tắt",
+      "image": "Hình ảnh"
+    },
+    "text": {
+      "label": "Chữ viết tắt",
+      "empty": "Nhập chữ"
+    },
+    "color": "Màu",
+    "fontSize": "Cỡ chữ",
+    "bold": "In đậm",
+    "opacity": "Độ đậm (0–1)",
+    "multiply": "Hòa màu nhân",
+    "multiplyHint": "Mực đè lên nội dung bên dưới, không che chữ.",
+    "image": {
+      "label": "Ảnh chữ ký nháy",
+      "library": "Thư viện chữ ký",
+      "choose": "Chọn mục…",
+      "file": "Chọn tệp…"
+    },
+    "width": "Rộng (mm)",
+    "position": "Vị trí trên trang",
+    "pos": {
+      "top-left": "Góc trên trái",
+      "top-center": "Giữa mép trên",
+      "top-right": "Góc trên phải",
+      "center-left": "Giữa mép trái",
+      "center": "Giữa trang",
+      "center-right": "Giữa mép phải",
+      "bottom-left": "Góc dưới trái",
+      "bottom-center": "Giữa mép dưới",
+      "bottom-right": "Góc dưới phải"
+    },
+    "margin": "Lề (mm)",
+    "err": {
+      "text": "Nhập chữ viết tắt (tối đa 40 ký tự).",
+      "fontSize": "Cỡ chữ từ 4 đến 120.",
+      "path": "Chọn một ảnh chữ ký nháy.",
+      "widthMm": "Rộng từ 1 đến 500 mm.",
+      "marginMm": "Lề từ 0 đến 100 mm.",
+      "color": "Màu phải có dạng #RRGGBB.",
+      "opacity": "Độ đậm từ 0 đến 1.",
+      "pages": "Khoảng trang không hợp lệ."
+    }
+  },
+  "signStamp": {
+    "title": "Đóng dấu kèm",
+    "note": "Đóng dấu trước, ký sau: con dấu được đặt vào tài liệu trước, rồi chữ ký bao cả con dấu.",
+    "seamOn": "Đóng dấu giáp lai",
+    "initialsOn": "Đóng chữ ký nháy mọi trang",
+    "seamImage": "Ảnh con dấu",
+    "pick": "Chọn ảnh…",
+    "none": "Chưa chọn ảnh"
+  },
+  "outlineEdit": {
+    "edit": "Sửa mục lục",
+    "done": "Xong",
+    "add": "Thêm mục",
+    "remove": "Xóa mục",
+    "indent": "Thụt vào (xuống cấp con)",
+    "outdent": "Đưa ra (lên cấp cha)",
+    "up": "Đưa lên",
+    "down": "Đưa xuống",
+    "newTitle": "Mục mới",
+    "titleLabel": "Tên mục",
+    "setPage": "Trỏ tới trang {{page}}",
+    "noPage": "Chưa trỏ trang",
+    "page": "Trang {{page}}",
+    "color": "Màu chữ",
+    "bold": "In đậm",
+    "italic": "In nghiêng",
+    "empty": "Chưa có mục nào. Thêm mục, hoặc tạo từ các trang.",
+    "noSelection": "Chọn một mục để đổi tên, đổi trang hoặc định dạng.",
+    "loading": "Đang đọc mục lục…",
+    "fromPages": "Tạo từ các trang",
+    "clear": "Xóa hết",
+    "save": "Lưu mục lục",
+    "saved": "Đã lưu mục lục",
+    "savedCount": "{{count}} mục.",
+    "signed": "Tài liệu đã ký nên không sửa được mục lục.",
+    "confirmReplace": "Tạo mục lục từ các trang sẽ thay thế mục lục hiện có. Tiếp tục?",
+    "confirmClear": "Xóa toàn bộ mục lục? Bạn có thể hoàn tác bằng Hoàn tác.",
+    "confirmDiscard": "Có thay đổi chưa lưu. Bỏ các thay đổi này?",
+    "replaceGo": "Thay thế",
+    "clearGo": "Xóa hết",
+    "discardGo": "Bỏ thay đổi",
+    "loadJob": "Đọc mục lục",
+    "saveJob": "Lưu mục lục: {{name}}",
+    "fromPagesJob": "Tạo mục lục từ các trang: {{name}}",
+    "clearJob": "Xóa mục lục: {{name}}"
   },
   "recovery": {
     "title": "Khôi phục tài liệu",

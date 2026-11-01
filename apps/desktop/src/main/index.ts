@@ -6,6 +6,7 @@ import path from 'node:path';
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   nativeTheme,
   protocol,
@@ -22,6 +23,7 @@ import { labelsFor } from './labels';
 import { RotatingLog } from './logger';
 import { installMenu } from './menu';
 import { ChefLibrary, secretKeyStore } from './library';
+import { captureClipboardPng } from './clipboardImage';
 import { OpenFilesController, argvSkipCount, parseFileArgs } from './openFiles';
 import { repoRootFrom, resolveUi } from './paths';
 import { createAppHandler, createFileHandler, privilegedSchemes } from './protocol';
@@ -142,8 +144,25 @@ async function onReady(): Promise<void> {
     keys: secretKeyStore(secrets, path.join(libraryDir, 'library-key')),
   });
   await library.sweepWorkDir().catch((err) => log(`library work dir sweep failed: ${String(err)}`));
+  const clipboardDir = path.join(cacheDir, 'clipboard');
+  /** The first PNG item of the clipboard, as bytes (null when there is none). */
+  const readClipboardPng = async (): Promise<Uint8Array | null> => {
+    for (const item of await clipboard.read()) {
+      if (!item.types.includes('image/png')) continue;
+      const blob = await item.getType('image/png');
+      return new Uint8Array(await blob.arrayBuffer());
+    }
+    return null;
+  };
   registerIpc({
     sidecar: sidecar!,
+    clipboardImage: {
+      capture: () =>
+        captureClipboardPng({
+          source: { readPng: () => readClipboardPng() },
+          dir: clipboardDir,
+        }),
+    },
     settings,
     secrets,
     allowlist,

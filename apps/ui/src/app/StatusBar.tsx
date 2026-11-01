@@ -12,7 +12,7 @@ import { useSelection } from '../features/pages/pageStore';
 import { isMockBridge } from '../lib/bridge';
 import { chipSummary } from '../features/signatures/verifyModel';
 import { useVerifyStore, verifyEntry } from '../features/signatures/verifyStore';
-import { ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
+import { KeyRound, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
 
 function PageInput({ docId, page, count }: { docId: string; page: number; count: number }) {
   const { t } = useTranslation();
@@ -101,6 +101,12 @@ export function StatusBar() {
           {tab !== 'pages' && <span className="status__item">{Math.round(view.scale * 100)}%</span>}
           {doc.state.dirty && (
             <span className="status__item status__dirty">{t('status.unsaved')}</span>
+          )}
+          {doc.state.pendingEncryption && (
+            <span className="status__item status__chip status__chip--warn">
+              <KeyRound size={13} aria-hidden />
+              {t('security.pendingChip')}
+            </span>
           )}
           {chip && (
             <button

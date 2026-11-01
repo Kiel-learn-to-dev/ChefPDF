@@ -32,6 +32,7 @@ export const IpcChannels = {
   libraryMaterialize: 'chef:library.materialize',
   libraryRelease: 'chef:library.release',
   libraryWorkDir: 'chef:library.workDir',
+  clipboardReadImage: 'chef:clipboard.readImage',
 } as const;
 
 /** Envelope used for `chef:rpc` so structured RPC errors survive IPC. */

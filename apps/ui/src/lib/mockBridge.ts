@@ -27,7 +27,11 @@ import type { OpId, OpParams } from './ops';
 import { basename, join, stripExt } from './path';
 import { parsePageRanges } from './pageRange';
 import { renderName } from '../features/split/nameTemplate';
-import { applyMockOverlay, mockBates, type MockOverlay } from './mockOverlay';
+import { applyMockOverlay, mockBates, mockPages, type MockOverlay } from './mockOverlay';
+import { seamPlan } from '../features/stamps/seamModel';
+
+/** DEV: the bookmark tree of each mock session (bookmarks.get / set / fromPages / clear). */
+const mockBookmarks = new WeakMap<object, unknown[]>();
 
 const SETTINGS_KEY = 'chef-mock-settings';
 
@@ -44,6 +48,7 @@ const defaultSettings: Settings = {
   signTemplates: [],
   tsaUrls: [],
   overlayPresets: [],
+  compressPresets: [],
   userName: '',
 };
 
@@ -56,6 +61,10 @@ interface MockSession {
   password?: string;
   /** Simulated with ?signed in the URL (core: PDFs that already carry a signature). */
   signed?: boolean;
+  /** security.encrypt / decrypt applied at the next save (core: pendingEncryption). */
+  pendingEncryption?: boolean;
+  /** inspect.removeHidden has run: the mock document has no metadata finding any more. */
+  metadataCleaned?: boolean;
   /** Overlays added by Chef PDF (overlay.listOverlays / overlay.remove). */
   overlays?: MockOverlay[];
   /** Signature fields of the mock document (sign.addField, sign.pades). */
@@ -123,6 +132,16 @@ const OP_IDS: string[] = [
   'overlay.letterhead',
   'overlay.listOverlays',
   'overlay.remove',
+  'security.encrypt',
+  'security.decrypt',
+  'inspect.hiddenData',
+  'inspect.removeHidden',
+  'preflight.check',
+  'compress.pdf',
+  'compress.estimate',
+  'compress.fitSize',
+  'convert.pdfToImages',
+  'convert.imagesToPdf',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -208,6 +227,10 @@ const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'scan.preview',
   'scan.fitSize',
   'overlay.listOverlays',
+  'inspect.hiddenData',
+  'preflight.check',
+  'compress.estimate',
+  'compress.fitSize',
 ]);
 
 /** A small grey PNG with a label, standing in for rendered page images in the mock. */
@@ -533,6 +556,7 @@ export function createMockBridge(): ChefBridge {
     canRedo: s.rev < s.revisions.length - 1,
     dirty: s.rev !== s.savedRev,
     signed: !!s.signed,
+    ...(s.pendingEncryption ? { pendingEncryption: true } : {}),
   });
 
   const infoOf = async (bytes: Uint8Array, encrypted: boolean): Promise<DocumentInfo> => {
@@ -853,6 +877,39 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
+      case 'sign.stampAndSign':
+      case 'sign.stampAndSignToken': {
+        // Mock: the stamps go on first (same as the core), then the signed field is added.
+        const sp = params as {
+          stamps: { op: OpId; params: unknown }[];
+          sign: { page?: number; rect?: number[]; fieldName?: string; level?: string };
+        };
+        const changed = new Set<number>();
+        for (const step of sp.stamps) {
+          const res = await applyMockOverlay(
+            step.op,
+            step.params,
+            doc,
+            (path) => getFile(path),
+            () => `ov${++counter}`,
+          );
+          if (res.overlay) s.overlays = [...(s.overlays ?? []), res.overlay];
+          res.changed.forEach((i) => changed.add(i));
+        }
+        const p = sp.sign;
+        const fields = s.fields ?? [];
+        const fieldName = p.fieldName ?? `Signature${fields.length + 1}`;
+        s.fields = [
+          ...fields.filter((f) => f.fieldName !== fieldName),
+          { fieldName, page: p.page ?? 0, rect: p.rect ?? null, signed: true },
+        ];
+        s.signed = true;
+        r = {
+          ...result([...changed]),
+          data: { fieldName, level: p.level ?? 'B-B', tsaUrl: null, signer: MOCK_CERT_INFO },
+        };
+        break;
+      }
       case 'sign.pades':
       case 'sign.padesToken': {
         // Mock: adds a signed field; the core writes the real signature.
@@ -899,12 +956,59 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
+      case 'bookmarks.get': {
+        modified = false;
+        r = { ...result([]), data: { bookmarks: mockBookmarks.get(s) ?? [] } };
+        break;
+      }
+      case 'bookmarks.set': {
+        const list = (params as { bookmarks?: unknown[] }).bookmarks ?? [];
+        mockBookmarks.set(s, list);
+        r = { ...result([]), data: { count: list.length } };
+        break;
+      }
+      case 'bookmarks.fromPages': {
+        const p = params as OpParams['bookmarks.fromPages'];
+        const made = mockPages(p, doc.getPageCount()).map((i) => ({
+          title: `Trang ${i + 1}`,
+          page: i,
+        }));
+        const kept = p.mode === 'append' ? (mockBookmarks.get(s) ?? []) : [];
+        mockBookmarks.set(s, [...kept, ...made]);
+        r = { ...result([]), data: { count: made.length } };
+        break;
+      }
+      case 'bookmarks.clear': {
+        mockBookmarks.set(s, []);
+        r = { ...result([]), data: { count: 0 } };
+        break;
+      }
+      case 'stamp.seam': {
+        const res = await applyMockOverlay(
+          opId,
+          params,
+          doc,
+          (path) => getFile(path),
+          () => `ov${++counter}`,
+        );
+        if (res.overlay) s.overlays = [...(s.overlays ?? []), res.overlay];
+        const p = params as OpParams['stamp.seam'];
+        const pages = mockPages(p, doc.getPageCount());
+        const strips = seamPlan(pages, p.groupSize ?? 0, p.cutFirstPage ?? true).map((x) => ({
+          page: x.page,
+          strip: x.strip + 1,
+          of: x.of,
+        }));
+        r = { ...result(res.changed), data: { strips } };
+        break;
+      }
       case 'overlay.addText':
       case 'overlay.addImage':
       case 'overlay.watermark':
       case 'overlay.headerFooter':
       case 'stamp.text':
       case 'stamp.image':
+      case 'stamp.initials':
       case 'overlay.pageNumbers':
       case 'overlay.qrCode':
       case 'overlay.barcode':
@@ -974,6 +1078,128 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
+      case 'inspect.hiddenData': {
+        // Mock: one metadata finding until the metadata has been removed.
+        modified = false;
+        const items = s.metadataCleaned ? [] : [{ where: 'Info', key: 'Author', value: 'Mock' }];
+        r = {
+          ...result([]),
+          data: {
+            findings: [
+              {
+                category: 'metadata',
+                severity: 'warn',
+                count: items.length,
+                items,
+                fixAvailable: true,
+              },
+            ],
+          },
+        };
+        break;
+      }
+      case 'compress.pdf': {
+        // Mock: the bytes are not rewritten; the report has the shape of the core's.
+        const before = 2_000_000;
+        r = {
+          ...result('all'),
+          data: {
+            bytesBefore: before,
+            bytesAfter: Math.round(before * 0.4),
+            ratio: 0.4,
+            imagesProcessed: 2,
+            imagesSkipped: 0,
+            skippedReasons: {},
+            fontsDropped: 0,
+            resourcesDropped: 0,
+            warnings: [],
+          },
+        };
+        break;
+      }
+      case 'compress.estimate': {
+        modified = false;
+        r = {
+          ...result([]),
+          data: {
+            bytesBefore: 2_000_000,
+            bytesAfter: 800_000,
+            ratio: 0.4,
+            imagesProcessed: 2,
+            imagesSkipped: 0,
+            skippedReasons: {},
+            warnings: [],
+          },
+        };
+        break;
+      }
+      case 'compress.fitSize': {
+        modified = false;
+        const p = params as OpParams['compress.fitSize'];
+        const reachable = p.targetBytes >= 800_000;
+        r = {
+          ...result([]),
+          data: {
+            params: { ...p, preset: 'custom', maxImageDpi: 96, jpegQuality: 55 },
+            estimatedBytes: 800_000,
+            reachable,
+            steps: 3,
+          },
+        };
+        break;
+      }
+      case 'preflight.check': {
+        // Mock: a size check (no limit in the mock) and one metadata warning until it is cleaned.
+        modified = false;
+        const p = params as OpParams['preflight.check'];
+        const bytes = 4096;
+        const over = p.maxBytes !== undefined && bytes > p.maxBytes;
+        r = {
+          ...result([]),
+          data: [
+            {
+              id: 'fileSize',
+              status: over ? 'fail' : 'ok',
+              titleVi: 'Dung lượng file',
+              titleEn: 'File size',
+              detail: { bytes, limitBytes: p.maxBytes ?? null },
+              fixOp: null,
+            },
+            {
+              id: 'hidden.metadata',
+              status: s.metadataCleaned ? 'ok' : 'warn',
+              titleVi: 'Metadata còn sót',
+              titleEn: 'Leftover metadata',
+              detail: {},
+              fixOp: s.metadataCleaned
+                ? null
+                : { op: 'inspect.removeHidden', params: { categories: ['metadata'] } },
+            },
+          ],
+        };
+        break;
+      }
+      case 'inspect.removeHidden': {
+        const before = s.metadataCleaned ? 0 : 1;
+        s.metadataCleaned = true;
+        r = {
+          ...result('all'),
+          data: {
+            removed: { metadata: before },
+            before: { metadata: before },
+            after: { metadata: 0 },
+          },
+        };
+        break;
+      }
+      case 'security.encrypt':
+      case 'security.decrypt': {
+        // Mock: the protection is recorded and applied by the next save (the core rewrites the file).
+        s.pendingEncryption = opId === 'security.encrypt';
+        modified = false;
+        r = result([]);
+        break;
+      }
       default:
         throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
     }
@@ -994,6 +1220,34 @@ export function createMockBridge(): ChefBridge {
     if (opId.startsWith('sign.')) return runSignOp(opId, params);
     if (opId.startsWith('image.')) return runImageOp(opId, params);
     if (opId === 'overlay.bates') return runBatesOp(params as OpParams['overlay.bates']);
+    if (opId === 'convert.pdfToImages') {
+      // Mock: one placeholder image per run (the core writes one file per page).
+      const p = params as OpParams['convert.pdfToImages'];
+      const ext = p.format === 'jpeg' ? 'jpg' : p.format;
+      const out = `${p.outputDir}/${p.nameTemplate ?? '{name}_{page}'}`
+        .replace('{name}', 'mock')
+        .replace('{page}', '1');
+      const file = `${out}.${ext}`;
+      putFile(file, await placeholderPng('Mock image', 612, 792));
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [file],
+        warnings: [],
+      };
+    }
+    if (opId === 'convert.imagesToPdf') {
+      const p = params as OpParams['convert.imagesToPdf'];
+      const out = await PDFDocument.create();
+      for (let i = 0; i < p.images.length; i++) out.addPage([612, 792]);
+      putFile(p.outputPath, await out.save());
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [p.outputPath],
+        warnings: [],
+      };
+    }
     if (opId !== 'file.merge')
       throw new MockRpcError('INVALID_PARAMS', 'sessionId is required', -32602);
     const p = params as OpParams['file.merge'];
@@ -1298,6 +1552,7 @@ export function createMockBridge(): ChefBridge {
         putFile(target, getFile(s.revisions[s.rev]!));
         s.sourcePath = target;
         s.savedRev = s.rev;
+        s.pendingEncryption = false;
         return { ...stateOf(s), warnings: [] };
       }
     }
@@ -1484,6 +1739,12 @@ export function createMockBridge(): ChefBridge {
         } catch {
           /* clipboard unavailable in this browser context */
         }
+      },
+      async readImage() {
+        // Mock: the clipboard holds a placeholder PNG, kept in the mock file store.
+        const path = `mock-clipboard-${++counter}.png`;
+        putFile(path, await placeholderPng('Clipboard', 612, 400));
+        return path;
       },
       async readImagePng() {
         try {

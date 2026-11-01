@@ -15,6 +15,7 @@ import type {
   ThemeSetting,
 } from '@chef/contracts';
 import { atomicWriteFile, isPlainObject, readJsonFile } from './fsutil';
+import { sanitizeCompressPresets, validateCompressPresets } from './compressPresets';
 
 export const MAX_RECENT_FILES = 20;
 export const MAX_SCAN_PRESETS = 50;
@@ -50,6 +51,7 @@ export function defaultSettings(): Settings {
     signTemplates: [],
     tsaUrls: [],
     overlayPresets: [],
+    compressPresets: [],
     userName: '',
   };
 }
@@ -432,6 +434,7 @@ export function sanitizeSettings(
   s.signTemplates = sanitizeSignTemplates(raw.signTemplates);
   s.tsaUrls = sanitizeTsaUrls(raw.tsaUrls);
   s.overlayPresets = sanitizeOverlayPresets(raw.overlayPresets);
+  s.compressPresets = sanitizeCompressPresets(raw.compressPresets);
   s.userName = cleanUserName(raw.userName) ?? '';
   if (typeof raw.lastDriverPath === 'string' && isAbsoluteDriverPath(raw.lastDriverPath)) {
     s.lastDriverPath = raw.lastDriverPath;
@@ -490,6 +493,13 @@ export function validatePatch(
         break;
       case 'overlayPresets':
         out.overlayPresets = validateOverlayPresets(value);
+        break;
+      case 'compressPresets':
+        try {
+          out.compressPresets = validateCompressPresets(value);
+        } catch (e) {
+          throw new SettingsValidationError(e instanceof Error ? e.message : String(e));
+        }
         break;
       case 'userName':
         out.userName = validateUserName(value);

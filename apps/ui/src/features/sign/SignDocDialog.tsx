@@ -47,9 +47,17 @@ import {
   type ResolvedPlacement,
   type SignOptionsDraft,
   type SignerChoice,
-  type SignRequest,
 } from './signRequest';
 import { cleanTsaUrls } from './tsa';
+import { SignStampSection } from './SignStampSection';
+import {
+  NO_STAMPS,
+  stampStepsOf,
+  withStamps,
+  type AnySignRequest,
+  type SignStamps,
+} from './stampSteps';
+import type { StampStep } from '@chef/contracts';
 import { readSignPrefs } from './signPrefs';
 import './sign.css';
 
@@ -92,6 +100,7 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
   const [fields, setFields] = useState<FieldInfo[] | null>(null);
   const [previewInfo, setPreviewInfo] = useState<string | null>(null);
   const [busyAnchor, setBusyAnchor] = useState(false);
+  const [stamps, setStamps] = useState<SignStamps>(NO_STAMPS);
 
   const bound = boundTemplate(templates, ready.fingerprint);
   const templateId = draft.templateId === undefined ? (bound?.id ?? null) : draft.templateId;
@@ -208,13 +217,21 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
         ...(materialized ? { template: materialized.template as SignatureTemplate } : {}),
       };
       const resolved = toResolved(where);
-      const first = buildSignRequest(
-        confirmedFinal && signer.kind === 'token' ? { ...signer, confirmFinalTry: true } : signer,
-        options,
-        resolved,
+      // Stamps (I33) are placed first, then the signature covers them.
+      const stamped = stampStepsOf(stamps, 0, doc.info.pageCount);
+      if (stamped.problem) {
+        return setProblem(t(`${stamped.problem.stamp}.err.${stamped.problem.field}`));
+      }
+      const first = withStamps(
+        buildSignRequest(
+          confirmedFinal && signer.kind === 'token' ? { ...signer, confirmFinalTry: true } : signer,
+          options,
+          resolved,
+        ),
+        stamped.steps,
       );
       setSigning(true);
-      await runSigning(first, signer, options, resolved);
+      await runSigning(first, signer, options, resolved, stamped.steps);
     } catch (e) {
       setProblem(e instanceof SignRequestError ? t(`sign.errors.${e.code}`) : errorMessage(e));
     } finally {
@@ -229,10 +246,11 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
    * by the app: a wrong PIN stops here and the user types it again.
    */
   async function runSigning(
-    first: SignRequest,
+    first: AnySignRequest,
     signer: SignerChoice,
     options: SignOptionsDraft,
     resolved: ResolvedPlacement | null,
+    steps: StampStep[],
   ): Promise<void> {
     let req = first;
     let current = signer;
@@ -261,13 +279,13 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
         const answer = await askPassword(name, err.kind !== 'PASSWORD_REQUIRED');
         if (answer === null) return;
         current = { ...current, password: answer };
-        req = buildSignRequest(current, options, resolved);
+        req = withStamps(buildSignRequest(current, options, resolved), steps);
         continue;
       }
       if (current.kind === 'token' && err.kind === 'TOKEN_PIN_CONFIRM_REQUIRED') {
         if (!(await confirmFinalTryDialog())) return;
         current = { ...current, confirmFinalTry: true };
-        req = buildSignRequest(current, options, resolved);
+        req = withStamps(buildSignRequest(current, options, resolved), steps);
         continue;
       }
       if (
@@ -418,6 +436,8 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
           </Field>
         </div>
       </section>
+
+      <SignStampSection value={stamps} onChange={setStamps} disabled={signing} />
 
       <section className="sign-section" aria-labelledby="sign-place-title">
         <h3 id="sign-place-title" className="sign-section__title">

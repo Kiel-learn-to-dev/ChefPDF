@@ -1747,6 +1747,279 @@
       }
     }
   },
+  "security": {
+    "cmd": "Password & permissions…",
+    "short": "Password",
+    "title": "Password & permissions",
+    "description": "Set a password to open the file and the reader permissions (print, copy, edit, annotate, fill forms, assemble, accessibility). AES-256 encryption.",
+    "userPassword": "Open password",
+    "userConfirm": "Confirm open password",
+    "ownerPassword": "Permissions password (owner)",
+    "ownerConfirm": "Confirm permissions password",
+    "show": "Show passwords",
+    "strength": "Strength: {{level}}",
+    "level": {
+      "empty": "not entered",
+      "weak": "weak",
+      "fair": "fair",
+      "strong": "strong"
+    },
+    "permissions": "Reader permissions",
+    "perm": {
+      "printLowRes": "Print at low resolution",
+      "printLowResHint": "Allow printing at normal quality.",
+      "printHighRes": "Print at high resolution",
+      "printHighResHint": "Needs low-resolution printing.",
+      "copyContent": "Copy text and images",
+      "copyContentHint": "Allow copying content out of the file.",
+      "modify": "Change content",
+      "modifyHint": "Allow other changes to the content.",
+      "annotate": "Comments",
+      "annotateHint": "Add or change comments and notes.",
+      "fillForms": "Fill in forms",
+      "fillFormsHint": "Fill in form fields.",
+      "assemble": "Assemble pages",
+      "assembleHint": "Insert, delete and rotate pages.",
+      "accessibility": "Accessibility tools",
+      "accessibilityHint": "Allow accessibility tools to read the content."
+    },
+    "issue": {
+      "noPassword": "Enter at least one password.",
+      "userMismatch": "The open password confirmation does not match.",
+      "ownerMismatch": "The permissions password confirmation does not match.",
+      "ownerNeedsRights": "With only a permissions password, restrict at least one permission."
+    },
+    "apply": "Set password",
+    "remove": "Remove protection",
+    "job": "Set password: {{name}}",
+    "removeJob": "Remove protection: {{name}}",
+    "applied": "Password set. The file is encrypted when you save it.",
+    "removed": "Protection removed. The change takes effect when you save.",
+    "removeLabel": "Current password (if the file has one)",
+    "removeHint": "Leave empty if the file opened without a password.",
+    "saveHint": "Passwords apply when you save. They are kept in memory only and never written to disk.",
+    "encryptedNote": "This file is protected by a password.",
+    "pendingNote": "Unsaved protection changes.",
+    "pendingChip": "Encrypted on save",
+    "signedBlocked": "The file is digitally signed: setting or removing a password would break the signatures."
+  },
+  "inspect": {
+    "cmd": "Inspect file & remove hidden data…",
+    "short": "Inspect",
+    "title": "Inspect file & remove hidden data",
+    "description": "See what the file holds beyond its visible pages: metadata, JavaScript, attachments, hidden layers, comments... Tick what to clean and remove it.",
+    "job": "Inspect file: {{name}}",
+    "removeJob": "Remove hidden data: {{name}}",
+    "scanning": "Inspecting the file…",
+    "clean": "No hidden data found.",
+    "count": "{{count}} items",
+    "showItems": "Show {{count}} items",
+    "remove": "Remove selected ({{count}})",
+    "rescan": "Inspect again",
+    "signedBlocked": "The file is digitally signed: removing data would break the signatures.",
+    "removedToast": "Hidden data removed.",
+    "summary": "Before: {{before}} items · After: {{after}} items",
+    "removedLine": "Removed {{name}}: {{count}} items",
+    "hiddenTextNote": "Hidden text (white or invisible text, text outside the page) is only reported. Removing it needs rewriting the page content, so it cannot be removed automatically.",
+    "severity": {
+      "info": "Info",
+      "warn": "Warning",
+      "risk": "Risk"
+    },
+    "cat": {
+      "metadata": "Metadata (author, title, producer...)",
+      "embeddedFiles": "Attached files",
+      "javascript": "JavaScript",
+      "launchActions": "Actions that open a program or file",
+      "hiddenText": "Hidden text",
+      "hiddenLayers": "Hidden layers (OCG)",
+      "comments": "Comments and annotations",
+      "formValues": "Form data",
+      "bookmarks": "Bookmarks",
+      "thumbnails": "Embedded thumbnails",
+      "externalLinks": "External links",
+      "xfa": "XFA forms",
+      "revisionHistory": "Revision history (old versions in the file)",
+      "unusedObjects": "Unused objects",
+      "fontsNotEmbedded": "Fonts not embedded",
+      "images": "Images"
+    },
+    "hint": {
+      "metadata": "Can be removed: author, last editor and the producing software may reveal internal details.",
+      "embeddedFiles": "Files embedded inside the PDF. All can be removed.",
+      "javascript": "Scripts can run when the file opens. Better removed.",
+      "launchActions": "Actions that open another app or file. Better removed.",
+      "hiddenLayers": "Layers can be switched on to reveal hidden content.",
+      "comments": "Notes, annotations and markup by readers.",
+      "formValues": "Values typed into the form.",
+      "bookmarks": "The file's outline.",
+      "thumbnails": "Thumbnails can still hold older page content.",
+      "externalLinks": "Links to web pages or other files.",
+      "xfa": "Old XFA data, which may contain scripts.",
+      "revisionHistory": "Older versions stored in the file may contain deleted content.",
+      "unusedObjects": "Objects no longer referenced. Removing them makes the file smaller."
+    },
+    "noFix": {
+      "hiddenText": "Report only. Cannot be removed automatically.",
+      "fontsNotEmbedded": "Report only. Missing fonts may display differently on other machines.",
+      "images": "Report only."
+    },
+    "item": {
+      "page": "page {{page}}",
+      "chars": "{{count}} characters"
+    }
+  },
+  "preflight": {
+    "cmd": "Check before sending…",
+    "short": "Check",
+    "title": "Check before sending",
+    "description": "Run one check: leftover metadata, comments, unflattened forms, file size, signatures. Press Fix to handle each item.",
+    "job": "Check: {{name}}",
+    "fixJob": "Fix: {{title}}",
+    "fixed": "Fixed. Checking again.",
+    "run": "Check again",
+    "limit": "Size limit",
+    "noLimit": "No limit",
+    "limitMb": "Up to {{mb}} MB",
+    "summary": "Passed: {{ok}} · Warnings: {{warn}} · Failed: {{fail}}",
+    "running": "Checking…",
+    "status": {
+      "ok": "Passed",
+      "warn": "Warning",
+      "fail": "Needs fixing"
+    },
+    "fix": "Fix",
+    "manual": "No automatic fix. See the related tool.",
+    "signedBlocked": "The file is digitally signed: fixing it would break the signatures.",
+    "detail": {
+      "item": "(item)",
+      "bytes": "Size",
+      "limitBytes": "Limit",
+      "pages": "Pages",
+      "fonts": "Fonts",
+      "fields": "Fields",
+      "fieldName": "Field"
+    }
+  },
+  "compress": {
+    "cmd": "Compress PDF…",
+    "short": "Compress",
+    "title": "Compress PDF",
+    "description": "Reduce the size of \"{{name}}\": lower image resolution, drop unused objects, subset fonts. The estimate is exact but slow, because it really compresses the file.",
+    "estimateJob": "Estimate compression: {{name}}",
+    "fitJob": "Compress to a size: {{name}}",
+    "jobTitle": "Compress PDF: {{name}}",
+    "presetCustom": "Custom",
+    "preset": {
+      "screen": "Screen (smallest)",
+      "ebook": "E-book",
+      "print": "Print (high quality)",
+      "archive-light": "Light archive (images unchanged)"
+    },
+    "presetSave": "Save as preset",
+    "presetDelete": "Delete this preset",
+    "presetName": "Preset name",
+    "presetSaveConfirm": "Save",
+    "presetIssue": {
+      "empty": "Enter a preset name.",
+      "tooLong": "The name can have up to {{max}} characters.",
+      "duplicate": "This name is already used."
+    },
+    "maxDpi": "Largest image resolution (dpi)",
+    "maxDpiHint": "0 = from the preset",
+    "quality": "JPEG quality (1–100)",
+    "qualityHint": "0 = from the preset",
+    "invalidDpi": "The resolution must be from 36 to 1200 dpi.",
+    "invalidQuality": "The JPEG quality must be from 1 to 100.",
+    "opt": {
+      "grayscale": "Convert images to grayscale",
+      "grayscaleHint": "Greatly reduces the size of colour images.",
+      "removeUnused": "Remove unused objects",
+      "removeUnusedHint": "Drops images and forms that no page uses.",
+      "removeThumbnails": "Remove thumbnails",
+      "removeAttachments": "Remove attached files",
+      "removeAttachmentsHint": "The files embedded in the PDF are lost.",
+      "removeMetadata": "Remove metadata",
+      "subsetFonts": "Subset fonts (keep only the characters used)",
+      "flatten": "Flatten transparency",
+      "flattenHint": "Needed for some images with alpha masks."
+    },
+    "estimating": "Estimating…",
+    "estimateButton": "Estimate size",
+    "estimate": {
+      "line": "Estimate: {{before}} MB → {{after}} MB (saves {{percent}}%)"
+    },
+    "fitLabel": "Compress to under (MB)",
+    "fitHint": "Finds the first compression level that reaches this size, then fills in the matching options.",
+    "fitButton": "Compress to ≤ {{mb}} MB",
+    "fit": {
+      "done": "Under {{mb}} MB: about {{size}} MB. The options are filled in.",
+      "unreachable": "{{mb}} MB could not be reached; the smallest is about {{size}} MB. That level is filled in."
+    },
+    "run": "Compress",
+    "signedBlocked": "The file is digitally signed: compressing it would break the signatures.",
+    "doneToast": "Compressed, {{percent}}% smaller.",
+    "resultLabel": "Compression result",
+    "result": {
+      "line": "{{before}} MB → {{after}} MB (saves {{percent}}%)",
+      "images": "Images compressed: {{processed}} · Images kept as they are: {{skipped}}"
+    },
+    "reason": {
+      "jpeg2000": "{{count}} JPEG 2000 images kept as they are",
+      "bilevel": "{{count}} black-and-white images kept as they are",
+      "stencil": "{{count}} masks kept as they are",
+      "unusual": "{{count}} images with unusual colour spaces kept as they are"
+    }
+  },
+  "convert": {
+    "title": "Convert",
+    "cmdPdfToImages": "PDF → images…",
+    "shortPdfToImages": "PDF → images",
+    "cmdImagesToPdf": "Images → PDF…",
+    "shortImagesToPdf": "Images → PDF",
+    "pdfTitle": "PDF → images",
+    "pdfDescription": "Export the pages of \"{{name}}\" as image files.",
+    "pdfJob": "PDF → images: {{name}}",
+    "pdfDone": "Exported {{count}} image files.",
+    "run": "Convert",
+    "multiPageTiff": "One multi-page TIFF file",
+    "multiPageTiffHint": "Only for the TIFF format.",
+    "format": "Format",
+    "dpi": "Resolution (dpi)",
+    "colorMode": "Colour",
+    "color": {
+      "color": "Colour",
+      "gray": "Greyscale",
+      "bw": "Black and white"
+    },
+    "quality": "Quality (1–100)",
+    "outputDir": "Output folder",
+    "needFolder": "Choose an output folder.",
+    "nameTemplate": "File name pattern",
+    "nameTemplateHint": "{name} is the PDF name, {page} is the page number.",
+    "badName": "Invalid pattern (it must not contain \\ / : * ? \" < > |).",
+    "imagesTitle": "Images → PDF",
+    "imagesDescription": "Combine several PNG or JPG images into one PDF. Use the arrows to change the order.",
+    "imagesJob": "Images → PDF: {{name}}",
+    "clipboardEmpty": "The clipboard has no PNG image.",
+    "addImages": "Add images…",
+    "fromClipboard": "Paste image from clipboard",
+    "noImages": "No images yet. Add images or paste a screenshot from the clipboard.",
+    "pageSizeLabel": "Page size",
+    "pageSize": {
+      "image": "Image size",
+      "custom": "Custom"
+    },
+    "fitLabel": "Image placement",
+    "fit": {
+      "fit": "Fit the page",
+      "fill": "Fill the page (may crop)",
+      "center": "Centred, keep the size"
+    },
+    "widthMm": "Width (mm)",
+    "heightMm": "Height (mm)",
+    "marginMm": "Margin (mm)"
+  },
   "stamp": {
     "cmd": "Stamp…",
     "title": "Stamp",
@@ -1801,6 +2074,161 @@
       "path": "Choose a stamp picture.",
       "width": "Width from 1 to 2000."
     }
+  },
+  "seam": {
+    "cmd": "Cross-page seal…",
+    "title": "Cross-page seal",
+    "description": "One seal cut into equal strips across the edges of the pages: each page takes one strip and together they form the whole seal. You can remove it in the overlay manager.",
+    "run": "Apply cross-page seal",
+    "job": "Cross-page seal: {{name}}",
+    "previewLabel": "Preview",
+    "diagram": {
+      "label": "Strip diagram",
+      "slices": "{{count}} strips per set",
+      "pages": "{{count}} pages take a strip"
+    },
+    "overlap": "Overlap between strips (mm)",
+    "opacity": "Opacity (0–1)",
+    "multiply": "Multiply blend",
+    "multiplyHint": "The ink darkens what is underneath instead of covering the text.",
+    "image": {
+      "label": "Seal image",
+      "library": "Seal library",
+      "choose": "Choose item…",
+      "file": "Choose file…",
+      "none": "No image chosen"
+    },
+    "side": {
+      "label": "Edge",
+      "right": "Right edge",
+      "left": "Left edge"
+    },
+    "groupSize": "Pages per set (0 = one set)",
+    "scaleWidth": "Total seal width (mm, 0 = natural size)",
+    "vertical": {
+      "label": "Vertical position",
+      "center": "Middle of page",
+      "top": "Near top edge",
+      "bottom": "Near bottom edge",
+      "mm": "mm from top edge"
+    },
+    "verticalMm": "mm from top edge",
+    "cutFirstPage": "The first page of each set also gets a strip",
+    "result": {
+      "title": "Cross-page seal applied",
+      "summary": "{{strips}} strips on {{pages}} pages, {{sets}} sets.",
+      "line": "Page {{page}}: strip {{strip}} of {{of}}"
+    },
+    "err": {
+      "path": "Choose a seal image.",
+      "groupSize": "Pages per set must be a whole number from 0 to 10000.",
+      "overlapMm": "Overlap must be from 0 to 50 mm.",
+      "scaleWidthMm": "Width must be from 0 to 1000 mm.",
+      "verticalMm": "Distance from the top must be from 0 to 10000 mm.",
+      "opacity": "Opacity must be from 0 to 1.",
+      "pages": "Invalid page range.",
+      "cutFirstPage": "No page takes a strip. Choose more pages or turn on the strip on the first page."
+    }
+  },
+  "initials": {
+    "cmd": "Initials…",
+    "title": "Initials",
+    "description": "Place initials or a short signature in a corner, on an edge or in the middle of the chosen pages. You can remove it in the overlay manager.",
+    "run": "Apply initials",
+    "job": "Initials: {{name}}",
+    "previewLabel": "Preview",
+    "none": "No image chosen",
+    "kind": {
+      "label": "Kind",
+      "text": "Text",
+      "image": "Picture"
+    },
+    "text": {
+      "label": "Initials",
+      "empty": "Type text"
+    },
+    "color": "Colour",
+    "fontSize": "Font size",
+    "bold": "Bold",
+    "opacity": "Opacity (0–1)",
+    "multiply": "Multiply blend",
+    "multiplyHint": "The ink darkens what is underneath instead of covering the text.",
+    "image": {
+      "label": "Initials picture",
+      "library": "Signature library",
+      "choose": "Choose item…",
+      "file": "Choose file…"
+    },
+    "width": "Width (mm)",
+    "position": "Position on page",
+    "pos": {
+      "top-left": "Top left corner",
+      "top-center": "Top edge, centre",
+      "top-right": "Top right corner",
+      "center-left": "Left edge, middle",
+      "center": "Page centre",
+      "center-right": "Right edge, middle",
+      "bottom-left": "Bottom left corner",
+      "bottom-center": "Bottom edge, centre",
+      "bottom-right": "Bottom right corner"
+    },
+    "margin": "Margin (mm)",
+    "err": {
+      "text": "Enter the initials (up to 40 characters).",
+      "fontSize": "Font size must be from 4 to 120.",
+      "path": "Choose an initials picture.",
+      "widthMm": "Width must be from 1 to 500 mm.",
+      "marginMm": "Margin must be from 0 to 100 mm.",
+      "color": "Colour must look like #RRGGBB.",
+      "opacity": "Opacity must be from 0 to 1.",
+      "pages": "Invalid page range."
+    }
+  },
+  "signStamp": {
+    "title": "Stamp before signing",
+    "note": "Stamp first, sign after: the stamps are placed in the document before the signature, so the signature covers them.",
+    "seamOn": "Cross-page seal",
+    "initialsOn": "Initials on every page",
+    "seamImage": "Seal image",
+    "pick": "Choose image…",
+    "none": "No image chosen"
+  },
+  "outlineEdit": {
+    "edit": "Edit outline",
+    "done": "Done",
+    "add": "Add item",
+    "remove": "Delete item",
+    "indent": "Indent (make a child)",
+    "outdent": "Outdent (move up a level)",
+    "up": "Move up",
+    "down": "Move down",
+    "newTitle": "New item",
+    "titleLabel": "Item title",
+    "setPage": "Point to page {{page}}",
+    "noPage": "No page",
+    "page": "Page {{page}}",
+    "color": "Text colour",
+    "bold": "Bold",
+    "italic": "Italic",
+    "empty": "No items yet. Add an item, or build one from the pages.",
+    "noSelection": "Select an item to rename it, move it to another page or style it.",
+    "loading": "Reading the outline…",
+    "fromPages": "Build from pages",
+    "clear": "Clear all",
+    "save": "Save outline",
+    "saved": "Outline saved",
+    "savedCount": "{{count}} items.",
+    "signed": "The document is signed, so the outline cannot be changed.",
+    "confirmReplace": "Building the outline from the pages replaces the current outline. Continue?",
+    "confirmClear": "Clear the whole outline? You can take it back with Undo.",
+    "confirmDiscard": "There are unsaved changes. Discard them?",
+    "replaceGo": "Replace",
+    "clearGo": "Clear all",
+    "discardGo": "Discard changes",
+    "loadJob": "Read outline",
+    "saveJob": "Save outline: {{name}}",
+    "fromPagesJob": "Build outline from pages: {{name}}",
+    "clearJob": "Clear outline: {{name}}"
   },
   "recovery": {
     "title": "Restore documents",

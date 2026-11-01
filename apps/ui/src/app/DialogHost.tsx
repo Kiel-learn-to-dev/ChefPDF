@@ -26,7 +26,14 @@ import { LetterheadDialog } from '../features/overlay/LetterheadDialog';
 import { BatesDialog } from '../features/overlay/BatesDialog';
 import { OverlayManagerDialog } from '../features/overlay/OverlayManagerDialog';
 import { StampDialog } from '../features/stamps/StampDialog';
+import { SeamDialog } from '../features/stamps/SeamDialog';
+import { InitialsDialog } from '../features/stamps/InitialsDialog';
 import { RecoveryDialog } from '../features/recovery/RecoveryDialog';
+import { SecurityDialog } from '../features/security/SecurityDialog';
+import { InspectDialog } from '../features/inspect/InspectDialog';
+import { PreflightDialog } from '../features/preflight/PreflightDialog';
+import { CompressDialog } from '../features/compress/CompressDialog';
+import { ImagesToPdfDialog, PdfToImagesDialog } from '../features/convert/ConvertDialogs';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -122,8 +129,24 @@ export function DialogHost() {
       return <OverlayManagerDialog />;
     case 'stamp':
       return <StampDialog />;
+    case 'seam':
+      return <SeamDialog />;
+    case 'initials':
+      return <InitialsDialog />;
     case 'recovery':
       return <RecoveryDialog />;
+    case 'security':
+      return <SecurityDialog />;
+    case 'inspect':
+      return <InspectDialog />;
+    case 'preflight':
+      return <PreflightDialog />;
+    case 'compress':
+      return <CompressDialog />;
+    case 'pdfToImages':
+      return <PdfToImagesDialog />;
+    case 'imagesToPdf':
+      return <ImagesToPdfDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:
