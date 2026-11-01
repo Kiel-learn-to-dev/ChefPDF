@@ -301,3 +301,76 @@ def test_fifty_pages_finish_quickly(harness: Harness, tmp_path: Path) -> None:
     elapsed = time.perf_counter() - started
     assert result["data"]["redacted"] == 100
     assert elapsed < 15, f"took {elapsed:.1f}s"
+
+
+# -- the label drawn in each redacted box (overlayText) -----------------------------------
+
+
+def _white(px: tuple[int, int, int]) -> bool:
+    return min(px) > 200
+
+
+def test_overlay_label_is_centred_in_each_box(harness: Harness, tmp_path: Path) -> None:
+    path = _vn_pdf(tmp_path / "label.pdf")
+    sid = _sid(harness, path)
+    matches = _find(harness, sid, "phone")
+    assert matches
+    result = harness.op(
+        "redact.apply",
+        {
+            "matchIds": [m["id"] for m in matches],
+            "patterns": [{"kind": "phone"}],
+            "overlayText": "ĐÃ CHE",
+        },
+        sid,
+    )
+    assert result["data"]["verification"] == {"ok": True, "leaks": []}
+    assert result["data"]["labels"] == sum(len(m["rects"]) for m in matches)
+    img = render(_revision(harness, sid))
+    x0, y0, x1, y1 = matches[0]["rects"][0]
+    left, top = int(x0) + 1, int(y0) + 1
+    crop = img.crop((left, top, int(x1) - 1, int(y1) - 1))
+    bbox = ink_bbox(crop, _white)
+    assert bbox is not None, "the label is drawn in white on the black box"
+    cx = left + (bbox[0] + bbox[2]) / 2
+    cy = top + (bbox[1] + bbox[3]) / 2
+    assert abs(cx - (x0 + x1) / 2) < 4 and abs(cy - (y0 + y1) / 2) < 4
+    assert bbox[2] - bbox[0] <= (x1 - x0) and bbox[3] - bbox[1] <= (y1 - y0)
+
+
+def test_overlay_label_shrinks_to_fit_a_small_box(harness: Harness, tmp_path: Path) -> None:
+    path = _vn_pdf(tmp_path / "small.pdf")
+    sid = _sid(harness, path)
+    box = [100.0, 100.0, 160.0, 116.0]  # display frame: 60 x 16 points
+    harness.op(
+        "redact.apply",
+        {
+            "rects": [{"pageIndex": 0, "rect": box}],
+            "overlayText": "ĐÃ CHE ĐÃ CHE DÀI",
+            "fill": "#ffffff",
+        },
+        sid,
+    )
+    img = render(_revision(harness, sid))
+    left, top, right, bottom = (int(v) for v in box)
+    crop = img.crop((left + 1, top + 1, right - 1, bottom - 1))
+    bbox = ink_bbox(crop, is_dark)  # the label is dark on the white box
+    assert bbox is not None
+    assert bbox[2] - bbox[0] <= (right - left) and bbox[3] - bbox[1] <= (bottom - top)
+
+
+def test_label_does_not_fail_verification_when_it_repeats_a_secret_word(
+    harness: Harness, tmp_path: Path
+) -> None:
+    path = _vn_pdf(tmp_path / "word.pdf", lines=["Mã CHE số 4411 để kiểm tra", "Dòng khác"])
+    sid = _sid(harness, path)
+    result = harness.op(
+        "redact.apply",
+        {"patterns": [{"kind": "literal", "value": "CHE"}], "overlayText": "ĐÃ CHE"},
+        sid,
+    )
+    assert result["data"]["verification"] == {"ok": True, "leaks": []}
+    assert result["data"]["redacted"] >= 1
+    text = page_text(_revision(harness, sid))
+    assert "số 4411" in text  # the rest of the line stays
+    assert text.count("CHE") == 1  # only the label carries the word now

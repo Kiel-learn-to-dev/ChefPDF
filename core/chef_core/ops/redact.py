@@ -13,6 +13,9 @@
   areas are then painted. Afterwards the saved file is checked by a second reader
   (``chef_core.content.redact.verify``). If any redacted text is still there, the operation fails
   with ``REDACTION_VERIFY_FAILED`` and the session stays as it was.
+  ``overlayText`` (e.g. 'ĐÃ CHE') is drawn centred in every painted box, shrunk to fit, white on a
+  dark fill and black otherwise. It is added after the check, to the verified file: the label is
+  not one of the redacted strings, and its glyphs would otherwise look like text left in the box.
 
 Matches are identified by page, order on the page and a digest of their text, so the ids of
 ``redact.find`` are valid for ``redact.apply`` as long as the document has not changed.
@@ -20,22 +23,33 @@ Matches are identified by page, order on the page and a digest of their text, so
 
 from __future__ import annotations
 
+import uuid
 from collections import defaultdict
 from typing import Any, Literal
 
 import pypdfium2 as pdfium
 from pydantic import Field
 
-from chef_core.content.erase import CutOptions, cut_page, paint_rects, rect_user_from_display
+from chef_core.content.erase import (
+    CutOptions,
+    cut_page,
+    paint_rects,
+    rect_display_from_user,
+    rect_user_from_display,
+)
 from chef_core.content.model import Rect
 from chef_core.content.redact import remove_annotations, remove_thumbnails, scrub_metadata, verify
 from chef_core.content.textfind import Hit, PatternSpec, display_rects, hit_ids, search
 from chef_core.errors import ChefError, ErrorKind, invalid_params
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
+from chef_core.overlay.engine import OverlayWriter, Placement, TextStyle
 from chef_core.overlay.pagecontent import page_frame
+from chef_core.pdf.io import atomic_save, open_pdf
 
 _HEX = r"^#?[0-9a-fA-F]{6}$"
+LABEL_MAX_PT = 28.0
+LABEL_MIN_PT = 4.0
 
 
 class RedactPattern(WireModel):
@@ -74,6 +88,12 @@ class RedactApplyParams(WireModel):
     remove_from_annotations: bool = Field(
         default=True, description="Delete annotations and form values in the areas."
     )
+    overlay_text: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=60,
+        description="Label drawn centred in each redacted box, e.g. 'ĐÃ CHE'.",
+    )
 
 
 def _specs(patterns: list[RedactPattern]) -> list[PatternSpec]:
@@ -95,6 +115,57 @@ def _rgb(value: str) -> tuple[int, int, int]:
     text = value.lstrip("#")
     r, g, b = (int(text[i : i + 2], 16) for i in (0, 2, 4))
     return (r, g, b)
+
+
+def _label_colour(fill: tuple[int, int, int]) -> tuple[float, float, float]:
+    luminance = 0.2126 * fill[0] + 0.7152 * fill[1] + 0.0722 * fill[2]
+    return (0.0, 0.0, 0.0) if luminance > 140 else (1.0, 1.0, 1.0)
+
+
+def _draw_labels(
+    ctx: OpContext,
+    regions: dict[int, list[Rect]],
+    fill: tuple[int, int, int],
+    text: str,
+) -> int:
+    """Draw ``text`` centred in every redacted box of the verified result, shrunk until it fits
+    (90% of the box). A box too small for even the smallest size gets no label, with a warning."""
+    result = ctx.result_path
+    assert result is not None
+    drawn = 0
+    pdf = open_pdf(result)
+    try:
+        writer = OverlayWriter(
+            pdf, kind="text", group=_new_id(), label="redaction label", warn=ctx.warn
+        )
+        colour = _label_colour(fill)
+        for index in sorted(regions):
+            frame = page_frame(pdf.pages[index])
+            for rect in regions[index]:
+                x0, top, x1, bottom = rect_display_from_user(frame, rect)
+                width, height = x1 - x0, bottom - top
+                size = min(LABEL_MAX_PT, height * 0.6)
+                piece = None
+                while size >= LABEL_MIN_PT:
+                    candidate = writer.text(
+                        text, TextStyle(font_size=size, bold=True, color=colour)
+                    )
+                    if candidate.width <= width * 0.9 and candidate.height <= height * 0.9:
+                        piece = candidate
+                        break
+                    size *= 0.9
+                if piece is None:
+                    ctx.warn(f"No label on page {index + 1}: the redacted box is too small.")
+                    continue
+                left = x0 + (width - piece.width) / 2
+                upper = top + (height - piece.height) / 2
+                writer.place(index, piece, Placement(x=left, y=upper, anchor="top-left"))
+                drawn += 1
+        writer.commit()
+        atomic_save(pdf, result, before_replace=pdf.close)
+    finally:
+        pdf.close()
+    return drawn
 
 
 @operation(id="redact.find", title="Find text to redact", group="redact", params=RedactFindParams)
@@ -182,6 +253,9 @@ def redact_apply(ctx: OpContext, p: RedactApplyParams) -> OpOutput:
             "Redacted text is still present in the saved file",
             {"leaks": [leak.to_json() for leak in leaks]},
         )
+    labels = 0
+    if p.overlay_text:
+        labels = _draw_labels(ctx, dict(regions), fill8, p.overlay_text)
     return OpOutput(
         changed_pages=pages_done,
         data={
@@ -189,10 +263,15 @@ def redact_apply(ctx: OpContext, p: RedactApplyParams) -> OpOutput:
             "pages": pages_done,
             "removedAnnotations": removed_annots,
             "scrubbed": scrubbed,
+            "labels": labels,
             **totals,
             "verification": {"ok": True, "leaks": []},
         },
     )
+
+
+def _new_id() -> str:
+    return uuid.uuid4().hex
 
 
 __all__ = ["RedactApplyParams", "RedactFindParams", "RedactPattern", "redact_apply", "redact_find"]

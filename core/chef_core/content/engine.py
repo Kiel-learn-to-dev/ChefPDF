@@ -242,9 +242,13 @@ class _Walker:
         *,
         page_level: bool,
         parent_key: Key | None = None,
+        outer_marks: list[Ins] | None = None,
     ) -> None:
         stack: list[GState] = []
-        marks: list[Ins] = []
+        # objects drawn by a form inherit the marked content around its Do (defect 1: a
+        # watermark drawn as a form keeps its Artifact and ChefOverlay tags on the children)
+        marks: list[Ins] = list(outer_marks or [])
+        base_marks = len(marks)
         in_bt = False
         tm: Matrix = IDENTITY
         tlm: Matrix = IDENTITY
@@ -384,7 +388,7 @@ class _Walker:
             elif op in ("BDC", "BMC"):
                 marks.append(ins)
             elif op == "EMC":
-                if marks:
+                if len(marks) > base_marks:
                     marks.pop()
         if page_level:
             self.clean_at.append(
@@ -675,6 +679,7 @@ class _Walker:
                 depth + 1,
                 page_level=False,
                 parent_key=ins.key,
+                outer_marks=list(marks),
             )
         finally:
             self._active.discard(ident)

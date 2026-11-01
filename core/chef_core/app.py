@@ -143,7 +143,11 @@ class CoreApp:
         assert session_id is not None
         recovery.discard(self.sessions, session_id)
 
-    def recovery_cleanup(self, _params: JsonDict) -> dict[str, int]:
+    def recovery_cleanup(self, params: JsonDict) -> dict[str, int]:
+        # Optional ``maxAgeDays`` (crashed sessions; cleanly closed ones keep 7 days).
+        value = params.get("maxAgeDays")
+        if isinstance(value, int | float) and not isinstance(value, bool) and value > 0:
+            return {"removed": recovery.cleanup(self.sessions, max_age_days=float(value))}
         return {"removed": recovery.cleanup(self.sessions)}
 
     # -- lifecycle ----------------------------------------------------------------------

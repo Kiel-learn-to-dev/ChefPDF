@@ -106,12 +106,15 @@ class Session:
         source_path: Path | None,
         encryption: EncryptionState | None,
         signed: bool,
+        original_path: Path | None = None,
     ) -> None:
         self.id = session_id
         self.dir = directory
         self.source_path = source_path
         self.encryption = encryption  # holds the passwords: memory only, never logged
         self.signed = signed
+        # A byte copy of an encrypted, signed file as it was opened (see ``save``).
+        self.original_path = original_path
         self.opened_at = _now()
         self.revisions: list[int] = [0]
         self.index = 0
@@ -349,7 +352,22 @@ class Session:
         src = self.current_path
         pending = self.pending
         enc = self.effective_protection()
-        if enc is not None and (enc.user_password or enc.owner_password is not None):
+        protected_now = enc is not None and (
+            bool(enc.user_password) or enc.owner_password is not None
+        )
+        # Re-encrypting, or decrypting, rewrites the whole file: the bytes under a signature's
+        # ByteRange would change. An untouched signed file is copied from its original bytes.
+        rewrites = protected_now or self.encrypted or pending is not None
+        if self.signed and rewrites:
+            if self.current_rev != 0 or pending is not None or self.original_path is None:
+                raise ChefError(
+                    ErrorKind.BLOCKED_BY_SIGNATURE,
+                    "The document is signed and encrypted: saving it again would rewrite the "
+                    "file and break its signatures",
+                    {"path": str(dest)},
+                )
+            atomic_copy(self.original_path, dest)
+        elif enc is not None and protected_now:
             owner = enc.owner_password
             if owner is None:
                 owner = enc.user_password
@@ -444,6 +462,11 @@ class SessionManager:
                 if pdf.is_encrypted:
                     encryption = _encryption_state(pdf, source, password)
                 rev0 = directory / "rev-0000.pdf"
+                signed = has_signatures(pdf)
+                original: Path | None = None
+                if encryption is not None and signed:
+                    original = directory / "original.pdf"
+                    shutil.copyfile(source, original)
                 if encryption is not None or pdf.get_warnings():
                     # Decrypt (or normalise a repaired file) into the working copy.
                     pdf.save(rev0, encryption=False)
@@ -454,7 +477,8 @@ class SessionManager:
                     directory,
                     source_path=source,
                     encryption=encryption,
-                    signed=has_signatures(pdf),
+                    signed=signed,
+                    original_path=original,
                 )
                 info = document_info(
                     pdf, encrypted=encryption is not None, file_size=source.stat().st_size

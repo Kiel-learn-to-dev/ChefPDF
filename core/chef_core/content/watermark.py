@@ -6,10 +6,19 @@
 2. optional-content groups whose name looks like a watermark                              (0.90)
 3. annotations of subtype ``/Watermark``                                                  (0.90)
 4. watermarks added by Chef PDF (``/ChefOverlay`` blocks of kind watermark)               (1.00)
+   Chef watermarks also carry the ``/Artifact`` wrapper, but they are reported as tier 4: the
+   overlay registry names them exactly, so the tier-1 rule never applies to them.
 5. heuristics: an object (same text, same image bytes, same path) drawn at the same place,
    the same size, on at least 60% of the pages (at least 3). Confidence starts at 0.40 and
    adds 0.25 for rotated text, 0.25 for low opacity (ca/CA < 1) and 0.10 for covering at least
    15% of the page.
+
+Forms are not skipped by tiers 1, 2 and 4: a watermark drawn as a Form XObject (``Do``) is
+tagged around the ``Do``, so the form object itself carries the tag. Objects drawn by a form
+inherit the tags around its ``Do`` (see ``content.engine``); such a child is classified by its
+own tags only and is reported through the outermost page-level object that draws it (the form).
+Tier 4 also comes from the overlay registry (``overlay.registry.list_overlays``), which reads the
+page content directly, so it does not depend on what the engine models.
 
 Nothing is removed here. ``repeated_objects`` and ``detect_backgrounds`` serve E4 and E5.
 Candidates carry object ids of the current revision, so a removal can find the objects again.
@@ -29,9 +38,10 @@ from pikepdf import Dictionary, Name
 from chef_core.content.engine import build_model
 from chef_core.content.erase import rect_display_from_user
 from chef_core.content.layers import groups_of, layer_id, objgen_of
-from chef_core.content.model import PageModel, PageObject, Rect, hex_of
+from chef_core.content.model import Ins, PageModel, PageObject, Rect, hex_of
 from chef_core.overlay.markers import TAG_OVERLAY, OverlayProps
 from chef_core.overlay.pagecontent import inherited, page_frame
+from chef_core.overlay.registry import list_overlays
 from chef_core.pdf.content import mul
 
 LAYER_NAME = re.compile(r"watermark|dấu chìm|chìm|bản quyền|draft|confidential", re.IGNORECASE)
@@ -208,12 +218,34 @@ def _group(groups: dict[object, _Group], tier: int, key: object) -> Candidate:
 def _add_object(cand: Candidate, page: int, obj: PageObject, model: PageModel) -> None:
     if page not in cand.pages:
         cand.pages.append(page)
-    cand.objects.setdefault(page, []).append(obj.id)
+    ids = cand.objects.setdefault(page, [])
+    if obj.id in ids:  # several children of one form stand for the same page object
+        return
+    ids.append(obj.id)
     cand.bboxes.setdefault(page, []).append(list(obj.display_bbox(model.frame)))
 
 
-def _artifact_mark(obj: PageObject) -> bool:
-    for mk in obj.mark_ins:
+def _representative(model: PageModel, obj: PageObject) -> PageObject:
+    """The page-level object that stands for ``obj``: itself, or the outermost form drawing it."""
+    cur = obj
+    for _ in range(64):
+        if cur.in_page or cur.parent_id is None or cur.parent_id not in model.by_id:
+            break
+        cur = model.by_id[cur.parent_id]
+    return cur
+
+
+def _own_marks(model: PageModel, obj: PageObject) -> list[Ins]:
+    """The marks that ``obj`` adds itself. The marks of its form (inherited) are left out: the
+    form is the object that carries them."""
+    if obj.in_page or obj.parent_id is None or obj.parent_id not in model.by_id:
+        return obj.mark_ins
+    parent = model.by_id[obj.parent_id]
+    return obj.mark_ins[len(parent.mark_ins) :]
+
+
+def _artifact_mark(marks: list[Ins]) -> bool:
+    for mk in marks:
         if mk.op == "BDC" and mk.operands and str(mk.operands[0]) == "/Artifact":
             props = mk.operands[1] if len(mk.operands) > 1 else None
             if isinstance(props, Dictionary) and str(props.get("/Subtype", "")) == "/Watermark":
@@ -221,8 +253,8 @@ def _artifact_mark(obj: PageObject) -> bool:
     return False
 
 
-def _overlay_mark(obj: PageObject) -> OverlayProps | None:
-    for mk in obj.mark_ins:
+def _overlay_mark(marks: list[Ins]) -> OverlayProps | None:
+    for mk in marks:
         if mk.op == "BDC" and mk.operands and str(mk.operands[0]) == f"/{TAG_OVERLAY}":
             props = OverlayProps.from_dict(mk.operands[1]) if len(mk.operands) > 1 else None
             if props is not None and props.kind == "watermark":
@@ -230,8 +262,8 @@ def _overlay_mark(obj: PageObject) -> OverlayProps | None:
     return None
 
 
-def _layer_of(page: pikepdf.Page, obj: PageObject) -> tuple[int, int] | None:
-    for mk in obj.mark_ins:
+def _layer_of(page: pikepdf.Page, marks: list[Ins]) -> tuple[int, int] | None:
+    for mk in marks:
         if mk.op == "BDC" and len(mk.operands) > 1 and str(mk.operands[0]) == "/OC":
             operand = mk.operands[1]
             if isinstance(operand, Name):
@@ -260,34 +292,35 @@ def detect(pdf: pikepdf.Pdf) -> list[Candidate]:
         models.append(model)
         cache: dict[str, str] = {}
         for obj in model.objects:
-            if obj.kind == "form":
-                continue
             sig = content_sig(obj, model.res, cache)
-            overlay = _overlay_mark(obj)
+            marks = _own_marks(model, obj)
+            rep = _representative(model, obj)
+            overlay = _overlay_mark(marks)
             if overlay is not None:
                 cand = _group(groups, 4, ("overlay", overlay.overlay_id))
-                cand.overlays = [overlay.overlay_id]
-                _add_object(cand, index, obj, model)
-                claimed.setdefault(index, set()).add(obj.id)
+                if overlay.overlay_id not in cand.overlays:
+                    cand.overlays.append(overlay.overlay_id)
+                _add_object(cand, index, rep, model)
+                claimed.setdefault(index, set()).add(rep.id)
                 cand.confidence = 1.0
                 cand.text = overlay.overlay_id
                 continue
-            if _artifact_mark(obj):
+            if _artifact_mark(marks):
                 cand = _group(groups, 1, ("artifact", sig))
                 cand.confidence = 0.95
                 cand.text = _text_of(obj)
-                _add_object(cand, index, obj, model)
-                claimed.setdefault(index, set()).add(obj.id)
+                _add_object(cand, index, rep, model)
+                claimed.setdefault(index, set()).add(rep.id)
                 continue
-            og = _layer_of(page, obj)
+            og = _layer_of(page, marks)
             if og is not None and og in layer_names and LAYER_NAME.search(layer_names[og]):
                 cand = _group(groups, 2, ("layer", og))
                 cand.confidence = 0.90
                 cand.text = layer_names[og]
                 if og not in cand.layers:
                     cand.layers.append(og)
-                _add_object(cand, index, obj, model)
-                claimed.setdefault(index, set()).add(obj.id)
+                _add_object(cand, index, rep, model)
+                claimed.setdefault(index, set()).add(rep.id)
         for ai, annot in enumerate(page.obj.get("/Annots") or []):
             if isinstance(annot, Dictionary) and str(annot.get("/Subtype", "")) == "/Watermark":
                 cand = _group(groups, 3, ("annot", _annot_key(annot)))
@@ -297,6 +330,18 @@ def detect(pdf: pikepdf.Pdf) -> list[Candidate]:
                     cand.pages.append(index)
                 cand.annots.setdefault(index, []).append(ai)
                 cand.bboxes.setdefault(index, []).append(_annot_display(model, annot))
+    # tier 4 also comes from the registry: the page content is the source of truth (see module doc)
+    for info in list_overlays(pdf):
+        if info.kind != "watermark":
+            continue
+        cand = _group(groups, 4, ("overlay", info.id))
+        cand.confidence = 1.0
+        cand.text = info.id
+        if info.id not in cand.overlays:
+            cand.overlays.append(info.id)
+        for page_index in info.pages:
+            if page_index not in cand.pages:
+                cand.pages.append(page_index)
     for cand_group in list(groups.values()):
         cand = cand_group.candidate
         cand.pages.sort()

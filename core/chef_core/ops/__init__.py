@@ -55,6 +55,8 @@ BUILTIN_MODULES = (
     "chef_core.ops.watch",
     "chef_core.ops.layout",
     "chef_core.ops.toc",
+    "chef_core.ops.export",
+    "chef_core.ops.export_batch",
 )
 
 

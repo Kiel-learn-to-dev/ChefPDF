@@ -9,8 +9,9 @@ marks ``closed: true`` and then deletes the directory, so only leftovers are eve
   back to the previous one. Protection (passwords, pending encryption) is never stored, so it
   cannot come back: the restore says so in ``warnings``.
 - ``discard``: deletes one.
-- ``cleanup``: deletes closed leftovers older than ``RETENTION_SECONDS``. Live sessions and
-  crashed sessions that were not restored or discarded are kept.
+- ``cleanup``: deletes cleanly closed leftovers older than ``RETENTION_SECONDS`` (7 days), and
+  crashed sessions (never closed, not restored or discarded) older than ``max_age_days`` (30 by
+  default). Live sessions and unreadable leftovers are kept.
 
 Session ids are validated as 32 lowercase hex digits before any path is built, since discard
 deletes a directory.
@@ -35,7 +36,8 @@ from chef_core.session.manager import Session, SessionManager
 
 log = logging.getLogger(__name__)
 
-RETENTION_SECONDS = 7 * 24 * 3600
+RETENTION_SECONDS = 7 * 24 * 3600  # cleanly closed leftovers
+CRASHED_MAX_AGE_DAYS = 30.0  # crashed sessions nobody restored or discarded
 _ID_RE = re.compile(r"[0-9a-f]{32}")
 _REV_RE = re.compile(r"rev-(\d{4})\.pdf")
 
@@ -207,8 +209,14 @@ def discard(manager: SessionManager, session_id: Any) -> None:
     shutil.rmtree(directory, ignore_errors=True)
 
 
-def cleanup(manager: SessionManager, now: float | None = None) -> int:
-    """Delete closed session leftovers older than the retention period. Returns the count."""
+def cleanup(
+    manager: SessionManager,
+    now: float | None = None,
+    *,
+    max_age_days: float = CRASHED_MAX_AGE_DAYS,
+) -> int:
+    """Delete session leftovers past their age limit: 7 days for a cleanly closed session,
+    ``max_age_days`` for a crashed one. Returns the count removed."""
     current = now if now is not None else datetime.now(UTC).timestamp()
     live = _live_ids(manager)
     removed = 0
@@ -218,10 +226,11 @@ def cleanup(manager: SessionManager, now: float | None = None) -> int:
         if directory.name in live:
             continue
         meta = _read_meta(directory)
-        if meta is None or not meta.get("closed"):
+        if meta is None:
             continue
+        limit = RETENTION_SECONDS if meta.get("closed") else max_age_days * 24 * 3600
         age = current - (directory / "meta.json").stat().st_mtime
-        if age < RETENTION_SECONDS:
+        if age < limit:
             continue
         shutil.rmtree(directory, ignore_errors=True)
         removed += 1

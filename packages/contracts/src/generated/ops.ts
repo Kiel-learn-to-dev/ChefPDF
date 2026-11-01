@@ -56,6 +56,24 @@ export interface BackgroundStyle {
   opacity?: number;
 }
 
+export interface BatchExportFile {
+  /** PDF to export. */
+  path: string;
+  /** Password of this PDF, when it is encrypted. Never stored or echoed back. */
+  password?: string;
+}
+
+export interface BatchExportOutput {
+  /**
+   * suffix: next to each input, name + suffix. folder: all into one folder.
+   * @default "suffix"
+   */
+  mode?: 'suffix' | 'folder';
+  /** @default "_export" */
+  suffix?: string;
+  folder?: string;
+}
+
 export interface BatchFile {
   /** Path of the PDF to sign. */
   path: string;
@@ -158,6 +176,79 @@ export interface CropPage {
 export interface CropPoint {
   x: number;
   y: number;
+}
+
+/** Options shared by the exporters. Defaults give a plain, complete export of the body. */
+export interface ExportOptions {
+  /**
+   * Repeated headers, footers and page numbers. Off: they are left out.
+   * @default false
+   */
+  includeHeadersFooters?: boolean;
+  /**
+   * Images and vector figures.
+   * @default true
+   */
+  includeImages?: boolean;
+  /**
+   * HTML only: images inside the file.
+   * @default false
+   */
+  embedImages?: boolean;
+  /**
+   * TXT only: a line per source page.
+   * @default false
+   */
+  pageMarkers?: boolean;
+  /**
+   * XLSX only: numbers (1.234,56) and dates (dd/mm/yyyy) as typed.
+   * @default true
+   */
+  parseNumbers?: boolean;
+  /**
+   * EPUB only: a chapter per level-1 heading, or per N pages.
+   * @default "heading1"
+   */
+  chapterMode?: 'heading1' | 'pages';
+  /**
+   * EPUB, chapterMode=pages.
+   * @default 10
+   */
+  pagesPerChapter?: number;
+  /**
+   * DOCX only: 'editable' flowing text, 'layout' positioned frames per page.
+   * @default "editable"
+   */
+  mode?: 'editable' | 'layout';
+  /**
+   * DOCX editable: a page break at each source page.
+   * @default false
+   */
+  pageBreaks?: boolean;
+  /** Overrides the title. */
+  title?: string;
+  /** Overrides the author. */
+  author?: string;
+  /**
+   * BCP 47 tag.
+   * @default "vi"
+   */
+  language?: string;
+  /**
+   * REFRESH only: paper size; 'source' uses the first page's size.
+   * @default "A4"
+   */
+  pageSize?: 'A4' | 'Letter' | 'source';
+  /**
+   * REFRESH only.
+   * @default 1.0
+   */
+  fontScale?: number;
+  /**
+   * REFRESH only, in points.
+   * @default 56.0
+   */
+  margins?: number;
 }
 
 export interface FixedPlacement {
@@ -1516,6 +1607,35 @@ export interface DocSetMetadataParams {
   clear?: boolean;
 }
 
+export interface ExportBatchParams {
+  files: BatchExportFile[];
+  /** An export format, or 'pdf' for the refreshed PDF. */
+  format: 'md' | 'html' | 'txt' | 'json' | 'epub' | 'odt' | 'xlsx' | 'docx' | 'pdf';
+  options?: ExportOptions;
+  output?: BatchExportOutput;
+  /** @default false */
+  stopOnError?: boolean;
+}
+
+export interface ExportDocumentParams {
+  format: 'md' | 'html' | 'txt' | 'json' | 'epub' | 'odt' | 'xlsx' | 'docx';
+  /** File to write. */
+  outputPath: string;
+  /** 0-based pages; null for all. */
+  pages?: number[];
+  options?: ExportOptions;
+  /** Reviewed model (layout.analyze modelPath). Null: analyse the document now. */
+  modelPath?: string;
+}
+
+export interface ExportRefreshParams {
+  /** PDF to write. */
+  outputPath: string;
+  pages?: number[];
+  options?: ExportOptions;
+  modelPath?: string;
+}
+
 /** Merge several PDFs (in order) into a new file. */
 export interface FileMergeParams {
   inputs: MergeInput[];
@@ -2803,6 +2923,8 @@ export interface RedactApplyParams {
    * @default true
    */
   removeFromAnnotations?: boolean;
+  /** Label drawn centred in each redacted box, e.g. 'ĐÃ CHE'. */
+  overlayText?: string;
 }
 
 /** Find the text to redact. */
@@ -3864,6 +3986,9 @@ export interface OpParams {
   'doc.optimizeWeb': DocOptimizeWebParams;
   'doc.repair': DocRepairParams;
   'doc.setMetadata': DocSetMetadataParams;
+  'export.batch': ExportBatchParams;
+  'export.document': ExportDocumentParams;
+  'export.refresh': ExportRefreshParams;
   'file.merge': FileMergeParams;
   'file.split': FileSplitParams;
   'file.splitSmart': FileSplitSmartParams;
@@ -4043,6 +4168,9 @@ export const OP_IDS = [
   'doc.optimizeWeb',
   'doc.repair',
   'doc.setMetadata',
+  'export.batch',
+  'export.document',
+  'export.refresh',
   'file.merge',
   'file.split',
   'file.splitSmart',

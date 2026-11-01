@@ -30,6 +30,7 @@ from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
 from chef_core.pdf.io import atomic_save, open_pdf
 from chef_core.pdf.pages import check_indices
+from chef_core.pdf.salvage import NotRepairable, repair_file
 from chef_core.session.info import document_info
 
 _UNSAFE = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
@@ -454,6 +455,8 @@ class RepairParams(WireModel):
     standalone=True,
 )
 def repair(ctx: OpContext, p: RepairParams) -> OpOutput:
+    """qpdf recovery, then a manual salvage when qpdf fails or its pages cannot be drawn (see
+    ``chef_core.pdf.salvage``). The page checks are the same for both routes."""
     src = Path(p.input_path).expanduser().absolute()
     dest = Path(p.output_path).expanduser().absolute()
     if not src.is_file():
@@ -462,26 +465,23 @@ def repair(ctx: OpContext, p: RepairParams) -> OpOutput:
         raise invalid_params("outputPath is a directory", {"field": "outputPath"})
     ctx.check_cancelled()
     try:
-        pdf = pikepdf.open(src)  # recovery is on: qpdf rebuilds the xref and objects
+        report = repair_file(src, dest)
     except pikepdf.PasswordError as exc:
         raise ChefError(
             ErrorKind.PASSWORD_REQUIRED, "Password required", {"path": str(src)}
         ) from exc
-    except (pikepdf.PdfError, OSError, RuntimeError, ValueError) as exc:
+    except NotRepairable as exc:
         raise ChefError(ErrorKind.INVALID_PDF, "Not repairable", {"path": str(src)}) from exc
-    try:
-        try:
-            pages = len(pdf.pages)
-        except Exception as exc:
-            raise ChefError(ErrorKind.INVALID_PDF, "Not repairable", {"path": str(src)}) from exc
-        if pages == 0:
-            raise ChefError(ErrorKind.INVALID_PDF, "No readable page", {"path": str(src)})
-        warnings = [str(w) for w in pdf.get_warnings()]
-        atomic_save(pdf, dest, before_replace=pdf.close)
-    finally:
-        pdf.close()
+    for message in report.warnings:
+        ctx.warn(message)
     return OpOutput(
         changed_pages=[],
         outputs=[str(dest)],
-        data={"recovered": bool(warnings), "pageCount": pages, "warnings": warnings},
+        data={
+            "recovered": bool(report.warnings or report.lost or report.salvaged),
+            "pageCount": report.pages,
+            "warnings": report.warnings,
+            "salvaged": report.salvaged,
+            "lostPages": report.lost,
+        },
     )
