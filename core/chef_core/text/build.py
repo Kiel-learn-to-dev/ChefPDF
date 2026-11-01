@@ -139,6 +139,10 @@ def run_chars(
                 y0=start[1] + desc * size,
                 y1=start[1] + asc * size,
                 code=tok.code,
+                bold=cap.style.bold,
+                italic=cap.style.italic,
+                font=cap.style.name,
+                colour=hex_of(obj.fill_color),
             )
         )
         pos += adv

@@ -1887,6 +1887,53 @@ export interface LayersSetVisibilityParams {
   visible: boolean;
 }
 
+/** Options of the rule-based analysis. `pages` null means every page. */
+export interface LayoutAnalyzeParams {
+  /** 0-based pages; null for all. */
+  pages?: number[];
+  /**
+   * Header, footer, page number lines.
+   * @default true
+   */
+  dropRepeated?: boolean;
+  /**
+   * Join paragraphs across breaks.
+   * @default true
+   */
+  joinAcrossPages?: boolean;
+  /**
+   * Tables from ruling lines.
+   * @default true
+   */
+  detectTables?: boolean;
+  /**
+   * Experimental; off by default.
+   * @default false
+   */
+  borderlessTables?: boolean;
+  /**
+   * Continue a table on the next page.
+   * @default true
+   */
+  joinTables?: boolean;
+  language?: string;
+  /**
+   * Also return the model inline.
+   * @default false
+   */
+  includeModel?: boolean;
+}
+
+export interface LayoutPageModelParams {
+  /** 0-based page. */
+  pageIndex: number;
+  /**
+   * Analyse the whole document, so repeated furniture is recognised.
+   * @default false
+   */
+  context?: boolean;
+}
+
 /** A link on one page. rect is (left, top, right, bottom) in the displayed frame. */
 export interface LinksAddParams {
   pageIndex: number;
@@ -3665,6 +3712,32 @@ export interface TextStyleParagraphParams {
   paragraphId: string;
 }
 
+export interface TocFromHeadingsParams {
+  /** @default 3 */
+  maxLevel?: number;
+  /** @default 0.6 */
+  minConfidence?: number;
+  /**
+   * Keep '1.2' or 'Điều 3.' in titles.
+   * @default true
+   */
+  includeNumbering?: boolean;
+  /** @default "replace" */
+  mode?: 'replace' | 'append';
+}
+
+export interface TocPreviewParams {
+  /** @default 3 */
+  maxLevel?: number;
+  /** @default 0.6 */
+  minConfidence?: number;
+  /**
+   * Keep '1.2' or 'Điều 3.' in titles.
+   * @default true
+   */
+  includeNumbering?: boolean;
+}
+
 export interface WatchMarkDoneParams {
   ledgerPath: string;
   /** The file that was handled. */
@@ -3819,6 +3892,8 @@ export interface OpParams {
   'layers.list': LayersListParams;
   'layers.remove': LayersRemoveParams;
   'layers.setVisibility': LayersSetVisibilityParams;
+  'layout.analyze': LayoutAnalyzeParams;
+  'layout.pageModel': LayoutPageModelParams;
   'links.add': LinksAddParams;
   'links.autoDetect': LinksAutoDetectParams;
   'links.list': LinksListParams;
@@ -3903,6 +3978,8 @@ export interface OpParams {
   'text.getLines': TextGetLinesParams;
   'text.listFonts': TextListFontsParams;
   'text.styleParagraph': TextStyleParagraphParams;
+  'toc.fromHeadings': TocFromHeadingsParams;
+  'toc.preview': TocPreviewParams;
   'watch.markDone': WatchMarkDoneParams;
   'watch.scan': WatchScanParams;
   'watermark.detect': WatermarkDetectParams;
@@ -3994,6 +4071,8 @@ export const OP_IDS = [
   'layers.list',
   'layers.remove',
   'layers.setVisibility',
+  'layout.analyze',
+  'layout.pageModel',
   'links.add',
   'links.autoDetect',
   'links.list',
@@ -4078,6 +4157,8 @@ export const OP_IDS = [
   'text.getLines',
   'text.listFonts',
   'text.styleParagraph',
+  'toc.fromHeadings',
+  'toc.preview',
   'watch.markDone',
   'watch.scan',
   'watermark.detect',

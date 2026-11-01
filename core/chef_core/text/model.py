@@ -38,6 +38,11 @@ class TextChar:
     y0: float  # glyph box, user space
     y1: float
     code: int = -1
+    # style of the run that drew the character (used by the document model, D12/N1)
+    bold: bool = False
+    italic: bool = False
+    font: str = ""
+    colour: str | None = None
 
 
 @dataclass(eq=False)

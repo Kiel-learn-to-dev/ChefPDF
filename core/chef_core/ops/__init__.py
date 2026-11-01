@@ -53,6 +53,8 @@ BUILTIN_MODULES = (
     "chef_core.ops.workflow",
     "chef_core.ops.naming",
     "chef_core.ops.watch",
+    "chef_core.ops.layout",
+    "chef_core.ops.toc",
 )
 
 
