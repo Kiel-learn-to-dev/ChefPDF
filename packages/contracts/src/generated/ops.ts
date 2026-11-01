@@ -187,6 +187,12 @@ export interface InvisiblePlacement {
   kind: 'invisible';
 }
 
+/** An area to redact by hand (displayed frame, points, origin top-left). */
+export interface ManualRect {
+  pageIndex: number;
+  rect: number[];
+}
+
 /** Distances from the page edges, in millimetres, on the displayed page. */
 export interface Margins {
   /** @default 10.0 */
@@ -303,6 +309,14 @@ export interface RectPlacement {
   page: number;
   /** [x1, y1, x2, y2] in PDF points, the same on every file. */
   rect: number[];
+}
+
+/** One search pattern. `value` is required for literal and regex. */
+export interface RedactPattern {
+  kind: 'literal' | 'regex' | 'cccd' | 'phone' | 'email' | 'bankAccount' | 'taxCode' | 'date';
+  value?: string;
+  /** @default true */
+  ignoreDiacritics?: boolean;
 }
 
 /** A file to check. Encrypted PDFs are reported as errors (no password is used here). */
@@ -578,6 +592,20 @@ export interface TokenSigner {
    * @default false
    */
   confirmFinalTry?: boolean;
+}
+
+/** Full-page backgrounds (filled rectangles or images under all text). */
+export interface BackgroundDetectParams {
+  pages?: number[];
+}
+
+/** Remove or recolour the page backgrounds. */
+export interface BackgroundRemoveParams {
+  /** @default "remove" */
+  mode?: 'remove' | 'replaceColor';
+  /** #rrggbb for replaceColor. */
+  color?: string;
+  pages?: number[];
 }
 
 /** No parameters: removes every bookmark. */
@@ -912,6 +940,39 @@ export interface ContentDuplicateParams {
   dy?: number;
 }
 
+/** Erase a rectangle (displayed frame, points, origin top-left) on one or more pages. */
+export interface ContentEraseRegionParams {
+  /** One 0-based page. */
+  pageIndex?: number;
+  /** Several 0-based pages. */
+  pages?: number[];
+  /** x0, y0, x1, y1 in points. */
+  rect: number[];
+  /** @default "cut" */
+  mode?: 'cut' | 'cover';
+  /**
+   * 'cover' only: 'auto' or '#rrggbb'.
+   * @default "auto"
+   */
+  color?: string;
+  /** @default true */
+  includeText?: boolean;
+  /** @default true */
+  includeImages?: boolean;
+  /** @default true */
+  includeVectors?: boolean;
+  /**
+   * False: only objects lying completely inside the rectangle are removed.
+   * @default true
+   */
+  partial?: boolean;
+  /**
+   * What the cut image pixels become. 'auto' means transparent.
+   * @default "transparent"
+   */
+  imageFill?: 'transparent' | 'white' | 'auto';
+}
+
 /** Write the original image of a placement to a file. */
 export interface ContentExtractImageParams {
   pageIndex: number;
@@ -963,6 +1024,21 @@ export interface ContentMoveParams {
   dx?: number;
   /** @default 0.0 */
   dy?: number;
+}
+
+/** Find or remove the objects that look like one object of a page. */
+export interface ContentRemoveSimilarParams {
+  pageIndex: number;
+  objectId: string;
+  /** @default "all" */
+  scope?: 'all' | 'others';
+  /** @default 2.0 */
+  toleranceMm?: number;
+  /**
+   * True lists the matches and changes nothing.
+   * @default true
+   */
+  dryRun?: boolean;
 }
 
 /** Change the stacking order: front, back, one step forward or one step backward. */
@@ -1027,6 +1103,19 @@ export interface ContentTransformParams {
    */
   flattenForms?: boolean;
   matrix: number[];
+}
+
+/** Objects of one page grouped by kind, with render hints for a kind filter. */
+export interface ContentViewByTypeParams {
+  /** 0-based page. */
+  pageIndex: number;
+  /** Kinds to show (None: all). */
+  kinds?: ('text' | 'image' | 'path' | 'shading' | 'form')[];
+  /**
+   * Show only the kinds in kinds.
+   * @default false
+   */
+  solo?: boolean;
 }
 
 /** Make a PDF with one page per image, in the order given. */
@@ -1390,6 +1479,32 @@ export interface InspectHiddenDataParams {
 /** Remove the selected categories of hidden data (writes a new revision). */
 export interface InspectRemoveHiddenParams {
   categories: ('metadata' | 'embeddedFiles' | 'javascript' | 'launchActions' | 'hiddenLayers' | 'comments' | 'formValues' | 'bookmarks' | 'thumbnails' | 'externalLinks' | 'xfa' | 'revisionHistory' | 'unusedObjects')[];
+}
+
+/** Make all content visible and remove the layer structure. */
+export interface LayersFlattenParams {
+}
+
+/** List the optional-content groups (layers) of the document. */
+export interface LayersListParams {
+}
+
+/** Remove layers. With deleteContent the content of the layers is deleted too. */
+export interface LayersRemoveParams {
+  /** Layer ids from layers.list. */
+  layerIds: string[];
+  /**
+   * True deletes the marked content; False keeps it as plain content.
+   * @default false
+   */
+  deleteContent?: boolean;
+}
+
+/** Make layers visible or hidden by default. */
+export interface LayersSetVisibilityParams {
+  /** Layer ids from layers.list. */
+  layerIds: string[];
+  visible: boolean;
 }
 
 /**
@@ -1988,6 +2103,35 @@ export interface PreflightCheckParams {
    * @default "none"
    */
   checkRevocation?: 'none' | 'soft' | 'hard';
+}
+
+/** Redact the matches (ids from redact.find) and the manual areas. */
+export interface RedactApplyParams {
+  patterns?: RedactPattern[];
+  matchIds?: string[];
+  rects?: ManualRect[];
+  /**
+   * Colour of the boxes.
+   * @default "#000000"
+   */
+  fill?: string;
+  /**
+   * Also scrub information and XMP.
+   * @default true
+   */
+  alsoMetadata?: boolean;
+  /**
+   * Delete annotations and form values in the areas.
+   * @default true
+   */
+  removeFromAnnotations?: boolean;
+}
+
+/** Find the text to redact. */
+export interface RedactFindParams {
+  patterns: RedactPattern[];
+  /** Limit to these 0-based pages. */
+  pages?: number[];
 }
 
 /** Rasterize parameters are the starting point; the search only lowers dpi and quality. */
@@ -2697,8 +2841,27 @@ export interface StampTextParams {
   blendMultiply?: boolean;
 }
 
+/** List the watermark candidates of the document (nothing is changed). */
+export interface WatermarkDetectParams {
+}
+
+/** Remove chosen watermark candidates (from watermark.detect). */
+export interface WatermarkRemoveParams {
+  /** Candidate ids to remove. */
+  candidateIds?: string[];
+  /**
+   * Remove every candidate.
+   * @default false
+   */
+  all?: boolean;
+  /** Limit to these 0-based pages. */
+  pages?: number[];
+}
+
 /** Params type of every operation, by op id. */
 export interface OpParams {
+  'background.detect': BackgroundDetectParams;
+  'background.remove': BackgroundRemoveParams;
   'bookmarks.clear': BookmarksClearParams;
   'bookmarks.fromPages': BookmarksFromPagesParams;
   'bookmarks.get': BookmarksGetParams;
@@ -2711,15 +2874,18 @@ export interface OpParams {
   'content.adjustImage': ContentAdjustImageParams;
   'content.delete': ContentDeleteParams;
   'content.duplicate': ContentDuplicateParams;
+  'content.eraseRegion': ContentEraseRegionParams;
   'content.extractImage': ContentExtractImageParams;
   'content.hitTest': ContentHitTestParams;
   'content.listObjects': ContentListObjectsParams;
   'content.move': ContentMoveParams;
+  'content.removeSimilar': ContentRemoveSimilarParams;
   'content.reorder': ContentReorderParams;
   'content.replaceImage': ContentReplaceImageParams;
   'content.setColor': ContentSetColorParams;
   'content.setOpacity': ContentSetOpacityParams;
   'content.transform': ContentTransformParams;
+  'content.viewByType': ContentViewByTypeParams;
   'convert.imagesToPdf': ConvertImagesToPdfParams;
   'convert.pdfToImages': ConvertPdfToImagesParams;
   'doc.attachments.add': DocAttachmentsAddParams;
@@ -2741,6 +2907,10 @@ export interface OpParams {
   'image.textSignature': ImageTextSignatureParams;
   'inspect.hiddenData': InspectHiddenDataParams;
   'inspect.removeHidden': InspectRemoveHiddenParams;
+  'layers.flatten': LayersFlattenParams;
+  'layers.list': LayersListParams;
+  'layers.remove': LayersRemoveParams;
+  'layers.setVisibility': LayersSetVisibilityParams;
   'overlay.addImage': OverlayAddImageParams;
   'overlay.addText': OverlayAddTextParams;
   'overlay.barcode': OverlayBarcodeParams;
@@ -2767,6 +2937,8 @@ export interface OpParams {
   'page.rotate': PageRotateParams;
   'page.split': PageSplitParams;
   'preflight.check': PreflightCheckParams;
+  'redact.apply': RedactApplyParams;
+  'redact.find': RedactFindParams;
   'scan.fitSize': ScanFitSizeParams;
   'scan.preview': ScanPreviewParams;
   'scan.rasterize': ScanRasterizeParams;
@@ -2799,11 +2971,15 @@ export interface OpParams {
   'stamp.presets': StampPresetsParams;
   'stamp.seam': StampSeamParams;
   'stamp.text': StampTextParams;
+  'watermark.detect': WatermarkDetectParams;
+  'watermark.remove': WatermarkRemoveParams;
 }
 
 export type OpId = keyof OpParams;
 
 export const OP_IDS = [
+  'background.detect',
+  'background.remove',
   'bookmarks.clear',
   'bookmarks.fromPages',
   'bookmarks.get',
@@ -2816,15 +2992,18 @@ export const OP_IDS = [
   'content.adjustImage',
   'content.delete',
   'content.duplicate',
+  'content.eraseRegion',
   'content.extractImage',
   'content.hitTest',
   'content.listObjects',
   'content.move',
+  'content.removeSimilar',
   'content.reorder',
   'content.replaceImage',
   'content.setColor',
   'content.setOpacity',
   'content.transform',
+  'content.viewByType',
   'convert.imagesToPdf',
   'convert.pdfToImages',
   'doc.attachments.add',
@@ -2846,6 +3025,10 @@ export const OP_IDS = [
   'image.textSignature',
   'inspect.hiddenData',
   'inspect.removeHidden',
+  'layers.flatten',
+  'layers.list',
+  'layers.remove',
+  'layers.setVisibility',
   'overlay.addImage',
   'overlay.addText',
   'overlay.barcode',
@@ -2872,6 +3055,8 @@ export const OP_IDS = [
   'page.rotate',
   'page.split',
   'preflight.check',
+  'redact.apply',
+  'redact.find',
   'scan.fitSize',
   'scan.preview',
   'scan.rasterize',
@@ -2904,4 +3089,6 @@ export const OP_IDS = [
   'stamp.presets',
   'stamp.seam',
   'stamp.text',
+  'watermark.detect',
+  'watermark.remove',
 ] as const;

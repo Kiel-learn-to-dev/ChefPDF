@@ -157,6 +157,7 @@ export const ErrorKinds = [
   'LIBRARY_FULL',
   'LIBRARY_KEY_MISSING',
   'LIBRARY_TAMPERED',
+  'REDACTION_VERIFY_FAILED',
   'CANCELLED',
   'INTERNAL',
 ] as const;

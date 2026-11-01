@@ -174,11 +174,11 @@
 |---|---|---|---|---|---|
 | T6.01 | Content engine: đọc đối tượng trang, xác định đối tượng dưới con trỏ, chọn, biến đổi, xóa, ghi lại. Gồm bước tiền xử lý bằng pikepdf (mở Form XObject, bỏ ActualText, lấy mã ký tự từ ToUnicode) và bước kiểm chứng độc lập, theo spike S2 | | 6 | T1.09 | ✅ |
 | T6.02 | UI chọn & sửa đối tượng (tay nắm, xoay, thứ tự lớp) | D4 | 2,5 | T6.01 | ⬜ |
-| T6.03 | Tẩy vùng: cắt chữ/vector/ảnh theo vùng | D5 | 3 | T6.01 | ⬜ |
+| T6.03 | Tẩy vùng: cắt chữ/vector/ảnh theo vùng | D5 | 3 | T6.01 | 🔄 |
 | T6.04 | Thay ảnh; chỉnh ảnh trong PDF | D6, D7 | 2 | T6.01 | 🔄 |
-| T6.05 | Bảng lớp; xem theo loại nội dung | E1, E2 | 2 | T6.01 | ⬜ |
-| T6.06 | Gỡ watermark tự động (dò ứng viên, xem trước, tích chọn); gỡ "đối tượng giống thế này"; gỡ/đổi nền | E3, E4, E5 | 3 | T6.05 | ⬜ |
-| T6.07 | Che thông tin mật: xóa thật nội dung bên dưới; tìm theo mẫu CCCD/SĐT/email/STK; kiểm chứng bằng test | J6 | 3 | T6.03 | ⬜ |
+| T6.05 | Bảng lớp; xem theo loại nội dung | E1, E2 | 2 | T6.01 | 🔄 |
+| T6.06 | Gỡ watermark tự động (dò ứng viên, xem trước, tích chọn); gỡ "đối tượng giống thế này"; gỡ/đổi nền | E3, E4, E5 | 3 | T6.05 | 🔄 |
+| T6.07 | Che thông tin mật: xóa thật nội dung bên dưới; tìm theo mẫu CCCD/SĐT/email/STK; kiểm chứng bằng test | J6 | 3 | T6.03 | 🔄 |
 
 ---
 
