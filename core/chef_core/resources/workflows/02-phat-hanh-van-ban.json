@@ -1,0 +1,26 @@
+{
+  "id": "phat-hanh-van-ban",
+  "name": "Phát hành văn bản",
+  "description": "Đánh số trang theo NĐ 30, đóng dấu giáp lai, ký số. Cần ảnh dấu giáp lai (PNG/JPEG) và file chứng thư số.",
+  "version": 1,
+  "steps": [
+    {
+      "op": "overlay.pageNumbers",
+      "label": "Đánh số trang (NĐ 30)",
+      "params": {"preset": "nd30"}
+    },
+    {
+      "op": "stamp.seam",
+      "label": "Dấu giáp lai",
+      "params": {"path": "{{seamPath}}", "side": "right", "vertical": "top"}
+    },
+    {
+      "op": "sign.pades",
+      "label": "Ký số",
+      "params": {"pfxPath": "{{pfxPath}}", "password": "{{secret:password}}"}
+    }
+  ],
+  "inputs": {"accept": ["pdf"], "password": false},
+  "output": {"mode": "suffix", "suffix": "_phat-hanh"},
+  "variables": {"seamPath": "", "pfxPath": ""}
+}

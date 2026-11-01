@@ -349,6 +349,11 @@ export interface RedactPattern {
   ignoreDiacritics?: boolean;
 }
 
+export interface RenameMapping {
+  source: string;
+  target: string;
+}
+
 /** A file to check. Encrypted PDFs are reported as errors (no password is used here). */
 export interface ReportFile {
   path: string;
@@ -624,6 +629,192 @@ export interface TokenSigner {
   confirmFinalTry?: boolean;
 }
 
+/** Properties to change. Only the keys present in the request are changed. */
+export interface UpdateProps {
+  label?: string;
+  required?: boolean;
+  readOnly?: boolean;
+  maxLen?: number;
+  fontSize?: number;
+  textColour?: string;
+  borderColour?: string;
+  borderWidth?: number;
+  background?: string;
+  alignment?: 0 | 1 | 2;
+  options?: string[];
+  rect?: number[];
+  value?: boolean | string | string[];
+}
+
+export interface WorkflowFile {
+  /** PDF file to process. */
+  path: string;
+  /** Password of this PDF, when it is encrypted. Never stored or echoed back. */
+  password?: string;
+}
+
+export interface WorkflowOutput {
+  /**
+   * suffix: next to the input. folder: into a folder.
+   * @default "suffix"
+   */
+  mode?: 'suffix' | 'folder' | 'overwrite';
+  /** @default "_da-xu-ly" */
+  suffix?: string;
+  folder?: string;
+  /** Name template, e.g. {name}_{date}_da-ky. */
+  nameTemplate?: string;
+}
+
+/** A text box with a Unicode font. rect is displayed (left, top, right, bottom). */
+export interface AnnotsAddFreeTextParams {
+  pageIndex: number;
+  rect: number[];
+  text: string;
+  /** @default 12.0 */
+  fontSize?: number;
+  /** @default "#000000" */
+  color?: string;
+  background?: string;
+  /** @default "#000000" */
+  borderColor?: string;
+  /** @default 0.0 */
+  borderWidth?: number;
+  /** @default "" */
+  author?: string;
+}
+
+/** Freehand strokes; each point is a displayed [x, y] pair. */
+export interface AnnotsAddInkParams {
+  pageIndex: number;
+  strokes: number[][][];
+  color?: string;
+  /** @default 2.0 */
+  width?: number;
+  /** @default 1.0 */
+  opacity?: number;
+  /** @default "" */
+  author?: string;
+}
+
+/** A sticky note at a displayed point (its icon is 20 x 20 points). */
+export interface AnnotsAddNoteParams {
+  pageIndex: number;
+  left: number;
+  top: number;
+  contents: string;
+  /** @default "" */
+  author?: string;
+  /** @default "Note" */
+  icon?: 'Note' | 'Comment' | 'Key' | 'Help' | 'NewParagraph' | 'Paragraph' | 'Insert';
+  color?: string;
+  /** @default 1.0 */
+  opacity?: number;
+}
+
+/** A line, an arrow, a rectangle or an ellipse. Give points (line, arrow) or rect. */
+export interface AnnotsAddShapeParams {
+  pageIndex: number;
+  kind: 'line' | 'arrow' | 'rect' | 'ellipse';
+  rect?: number[];
+  points?: number[];
+  color?: string;
+  fill?: string;
+  /** @default 1.5 */
+  width?: number;
+  /** @default "" */
+  author?: string;
+}
+
+/** Highlight, underline, strike-out or squiggly under rects or under found text. */
+export interface AnnotsAddTextMarkupParams {
+  pageIndex: number;
+  kind: 'highlight' | 'underline' | 'strike' | 'squiggly';
+  /** Displayed boxes [left, top, right, bottom], one per line. */
+  rects?: number[][];
+  /** Text to mark (text model). */
+  find?: string;
+  /** @default false */
+  allMatches?: boolean;
+  color?: string;
+  /** @default 1.0 */
+  opacity?: number;
+  /** @default "" */
+  contents?: string;
+  /** @default "" */
+  author?: string;
+}
+
+/** Write a summary of the annotations to a file. The document is not changed. */
+export interface AnnotsExportParams {
+  /** File to write. */
+  outputPath: string;
+  /** @default "txt" */
+  format?: 'txt' | 'md' | 'html' | 'csv' | 'xlsx' | 'json';
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** Subtypes; default all. */
+  kinds?: string[];
+}
+
+/** Burn annotations into the page content and remove them. */
+export interface AnnotsFlattenParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /** Subtypes; default all. */
+  kinds?: string[];
+  /** @default true */
+  keepLinks?: boolean;
+  /** @default true */
+  keepFormFields?: boolean;
+}
+
+/** Annotations (not links) of one page, or of every page. */
+export interface AnnotsListParams {
+  pageIndex?: number;
+  /** Subtypes, e.g. Highlight, Text. */
+  kinds?: string[];
+  /** Case-insensitive part of the name. */
+  author?: string;
+  status?: 'accepted' | 'rejected' | 'cancelled' | 'completed' | 'none';
+}
+
+/** Remove annotations by id. */
+export interface AnnotsRemoveParams {
+  ids: string[];
+}
+
+/** Remove every annotation of the given subtypes (default: all but links and form fields). */
+export interface AnnotsRemoveAllParams {
+  kinds?: string[];
+  pageIndex?: number;
+}
+
+/** Answer an annotation with a text reply (threaded through /IRT). */
+export interface AnnotsReplyParams {
+  id: string;
+  text: string;
+  /** @default "" */
+  author?: string;
+  color?: string;
+}
+
+/** Review status of an annotation (/State with /StateModel /Review). */
+export interface AnnotsSetStatusParams {
+  id: string;
+  status: 'accepted' | 'rejected' | 'cancelled' | 'completed' | 'none';
+}
+
+/** Change the text, author, colour, opacity or (for notes, free text, ink, shapes) the rect. */
+export interface AnnotsUpdateParams {
+  id: string;
+  contents?: string;
+  author?: string;
+  color?: string;
+  opacity?: number;
+  rect?: number[];
+}
+
 /** Full-page backgrounds (filled rectangles or images under all text). */
 export interface BackgroundDetectParams {
   pages?: number[];
@@ -636,6 +827,24 @@ export interface BackgroundRemoveParams {
   /** #rrggbb for replaceColor. */
   color?: string;
   pages?: number[];
+}
+
+export interface BatchRunParams {
+  /** Batchable operation id. */
+  opId: string;
+  /** Params of that operation. */
+  params?: Record<string, unknown>;
+  files: WorkflowFile[];
+  /** Values of {{secret:name}} placeholders. Never stored, logged or echoed back. */
+  secrets?: Record<string, string>;
+  output?: WorkflowOutput;
+  /**
+   * Files at the same time.
+   * @default 1
+   */
+  parallel?: number;
+  /** @default false */
+  stopOnError?: boolean;
 }
 
 /** No parameters: removes every bookmark. */
@@ -1361,6 +1570,147 @@ export interface FileSplitSmartParams {
   nameTemplate?: string;
 }
 
+export interface FilesRenameBatchParams {
+  files?: string[];
+  template?: string;
+  /** Exact renames (undo). */
+  mapping?: RenameMapping[];
+  /** @default "suffix" */
+  conflict?: 'suffix' | 'skip' | 'overwrite';
+  /**
+   * True: only show old and new names.
+   * @default true
+   */
+  dryRun?: boolean;
+}
+
+/** Create a field. `kind: signature` creates an empty signature field (sign.addField). */
+export interface FormsAddFieldParams {
+  kind: 'text' | 'multiline' | 'comb' | 'checkbox' | 'radio' | 'dropdown' | 'listbox' | 'button' | 'signature';
+  pageIndex: number;
+  /** [x0, top, x1, bottom] in displayed points. */
+  rect: number[];
+  /** Dotted name allowed, e.g. nguoithue.hoten. */
+  name: string;
+  /** Tooltip (TU). */
+  label?: string;
+  value?: boolean | string | string[];
+  /** Choices (dropdown/listbox). */
+  options?: string[];
+  /** @default false */
+  required?: boolean;
+  /** @default false */
+  readOnly?: boolean;
+  maxLen?: number;
+  /**
+   * 0 = auto.
+   * @default 0.0
+   */
+  fontSize?: number;
+  /** @default "#000000" */
+  textColour?: string;
+  /** @default "#000000" */
+  borderColour?: string | null;
+  /** @default 1.0 */
+  borderWidth?: number;
+  background?: string;
+  /**
+   * 0 left, 1 centre, 2 right.
+   * @default 0
+   */
+  alignment?: 0 | 1 | 2;
+  /** check box/radio. */
+  exportValue?: string;
+  /** @default false */
+  multiSelect?: boolean;
+}
+
+/** EXPERIMENTAL: proposals for text fields over blank lines of text. Changes nothing. */
+export interface FormsDetectFieldsParams {
+  pages?: number[];
+}
+
+/** Export the values of every field. Without `path` the text comes back in the result. */
+export interface FormsExportDataParams {
+  /** @default "json" */
+  format?: 'json' | 'fdf' | 'xfdf' | 'csv';
+  /** File to write. */
+  path?: string;
+}
+
+/** Set field values. `values` maps the full field name to its value. */
+export interface FormsFillParams {
+  /** Full field name to value: text, bool for check boxes, option text or list. */
+  values: Record<string, boolean | string | string[]>;
+  /**
+   * Flatten every field after filling (H3).
+   * @default false
+   */
+  flatten?: boolean;
+  /**
+   * Allow writing to read-only fields.
+   * @default false
+   */
+  force?: boolean;
+  /**
+   * Tint empty required fields so they are easy to find.
+   * @default false
+   */
+  highlightRequired?: boolean;
+}
+
+export interface FormsFlattenParams {
+  /** Default: every field. */
+  names?: string[];
+  pages?: number[];
+  /** @default true */
+  keepSignatures?: boolean;
+  /** @default true */
+  removeJavascript?: boolean;
+}
+
+/** No parameters. */
+export interface FormsGetValuesParams {
+}
+
+/** Fill from a data file (JSON, FDF or XFDF). `format` defaults to the file extension. */
+export interface FormsImportDataParams {
+  path: string;
+  format?: 'json' | 'fdf' | 'xfdf';
+  /** @default false */
+  force?: boolean;
+}
+
+/** No parameters. */
+export interface FormsListParams {
+}
+
+export interface FormsRemoveParams {
+  names: string[];
+}
+
+export interface FormsRenameParams {
+  name: string;
+  /** New partial name (no dots). */
+  newName: string;
+}
+
+export interface FormsResetParams {
+  /** Default: every field. */
+  names?: string[];
+  pages?: number[];
+}
+
+export interface FormsSetTabOrderParams {
+  /** Full names, in tab order. */
+  order: string[];
+}
+
+export interface FormsUpdateParams {
+  name: string;
+  properties: UpdateProps;
+}
+
 /** Clean up a signature or stamp image (I21). All steps are optional. */
 export interface ImageCleanupParams {
   inputPath: string;
@@ -1535,6 +1885,88 @@ export interface LayersSetVisibilityParams {
   /** Layer ids from layers.list. */
   layerIds: string[];
   visible: boolean;
+}
+
+/** A link on one page. rect is (left, top, right, bottom) in the displayed frame. */
+export interface LinksAddParams {
+  pageIndex: number;
+  rect: number[];
+  kind: 'uri' | 'page';
+  uri?: string;
+  targetPage?: number;
+  /** @default "fit" */
+  view?: 'fit' | 'xyz';
+  /** xyz: displayed x (points). */
+  left?: number;
+  /** xyz: displayed y (points), default top. */
+  top?: number;
+  /** @default 0.0 */
+  borderWidth?: number;
+  color?: string;
+  /** @default "invert" */
+  highlight?: 'none' | 'invert' | 'outline';
+}
+
+/** URI links for the web and e-mail addresses in the text. */
+export interface LinksAutoDetectParams {
+  /** 0-based pages; default all. */
+  pages?: number[];
+  /**
+   * Do not add a link where a link already covers the text.
+   * @default true
+   */
+  skipExisting?: boolean;
+}
+
+/** Links of one page, or of every page when pageIndex is left out. */
+export interface LinksListParams {
+  pageIndex?: number;
+}
+
+/** Remove links by id, or every link (of one page when pageIndex is given). */
+export interface LinksRemoveParams {
+  ids?: string[];
+  /** @default false */
+  all?: boolean;
+  pageIndex?: number;
+}
+
+/** Change one link. Give uri or targetPage to change its target. */
+export interface LinksUpdateParams {
+  id: string;
+  rect?: number[];
+  uri?: string;
+  targetPage?: number;
+  view?: 'fit' | 'xyz';
+  left?: number;
+  top?: number;
+  borderWidth?: number;
+  color?: string;
+  highlight?: 'none' | 'invert' | 'outline';
+}
+
+export interface NamingApplyParams {
+  /** Files to rename. */
+  files: string[];
+  /** Tokens: {name} {index} {seq:N} {date} {time} {pages} {parent} {title} {counter}. */
+  template: string;
+  /**
+   * suffix | skip | overwrite.
+   * @default "suffix"
+   */
+  conflict?: 'suffix' | 'skip' | 'overwrite';
+}
+
+export interface NamingPreviewParams {
+  /** Files to rename. */
+  files: string[];
+  /** Tokens: {name} {index} {seq:N} {date} {time} {pages} {parent} {title} {counter}. */
+  template: string;
+  /**
+   * suffix | skip | overwrite.
+   * @default "suffix"
+   */
+  conflict?: 'suffix' | 'skip' | 'overwrite';
 }
 
 /**
@@ -3074,6 +3506,63 @@ export interface TextEditLineParams {
   fitWidth?: 'none' | 'shrink' | 'track';
 }
 
+/** Replace the text of one paragraph and re-flow it in its box. */
+export interface TextEditParagraphParams {
+  /**
+   * auto: keep the font when it writes everything, else a registry font. keep: never change the font (error when characters are missing). replace: always a registry font.
+   * @default "auto"
+   */
+  fontStrategy?: 'auto' | 'keep' | 'replace';
+  /** Registry font id (text.listFonts); overrides fontStrategy. */
+  fontName?: string;
+  /**
+   * A registry font follows the sans/serif/mono class of the text.
+   * @default true
+   */
+  keepStyle?: boolean;
+  /**
+   * Alignment of the lines.
+   * @default "keep"
+   */
+  align?: 'keep' | 'left' | 'right' | 'center' | 'justify';
+  /**
+   * keep: the leading ratio of the paragraph; or a pitch in pt.
+   * @default "keep"
+   */
+  lineSpacing?: 'keep' | number;
+  /**
+   * keep or points.
+   * @default "keep"
+   */
+  fontSize?: 'keep' | number;
+  /**
+   * keep or #rrggbb.
+   * @default "keep"
+   */
+  color?: 'keep' | string;
+  /**
+   * keep or true/false.
+   * @default "keep"
+   */
+  bold?: 'keep' | boolean;
+  /**
+   * keep or true/false.
+   * @default "keep"
+   */
+  italic?: 'keep' | boolean;
+  /**
+   * keep: up to the right edge of the text block; or points.
+   * @default "keep"
+   */
+  boxWidth?: 'keep' | number;
+  /** 0-based page. */
+  pageIndex: number;
+  /** Paragraph id from text.getLines. */
+  paragraphId: string;
+  /** New text; \n makes a hard break; empty deletes. */
+  newText: string;
+}
+
 /** Find and replace text across the document, line by line. */
 export interface TextFindReplaceParams {
   find: string;
@@ -3121,6 +3610,84 @@ export interface TextGetLinesParams {
 export interface TextListFontsParams {
 }
 
+/** Change the style of one paragraph; its text is kept. */
+export interface TextStyleParagraphParams {
+  /**
+   * auto: keep the font when it writes everything, else a registry font. keep: never change the font (error when characters are missing). replace: always a registry font.
+   * @default "auto"
+   */
+  fontStrategy?: 'auto' | 'keep' | 'replace';
+  /** Registry font id (text.listFonts); overrides fontStrategy. */
+  fontName?: string;
+  /**
+   * A registry font follows the sans/serif/mono class of the text.
+   * @default true
+   */
+  keepStyle?: boolean;
+  /**
+   * Alignment of the lines.
+   * @default "keep"
+   */
+  align?: 'keep' | 'left' | 'right' | 'center' | 'justify';
+  /**
+   * keep: the leading ratio of the paragraph; or a pitch in pt.
+   * @default "keep"
+   */
+  lineSpacing?: 'keep' | number;
+  /**
+   * keep or points.
+   * @default "keep"
+   */
+  fontSize?: 'keep' | number;
+  /**
+   * keep or #rrggbb.
+   * @default "keep"
+   */
+  color?: 'keep' | string;
+  /**
+   * keep or true/false.
+   * @default "keep"
+   */
+  bold?: 'keep' | boolean;
+  /**
+   * keep or true/false.
+   * @default "keep"
+   */
+  italic?: 'keep' | boolean;
+  /**
+   * keep: up to the right edge of the text block; or points.
+   * @default "keep"
+   */
+  boxWidth?: 'keep' | number;
+  /** 0-based page. */
+  pageIndex: number;
+  /** Paragraph id from text.getLines. */
+  paragraphId: string;
+}
+
+export interface WatchMarkDoneParams {
+  ledgerPath: string;
+  /** The file that was handled. */
+  path: string;
+  outputPath?: string;
+  /** @default "done" */
+  status?: 'done' | 'failed' | 'skipped';
+}
+
+export interface WatchScanParams {
+  /** Folder to watch. */
+  directory: string;
+  /** State file (JSON). */
+  ledgerPath: string;
+  /**
+   * Size and time must not change for this long.
+   * @default 3.0
+   */
+  settleSeconds?: number;
+  /** @default "*.pdf" */
+  pattern?: string;
+}
+
 /** List the watermark candidates of the document (nothing is changed). */
 export interface WatermarkDetectParams {
 }
@@ -3138,10 +3705,57 @@ export interface WatermarkRemoveParams {
   pages?: number[];
 }
 
+export interface WorkflowRunParams {
+  /** A workflow (see Workflow JSON schema). */
+  workflow: Record<string, unknown>;
+  files: WorkflowFile[];
+  /** Values of {{secret:name}} placeholders. Never stored, logged or echoed back. */
+  secrets?: Record<string, string>;
+  /** Values for {{name}} placeholders of this run. */
+  variables?: Record<string, string>;
+  /** Replaces the output rule of the workflow for this run. */
+  output?: WorkflowOutput;
+  /**
+   * Stop after the first failed file.
+   * @default false
+   */
+  stopOnError?: boolean;
+  /**
+   * Only plan the output names: nothing is processed or written.
+   * @default false
+   */
+  dryRun?: boolean;
+}
+
+/** No parameters. */
+export interface WorkflowSamplesParams {
+}
+
+export interface WorkflowValidateParams {
+  /** A workflow (see Workflow JSON schema). */
+  workflow: Record<string, unknown>;
+  /** Values of the run request, checked with the workflow. */
+  variables?: Record<string, string>;
+}
+
 /** Params type of every operation, by op id. */
 export interface OpParams {
+  'annots.addFreeText': AnnotsAddFreeTextParams;
+  'annots.addInk': AnnotsAddInkParams;
+  'annots.addNote': AnnotsAddNoteParams;
+  'annots.addShape': AnnotsAddShapeParams;
+  'annots.addTextMarkup': AnnotsAddTextMarkupParams;
+  'annots.export': AnnotsExportParams;
+  'annots.flatten': AnnotsFlattenParams;
+  'annots.list': AnnotsListParams;
+  'annots.remove': AnnotsRemoveParams;
+  'annots.removeAll': AnnotsRemoveAllParams;
+  'annots.reply': AnnotsReplyParams;
+  'annots.setStatus': AnnotsSetStatusParams;
+  'annots.update': AnnotsUpdateParams;
   'background.detect': BackgroundDetectParams;
   'background.remove': BackgroundRemoveParams;
+  'batch.run': BatchRunParams;
   'bookmarks.clear': BookmarksClearParams;
   'bookmarks.fromPages': BookmarksFromPagesParams;
   'bookmarks.get': BookmarksGetParams;
@@ -3180,6 +3794,20 @@ export interface OpParams {
   'file.merge': FileMergeParams;
   'file.split': FileSplitParams;
   'file.splitSmart': FileSplitSmartParams;
+  'files.renameBatch': FilesRenameBatchParams;
+  'forms.addField': FormsAddFieldParams;
+  'forms.detectFields': FormsDetectFieldsParams;
+  'forms.exportData': FormsExportDataParams;
+  'forms.fill': FormsFillParams;
+  'forms.flatten': FormsFlattenParams;
+  'forms.getValues': FormsGetValuesParams;
+  'forms.importData': FormsImportDataParams;
+  'forms.list': FormsListParams;
+  'forms.remove': FormsRemoveParams;
+  'forms.rename': FormsRenameParams;
+  'forms.reset': FormsResetParams;
+  'forms.setTabOrder': FormsSetTabOrderParams;
+  'forms.update': FormsUpdateParams;
   'image.cleanup': ImageCleanupParams;
   'image.fromStrokes': ImageFromStrokesParams;
   'image.removeBackground': ImageRemoveBackgroundParams;
@@ -3191,6 +3819,13 @@ export interface OpParams {
   'layers.list': LayersListParams;
   'layers.remove': LayersRemoveParams;
   'layers.setVisibility': LayersSetVisibilityParams;
+  'links.add': LinksAddParams;
+  'links.autoDetect': LinksAutoDetectParams;
+  'links.list': LinksListParams;
+  'links.remove': LinksRemoveParams;
+  'links.update': LinksUpdateParams;
+  'naming.apply': NamingApplyParams;
+  'naming.preview': NamingPreviewParams;
   'overlay.addImage': OverlayAddImageParams;
   'overlay.addText': OverlayAddTextParams;
   'overlay.barcode': OverlayBarcodeParams;
@@ -3263,18 +3898,39 @@ export interface OpParams {
   'stamp.text': StampTextParams;
   'text.checkText': TextCheckTextParams;
   'text.editLine': TextEditLineParams;
+  'text.editParagraph': TextEditParagraphParams;
   'text.findReplace': TextFindReplaceParams;
   'text.getLines': TextGetLinesParams;
   'text.listFonts': TextListFontsParams;
+  'text.styleParagraph': TextStyleParagraphParams;
+  'watch.markDone': WatchMarkDoneParams;
+  'watch.scan': WatchScanParams;
   'watermark.detect': WatermarkDetectParams;
   'watermark.remove': WatermarkRemoveParams;
+  'workflow.run': WorkflowRunParams;
+  'workflow.samples': WorkflowSamplesParams;
+  'workflow.validate': WorkflowValidateParams;
 }
 
 export type OpId = keyof OpParams;
 
 export const OP_IDS = [
+  'annots.addFreeText',
+  'annots.addInk',
+  'annots.addNote',
+  'annots.addShape',
+  'annots.addTextMarkup',
+  'annots.export',
+  'annots.flatten',
+  'annots.list',
+  'annots.remove',
+  'annots.removeAll',
+  'annots.reply',
+  'annots.setStatus',
+  'annots.update',
   'background.detect',
   'background.remove',
+  'batch.run',
   'bookmarks.clear',
   'bookmarks.fromPages',
   'bookmarks.get',
@@ -3313,6 +3969,20 @@ export const OP_IDS = [
   'file.merge',
   'file.split',
   'file.splitSmart',
+  'files.renameBatch',
+  'forms.addField',
+  'forms.detectFields',
+  'forms.exportData',
+  'forms.fill',
+  'forms.flatten',
+  'forms.getValues',
+  'forms.importData',
+  'forms.list',
+  'forms.remove',
+  'forms.rename',
+  'forms.reset',
+  'forms.setTabOrder',
+  'forms.update',
   'image.cleanup',
   'image.fromStrokes',
   'image.removeBackground',
@@ -3324,6 +3994,13 @@ export const OP_IDS = [
   'layers.list',
   'layers.remove',
   'layers.setVisibility',
+  'links.add',
+  'links.autoDetect',
+  'links.list',
+  'links.remove',
+  'links.update',
+  'naming.apply',
+  'naming.preview',
   'overlay.addImage',
   'overlay.addText',
   'overlay.barcode',
@@ -3396,9 +4073,16 @@ export const OP_IDS = [
   'stamp.text',
   'text.checkText',
   'text.editLine',
+  'text.editParagraph',
   'text.findReplace',
   'text.getLines',
   'text.listFonts',
+  'text.styleParagraph',
+  'watch.markDone',
+  'watch.scan',
   'watermark.detect',
   'watermark.remove',
+  'workflow.run',
+  'workflow.samples',
+  'workflow.validate',
 ] as const;

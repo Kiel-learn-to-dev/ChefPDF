@@ -1,0 +1,26 @@
+{
+  "id": "nop-ho-so-online",
+  "name": "Nộp hồ sơ online",
+  "description": "Nén dưới 2 MB, đánh số trang theo NĐ 30, ký số. Cần file chứng thư số (.pfx/.p12) và mật khẩu của chứng thư.",
+  "version": 1,
+  "steps": [
+    {
+      "op": "compress.fitSize",
+      "label": "Nén dưới 2 MB",
+      "params": {"preset": "ebook", "targetBytes": 2097152}
+    },
+    {
+      "op": "overlay.pageNumbers",
+      "label": "Đánh số trang (NĐ 30)",
+      "params": {"preset": "nd30"}
+    },
+    {
+      "op": "sign.pades",
+      "label": "Ký số",
+      "params": {"pfxPath": "{{pfxPath}}", "password": "{{secret:password}}"}
+    }
+  ],
+  "inputs": {"accept": ["pdf"], "password": true},
+  "output": {"mode": "suffix", "suffix": "_da-ky"},
+  "variables": {"pfxPath": ""}
+}

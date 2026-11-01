@@ -565,12 +565,21 @@ def apply_plan(editor: PageEditor, page: TextPage, plan: LinePlan, book: FontBoo
     editor.ins_at.setdefault(sub.pos, []).extend(block)
 
 
+# Public names for the helpers that the paragraph editor (T7.03) shares with this module.
+advance_only = _advance_only
+find_et = _find_et
+resource_name = _resource_name
+
+
 __all__ = [
     "EditOptions",
     "FontBook",
     "LinePlan",
+    "advance_only",
     "apply_plan",
+    "find_et",
     "font_cap",
     "plan_line",
     "probe_text",
+    "resource_name",
 ]

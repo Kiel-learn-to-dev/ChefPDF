@@ -1,0 +1,26 @@
+{
+  "id": "gui-ban-sao-gon",
+  "name": "Gửi bản sao gọn",
+  "description": "Xóa dữ liệu ẩn (siêu dữ liệu, ghi chú, ảnh thu nhỏ), nén nhẹ, đặt mật khẩu mở file.",
+  "version": 1,
+  "steps": [
+    {
+      "op": "inspect.removeHidden",
+      "label": "Xóa dữ liệu ẩn",
+      "params": {"categories": ["metadata", "embeddedFiles", "javascript", "comments", "thumbnails"]}
+    },
+    {
+      "op": "compress.pdf",
+      "label": "Nén nhẹ",
+      "params": {"preset": "screen"}
+    },
+    {
+      "op": "security.encrypt",
+      "label": "Đặt mật khẩu mở file",
+      "params": {"userPassword": "{{secret:password}}"}
+    }
+  ],
+  "inputs": {"accept": ["pdf"], "password": false},
+  "output": {"mode": "suffix", "suffix": "_ban-sao"},
+  "variables": {}
+}

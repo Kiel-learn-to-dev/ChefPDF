@@ -43,8 +43,16 @@ BUILTIN_MODULES = (
     "chef_core.ops.content_layers",
     "chef_core.ops.content_watermark",
     "chef_core.ops.text_edit",
+    "chef_core.ops.text_paragraph",
+    "chef_core.ops.links",
+    "chef_core.ops.annots",
+    "chef_core.ops.annots_export",
     "chef_core.ops.redact",
     "chef_core.ops.pageimg",
+    "chef_core.ops.forms",
+    "chef_core.ops.workflow",
+    "chef_core.ops.naming",
+    "chef_core.ops.watch",
 )
 
 
