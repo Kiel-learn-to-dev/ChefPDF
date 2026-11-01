@@ -150,6 +150,10 @@ test('a document that is already signed cannot be converted', async () => {
   const l = await open('fake_signed.pdf');
   await l.page.waitForSelector('.pdfViewer .page canvas', { timeout: 30_000 });
   await l.page.click('.ftab >> text=Xuất');
-  await expect(l.page.locator('.toolbar__hint')).toHaveAttribute('title', /ký số/);
-  await expect(l.page.locator('.toolbar__hint button')).toBeDisabled();
+  // Other export tools (colour conversion, compression) show the same hint, so scope to scan.
+  const scanHint = l.page.locator('.toolbar__hint', {
+    has: l.page.locator('button', { hasText: 'Bản scan' }),
+  });
+  await expect(scanHint).toHaveAttribute('title', /ký số/);
+  await expect(scanHint.locator('button')).toBeDisabled();
 });

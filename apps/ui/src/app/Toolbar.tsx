@@ -223,13 +223,25 @@ const PAGES_ITEMS: Item[] = [
   { kind: 'cmd', id: 'tools.merge', label: true },
   { kind: 'cmd', id: 'tools.split', label: true },
 ];
-const PAGES_OVERFLOW = ['pages.selectAll', 'file.saveAs', 'file.print', 'view.panel'];
+/** Trang tab overflow: page tools (C6-C9) and smart split (C10), then the usual items. */
+const PAGES_OVERFLOW = [
+  'pages.replace',
+  'pages.cropResize',
+  'pages.blank',
+  'pages.gridSplit',
+  'tools.smartSplit',
+  'pages.selectAll',
+  'file.saveAs',
+  'file.print',
+  'view.panel',
+];
 
 const EXPORT_ITEMS: Item[] = [
   { kind: 'cmd', id: 'tools.scan', label: true },
   { kind: 'cmd', id: 'tools.compress', label: true },
   { kind: 'cmd', id: 'tools.pdfToImages', label: true },
   { kind: 'cmd', id: 'tools.imagesToPdf', label: true },
+  { kind: 'cmd', id: 'tools.color', label: true },
 ];
 
 /** Chỉnh sửa: eight overlay tools in the bar, Bates in the overflow menu (D1, D2, F1-F12). */
@@ -257,7 +269,10 @@ const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.security', label: true },
 ];
 /** Sign & security tab overflow: data cleanup and the pre-send checks. */
-const SIGN_OVERFLOW = ['sign.inspect', 'tools.preflight'];
+const SIGN_OVERFLOW = ['sign.inspect', 'tools.preflight', 'sign.verifyBatch'];
+
+/** Xuất tab overflow: document properties and utilities, and repair of a damaged file (M7-M11). */
+const EXPORT_OVERFLOW = ['tools.docUtils', 'tools.repair'];
 
 /** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */
 export function Toolbar() {
@@ -295,7 +310,9 @@ export function Toolbar() {
           ? EDIT_OVERFLOW
           : tab === 'sign'
             ? SIGN_OVERFLOW
-            : [];
+            : tab === 'export'
+              ? EXPORT_OVERFLOW
+              : [];
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
     'view.find': findOpen,

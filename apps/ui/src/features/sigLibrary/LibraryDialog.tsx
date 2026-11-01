@@ -6,6 +6,7 @@ import {
   Library,
   Pencil,
   PenLine,
+  Palette,
   Smartphone,
   Trash2,
   TriangleAlert,
@@ -22,10 +23,11 @@ import { Badge, EmptyState } from '../../components/Misc';
 import { chef } from '../../lib/bridge';
 import { toChefError } from '../../lib/errors';
 import { DrawFlow, ImageFlow, TypeFlow, type FlowProps } from './LibraryFlows';
+import { SeparateFlow } from './SeparateFlow';
 import { NAME_MAX, itemName } from './libraryModel';
 import './sigLibrary.css';
 
-type View = 'list' | 'image' | 'draw' | 'type';
+type View = 'list' | 'image' | 'draw' | 'type' | 'separate';
 
 /** Object URL of a decrypted item, revoked when the card goes away. */
 export function LibraryThumb({ id, alt }: { id: string; alt: string }) {
@@ -62,6 +64,7 @@ export function LibraryDialog() {
   const [view, setView] = useState<View>('list');
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [separating, setSeparating] = useState<LibraryItem | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -210,6 +213,15 @@ export function LibraryDialog() {
                         />
                         <IconButton
                           size="sm"
+                          label={t('colorSep.open')}
+                          icon={<Palette size={14} />}
+                          onClick={() => {
+                            setSeparating(item);
+                            setView('separate');
+                          }}
+                        />
+                        <IconButton
+                          size="sm"
                           label={t('lib.delete')}
                           icon={<Trash2 size={14} />}
                           onClick={() => void remove(item)}
@@ -226,6 +238,7 @@ export function LibraryDialog() {
         {view === 'image' && <ImageFlow {...flowProps} />}
         {view === 'draw' && <DrawFlow {...flowProps} />}
         {view === 'type' && <TypeFlow {...flowProps} />}
+        {view === 'separate' && separating && <SeparateFlow item={separating} {...flowProps} />}
       </div>
     </Dialog>
   );

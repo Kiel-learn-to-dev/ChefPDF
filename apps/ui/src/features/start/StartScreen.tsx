@@ -9,6 +9,7 @@ import {
   FolderOpen,
   ScanLine,
   Shrink,
+  Wrench,
   Split,
   Stamp,
   X,
@@ -115,6 +116,14 @@ export function StartScreen() {
       text: t('start.compressText'),
       icon: <Shrink size={22} />,
       tone: 'slate',
+    },
+    {
+      id: 'repair',
+      title: t('repair.cmd'),
+      text: t('start.repairText'),
+      icon: <Wrench size={22} />,
+      tone: 'slate',
+      onClick: () => useUi.getState().openDialog('repair'),
     },
   ];
 

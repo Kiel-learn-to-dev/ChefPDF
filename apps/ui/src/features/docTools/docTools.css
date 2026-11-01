@@ -1,0 +1,77 @@
+/* "Thuộc tính & tiện ích" (M7-M11) and "Sửa file hỏng". */
+.docTools {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.docTools__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.docTools__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.docTools__subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.docTools__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 14px;
+}
+
+.docTools__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.docTools__end {
+  justify-content: flex-end;
+}
+
+.docTools__file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.docTools__note {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.docTools__note--warn {
+  color: var(--color-warning, #b45309);
+}
+
+.docTools__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.docTools__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

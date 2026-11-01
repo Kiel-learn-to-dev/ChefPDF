@@ -3,7 +3,7 @@
  * estimate (slow: it runs the whole compression), "Nén sao cho ≤ X MB" (compress.fitSize applies
  * the params it finds), and the result with before / after size, ratio and skipped images.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Save, Shrink, Trash2 } from 'lucide-react';
 import { useActiveDoc } from '../../app/state/documents';
@@ -46,7 +46,10 @@ export function CompressDialog() {
   const { t } = useTranslation();
   const doc = useActiveDoc();
   const close = useUi((s) => s.closeDialog);
-  const userPresets = useSettings((s) => readUserPresets(s.settings.compressPresets));
+  // Select the stored value (stable reference) and parse it here: parsing inside the selector
+  // returns a new array on every store read and makes React loop (error #185).
+  const storedPresets = useSettings((s) => s.settings.compressPresets);
+  const userPresets = useMemo(() => readUserPresets(storedPresets), [storedPresets]);
   const [form, setForm] = useState<CompressForm>(DEFAULT_COMPRESS_FORM);
   const [presetKey, setPresetKey] = useState<string>(`${BUILTIN_PREFIX}ebook`);
   const [saving, setSaving] = useState(false);

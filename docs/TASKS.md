@@ -140,9 +140,9 @@
 | T4.09 | Chồng lên giấy tiêu đề | F11 | 1 | T4.01 | ✅ |
 | T4.10 | Quản lý & gỡ những gì Chef PDF đã thêm | F12 | 1,5 | T4.04, T4.07 | ✅ |
 | T4.11 | Ký bằng kho chứng thư OS (Windows CNG, macOS Keychain) | I8 | 3 | T3.06 | ⬜ |
-| T4.12 | Tách chữ ký & con dấu theo màu | I22 | 1,5 | T3.11 | 🔄 |
+| T4.12 | Tách chữ ký & con dấu theo màu | I22 | 1,5 | T3.11 | ✅ |
 | T4.13 | Ký kèm đóng dấu (ký số + giáp lai + ký nháy) | I33 | 1 | T4.06, T3.13 | ✅ |
-| T4.14 | Kiểm tra chữ ký hàng loạt, xuất Excel/CSV | I36 | 1 | T3.08 | 🔄 |
+| T4.14 | Kiểm tra chữ ký hàng loạt, xuất Excel/CSV | I36 | 1 | T3.08 | ✅ |
 
 ---
 

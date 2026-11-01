@@ -33,6 +33,18 @@ import { seamPlan } from '../features/stamps/seamModel';
 /** DEV: the bookmark tree of each mock session (bookmarks.get / set / fromPages / clear). */
 const mockBookmarks = new WeakMap<object, unknown[]>();
 
+/** DEV: document Info (doc.setMetadata) and embedded files (doc.attachments.*) of each mock session. */
+const mockMeta = new WeakMap<object, Record<string, string>>();
+const mockAttachments = new WeakMap<
+  object,
+  { name: string; size: number; description: string; bytes: Uint8Array }[]
+>();
+
+/** DEV: last path segment of a file path (the mock has no path module). */
+function mockBaseName(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
 const SETTINGS_KEY = 'chef-mock-settings';
 
 const defaultSettings: Settings = {
@@ -142,6 +154,25 @@ const OP_IDS: string[] = [
   'compress.fitSize',
   'convert.pdfToImages',
   'convert.imagesToPdf',
+  'color.convert',
+  'page.replace',
+  'page.crop',
+  'page.resize',
+  'page.findBlank',
+  'page.removeBlank',
+  'page.split',
+  'file.splitSmart',
+  'image.separateColors',
+  'sign.verifyBatch',
+  'doc.setMetadata',
+  'doc.attachments.list',
+  'doc.attachments.add',
+  'doc.attachments.extract',
+  'doc.attachments.remove',
+  'doc.extractImages',
+  'doc.extractText',
+  'doc.optimizeWeb',
+  'doc.repair',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -231,6 +262,7 @@ const READ_ONLY_SESSION_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'preflight.check',
   'compress.estimate',
   'compress.fitSize',
+  'page.findBlank',
 ]);
 
 /** A small grey PNG with a label, standing in for rendered page images in the mock. */
@@ -250,6 +282,15 @@ async function placeholderPng(label: string, width: number, height: number): Pro
     canvas.toBlob((b) => resolve(b ?? new Blob()), 'image/png'),
   );
   return new Uint8Array(await blob.arrayBuffer());
+}
+
+/** DEV: page indices of a page-tool scope (all / odd / even / a page list), 0-based. */
+function scopeIndices(doc: PDFDocument, scope: string | undefined, pages: number[] | undefined) {
+  const all = doc.getPageIndices();
+  if (scope === 'pages') return pages ?? [];
+  if (scope === 'odd') return all.filter((i) => i % 2 === 0);
+  if (scope === 'even') return all.filter((i) => i % 2 === 1);
+  return all;
 }
 
 function sleep(ms: number) {
@@ -1148,6 +1189,96 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
+      case 'color.convert': {
+        // Mock: the colours are not rewritten; the report has the shape of the core's.
+        const p = params as OpParams['color.convert'];
+        const selected = p.pages ?? doc.getPageIndices();
+        checkPages(doc, selected);
+        r = {
+          ...result(selected),
+          data: { coloursChanged: 3, imagesChanged: 0, pagesChanged: selected.length, kept: {} },
+        };
+        break;
+      }
+      case 'page.replace': {
+        const p = params as OpParams['page.replace'];
+        checkPages(doc, p.pages);
+        const src = await loadDoc(getFile(p.path));
+        const sources = p.sourcePages ?? src.getPageIndices();
+        const at = Math.min(...p.pages);
+        for (const i of [...new Set(p.pages)].sort((a, b) => b - a)) doc.removePage(i);
+        await copyInto(doc, src, sources, at);
+        r = result('all');
+        break;
+      }
+      case 'page.crop': {
+        const p = params as OpParams['page.crop'];
+        const selected = scopeIndices(doc, p.scope, p.pages);
+        checkPages(doc, selected);
+        const mm = (v: number) => (v * 72) / 25.4;
+        for (const i of selected) {
+          const page = doc.getPage(i);
+          const { width, height } = page.getSize();
+          let box = [0, 0, width, height];
+          if (p.margins) {
+            box = [
+              mm(p.margins.left ?? 0),
+              mm(p.margins.bottom ?? 0),
+              width - mm(p.margins.right ?? 0),
+              height - mm(p.margins.top ?? 0),
+            ];
+          } else if (p.box) {
+            box = p.box;
+          }
+          page.setCropBox(box[0]!, box[1]!, box[2]! - box[0]!, box[3]! - box[1]!);
+        }
+        r = result(selected);
+        break;
+      }
+      case 'page.resize': {
+        const p = params as OpParams['page.resize'];
+        const selected = scopeIndices(doc, p.scope, p.pages);
+        checkPages(doc, selected);
+        const mmPt = (v: number) => (v * 72) / 25.4;
+        const size =
+          p.size === 'A3'
+            ? [841.89, 1190.55]
+            : p.size === 'Letter'
+              ? [612, 792]
+              : p.size === 'custom'
+                ? [mmPt(p.customWidthMm ?? 210), mmPt(p.customHeightMm ?? 297)]
+                : [595.28, 841.89];
+        for (const i of selected) doc.getPage(i).setSize(size[0]!, size[1]!);
+        r = result(selected);
+        break;
+      }
+      case 'page.findBlank': {
+        // Mock: no page counts as blank, so the review lists nothing.
+        modified = false;
+        const p = params as OpParams['page.findBlank'];
+        const rows = scopeIndices(doc, p.pages ? 'pages' : 'all', p.pages).map((index) => ({
+          index,
+          inkRatio: 0.5,
+          hasText: true,
+          hasAnnotations: false,
+          blank: false,
+        }));
+        r = { ...result([]), data: { pages: rows, candidates: [] } };
+        break;
+      }
+      case 'page.removeBlank': {
+        modified = false;
+        r = { ...result([]), data: { removed: [] } };
+        break;
+      }
+      case 'page.split': {
+        // Mock: the pieces are not built; the page list is only checked.
+        const p = params as OpParams['page.split'];
+        checkPages(doc, scopeIndices(doc, p.pages ? 'pages' : 'all', p.pages));
+        modified = false;
+        r = result([]);
+        break;
+      }
       case 'preflight.check': {
         // Mock: a size check (no limit in the mock) and one metadata warning until it is cleaned.
         modified = false;
@@ -1200,6 +1331,107 @@ export function createMockBridge(): ChefBridge {
         r = result([]);
         break;
       }
+      case 'doc.setMetadata': {
+        // Mock: the Info values are kept per session, not written into the PDF.
+        const p = params as OpParams['doc.setMetadata'];
+        const meta: Record<string, string> = p.clear ? {} : { ...(mockMeta.get(s) ?? {}) };
+        const std: Record<string, string | undefined> = {
+          Title: p.title,
+          Author: p.author,
+          Subject: p.subject,
+          Keywords: p.keywords,
+          Creator: p.creator,
+          Producer: p.producer,
+          CreationDate: p.creationDate,
+          ModDate: p.modDate,
+        };
+        for (const [k, v] of [...Object.entries(std), ...Object.entries(p.custom ?? {})]) {
+          if (v === undefined) continue;
+          if (v) meta[k] = v;
+          else delete meta[k];
+        }
+        mockMeta.set(s, meta);
+        r = { ...result([]), data: { metadata: meta } };
+        break;
+      }
+      case 'doc.attachments.list': {
+        modified = false;
+        const items = (mockAttachments.get(s) ?? []).map(({ name, size, description }) => ({
+          name,
+          size,
+          description,
+        }));
+        r = { ...result([]), data: items };
+        break;
+      }
+      case 'doc.attachments.add': {
+        const p = params as OpParams['doc.attachments.add'];
+        const list = [...(mockAttachments.get(s) ?? [])];
+        for (const path of p.paths) {
+          const name = mockBaseName(path);
+          const bytes = getFile(path);
+          const item = { name, size: bytes.length, description: '', bytes };
+          const i = list.findIndex((x) => x.name === name);
+          if (i < 0) list.push(item);
+          else if (p.replace) list[i] = item;
+        }
+        mockAttachments.set(s, list);
+        r = result([]);
+        break;
+      }
+      case 'doc.attachments.extract': {
+        const p = params as OpParams['doc.attachments.extract'];
+        const list = mockAttachments.get(s) ?? [];
+        const names = p.names?.length ? p.names : list.map((x) => x.name);
+        const outputs: string[] = [];
+        for (const item of list.filter((x) => names.includes(x.name))) {
+          const out = `${p.outputDir}/${item.name}`;
+          putFile(out, item.bytes);
+          outputs.push(out);
+        }
+        modified = false;
+        r = result([], outputs);
+        break;
+      }
+      case 'doc.attachments.remove': {
+        const p = params as OpParams['doc.attachments.remove'];
+        mockAttachments.set(
+          s,
+          (mockAttachments.get(s) ?? []).filter((x) => !p.names.includes(x.name)),
+        );
+        r = result([]);
+        break;
+      }
+      case 'doc.extractImages': {
+        const p = params as OpParams['doc.extractImages'];
+        const template = p.nameTemplate ?? '{page}_{index}';
+        const outputs: string[] = [];
+        for (const i of p.pages ?? doc.getPageIndices()) {
+          const name = template
+            .replace('{name}', 'mock')
+            .replace('{page}', String(i + 1))
+            .replace('{index}', '1');
+          const out = `${p.outputDir}/${name}.png`;
+          putFile(out, await placeholderPng('Mock image', 320, 200));
+          outputs.push(out);
+        }
+        modified = false;
+        r = result([], outputs);
+        break;
+      }
+      case 'doc.extractText': {
+        const p = params as OpParams['doc.extractText'];
+        const pages = doc.getPageIndices();
+        const text = pages
+          .map(
+            (i) => (p.pageMarkers ? `--- Trang ${i + 1} ---\n` : '') + `Nội dung trang ${i + 1}\n`,
+          )
+          .join('');
+        putFile(p.outputPath, new TextEncoder().encode(text));
+        modified = false;
+        r = { ...result([], [p.outputPath]), data: { pages: pages.length, chars: text.length } };
+        break;
+      }
       default:
         throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
     }
@@ -1208,6 +1440,29 @@ export function createMockBridge(): ChefBridge {
   }
 
   async function runStandalone(opId: OpId, params: unknown): Promise<OpResult> {
+    if (opId === 'file.splitSmart') {
+      // Mock: two halves of the document, written as files in the output folder.
+      const p = params as OpParams['file.splitSmart'];
+      const src = await loadDoc(getFile(p.path));
+      const all = src.getPageIndices();
+      const half = Math.max(1, Math.floor(all.length / 2));
+      const groups = [all.slice(0, half), all.slice(half)].filter((g) => g.length > 0);
+      const outputs: string[] = [];
+      for (const [k, group] of groups.entries()) {
+        const out = await PDFDocument.create();
+        await copyInto(out, src, group, 0);
+        const file = `${p.outputDir}/${stripExt(basename(p.path))}_${k + 1}.pdf`;
+        putFile(file, await out.save());
+        outputs.push(file);
+      }
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs,
+        warnings: [],
+        data: { parts: groups.length },
+      };
+    }
     if (opId === 'stamp.presets') {
       return {
         state: null as unknown as SessionState,
@@ -1215,6 +1470,72 @@ export function createMockBridge(): ChefBridge {
         outputs: [],
         warnings: [],
         data: { presets: MOCK_STAMP_PRESETS },
+      };
+    }
+    if (opId === 'doc.optimizeWeb') {
+      // Mock: the bytes are copied as they are; the size drop is only a placeholder figure.
+      const p = params as OpParams['doc.optimizeWeb'];
+      const bytes = getFile(p.inputPath);
+      putFile(p.outputPath, bytes);
+      const afterBytes = Math.floor(bytes.length * 0.8);
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [p.outputPath],
+        warnings: [],
+        data: { beforeBytes: bytes.length, afterBytes, linearized: true },
+      };
+    }
+    if (opId === 'doc.repair') {
+      const p = params as OpParams['doc.repair'];
+      const bytes = getFile(p.inputPath);
+      const pageCount = (await loadDoc(bytes)).getPageCount();
+      putFile(p.outputPath, bytes);
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [p.outputPath],
+        warnings: [],
+        data: { recovered: true, pageCount, warnings: [] },
+      };
+    }
+    if (opId === 'sign.verifyBatch') {
+      // Mock: no signatures are read, so every file is reported as unsigned.
+      const p = params as OpParams['sign.verifyBatch'];
+      const paths = p.files?.map((f) => f.path) ?? mockFolderPdfs(p.folder ?? '');
+      const rows = paths.map((path) => `${mockBaseName(path)},unsigned`);
+      putFile(p.reportPath, new TextEncoder().encode(['file,status', ...rows].join('\n') + '\n'));
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [p.reportPath],
+        warnings: [],
+        data: {
+          files: paths.length,
+          signatures: 0,
+          byStatus: { unsigned: paths.length },
+          reportPath: p.reportPath,
+        },
+      };
+    }
+    if (opId === 'image.separateColors') {
+      // Mock: one placeholder PNG per layer; the last layer matches no pixel.
+      const p = params as OpParams['image.separateColors'];
+      await sleep(120);
+      const names =
+        p.mode === 'layers' ? (p.layers ?? []).map((l) => l.name) : ['Con dấu', 'Chữ ký'];
+      const layers: { name: string; path: string; pixels: number }[] = [];
+      for (let i = 0; i < names.length; i++) {
+        const path = `${p.outputDir}/${String(i + 1).padStart(2, '0')}-layer.png`;
+        putFile(path, await placeholderPng(names[i]!, 360, 150));
+        layers.push({ name: names[i]!, path, pixels: i === names.length - 1 ? 0 : 500 + i });
+      }
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: layers.map((l) => l.path),
+        warnings: [],
+        data: { layers },
       };
     }
     if (opId.startsWith('sign.')) return runSignOp(opId, params);

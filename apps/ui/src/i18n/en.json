@@ -113,6 +113,7 @@
     "export": "Export to Word"
   },
   "start": {
+    "repairText": "Try to recover a PDF that will not open",
     "title": "Hello! What shall we do with PDFs today?",
     "subtitle": "Open a file, or pick a task below.",
     "tasks": "Common tasks",
@@ -1272,6 +1273,218 @@
     "color": "Ink colour",
     "jobType": "Make a signature from text"
   },
+  "colorSep": {
+    "open": "Separate by colour",
+    "notRun": "Not separated yet",
+    "noLayers": "No layers yet",
+    "noMatch": "no pixel matched",
+    "mode": {
+      "label": "Separation",
+      "auto": "Find the two ink colours automatically",
+      "custom": "Choose colours"
+    },
+    "layers": "Colour layers",
+    "layerName": "Layer name",
+    "layerColor": "Colour",
+    "tolerance": "Colour tolerance",
+    "removeLayer": "Remove layer",
+    "addLayer": "Add layer",
+    "newLayer": "Layer {{n}}",
+    "run": "Separate",
+    "job": "Separate by colour",
+    "fallbackName": "Item",
+    "saveHint": "Each layer with pixels is saved as a library item. Names are at most {{max}} characters.",
+    "save": "Save {{n}} layers to the library",
+    "problem": {
+      "empty": "At least one colour layer is needed.",
+      "tooMany": "At most 8 colour layers.",
+      "name": "A layer name needs 1 to 60 characters.",
+      "color": "The colour is not valid.",
+      "tolerance": "Colour tolerance is from 0 to 255."
+    }
+  },
+  "verifyBatch": {
+    "cmd": "Batch signature check",
+    "short": "Batch check",
+    "title": "Batch signature check",
+    "description": "Check many PDF files or a whole folder, then write the results to a CSV or Excel file.",
+    "duplicates": "{{count}} files are already in the list.",
+    "overLimit": "The list has reached the maximum number of files.",
+    "trustFilter": "Root certificates",
+    "job": "Check signatures",
+    "badResult": "The core returned an unexpected result.",
+    "doneTitle": "Check finished",
+    "doneText": "Checked {{files}} files.",
+    "cancelled": "The check was cancelled.",
+    "progress": "Checking",
+    "cancelJob": "Cancel",
+    "run": "Check",
+    "source": "File source",
+    "scopeFiles": "File list",
+    "scopeFolder": "One folder",
+    "addFiles": "Add files…",
+    "clear": "Clear list",
+    "count": "{{n}} files",
+    "remove": "Remove file",
+    "pickFolder": "Choose folder…",
+    "noFolder": "No folder chosen",
+    "recursive": "Include subfolders",
+    "options": "Check options",
+    "revocation": "Revocation check",
+    "rev": {
+      "none": "Do not check",
+      "soft": "Warn if the check cannot be made",
+      "hard": "Treat as unknown if the check cannot be made"
+    },
+    "trustDefaults": "The bundled trust roots and the computer's store are always used. You can add your own root certificates below.",
+    "addTrust": "Add root certificates…",
+    "clearTrust": "Remove added root certificates",
+    "trustCount": "{{n}} added root certificates",
+    "report": "Report",
+    "format": "Format",
+    "reportPath": "Report file",
+    "noReport": "No save location chosen",
+    "chooseReport": "Choose where to save the report…",
+    "summary": "Results",
+    "totals": "{{files}} files, {{signatures}} signatures",
+    "status": {
+      "valid": "Valid",
+      "valid-with-warnings": "Valid, with warnings",
+      "invalid": "Not valid",
+      "unknown": "Unknown",
+      "unsigned": "Not signed",
+      "error": "File could not be read",
+      "other": "Other"
+    },
+    "openReport": "Open the folder with the report",
+    "problem": {
+      "noInput": "Choose at least one file or one folder.",
+      "noReport": "Choose where to save the report.",
+      "extension": "The report file extension must match the chosen format."
+    }
+  },
+  "docTools": {
+    "cmd": "Properties & tools",
+    "short": "Properties",
+    "title": "Properties & tools",
+    "description": "Edit properties, manage attachments, extract images and text, and optimise for the web.",
+    "noDoc": "Open a document to use these tools.",
+    "sectionsLabel": "Tool groups",
+    "sections": {
+      "meta": "Properties",
+      "attach": "Attachments",
+      "images": "Extract images",
+      "text": "Extract text",
+      "web": "Optimise for web"
+    },
+    "meta": {
+      "title": "Document properties",
+      "keys": {
+        "Title": "Title",
+        "Author": "Author",
+        "Subject": "Subject",
+        "Keywords": "Keywords",
+        "Creator": "Creator application",
+        "Producer": "PDF producer",
+        "CreationDate": "Creation date",
+        "ModDate": "Modified date"
+      },
+      "custom": "Custom properties",
+      "customKey": "Property name",
+      "customValue": "Value",
+      "removeCustom": "Remove property",
+      "addCustom": "Add property",
+      "clear": "Clear all",
+      "clearTitle": "Clear all properties?",
+      "clearText": "Every property of the document, including XMP metadata, is removed when saved.",
+      "save": "Save properties",
+      "job": "Edit properties",
+      "saved": "Properties updated",
+      "problem": {
+        "date": "Dates must use ISO form, for example 2024-03-01T09:30:00+07:00.",
+        "customKey": "A property name cannot be empty, contain spaces or special characters, or repeat a standard property.",
+        "duplicateKey": "A property name is repeated.",
+        "customLimit": "At most 30 custom properties.",
+        "length": "The value is too long (at most 2000 characters)."
+      }
+    },
+    "attach": {
+      "title": "Attachments",
+      "add": "Add files…",
+      "extract": "Save to a folder…",
+      "remove": "Remove selected",
+      "removeTitle": "Remove attachments?",
+      "removeText": "Remove {{count}} attachments from the document.",
+      "empty": "The document has no attachments",
+      "listLabel": "Attachment list",
+      "job": "Attachments",
+      "extracted": "Attachments saved"
+    },
+    "images": {
+      "title": "Extract original images",
+      "pickDir": "Choose folder…",
+      "noDir": "No folder chosen",
+      "pages": "Pages",
+      "pagesHint": "Leave empty for all pages",
+      "pagesPlaceholder": "For example: 1, 3-5",
+      "template": "File name template",
+      "templateHint": "{page}: page number, {index}: index on the page, {name}: document name",
+      "badPages": "The page list is not valid.",
+      "templateProblem": {
+        "empty": "Enter a file name template.",
+        "separator": "The template cannot contain / or \\.",
+        "invalidChars": "The template contains invalid characters.",
+        "long": "The template is too long (at most 80 characters)."
+      },
+      "run": "Extract images",
+      "job": "Extract images",
+      "done": "Images extracted",
+      "count": "{{count}} images"
+    },
+    "text": {
+      "title": "Extract text",
+      "pick": "Choose where to save the .txt file…",
+      "noFile": "No file chosen",
+      "markers": "Mark each page (--- Page N ---)",
+      "run": "Extract text",
+      "job": "Extract text",
+      "done": "Text extracted",
+      "filter": "Text"
+    },
+    "web": {
+      "title": "Optimise for web viewing",
+      "help": "Rewrites the saved file so the first page opens quickly over a network.",
+      "blocked": {
+        "signed": "The document is digitally signed. It is not optimised, so the signatures stay valid.",
+        "unsaved": "Save the document before optimising."
+      },
+      "result": "Size {{before}} → {{after}} (saved {{percent}}%)",
+      "run": "Optimise file",
+      "job": "Optimise for web",
+      "done": "File optimised",
+      "reopen": "Close and reopen the document to see the new copy.",
+      "failed": "The file could not be optimised"
+    }
+  },
+  "repair": {
+    "cmd": "Repair a damaged PDF",
+    "short": "Repair file",
+    "title": "Repair a damaged PDF",
+    "description": "Try to recover a file that will not open. The original file is not changed.",
+    "job": "Repair file",
+    "warnings": "Warnings while repairing",
+    "doneTitle": "File repaired",
+    "doneText": "Recovered {{pages}} pages and opened the file.",
+    "run": "Try repair",
+    "input": "Damaged file",
+    "pickInput": "Choose file…",
+    "changeInput": "Choose another file…",
+    "noInput": "No file chosen",
+    "output": "Repaired file",
+    "noOutput": "No save location chosen",
+    "chooseOutput": "Choose where to save…",
+    "keepsOriginal": "The repaired file is saved as a new copy next to the original, which is not overwritten."
+  },
   "signBatch": {
     "title": "Batch signing",
     "description": "Sign many PDF files with one certificate and one set of options.",
@@ -1899,6 +2112,217 @@
       "fonts": "Fonts",
       "fields": "Fields",
       "fieldName": "Field"
+    }
+  },
+  "colour": {
+    "cmd": "Convert colours…",
+    "short": "Colours",
+    "title": "Convert colours",
+    "description": "Change the colours of \"{{name}}\": greyscale, black and white, ink saver, or replace one colour with another.",
+    "jobTitle": "Convert colours: {{name}}",
+    "run": "Convert",
+    "signedBlocked": "Digitally signed document: colours cannot be changed without breaking the signature.",
+    "issue": {
+      "pages": "The page range is invalid or empty.",
+      "threshold": "The threshold must be a whole number from 0 to 255.",
+      "amount": "The amount must be from 0 to 100%.",
+      "sourceColor": "The source colour must look like #rrggbb.",
+      "targetColor": "The target colour must look like #rrggbb.",
+      "tolerance": "The tolerance must be a whole number from 0 to 255."
+    },
+    "mode": {
+      "label": "Conversion",
+      "gray": "Greyscale",
+      "blackwhite": "Black and white",
+      "ink-saver": "Ink saver",
+      "replace-color": "Replace colour"
+    },
+    "modeHint": {
+      "gray": "Turns every colour into grey. Text and lines stay as they are.",
+      "blackwhite": "Only black and white remain. The threshold decides which points turn black.",
+      "ink-saver": "Lightens every colour by the chosen amount to use less ink when printing.",
+      "replace-color": "Replaces the points close to the source colour with the target colour."
+    },
+    "threshold": "Black and white threshold",
+    "thresholdHint": "Points lighter than the threshold become white, darker ones black (0–255).",
+    "dithering": "Dither images",
+    "ditheringHint": "Black and white images look smoother, but the file may be larger.",
+    "amount": "Lightening (%)",
+    "amountHint": "0 changes nothing, 100 is almost white.",
+    "source": "Colour to replace",
+    "target": "Replace with",
+    "tolerance": "Tolerance",
+    "toleranceHint": "Each of the R, G and B channels may differ by up to this value (0–255).",
+    "scope": {
+      "label": "Apply to",
+      "all": "All pages",
+      "pages": "Selected pages"
+    },
+    "pages": "Selected pages",
+    "kept": {
+      "shading": "Gradient fills",
+      "pattern": "Repeating patterns",
+      "other": "Other kinds"
+    },
+    "resultLabel": "Colour conversion result",
+    "result": {
+      "line": "Changed {{colours}} colours, {{images}} images, {{pages}} pages.",
+      "kept": "{{reason}}: {{count}} kept as they are"
+    }
+  },
+  "pageTools": {
+    "signedBlocked": "Digitally signed document: pages cannot be changed without breaking the signature. Work on an unsigned copy.",
+    "cmd": {
+      "replace": "Replace pages…",
+      "cropResize": "Crop margins / resize…",
+      "blank": "Remove blank pages…",
+      "gridSplit": "Split pages…",
+      "smartSplit": "Smart split…"
+    },
+    "short": {
+      "smartSplit": "Smart split"
+    },
+    "issue": {
+      "pages": "The page range is invalid or empty.",
+      "target": "Enter the pages to replace, inside the document.",
+      "sourcePages": "The page range of the source file is invalid.",
+      "margins": "Margins must be numbers from 0 to 500 mm.",
+      "box": "The box needs x1 greater than x0 and y1 greater than y0.",
+      "padding": "The padding must be from 0 to 50 mm.",
+      "rows": "The number of rows must be from 1 to 10.",
+      "cols": "The number of columns must be from 1 to 10.",
+      "pieces": "Split into at least 2 pieces.",
+      "overlap": "The overlap must be from 0 to 50 mm.",
+      "customSize": "The width and height must be greater than 0.",
+      "level": "The outline level must be from 1 to 10.",
+      "pattern": "A valid regular expression is needed.",
+      "outputDir": "Choose a folder for the files.",
+      "nameTemplate": "The name template cannot be empty and may only use {name}, {index}, {start}, {end}."
+    },
+    "scope": {
+      "label": "Apply to",
+      "all": "All pages",
+      "odd": "Odd pages",
+      "even": "Even pages",
+      "pages": "Selected pages"
+    },
+    "pageN": "Page {{page}}",
+    "replace": {
+      "title": "Replace pages",
+      "description": "Replace pages of \"{{name}}\" with pages taken from another PDF file.",
+      "run": "Replace pages",
+      "jobTitle": "Replace pages: {{name}}",
+      "target": "Pages to replace",
+      "source": "Source file",
+      "noSource": "No file chosen",
+      "sourceCount": "{{count}} pages",
+      "sourcePages": "Pages taken from the source file",
+      "sourcePagesHint": "Leave empty to take all pages. Click a page image to pick it.",
+      "sourceThumbs": "Pages of the source file",
+      "loading": "Rendering the pages…"
+    },
+    "crop": {
+      "title": "Crop margins / resize",
+      "description": "Change the page box of \"{{name}}\". Nothing is deleted; only the visible area changes.",
+      "kind": "Crop margins",
+      "method": "Method",
+      "m": {
+        "margins": "By margins",
+        "box": "By box",
+        "autoTrim": "Trim white borders"
+      },
+      "side": {
+        "top": "Top margin",
+        "right": "Right margin",
+        "bottom": "Bottom margin",
+        "left": "Left margin"
+      },
+      "box": {
+        "x0": "x0 (left)",
+        "y0": "y0 (bottom)",
+        "x1": "x1 (right)",
+        "y1": "y1 (top)"
+      },
+      "padding": "Padding around the content",
+      "mm": "mm",
+      "pt": "points (pt)",
+      "run": "Crop",
+      "jobTitle": "Crop: {{name}}"
+    },
+    "resize": {
+      "kind": "Resize",
+      "size": "Paper size",
+      "preset": {
+        "A3": "A3",
+        "A4": "A4",
+        "Letter": "Letter",
+        "custom": "Custom"
+      },
+      "width": "Width (mm)",
+      "height": "Height (mm)",
+      "fit": "Content",
+      "fitScale": "Scale to fit the page",
+      "fitCenter": "Keep the size, centre it",
+      "run": "Resize",
+      "jobTitle": "Resize: {{name}}"
+    },
+    "split": {
+      "title": "Split pages",
+      "description": "Split each page of \"{{name}}\" into a grid of rows × columns, for example an A3 page into two A4 pages.",
+      "run": "Split pages",
+      "jobTitle": "Split pages: {{name}}",
+      "rows": "Rows",
+      "cols": "Columns",
+      "order": "Order of the pieces",
+      "ltr": "Left to right",
+      "rtl": "Right to left (books)",
+      "overlap": "Overlap between pieces (mm)"
+    },
+    "smart": {
+      "title": "Smart split",
+      "description": "Split one PDF into several files at blank separator pages, at an outline level, or at headings that match a pattern.",
+      "run": "Split file",
+      "jobTitle": "Split file: {{name}}",
+      "source": "File to split",
+      "mode": {
+        "label": "Split by",
+        "blank": "Blank separator pages",
+        "bookmarkLevel": "Outline level",
+        "pattern": "Heading matching a pattern"
+      },
+      "level": "Outline level",
+      "levelHint": "1 is the top level.",
+      "pattern": "Regular expression",
+      "patternHint": "For example: Chapter [0-9]+",
+      "ignoreCase": "Ignore upper and lower case",
+      "dropSeparators": "Leave out the separator pages",
+      "dropSeparatorsHint": "Blank separator pages are not written to the result files.",
+      "sensitivity": "Blank page sensitivity (%)",
+      "sensitivityHint": "Higher values treat pages with a few specks as blank.",
+      "outputDir": "Save to",
+      "noOutputDir": "No folder chosen",
+      "nameTemplate": "File name template",
+      "nameHint": "Example file name: {{sample}}",
+      "openFolder": "Open folder",
+      "result": "Split into {{count}} files",
+      "resultLabel": "Split result",
+      "running": "Splitting…"
+    },
+    "blank": {
+      "title": "Remove blank pages",
+      "description": "Find blank pages in \"{{name}}\" and choose which ones to delete. Review them before deleting.",
+      "run": "Delete {{count}} selected pages",
+      "jobTitle": "Remove blank pages: {{name}}",
+      "sensitivity": "Sensitivity",
+      "keepAnnotations": "Keep pages with annotations",
+      "keepAnnotationsHint": "Pages with notes or signature fields are never treated as blank.",
+      "list": "Blank pages found",
+      "none": "No blank pages found.",
+      "explain": "Pages flagged as blank are checked by default. Uncheck any page you want to keep.",
+      "detecting": "Looking for blank pages…",
+      "ink": "ink {{percent}}%",
+      "flagText": "has text",
+      "flagAnnotations": "has annotations"
     }
   },
   "compress": {

@@ -58,6 +58,15 @@ export type DialogId =
   | 'compress'
   | 'pdfToImages'
   | 'imagesToPdf'
+  | 'verifyBatch'
+  | 'docTools'
+  | 'repair'
+  | 'color'
+  | 'pageReplace'
+  | 'pageCrop'
+  | 'pageBlank'
+  | 'pageGridSplit'
+  | 'smartSplit'
   | 'shortcuts';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';

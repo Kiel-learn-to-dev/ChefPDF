@@ -113,6 +113,7 @@
     "export": "Xuất sang Word"
   },
   "start": {
+    "repairText": "Thử khôi phục file PDF không mở được",
     "title": "Chào bạn, hôm nay làm gì với PDF?",
     "subtitle": "Mở file, hoặc chọn một việc bên dưới.",
     "tasks": "Việc thường làm",
@@ -1253,6 +1254,218 @@
     "color": "Màu mực",
     "jobType": "Tạo chữ ký từ chữ"
   },
+  "colorSep": {
+    "open": "Tách theo màu",
+    "notRun": "Chưa tách",
+    "noLayers": "Chưa có lớp nào",
+    "noMatch": "không khớp điểm ảnh nào",
+    "mode": {
+      "label": "Cách tách",
+      "auto": "Tự tìm hai màu mực",
+      "custom": "Tự chọn màu"
+    },
+    "layers": "Các lớp màu",
+    "layerName": "Tên lớp",
+    "layerColor": "Màu",
+    "tolerance": "Độ lệch màu",
+    "removeLayer": "Bỏ lớp",
+    "addLayer": "Thêm lớp",
+    "newLayer": "Lớp {{n}}",
+    "run": "Tách",
+    "job": "Tách theo màu",
+    "fallbackName": "Mục",
+    "saveHint": "Mỗi lớp có điểm ảnh được lưu thành một mục thư viện. Tên tối đa {{max}} ký tự.",
+    "save": "Lưu {{n}} lớp vào thư viện",
+    "problem": {
+      "empty": "Cần ít nhất một lớp màu.",
+      "tooMany": "Tối đa 8 lớp màu.",
+      "name": "Tên lớp cần từ 1 đến 60 ký tự.",
+      "color": "Màu không hợp lệ.",
+      "tolerance": "Độ lệch màu từ 0 đến 255."
+    }
+  },
+  "verifyBatch": {
+    "cmd": "Kiểm tra chữ ký hàng loạt",
+    "short": "Kiểm tra hàng loạt",
+    "title": "Kiểm tra chữ ký hàng loạt",
+    "description": "Kiểm tra nhiều file PDF hoặc cả một thư mục, rồi ghi kết quả ra file CSV hoặc Excel.",
+    "duplicates": "{{count}} file đã có trong danh sách.",
+    "overLimit": "Danh sách đã đủ số file tối đa.",
+    "trustFilter": "Chứng chỉ gốc",
+    "job": "Kiểm tra chữ ký",
+    "badResult": "Lõi trả về kết quả không đúng.",
+    "doneTitle": "Kiểm tra xong",
+    "doneText": "Đã kiểm tra {{files}} file.",
+    "cancelled": "Đã hủy kiểm tra.",
+    "progress": "Đang kiểm tra",
+    "cancelJob": "Hủy",
+    "run": "Kiểm tra",
+    "source": "Nguồn file",
+    "scopeFiles": "Danh sách file",
+    "scopeFolder": "Một thư mục",
+    "addFiles": "Thêm file…",
+    "clear": "Xóa danh sách",
+    "count": "{{n}} file",
+    "remove": "Bỏ file",
+    "pickFolder": "Chọn thư mục…",
+    "noFolder": "Chưa chọn thư mục",
+    "recursive": "Gồm cả thư mục con",
+    "options": "Tùy chọn kiểm tra",
+    "revocation": "Kiểm tra thu hồi",
+    "rev": {
+      "none": "Không kiểm tra",
+      "soft": "Chỉ cảnh báo nếu không kiểm tra được",
+      "hard": "Không xác định nếu không kiểm tra được"
+    },
+    "trustDefaults": "Mặc định dùng kho gốc tin cậy đi kèm và kho của máy. Có thể thêm chứng chỉ gốc riêng bên dưới.",
+    "addTrust": "Thêm chứng chỉ gốc…",
+    "clearTrust": "Bỏ chứng chỉ gốc thêm",
+    "trustCount": "{{n}} chứng chỉ gốc thêm",
+    "report": "Báo cáo",
+    "format": "Định dạng",
+    "reportPath": "File báo cáo",
+    "noReport": "Chưa chọn nơi lưu",
+    "chooseReport": "Chọn nơi lưu báo cáo…",
+    "summary": "Kết quả",
+    "totals": "{{files}} file, {{signatures}} chữ ký",
+    "status": {
+      "valid": "Hợp lệ",
+      "valid-with-warnings": "Hợp lệ, có cảnh báo",
+      "invalid": "Không hợp lệ",
+      "unknown": "Không xác định",
+      "unsigned": "Chưa ký",
+      "error": "Lỗi đọc file",
+      "other": "Khác"
+    },
+    "openReport": "Mở thư mục chứa báo cáo",
+    "problem": {
+      "noInput": "Chọn ít nhất một file hoặc một thư mục.",
+      "noReport": "Chọn nơi lưu báo cáo.",
+      "extension": "Đuôi file báo cáo phải khớp định dạng đã chọn."
+    }
+  },
+  "docTools": {
+    "cmd": "Thuộc tính & tiện ích",
+    "short": "Thuộc tính",
+    "title": "Thuộc tính & tiện ích",
+    "description": "Sửa thuộc tính, quản lý file đính kèm, trích ảnh và chữ, tối ưu cho web.",
+    "noDoc": "Mở một tài liệu để dùng tiện ích này.",
+    "sectionsLabel": "Nhóm tiện ích",
+    "sections": {
+      "meta": "Thuộc tính",
+      "attach": "Đính kèm",
+      "images": "Trích ảnh",
+      "text": "Trích chữ",
+      "web": "Tối ưu web"
+    },
+    "meta": {
+      "title": "Thuộc tính tài liệu",
+      "keys": {
+        "Title": "Tiêu đề",
+        "Author": "Tác giả",
+        "Subject": "Chủ đề",
+        "Keywords": "Từ khóa",
+        "Creator": "Ứng dụng tạo",
+        "Producer": "Bộ xuất PDF",
+        "CreationDate": "Ngày tạo",
+        "ModDate": "Ngày sửa"
+      },
+      "custom": "Thuộc tính tùy chỉnh",
+      "customKey": "Tên thuộc tính",
+      "customValue": "Giá trị",
+      "removeCustom": "Bỏ thuộc tính",
+      "addCustom": "Thêm thuộc tính",
+      "clear": "Xóa hết",
+      "clearTitle": "Xóa hết thuộc tính?",
+      "clearText": "Mọi thuộc tính của tài liệu, kể cả siêu dữ liệu XMP, sẽ bị xóa khi lưu.",
+      "save": "Lưu thuộc tính",
+      "job": "Sửa thuộc tính",
+      "saved": "Đã cập nhật thuộc tính",
+      "problem": {
+        "date": "Ngày phải theo dạng ISO, ví dụ 2024-03-01T09:30:00+07:00.",
+        "customKey": "Tên thuộc tính không được trống, không có khoảng trắng hay ký tự đặc biệt, và không trùng thuộc tính chuẩn.",
+        "duplicateKey": "Tên thuộc tính bị trùng.",
+        "customLimit": "Tối đa 30 thuộc tính tùy chỉnh.",
+        "length": "Giá trị quá dài (tối đa 2000 ký tự)."
+      }
+    },
+    "attach": {
+      "title": "File đính kèm",
+      "add": "Thêm file…",
+      "extract": "Lưu ra thư mục…",
+      "remove": "Xóa đã chọn",
+      "removeTitle": "Xóa file đính kèm?",
+      "removeText": "Xóa {{count}} file đính kèm khỏi tài liệu.",
+      "empty": "Tài liệu không có file đính kèm",
+      "listLabel": "Danh sách file đính kèm",
+      "job": "File đính kèm",
+      "extracted": "Đã lưu file đính kèm"
+    },
+    "images": {
+      "title": "Trích ảnh gốc",
+      "pickDir": "Chọn thư mục…",
+      "noDir": "Chưa chọn thư mục",
+      "pages": "Trang",
+      "pagesHint": "Để trống để lấy mọi trang",
+      "pagesPlaceholder": "Ví dụ: 1, 3-5",
+      "template": "Mẫu tên file",
+      "templateHint": "{page}: số trang, {index}: số thứ tự trên trang, {name}: tên tài liệu",
+      "badPages": "Danh sách trang không hợp lệ.",
+      "templateProblem": {
+        "empty": "Nhập mẫu tên file.",
+        "separator": "Mẫu tên không được chứa dấu / hoặc \\.",
+        "invalidChars": "Mẫu tên chứa ký tự không hợp lệ.",
+        "long": "Mẫu tên quá dài (tối đa 80 ký tự)."
+      },
+      "run": "Trích ảnh",
+      "job": "Trích ảnh",
+      "done": "Đã trích ảnh",
+      "count": "{{count}} ảnh"
+    },
+    "text": {
+      "title": "Trích chữ",
+      "pick": "Chọn nơi lưu file .txt…",
+      "noFile": "Chưa chọn file",
+      "markers": "Ghi dấu từng trang (--- Trang N ---)",
+      "run": "Trích chữ",
+      "job": "Trích chữ",
+      "done": "Đã trích chữ",
+      "filter": "Văn bản"
+    },
+    "web": {
+      "title": "Tối ưu để xem trên web",
+      "help": "Ghi lại file đã lưu để trang đầu mở nhanh khi xem qua mạng.",
+      "blocked": {
+        "signed": "Tài liệu đã ký số. Không tối ưu để khỏi làm hỏng chữ ký.",
+        "unsaved": "Lưu tài liệu trước khi tối ưu."
+      },
+      "result": "Dung lượng {{before}} → {{after}} (giảm {{percent}}%)",
+      "run": "Tối ưu file",
+      "job": "Tối ưu cho web",
+      "done": "Đã tối ưu file",
+      "reopen": "Đóng và mở lại tài liệu để xem bản mới.",
+      "failed": "Không tối ưu được file"
+    }
+  },
+  "repair": {
+    "cmd": "Sửa file PDF hỏng",
+    "short": "Sửa file hỏng",
+    "title": "Sửa file PDF hỏng",
+    "description": "Thử khôi phục file không mở được. File gốc không bị thay đổi.",
+    "job": "Sửa file hỏng",
+    "warnings": "Cảnh báo khi sửa",
+    "doneTitle": "Đã sửa file",
+    "doneText": "Đã khôi phục {{pages}} trang và mở file.",
+    "run": "Thử sửa file",
+    "input": "File hỏng",
+    "pickInput": "Chọn file…",
+    "changeInput": "Chọn file khác…",
+    "noInput": "Chưa chọn file",
+    "output": "File sau khi sửa",
+    "noOutput": "Chưa chọn nơi lưu",
+    "chooseOutput": "Chọn nơi lưu…",
+    "keepsOriginal": "File sau khi sửa được lưu thành bản mới, không ghi đè file gốc."
+  },
   "signBatch": {
     "title": "Ký hàng loạt",
     "description": "Ký nhiều file PDF bằng một chứng thư và cùng một bộ tùy chọn.",
@@ -1880,6 +2093,217 @@
       "fonts": "Font",
       "fields": "Trường",
       "fieldName": "Trường"
+    }
+  },
+  "colour": {
+    "cmd": "Chuyển màu…",
+    "short": "Chuyển màu",
+    "title": "Chuyển màu",
+    "description": "Đổi màu của \"{{name}}\": thang xám, đen trắng, tiết kiệm mực, hoặc thay một màu bằng màu khác.",
+    "jobTitle": "Chuyển màu: {{name}}",
+    "run": "Chuyển màu",
+    "signedBlocked": "Tài liệu đã ký số: không thể đổi màu vì sẽ làm hỏng chữ ký.",
+    "issue": {
+      "pages": "Khoảng trang không hợp lệ hoặc để trống.",
+      "threshold": "Ngưỡng phải là số nguyên từ 0 đến 255.",
+      "amount": "Mức nhạt phải từ 0 đến 100%.",
+      "sourceColor": "Màu cần thay phải có dạng #rrggbb.",
+      "targetColor": "Màu thay bằng phải có dạng #rrggbb.",
+      "tolerance": "Dung sai phải là số nguyên từ 0 đến 255."
+    },
+    "mode": {
+      "label": "Kiểu chuyển",
+      "gray": "Thang xám",
+      "blackwhite": "Đen trắng",
+      "ink-saver": "Tiết kiệm mực",
+      "replace-color": "Thay màu"
+    },
+    "modeHint": {
+      "gray": "Đổi mọi màu thành độ xám. Chữ và nét vẫn giữ nguyên.",
+      "blackwhite": "Chỉ còn đen và trắng. Ngưỡng quyết định điểm nào thành đen.",
+      "ink-saver": "Làm nhạt mọi màu theo mức chọn, để in tốn ít mực hơn.",
+      "replace-color": "Thay các điểm gần màu cần thay bằng màu đích."
+    },
+    "threshold": "Ngưỡng đen trắng",
+    "thresholdHint": "Điểm sáng hơn ngưỡng thành trắng, tối hơn thành đen (0–255).",
+    "dithering": "Rải điểm cho ảnh",
+    "ditheringHint": "Ảnh đen trắng mịn hơn, nhưng file có thể lớn hơn.",
+    "amount": "Mức nhạt (%)",
+    "amountHint": "0 là không đổi, 100 là gần như trắng.",
+    "source": "Màu cần thay",
+    "target": "Thay bằng",
+    "tolerance": "Dung sai",
+    "toleranceHint": "Mỗi kênh R, G, B được lệch tối đa bằng số này (0–255).",
+    "scope": {
+      "label": "Áp dụng cho",
+      "all": "Tất cả trang",
+      "pages": "Các trang chọn"
+    },
+    "pages": "Trang chọn",
+    "kept": {
+      "shading": "Nền chuyển sắc",
+      "pattern": "Họa tiết lặp",
+      "other": "Kiểu khác"
+    },
+    "resultLabel": "Kết quả chuyển màu",
+    "result": {
+      "line": "Đã đổi {{colours}} màu, {{images}} ảnh, {{pages}} trang.",
+      "kept": "{{reason}}: {{count}} giữ nguyên"
+    }
+  },
+  "pageTools": {
+    "signedBlocked": "Tài liệu đã ký số: không thể sửa trang vì sẽ làm hỏng chữ ký. Hãy làm việc trên bản chưa ký.",
+    "cmd": {
+      "replace": "Thay trang…",
+      "cropResize": "Cắt lề / đổi khổ…",
+      "blank": "Xóa trang trắng…",
+      "gridSplit": "Chia đôi trang…",
+      "smartSplit": "Tách thông minh…"
+    },
+    "short": {
+      "smartSplit": "Tách thông minh"
+    },
+    "issue": {
+      "pages": "Khoảng trang không hợp lệ hoặc để trống.",
+      "target": "Nhập các trang cần thay, nằm trong tài liệu.",
+      "sourcePages": "Khoảng trang của file nguồn không hợp lệ.",
+      "margins": "Lề phải là số từ 0 đến 500 mm.",
+      "box": "Khung phải có x1 lớn hơn x0 và y1 lớn hơn y0.",
+      "padding": "Khoảng đệm phải từ 0 đến 50 mm.",
+      "rows": "Số hàng phải từ 1 đến 10.",
+      "cols": "Số cột phải từ 1 đến 10.",
+      "pieces": "Cần chia thành ít nhất 2 phần.",
+      "overlap": "Phần chồng lấn phải từ 0 đến 50 mm.",
+      "customSize": "Chiều rộng và chiều cao phải lớn hơn 0.",
+      "level": "Cấp mục lục phải từ 1 đến 10.",
+      "pattern": "Cần một biểu thức chính quy hợp lệ.",
+      "outputDir": "Chọn thư mục để lưu các file.",
+      "nameTemplate": "Mẫu tên không được để trống, chỉ dùng {name}, {index}, {start}, {end}."
+    },
+    "scope": {
+      "label": "Áp dụng cho",
+      "all": "Tất cả trang",
+      "odd": "Trang lẻ",
+      "even": "Trang chẵn",
+      "pages": "Các trang chọn"
+    },
+    "pageN": "Trang {{page}}",
+    "replace": {
+      "title": "Thay trang",
+      "description": "Thay các trang của \"{{name}}\" bằng trang lấy từ một file PDF khác.",
+      "run": "Thay trang",
+      "jobTitle": "Thay trang: {{name}}",
+      "target": "Trang cần thay",
+      "source": "File nguồn",
+      "noSource": "Chưa chọn file",
+      "sourceCount": "{{count}} trang",
+      "sourcePages": "Trang lấy từ file nguồn",
+      "sourcePagesHint": "Để trống để lấy tất cả. Bấm vào ảnh trang để chọn.",
+      "sourceThumbs": "Các trang của file nguồn",
+      "loading": "Đang dựng ảnh các trang…"
+    },
+    "crop": {
+      "title": "Cắt lề / đổi khổ",
+      "description": "Đổi khung trang của \"{{name}}\". Nội dung không bị xóa, chỉ thay vùng hiển thị.",
+      "kind": "Cắt lề",
+      "method": "Cách cắt",
+      "m": {
+        "margins": "Theo lề",
+        "box": "Theo khung",
+        "autoTrim": "Tự cắt viền trắng"
+      },
+      "side": {
+        "top": "Lề trên",
+        "right": "Lề phải",
+        "bottom": "Lề dưới",
+        "left": "Lề trái"
+      },
+      "box": {
+        "x0": "x0 (trái)",
+        "y0": "y0 (đáy)",
+        "x1": "x1 (phải)",
+        "y1": "y1 (đỉnh)"
+      },
+      "padding": "Khoảng đệm quanh nội dung",
+      "mm": "mm",
+      "pt": "điểm (pt)",
+      "run": "Cắt lề",
+      "jobTitle": "Cắt lề: {{name}}"
+    },
+    "resize": {
+      "kind": "Đổi khổ",
+      "size": "Khổ giấy",
+      "preset": {
+        "A3": "A3",
+        "A4": "A4",
+        "Letter": "Letter",
+        "custom": "Tùy chỉnh"
+      },
+      "width": "Rộng (mm)",
+      "height": "Cao (mm)",
+      "fit": "Nội dung",
+      "fitScale": "Co cho vừa trang",
+      "fitCenter": "Giữ nguyên cỡ, căn giữa",
+      "run": "Đổi khổ",
+      "jobTitle": "Đổi khổ: {{name}}"
+    },
+    "split": {
+      "title": "Chia đôi trang",
+      "description": "Chia mỗi trang của \"{{name}}\" thành lưới hàng × cột, ví dụ trang A3 thành 2 trang A4.",
+      "run": "Chia trang",
+      "jobTitle": "Chia trang: {{name}}",
+      "rows": "Số hàng",
+      "cols": "Số cột",
+      "order": "Thứ tự các phần",
+      "ltr": "Trái sang phải",
+      "rtl": "Phải sang trái (sách)",
+      "overlap": "Chồng lấn giữa các phần (mm)"
+    },
+    "smart": {
+      "title": "Tách thông minh",
+      "description": "Tách một file PDF thành nhiều file khi gặp trang trắng phân cách, mục lục cấp đã chọn, hoặc tiêu đề khớp mẫu.",
+      "run": "Tách file",
+      "jobTitle": "Tách file: {{name}}",
+      "source": "File cần tách",
+      "mode": {
+        "label": "Tách theo",
+        "blank": "Trang trắng phân cách",
+        "bookmarkLevel": "Mục lục cấp",
+        "pattern": "Tiêu đề khớp mẫu"
+      },
+      "level": "Cấp mục lục",
+      "levelHint": "1 là mục cấp cao nhất.",
+      "pattern": "Biểu thức chính quy",
+      "patternHint": "Ví dụ: Chương [0-9]+",
+      "ignoreCase": "Không phân biệt hoa thường",
+      "dropSeparators": "Bỏ các trang phân cách",
+      "dropSeparatorsHint": "Trang trắng phân cách không đưa vào các file kết quả.",
+      "sensitivity": "Độ nhạy trang trắng (%)",
+      "sensitivityHint": "Cao hơn thì trang có vài chấm vẫn coi là trắng.",
+      "outputDir": "Thư mục lưu",
+      "noOutputDir": "Chưa chọn thư mục",
+      "nameTemplate": "Mẫu tên file",
+      "nameHint": "Ví dụ tên file: {{sample}}",
+      "openFolder": "Mở thư mục",
+      "result": "Đã tách thành {{count}} file",
+      "resultLabel": "Kết quả tách file",
+      "running": "Đang tách…"
+    },
+    "blank": {
+      "title": "Xóa trang trắng",
+      "description": "Tìm trang trắng trong \"{{name}}\" và chọn trang nào sẽ bị xóa. Xem trước trước khi xóa.",
+      "run": "Xóa {{count}} trang đã chọn",
+      "jobTitle": "Xóa trang trắng: {{name}}",
+      "sensitivity": "Độ nhạy",
+      "keepAnnotations": "Giữ trang có chú thích",
+      "keepAnnotationsHint": "Trang có ghi chú hoặc ô ký sẽ không bị coi là trắng.",
+      "list": "Trang trắng tìm được",
+      "none": "Không tìm thấy trang trắng.",
+      "explain": "Trang được đánh dấu là trắng đã được chọn sẵn. Bỏ chọn trang nào muốn giữ lại.",
+      "detecting": "Đang tìm trang trắng…",
+      "ink": "mực {{percent}}%",
+      "flagText": "có chữ",
+      "flagAnnotations": "có chú thích"
     }
   },
   "compress": {

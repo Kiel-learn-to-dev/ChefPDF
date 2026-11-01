@@ -1,0 +1,90 @@
+/* Page tools (C6-C10) and colour conversion (M6): small shared styles. */
+
+.pt-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted, #5b6470);
+}
+
+.pt-swatch {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--color-border, #c9ced6);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.pt-result {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--color-surface-2, #f3f5f8);
+}
+
+.pt-result ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.pt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  max-height: 46vh;
+  overflow: auto;
+}
+
+.pt-card {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  font-size: 0.85rem;
+}
+
+.pt-card img {
+  width: 100%;
+  border: 1px solid var(--color-border, #c9ced6);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.pt-card__meta {
+  color: var(--color-muted, #5b6470);
+  text-align: center;
+}
+
+.pt-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.5rem;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.pt-thumbs img {
+  width: 100%;
+  border: 1px solid var(--color-border, #c9ced6);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.pt-thumbs button {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.pt-thumbs button[aria-pressed='true'] {
+  border-color: var(--color-accent, #2563eb);
+}
+
+.pt-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}

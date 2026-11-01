@@ -1,0 +1,20 @@
+/* Summary of "Kiểm tra chữ ký hàng loạt" (I36). Form parts reuse the sign.css classes. */
+.verify-result__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verify-result__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.verify-result__count > span {
+  font-weight: 600;
+}

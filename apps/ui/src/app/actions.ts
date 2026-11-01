@@ -15,6 +15,7 @@ import { usePlacementStore } from '../features/sign/placementStore';
 import { releasePdf } from '../features/viewer/pdfCache';
 import { getDoc, useDocs } from './state/documents';
 import { useSettings } from './state/settings';
+import { useUi } from './state/ui';
 import { useViewStore } from './state/viewer';
 import { askPassword, confirmDialog } from './prompts';
 
@@ -80,7 +81,13 @@ async function openOne(path: string): Promise<void> {
       }
     }
   } catch (e) {
-    showError(e, t('errors.openFailed', { name: basename(path) }));
+    const err = toChefError(e);
+    // A damaged file is offered the repair (M11) instead of a plain error.
+    if (err.kind === 'INVALID_PDF') {
+      useUi.getState().openDialog('repair', { path, message: errorMessage(err) });
+    } else {
+      showError(e, t('errors.openFailed', { name: basename(path) }));
+    }
   } finally {
     opening.delete(path);
   }

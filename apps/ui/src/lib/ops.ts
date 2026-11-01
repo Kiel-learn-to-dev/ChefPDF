@@ -63,6 +63,23 @@ import type {
   BookmarksFromPagesParams,
   BookmarksClearParams,
   ImageSeparateColorsParams,
+  ColorConvertParams,
+  FileSplitSmartParams,
+  PageCropParams,
+  PageFindBlankParams,
+  PageRemoveBlankParams,
+  PageReplaceParams,
+  PageResizeParams,
+  PageSplitParams,
+  DocAttachmentsAddParams,
+  DocAttachmentsExtractParams,
+  DocAttachmentsListParams,
+  DocAttachmentsRemoveParams,
+  DocExtractImagesParams,
+  DocExtractTextParams,
+  DocOptimizeWebParams,
+  DocRepairParams,
+  DocSetMetadataParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -153,6 +170,23 @@ export interface OpParams {
   'bookmarks.fromPages': BookmarksFromPagesParams;
   'bookmarks.clear': BookmarksClearParams;
   'image.separateColors': ImageSeparateColorsParams;
+  'doc.setMetadata': DocSetMetadataParams;
+  'doc.attachments.list': DocAttachmentsListParams;
+  'doc.attachments.add': DocAttachmentsAddParams;
+  'doc.attachments.extract': DocAttachmentsExtractParams;
+  'doc.attachments.remove': DocAttachmentsRemoveParams;
+  'doc.extractImages': DocExtractImagesParams;
+  'doc.extractText': DocExtractTextParams;
+  'doc.optimizeWeb': DocOptimizeWebParams;
+  'doc.repair': DocRepairParams;
+  'color.convert': ColorConvertParams;
+  'page.replace': PageReplaceParams;
+  'page.crop': PageCropParams;
+  'page.resize': PageResizeParams;
+  'page.findBlank': PageFindBlankParams;
+  'page.removeBlank': PageRemoveBlankParams;
+  'page.split': PageSplitParams;
+  'file.splitSmart': FileSplitSmartParams;
 }
 
 export type OpId = keyof OpParams;
@@ -178,4 +212,6 @@ export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
   'stamp.presets',
   'sign.verifyBatch',
   'image.separateColors',
+  'doc.optimizeWeb',
+  'doc.repair',
 ]);

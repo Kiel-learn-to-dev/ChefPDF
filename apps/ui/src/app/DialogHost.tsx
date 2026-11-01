@@ -34,6 +34,17 @@ import { InspectDialog } from '../features/inspect/InspectDialog';
 import { PreflightDialog } from '../features/preflight/PreflightDialog';
 import { CompressDialog } from '../features/compress/CompressDialog';
 import { ImagesToPdfDialog, PdfToImagesDialog } from '../features/convert/ConvertDialogs';
+import { VerifyBatchDialog } from '../features/verifyBatch/VerifyBatchDialog';
+import { DocToolsDialog } from '../features/docTools/DocToolsDialog';
+import { RepairDialog } from '../features/docTools/RepairDialog';
+import { ColorDialog } from '../features/color/ColorDialog';
+import {
+  CropResizeDialog,
+  PageSplitDialog,
+  ReplaceDialog,
+  SmartSplitDialog,
+} from '../features/pagetools/PageToolDialogs';
+import { BlankReviewDialog } from '../features/pagetools/BlankReviewDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -147,6 +158,24 @@ export function DialogHost() {
       return <PdfToImagesDialog />;
     case 'imagesToPdf':
       return <ImagesToPdfDialog />;
+    case 'verifyBatch':
+      return <VerifyBatchDialog />;
+    case 'docTools':
+      return <DocToolsDialog />;
+    case 'repair':
+      return <RepairDialog />;
+    case 'color':
+      return <ColorDialog />;
+    case 'pageReplace':
+      return <ReplaceDialog />;
+    case 'pageCrop':
+      return <CropResizeDialog />;
+    case 'pageBlank':
+      return <BlankReviewDialog />;
+    case 'pageGridSplit':
+      return <PageSplitDialog />;
+    case 'smartSplit':
+      return <SmartSplitDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     default:
