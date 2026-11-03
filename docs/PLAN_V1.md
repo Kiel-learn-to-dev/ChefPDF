@@ -2,10 +2,10 @@
 
 > Viết lại ngày 2026-11-03 sau khi chủ dự án chốt **ưu tiên bản Windows** (D37): bản 1.0 chỉ cam kết chạy tốt trên Windows với token Viettel-CA (D35). macOS và Linux để sau 1.0. Đi kèm [TASKS.md](TASKS.md) (danh sách task gốc) và [NOTES.md](NOTES.md) (quyết định). **Cập nhật trạng thái ở đây và ở TASKS.md khi xong từng bước.**
 
-## Hiện trạng (2026-11-03)
+## Hiện trạng (2026-11-04)
 
-- 119 task: 83 ✅, 30 🔄, 5 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **161** tính năng.
-- Test trên Windows: lõi Python 1638 (chạy đủ lần cuối ở 216a873, lõi không đổi từ đó; mốc v0.7 chạy 137 test liên quan đạt), giao diện 755, desktop 230 (1 bỏ qua), e2e Electron + lõi thật 109 đạt (lượt đủ) và `demo-v07.spec.ts` đạt; 1 test smoke (lõi dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt. Không còn `test.fixme`.
+- 119 task: 87 ✅, 26 🔄, 5 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **161** tính năng.
+- Test trên Windows (2026-11-04): typecheck, lint, ruff, mypy (lõi) sạch; pytest `test_pageimg_core` và `test_pageimg_ops` 84 đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); e2e Electron + lõi thật 15 đạt (`demo-v08`, `capture`, `crop-review`, `dewarp`, `smoke`). Bộ e2e đủ (109) và pytest lõi đủ (1638) lần cuối ở 2026-11-03; không còn `test.fixme`.
 - CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
 - Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 🔄).
 - Trạng thái 🔄 nghĩa là code đã có nhưng chưa qua cổng nghiệm thu của mốc. Mỗi mốc có một **Demo** trong TASKS.md; đó là tiêu chí nghiệm thu thật.
@@ -60,10 +60,10 @@ Mỗi mốc: (1) viết một e2e theo đúng câu Demo bằng lõi thật; (2) 
 
 | Mốc | Demo | Task cần đóng | Việc cần người thật |
 |---|---|---|---|
-| v0.8 | Chụp 20 trang sách bằng điện thoại qua QR, tự dò viền, tách trang đôi, làm phẳng, xóa ngón tay, ra PDF đẹp | T8.01–T8.04, T8.06–T8.11 | **Thử trang chụp trên điện thoại thật** (chưa từng thử); 20 trang sách thật để chỉnh ngưỡng |
+| v0.8 | Chụp 20 trang sách bằng điện thoại qua QR, tự dò viền, tách trang đôi, làm phẳng, xóa ngón tay, ra PDF đẹp | **Demo đã đạt** (`demo-v08.spec.ts`, 2026-11-04). Đã đóng T8.04, T8.06, T8.09, T8.11. Còn mở: T8.01, T8.02, T8.03, T8.07, T8.08, T8.10 (thiếu giao diện: trình sửa ảnh, Levels/Curves, tẩy và xóa vết màu, duyệt hàng loạt, chỉnh tay khe gáy, đề xuất và tô ngón tay) | **Thử trang chụp trên điện thoại thật** (chưa từng thử); 20 trang sách thật để chỉnh ngưỡng |
 | v0.9 | Tạo quy trình "Nộp hồ sơ online", thả 20 file vào thư mục tự động, lấy kết quả đã ký | T9.01–T9.07 (T9.08 hoãn) | Cần giai đoạn 1 xong để có bước ký thật |
 
-Việc còn mở đã biết: nối "Lưu thành bước quy trình" cho các hộp thoại còn lại (T9.03), bám viền tự động và hoàn thiện cắt hàng loạt (T8.06, T8.07).
+Việc còn mở đã biết: nối "Lưu thành bước quy trình" cho các hộp thoại còn lại (T9.03), hoàn thiện cắt hàng loạt (T8.07). Lỗi lộ ra ở Demo v0.8, chưa sửa: xóa ngón tay tô màu giấy lên cả phần bàn khi ngón tay chồng mép giấy; dò viền khi mép giấy nằm ngoài khung ảnh cho khung sai mà vẫn đạt ngưỡng 0,6 (ghi trong NOTES, nhật ký 2026-11-04).
 
 ## Giai đoạn 4: Mốc v0.10, rã tài liệu
 

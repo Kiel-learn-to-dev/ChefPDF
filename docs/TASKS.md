@@ -204,17 +204,17 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | 🔄 |
-| T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | 🔄 |
-| T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | 🔄 |
-| T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | 🔄 |
+| T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | 🔄 (chưa có trình sửa ảnh canvas trên giao diện; lõi có lịch sử/hoàn tác) |
+| T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | 🔄 (chưa có hộp thoại Levels/Curves, khử nhiễu, đổi DPI; nghiêng và làm trắng đã có e2e) |
+| T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | 🔄 (chưa có giao diện tẩy vùng và xóa vết màu; lõi và test có) |
+| T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | ✅ |
 | T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ✅ |
-| T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | 🔄 |
-| T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | 🔄 |
-| T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | 🔄 |
-| T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | 🔄 |
-| T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | 🔄 |
-| T8.11 | Chụp bằng điện thoại qua QR: máy chủ LAN tạm có token, trang web chụp, nhận ảnh, dò viền ngay. Dùng cho cả chụp chữ ký (I19) | L5, (I19) | 4 | T8.04 | 🔄 |
+| T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | ✅ |
+| T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | 🔄 (duyệt nhanh và kính lúp cho hàng loạt chưa xong) |
+| T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | 🔄 (tách tự động đã có e2e; chỉnh tay chưa có giao diện) |
+| T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | ✅ (chưa thử trên ảnh sách thật) |
+| T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | 🔄 (chưa có giao diện đề xuất, chỉnh cọ, tô nền; lõi và Demo v0.8 có) |
+| T8.11 | Chụp bằng điện thoại qua QR: máy chủ LAN tạm có token, trang web chụp, nhận ảnh, dò viền ngay. Dùng cho cả chụp chữ ký (I19) | L5, (I19) | 4 | T8.04 | ✅ (chưa thử trên điện thoại thật; server và trang chụp qua HTTP) |
 
 ---
 
