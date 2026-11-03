@@ -120,10 +120,37 @@ Tránh dương tính giả: lọc phần tử ẩn, tắt hoạt ảnh, chờ fo
 | A1–A2 | ✅ (A1 hook `__chefUi`; A2 `scripts/css-audit.mjs`) |
 | A3 | ✅ khung spec: 81 màn hình (start, 8 tab, 5 sidebar, 3 lớp phủ, 64 hộp thoại; đã kiểm: 64 tiêu đề khác nhau, không trống); chạy 51 giây: 80 ok, 1 `settle-timeout` (`tokenWizard`, đang dò USB token: đúng dự kiến, không bấm gì). Báo cáo `tests/e2e/ui-audit-out/report.json` + 81 ảnh chụp |
 | A4 | ✅ luật theo phần tử (`fixtures/uiAuditRules.ts`): control-height, radius-off-scale, font-off-scale, text-overflow/truncated, label-overflow, control-clipped, unexpected-hscroll, outside-dialog/offscreen. Đối chứng dương `ui-audit-selftest.spec.ts`: 9 luật + outside-dialog đều bắt được lỗi cài sẵn. Kết quả lượt đầu: 408 phát hiện (control-height 276, radius 69, font 63), 35 màn hình sạch. Chưa có ALLOW ngoài các vùng bỏ qua (A7 mới thêm sau khi xem ảnh) |
-| A5–A7 | ⬜ |
-| B1–B9 | ⬜ |
+| A5 | ✅ luật quan hệ: hàng (row-misaligned, row-mixed-height), khe (controls-touching, gap-uneven, gap-off-scale), hộp thoại (dialog-padding-mismatch, footer-right-edge, footer-wrapped, footer-overflow, primary-not-last). Đối chứng dương đủ 14 luật |
+| A6 | ✅ biến thể mỗi tab và mục "Nâng cao" đang đóng (trừ 5 hộp thiết bị); `report.md` (file CSS xếp hạng sau khi gộp trùng); khung đỏ đánh số trên ảnh; snapshot pixel (`UI_AUDIT_SNAPSHOT=1`, 97 ảnh, chạy lại 0 khác); baseline số lượng theo (màn hình, luật), `UI_AUDIT_STRICT=1` chỉ fail khi tăng |
+| A7 | ✅ ALLOW chỉ gồm kích thước đã chốt ở mục 1.7 (thanh trạng thái, tab tài liệu, tab bên, chip) và các vùng bỏ qua cơ học. Baseline ghi ở `tests/e2e/ui-audit-baseline.json`: 97 màn hình. Các mục thẩm mỹ để ở danh sách D bên dưới |
+| B1–B9 | ⬜ chưa làm (B2–B3 cần `--fix` cho `css-audit.mjs`, script hiện chỉ báo cáo) |
 | C (từng file) | ⬜ |
-| D (danh sách quyết định) | ⬜ |
+| D (danh sách quyết định) | ⬜ chờ chủ dự án, xem bên dưới |
+
+**Sửa đã làm ngoài kế hoạch:** checkbox căn dấu tích (commit `2c89c1e`): `button` mặc định có padding 6px làm vùng nội dung của ô 16px còn 2px, dấu tích bị lệch 5px ngang; span Indicator là block chứa svg inline nên bị đẩy lên. Đã sửa `.checkbox` (padding 0, span flex, svg block). Đo lại: tâm ô và tâm dấu tích trùng nhau, lệch dưới 0.3px do hình Lucide.
+
+### Danh sách D: quyết định cho chủ dự án (chưa sửa)
+
+Đây là các mục mà agent không tự quyết. Mỗi mục có số lượng từ baseline (xem `report.md`).
+
+1. **Chân hộp thoại không căn phải (10 hộp, lỗi `footer-right-edge`).** Hộp `Khôi phục tài liệu` cho thấy nút nằm sát trái, không sát mép phải như các hộp khác. Hộp: `tokenWizard`, `recovery`, `security`, `inspect`, `preflight`, `imagesToPdf`, `web2pdf`, `findReplace`, `linkDialog`, `capture`. Câu hỏi: chân hộp luôn căn phải (thêm `DialogSpacer` hoặc `justify-content: flex-end`)?
+2. **Chân hộp xuống hai hàng:** `signTemplates` (3 nút, `footer-wrapped`). Câu hỏi: rút gọn nhãn hay cho phép xuống dòng?
+3. **Hàng nút lệch chiều cao trên thanh công cụ và thanh tiêu đề** (`row-mixed-height`, ví dụ `Cài đặt` 32px cạnh tìm kiếm 28px, `Mở PDF` 26px cạnh tab 20px). Câu hỏi: chọn một thang duy nhất cho thanh công cụ (26 hay 32)?
+4. **Ô tìm kiếm trên thanh tiêu đề 28px** (`.topbar__search`) và **ô tìm trong tài liệu 28px** (`.findbar__input`), đều ngoài thang 26/32/38. Câu hỏi: đưa về 32 hay 26?
+5. **Ô màu 28px** (`.ov-color__swatch` ở các hộp chèn chữ, watermark…, `.tpl__color` ở Mẫu chữ ký): ngoài thang. Câu hỏi: 32px?
+6. **Cụm icon sát nhau 1–2px** (`controls-touching`, khoảng 97 phát hiện): nút Lưu/Thu nhỏ/Phóng to trên thanh công cụ và cụm icon trên thẻ trang (`Xoay trái` ×8). Câu hỏi: thêm khoảng 4px hay giữ dính liền có chủ ý?
+7. **Bo góc 2px và 8px** (`radius-off-scale`): khung ảnh trang (`.page-thumb` 2px), `preflight` 8px (22 phát hiện). Câu hỏi: 3px hay 5px cho khung ảnh? 8px có đổi về 7 hoặc 10?
+8. **Cỡ chữ 10px** (nhãn "Xem trước: trang 1", `font-off-scale`) và các cỡ lẻ khác (63 phát hiện). Câu hỏi: thêm cỡ 10px vào thang hay đổi nhãn sang 11px?
+9. **Ô màu chú thích 16px** (`annot-swatch`) và **nút "Nâng cao" 27.5px** (`collapsible__trigger`): ngoài thang. Câu hỏi: giữ 16px cho chấm màu?
+10. **Padding thân hộp thoại không khớp đầu và chân:** `Thư mục tự động` (thân 16px, đầu 24px) và `Tạo quy trình` (thân 0). Hai nơi ghi đè trong `watch.css` và `workflow.css`. Mục kế hoạch ghi ALLOW cho `.workflow-dialog` nhưng class đó không xuất hiện trên phần tử nào, nên không đưa vào ALLOW. Câu hỏi: đưa padding thân về 24px?
+11. **Nút "Sửa mục lục" (`.outline-edit__icon`)** chưa được đo: cần bấm để vào chế độ sửa mục lục. Bộ đo không bấm nút có tác dụng. Câu hỏi: có muốn thêm một danh sách biến thể "an toàn" để kiểm trạng thái này không?
+
+### Ghi chú kỹ thuật A5–A7
+
+- Mục "Lệch khỏi kế hoạch" ở trên là phần chạy lại được; các mục còn lại trong danh sách trên là quyết định.
+- `snapshotPathTemplate` đặt ở `playwright.config.ts` (không có test ảnh nào khác trong repo).
+- Ô "Mã quy trình" của hộp workflow có hậu tố ngẫu nhiên, được che (mask) khi so ảnh.
+- Snapshot và baseline chỉ có ý nghĩa trên Windows ở DPR 1 (máy chủ); test ghi/so baseline từ chối chạy khi DPR khác 1 hoặc dist cũ.
 
 ### Lệch khỏi kế hoạch (ghi lại, không tự quyết thẩm mỹ)
 
