@@ -135,11 +135,11 @@ describe('parameter builders', () => {
     ]);
   });
 
-  it('adds spread split first and whitening last, and nothing when all are off', () => {
+  it('crops before the split (the gutter is found on the cut-out book), whitening last', () => {
     const plan = capturePlan({ autoCrop: true, splitSpread: true, whiten: true });
     expect(plan.map((p) => p.opId)).toEqual([
-      'pageimg.splitSpread',
       'pageimg.autoCrop',
+      'pageimg.splitSpread',
       'pageimg.deskew',
       'pageimg.enhance',
     ]);

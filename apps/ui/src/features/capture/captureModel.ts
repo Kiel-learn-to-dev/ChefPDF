@@ -161,14 +161,19 @@ export interface PlannedOp {
   title: 'split' | 'crop' | 'deskew' | 'whiten';
 }
 
-/** Operations run on the new document, in order, for the chosen options. */
+/**
+ * Operations run on the new document, in order, for the chosen options. The crop comes before the
+ * split: the gutter of a book photo is only found once the photo is cut down to the open book.
+ */
 export function capturePlan(options: CaptureOptions): PlannedOp[] {
   const plan: PlannedOp[] = [];
+  if (options.autoCrop) {
+    plan.push({ opId: 'pageimg.autoCrop', params: { minConfidence: 0.6 }, title: 'crop' });
+  }
   if (options.splitSpread) {
     plan.push({ opId: 'pageimg.splitSpread', params: { mode: 'auto' }, title: 'split' });
   }
   if (options.autoCrop) {
-    plan.push({ opId: 'pageimg.autoCrop', params: { minConfidence: 0.6 }, title: 'crop' });
     plan.push({ opId: 'pageimg.deskew', params: { mode: 'auto' }, title: 'deskew' });
   }
   if (options.whiten) {
