@@ -130,9 +130,7 @@ def test_export_rejects_source_and_current_revision_as_destinations(
     assert source.read_bytes() == original
 
 
-def test_export_replaces_an_existing_file_only_when_asked(
-    harness: Harness, tmp_path: Path
-) -> None:
+def test_export_replaces_an_existing_file_only_when_asked(harness: Harness, tmp_path: Path) -> None:
     sid = _sid(harness, report_pdf(tmp_path / "r.pdf", pages=3))
     for op, params in (
         ("export.document", {"format": "txt", "outputPath": str(tmp_path / "out.txt")}),
@@ -160,9 +158,7 @@ def test_replace_existing_never_allows_the_source_document(
     assert source.read_bytes() == before
 
 
-def test_export_rejects_hard_link_and_symlink_aliases(
-    harness: Harness, tmp_path: Path
-) -> None:
+def test_export_rejects_hard_link_and_symlink_aliases(harness: Harness, tmp_path: Path) -> None:
     source = report_pdf(tmp_path / "source.pdf", pages=2)
     sid = _sid(harness, source)
     revision = Path(harness.call("session.state", {"sessionId": sid})["revisionPath"])

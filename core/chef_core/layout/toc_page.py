@@ -162,4 +162,3 @@ def insert_contents(
         if annots:
             pdf.pages[insertion_index + toc_index].obj["/Annots"] = annots
     return page_count
-

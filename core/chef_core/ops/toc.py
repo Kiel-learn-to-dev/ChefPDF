@@ -159,9 +159,7 @@ def insert_page(ctx: OpContext, p: TocInsertPageParams) -> OpOutput:
         else:
             assert p.after_page is not None
             if p.after_page > original_page_count:
-                raise invalid_params(
-                    "afterPage is outside the document", {"field": "afterPage"}
-                )
+                raise invalid_params("afterPage is outside the document", {"field": "afterPage"})
             insertion_index = p.after_page
         count = insert_contents(
             pdf,

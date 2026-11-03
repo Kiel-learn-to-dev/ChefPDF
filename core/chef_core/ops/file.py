@@ -69,14 +69,10 @@ def merge(ctx: OpContext, p: FileMergeParams) -> OpOutput:
                 sources.append(src)
                 input_name = Path(item.path).name
                 if has_signatures(src):
-                    ctx.warn(
-                        f"{input_name}: chữ ký số không được giữ lại trong PDF ghép mới."
-                    )
+                    ctx.warn(f"{input_name}: chữ ký số không được giữ lại trong PDF ghép mới.")
                 acroform = src.Root.get("/AcroForm")
                 fields = (
-                    acroform.get("/Fields")
-                    if isinstance(acroform, pikepdf.Dictionary)
-                    else None
+                    acroform.get("/Fields") if isinstance(acroform, pikepdf.Dictionary) else None
                 )
                 has_form_data = isinstance(fields, pikepdf.Array) and len(fields) > 0
                 has_xfa = isinstance(acroform, pikepdf.Dictionary) and "/XFA" in acroform

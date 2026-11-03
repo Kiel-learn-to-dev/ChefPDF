@@ -153,4 +153,3 @@ def prefer_confident_quad(classical: PageQuad, learned: PageQuad | None) -> Page
     if learned is not None and learned.confidence > classical.confidence:
         return learned
     return classical
-

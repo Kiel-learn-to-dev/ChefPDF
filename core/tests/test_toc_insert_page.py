@@ -78,9 +78,7 @@ def test_toc_placement_keeps_internal_links_targeting_original_pages(
             assert [page_indices[d.objgen] for d in destinations] == [0, 0, 3, 3]
 
 
-def test_toc_uses_source_page_size_and_a4_can_be_selected(
-    harness: Harness, tmp_path: Path
-) -> None:
+def test_toc_uses_source_page_size_and_a4_can_be_selected(harness: Harness, tmp_path: Path) -> None:
     source = report_pdf(tmp_path / "source.pdf", pages=6)
     with pikepdf.Pdf.open(source, allow_overwriting_input=True) as pdf:
         pdf.pages[0].mediabox = [0, 0, 500, 700]
@@ -118,9 +116,7 @@ def test_toc_can_append_bookmarks_and_undo_redo(harness: Harness, tmp_path: Path
     assert harness.op("bookmarks.get", {}, sid)["data"]["count"] == count
 
 
-def test_toc_is_blocked_on_signed_documents(
-    harness: Harness, corpus: dict[str, Path]
-) -> None:
+def test_toc_is_blocked_on_signed_documents(harness: Harness, corpus: dict[str, Path]) -> None:
     sid = str(harness.open(corpus["fake_signed.pdf"])["state"]["sessionId"])
     with pytest.raises(RpcFailure) as exc:
         harness.op("toc.insertPage", {}, sid)
@@ -206,4 +202,3 @@ def test_toc_title_longer_than_two_lines_is_not_truncated(tmp_path: Path) -> Non
     output = tmp_path / "long-title.pdf"
     pdf.save(output)
     assert _toc_text(output, 0).count("Dài") == 100
-

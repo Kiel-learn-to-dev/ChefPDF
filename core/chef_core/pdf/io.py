@@ -17,9 +17,7 @@ import pikepdf
 from chef_core.errors import ChefError, ErrorKind
 
 CreatedOutputFn = Callable[[Path, os.stat_result], None]
-_CREATED_OUTPUTS: ContextVar[CreatedOutputFn | None] = ContextVar(
-    "created_outputs", default=None
-)
+_CREATED_OUTPUTS: ContextVar[CreatedOutputFn | None] = ContextVar("created_outputs", default=None)
 
 
 def _path_detail(path: Path) -> dict[str, str]:

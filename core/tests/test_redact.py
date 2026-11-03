@@ -220,7 +220,8 @@ def test_redaction_removes_image_resource_when_entire_image_is_covered(
     harness.op("redact.apply", {"rects": [{"pageIndex": 0, "rect": [60, 180, 500, 400]}]}, sid)
     with pikepdf.open(_revision(harness, sid)) as pdf:
         images = [
-            obj for obj in pdf.objects
+            obj
+            for obj in pdf.objects
             if isinstance(obj, pikepdf.Stream) and obj.get("/Subtype") == Name.Image
         ]
         assert not images

@@ -293,8 +293,10 @@ def dewarp(img: np.ndarray) -> tuple[np.ndarray, float, float]:
         inside = (grid >= curve_x.min()) & (grid <= curve_x.max())
         residuals[row, inside] = np.interp(grid[inside], curve_x, curve_y)
     profile = np.asarray(
-        [np.median(column[np.isfinite(column)]) if np.isfinite(column).any() else np.nan
-         for column in residuals.T],
+        [
+            np.median(column[np.isfinite(column)]) if np.isfinite(column).any() else np.nan
+            for column in residuals.T
+        ],
         dtype=np.float32,
     )
     valid = np.isfinite(profile)
@@ -320,7 +322,11 @@ def dewarp(img: np.ndarray) -> tuple[np.ndarray, float, float]:
     # remap maps each output pixel to its source coordinate, hence the inverse sign.
     map_y += displacement[None, :]
     out = cv2.remap(
-        img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,
+        img,
+        map_x,
+        map_y,
+        cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
         borderValue=_colour_tuple(paper_colour(img), img.ndim),
     )
     deviations = []

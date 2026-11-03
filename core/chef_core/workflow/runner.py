@@ -637,9 +637,7 @@ class _Run:
                 raise ChefError(ErrorKind.OP_NOT_FOUND, "Thao tác file.merge không tồn tại.")
             params = spec.params_model.model_validate(
                 {
-                    "inputs": [
-                        {"path": item.path, "password": item.password} for item in files
-                    ],
+                    "inputs": [{"path": item.path, "password": item.password} for item in files],
                     "outputPath": str(merged_path),
                     "bookmarksFromFilenames": True,
                 }
@@ -754,7 +752,9 @@ def run_workflow(
         max_bytes = (
             min(configured_cap, override_cap)
             if configured_cap is not None and override_cap is not None
-            else configured_cap if configured_cap is not None else override_cap
+            else configured_cap
+            if configured_cap is not None
+            else override_cap
         )
         effective_output = output.model_copy(update={"max_bytes": max_bytes})
         effective = flow.model_copy(update={"output": effective_output})

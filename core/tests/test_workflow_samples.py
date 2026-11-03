@@ -121,9 +121,9 @@ def test_ra_word_validates_and_runs_end_to_end(harness: Harness, tmp_path: Path)
     assert report.valid
     assert [step["op"] for step in flow["steps"]] == ["export.document"]
 
-    row = harness.op(
-        "workflow.run", {"workflow": flow, "files": [{"path": str(source)}]}
-    )["data"]["results"][0]
+    row = harness.op("workflow.run", {"workflow": flow, "files": [{"path": str(source)}]})["data"][
+        "results"
+    ][0]
 
     assert row["status"] == "done", row
     assert Path(row["outputPath"]).name == "hoso_word.docx"

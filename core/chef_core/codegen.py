@@ -31,9 +31,7 @@ from chef_core.workflow.model import Workflow, WorkflowInputs, WorkflowOutput, W
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "ops.ts"
-DEFAULT_WORKFLOW_OUTPUT = (
-    REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "workflow.ts"
-)
+DEFAULT_WORKFLOW_OUTPUT = REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "workflow.ts"
 
 HEADER = """\
 /**
