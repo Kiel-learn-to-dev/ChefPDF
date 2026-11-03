@@ -6,7 +6,7 @@
 ## Trạng thái hiện tại
 
 - **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
-- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 67 xong, 44 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows đều xanh: lõi 1638, giao diện 738, desktop 230, e2e Electron với lõi thật 100 đạt, 1 bỏ qua (`test.fixme` gỡ watermark ở v0.6). CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
+- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 76 xong, 36 đang làm, 5 chưa làm, 1 tạm dừng (T9.08). Test trên Windows: lõi 1638 (chạy đủ lần cuối ở 216a873, từ đó lõi không đổi; hôm nay chạy 132 test liên quan đều đạt), giao diện 738 đạt, desktop 230 đạt, typecheck, lint, ruff, mypy sạch, e2e Electron với lõi thật 104 đạt và 1 test (smoke: lõi bị dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt 2/2 lần; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
 - **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
@@ -18,7 +18,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo (Windows):** (1) đóng các mốc v0.5, v0.6, v0.7 theo Demo, rồi v0.8, v0.9, v0.10; (2) cuối v0.9: một lần dùng token để ký từ giao diện và ký hàng loạt; (3) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần. Việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit, đối chiếu dấu vân tay Root CA.
+- **Việc tiếp theo (Windows):** (1) đóng mốc v0.7 theo Demo (v0.5 và v0.6 đã đóng), rồi v0.8, v0.9, v0.10; (2) cuối v0.9: một lần dùng token để ký từ giao diện và ký hàng loạt; (3) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần. Việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit, đối chiếu dấu vân tay Root CA.
 - **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
@@ -170,6 +170,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (đóng mốc v0.6):** Gỡ `test.fixme` của watermark lõi: không tái hiện được lỗi nêu trong chú thích. Detector `content/watermark.py` đã liệt kê watermark do ChefOverlay tạo (tier 4, độ tin cậy 100%), vì form object mang nhãn của chính Do (`content/engine.py`); test lõi `test_watermark_chef.py` đã phủ việc này. Không có lỗi để sửa, nên không đổi detector; chỉ bỏ chú thích sai và bật test. Thêm 2 spec e2e với lõi thật: `demo-v06.spec.ts` (đúng câu Demo: logo chìm trên cả 3 trang được gỡ, tẩy một vùng trang 1, che CCCD trang 2, file lưu không còn dấu ChefOverlay ở trang nào và không còn chữ bị tẩy/che) và `content-v06.spec.ts` (gỡ đối tượng giống nhau trên 3 trang; đảo màu và thay ảnh trong PDF). `redact_check.py` có chế độ `pages`. Đóng 5 task: T6.03 (tẩy vùng), T6.04 (thay và chỉnh ảnh), T6.05 (bảng lớp, xem theo loại), T6.06 (gỡ watermark, gỡ đối tượng giống nhau, gỡ nền), T6.07 (che thông tin mật; mẫu SĐT, email, STK có test lõi). Kết quả Windows: e2e đầy đủ 104 đạt, 1 đỏ: `smoke.spec.ts` 'the core is restarted after a crash' (chờ RPC `mock.crash` bị từ chối); chạy riêng đạt, chạy lại cả file 2/2 đạt, nên ghi là chập chờn, chưa tìm nguyên nhân. Lõi đầy đủ không chạy lại trong phiên này (chạy quá lâu, dừng ở 21%); chạy 132 test liên quan đều đạt, và lõi không đổi từ lần chạy đủ ở 216a873. Chưa có e2e cho đổi màu nền (E5 'đổi nền'), chỉ có test lõi; e2e gỡ nền đã có trong redact.spec.ts.
 
 - **2026-11-03 (đóng task v0.5):** Chạy đủ bộ kiểm tra trên Windows: lõi 1638, giao diện 738, desktop 230, typecheck, lint, ruff, mypy sạch, e2e Electron + lõi thật 100 đạt, 1 bỏ qua. Đóng 10 task: T4.03, T5.01–T5.04, T5.07–T5.11 (đủ test lõi, test giao diện và e2e đường chính). **T5.05 giữ 🔄:** M4 mới có dán ảnh từ clipboard, chưa có chụp màn hình trực tiếp; hộp thoại Ảnh→PDF chưa có e2e qua giao diện (e2e hiện gọi thẳng RPC). Hộp thoại 'Thuộc tính & tiện ích' thiếu `htmlFor` ở nhãn ô (T11.05). Test `test.fixme` còn lại: gỡ watermark của lõi (redact.spec.ts), thuộc v0.6.
 
