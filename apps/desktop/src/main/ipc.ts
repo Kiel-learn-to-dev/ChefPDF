@@ -16,7 +16,8 @@ import {
 import fs, { statSync } from 'node:fs';
 import path from 'node:path';
 import type { LibraryKind } from '@chef/contracts';
-import { IpcChannels, type RpcEnvelope } from '../shared/ipc';
+import { IpcChannels, type CaptureEnvelope, type RpcEnvelope } from '../shared/ipc';
+import { CaptureError, type CaptureService } from './capture';
 import { pdfFilesOf } from './pdfFiles';
 import type { Web2PdfResult } from '@chef/contracts';
 import type { PathAllowlist } from './allowlist';
@@ -59,6 +60,8 @@ export interface IpcDeps {
   clipboardImage: { capture(): Promise<string | null> };
   /** "Trang web / Markdown → PDF" (T5.06): validates the request and converts it. */
   web2pdf(input: unknown): Promise<Web2PdfResult>;
+  /** Phone capture (L5): temporary LAN server, only while a session runs. */
+  capture: CaptureService;
   trustedOrigins: Set<string>;
   labels(): Labels;
   log(message: string): void;
@@ -239,6 +242,22 @@ export function registerIpc(d: IpcDeps): void {
   handle(IpcChannels.clipboardReadImage, () => d.clipboardImage.capture());
 
   handle(IpcChannels.convertToPdf, (_event, request) => d.web2pdf(request));
+
+  // Phone capture (L5). Errors come back as envelopes so that the CaptureError code survives IPC.
+  const captureCall = async <T>(fn: () => Promise<T>): Promise<CaptureEnvelope<T>> => {
+    try {
+      return { ok: true, value: await fn() };
+    } catch (err) {
+      if (err instanceof CaptureError) return { ok: false, code: err.code, message: err.message };
+      d.log(`capture failed: ${String(err)}`);
+      return { ok: false, code: 'INTERNAL', message: 'capture failed' };
+    }
+  };
+  handle(IpcChannels.captureStart, (_event, input) => captureCall(() => d.capture.start(input)));
+  handle(IpcChannels.captureStop, (_event, sessionId) =>
+    captureCall(() => d.capture.stop(sessionId === undefined ? undefined : String(sessionId))),
+  );
+  handle(IpcChannels.captureStatus, () => captureCall(async () => d.capture.status()));
 
   handle(IpcChannels.appInitialFiles, () => d.openFiles.initialFiles);
 

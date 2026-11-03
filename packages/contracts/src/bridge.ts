@@ -148,7 +148,43 @@ export interface Web2PdfResult {
 export type ChefEvent =
   | { type: 'rpc'; name: RpcNotification; payload: RpcNotifications[RpcNotification] }
   | { type: 'open-files'; paths: string[] }
-  | { type: 'core-status'; status: 'starting' | 'ready' | 'crashed' | 'restarting' };
+  | { type: 'core-status'; status: 'starting' | 'ready' | 'crashed' | 'restarting' }
+  | { type: 'capture-image'; index: number; path: string }
+  | { type: 'capture-status'; state: CaptureState; count: number; expiresAt: number };
+
+/** Phone capture (L5). `idle` = no session running. */
+export type CaptureState = 'active' | 'done' | 'stopped' | 'expired';
+
+export interface CaptureStartInput {
+  purpose: 'book' | 'signature';
+  /** 1 to 500, default 200. */
+  maxPages?: number;
+  /** Name of the LAN interface to use (default: the first private IPv4 one). */
+  interfaceName?: string;
+}
+
+export interface LanInterface {
+  name: string;
+  address: string;
+}
+
+export interface CaptureStartResult {
+  /** Identifies this session so a late dialog cleanup cannot stop a newer session. */
+  sessionId: string;
+  /** http://<LAN address>:<port>/c/<token>. The token only travels inside this URL. */
+  url: string;
+  /** QR code of `url` as an SVG string. */
+  qrSvg: string;
+  expiresAt: number;
+  /** Private LAN addresses the machine offers. */
+  interfaces: LanInterface[];
+}
+
+export interface CaptureStatus {
+  state: CaptureState | 'idle';
+  count: number;
+  expiresAt?: number;
+}
 
 export interface ChefBridge {
   rpc<M extends RpcMethod>(method: M, params: RpcParams<M>): Promise<RpcResult<M>>;
@@ -224,6 +260,15 @@ export interface ChefBridge {
   /** Web, Markdown and HTML to PDF (T5.06). Runs in the main process; output is a file. */
   convert: {
     toPdf(request: Web2PdfRequest): Promise<Web2PdfResult>;
+  };
+  /**
+   * Phone capture (L5): a temporary LAN server runs only while a session is active. Photos arrive as
+   * `capture-image` events (paths in the cache, readable through chef-file).
+   */
+  capture: {
+    start(input: CaptureStartInput): Promise<CaptureStartResult>;
+    stop(sessionId?: string): Promise<void>;
+    status(): Promise<CaptureStatus>;
   };
   clipboard: {
     writeText(text: string): Promise<void>;

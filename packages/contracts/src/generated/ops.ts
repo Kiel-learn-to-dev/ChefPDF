@@ -169,6 +169,11 @@ export interface CropBox {
 export interface CropPage {
   pageIndex: number;
   corners: CropPoint[];
+  /**
+   * Fine rotation in degrees counter-clockwise after cropping.
+   * @default 0
+   */
+  angle?: number;
   /** Output pixels [w, h]; default from the corners. */
   outSize?: number[];
 }
@@ -448,6 +453,15 @@ export interface RenameMapping {
 /** A file to check. Encrypted PDFs are reported as errors (no password is used here). */
 export interface ReportFile {
   path: string;
+}
+
+export interface ReviewChange {
+  pageIndex: number;
+  blockIndex: number;
+  kind: 'heading' | 'paragraph' | 'header' | 'footer' | 'pageNumber' | 'footnote' | 'unknown';
+  /** @default 1 */
+  level?: number;
+  text?: string;
 }
 
 /** Parameters for one scanner look. The defaults are neutral (no effect). */
@@ -755,6 +769,13 @@ export interface WorkflowOutput {
   folder?: string;
   /** Name template, e.g. {name}_{date}_da-ky. */
   nameTemplate?: string;
+  /**
+   * Lưu thêm PDF đã xử lý khi quy trình có bước xuất tài liệu.
+   * @default false
+   */
+  alsoSavePdf?: boolean;
+  /** Giới hạn dung lượng PDF cuối cùng; file vượt giới hạn sẽ được báo lỗi. */
+  maxBytes?: number;
 }
 
 /** A text box with a Unicode font. rect is displayed (left, top, right, bottom). */
@@ -1215,6 +1236,67 @@ export interface CompressPdfParams {
   recompressStreams?: boolean;
   /** Store objects in compressed object streams. */
   useObjectStreams?: boolean;
+}
+
+export interface CompressToSizeParams {
+  /**
+   * screen 96 dpi / q55; ebook 150 dpi / q70; print 300 dpi / q85; archive-light: lossless only (no image resampling); custom: only the fields given.
+   * @default "ebook"
+   */
+  preset?: 'screen' | 'ebook' | 'print' | 'archive-light' | 'custom';
+  /** Largest effective image resolution in dpi. */
+  maxImageDpi?: number;
+  jpegQuality?: number;
+  /**
+   * Convert images to grayscale.
+   * @default false
+   */
+  grayscale?: boolean;
+  /** Drop XObject resources (images, forms) the pages do not use. */
+  removeUnused?: boolean;
+  /**
+   * Remove the document information and XMP metadata.
+   * @default false
+   */
+  removeMetadata?: boolean;
+  /** Remove page thumbnails. */
+  removeThumbnails?: boolean;
+  /**
+   * Remove embedded files.
+   * @default false
+   */
+  removeAttachments?: boolean;
+  /**
+   * Remove annotations (form fields are kept).
+   * @default false
+   */
+  removeAnnotations?: boolean;
+  /**
+   * Composite images with soft masks onto white.
+   * @default false
+   */
+  flattenTransparency?: boolean;
+  /**
+   * Drop font resources the pages do not use. Producers already subset the embedded fonts, so this only removes unused font entries.
+   * @default true
+   */
+  subsetFonts?: boolean;
+  /** Re-encode plain Flate streams at level 9. */
+  recompressStreams?: boolean;
+  /** Store objects in compressed object streams. */
+  useObjectStreams?: boolean;
+  /** Largest acceptable size of the result in bytes. */
+  targetBytes: number;
+  /**
+   * Lowest image dpi to try.
+   * @default 72
+   */
+  minDpi?: number;
+  /**
+   * Lowest JPEG quality.
+   * @default 30
+   */
+  minJpegQuality?: number;
 }
 
 /** Edit the pixels of one image placement; the result is a new image XObject. */
@@ -2054,6 +2136,11 @@ export interface LayoutPageModelParams {
   context?: boolean;
 }
 
+export interface LayoutReviewParams {
+  modelPath: string;
+  changes: ReviewChange[];
+}
+
 /** A link on one page. rect is (left, top, right, bottom) in the displayed frame. */
 export interface LinksAddParams {
   pageIndex: number;
@@ -2760,6 +2847,18 @@ export interface PageimgCropParams {
   jpegQuality?: number;
 }
 
+/** A page and four normalized corners, in TL, TR, BR, BL order. */
+export interface PageimgCropPreviewParams {
+  pageIndex: number;
+  corners: CropPoint[];
+  /**
+   * Fine rotation in degrees counter-clockwise after cropping.
+   * @default 0
+   */
+  angle?: number;
+  outSize?: number[];
+}
+
 /** Straighten the text of scanned pages (L1). */
 export interface PageimgDeskewParams {
   /** 0-based; default all. */
@@ -2784,6 +2883,24 @@ export interface PageimgDeskewParams {
 export interface PageimgDetectQuadParams {
   /** 0-based; default all. */
   pages?: number[];
+}
+
+/** Flatten gently curved text lines on scanned pages (L13). */
+export interface PageimgDewarpParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /**
+   * Below this confidence the page is only reported.
+   * @default 0.35
+   */
+  minConfidence?: number;
+  /** @default 88 */
+  jpegQuality?: number;
+}
+
+/** Read-only before/after previews for up to three pages. */
+export interface PageimgDewarpPreviewParams {
+  pages: number[];
 }
 
 /** Clean up scanned pages: background, specks, levels, colour, resolution (L3, L4, L12). */
@@ -2833,6 +2950,10 @@ export interface PageimgEraseParams {
 /** Propose the finger regions of a page as a mask image (no change to the document). */
 export interface PageimgProposeFingerMaskParams {
   pageIndex: number;
+}
+
+export interface PageimgQuadPreviewParams {
+  pages: number[];
 }
 
 /** Erase fingers on the edges of scanned pages (L14). Use proposeFingerMask first. */
@@ -3848,6 +3969,39 @@ export interface TocFromHeadingsParams {
   mode?: 'replace' | 'append';
 }
 
+export interface TocInsertPageParams {
+  /** @default 3 */
+  maxLevel?: number;
+  /** @default 0.6 */
+  minConfidence?: number;
+  /**
+   * Keep '1.2' or 'Điều 3.' in titles.
+   * @default true
+   */
+  includeNumbering?: boolean;
+  /** @default "Mục lục" */
+  title?: string;
+  /** @default "front" */
+  placement?: 'front' | 'back' | 'afterPage';
+  /** 1-based page number */
+  afterPage?: number;
+  /** @default "source" */
+  pageSize?: 'source' | 'a4';
+  /** @default true */
+  dotLeader?: boolean;
+  /** @default 0 */
+  pageNumberOffset?: number;
+  /** @default 1.0 */
+  fontScale?: number;
+  /** @default true */
+  linkEntries?: boolean;
+  /**
+   * Append generated heading bookmarks to the existing outline.
+   * @default false
+   */
+  addBookmark?: boolean;
+}
+
 export interface TocPreviewParams {
   /** @default 3 */
   maxLevel?: number;
@@ -3869,9 +4023,15 @@ export interface WatchMarkDoneParams {
   status?: 'done' | 'failed' | 'skipped';
 }
 
+export interface WatchReleaseParams {
+  ledgerPath: string;
+  paths?: string[];
+}
+
 export interface WatchScanParams {
   /** Folder to watch. */
   directory: string;
+  outputDirectory?: string;
   /** State file (JSON). */
   ledgerPath: string;
   /**
@@ -3960,6 +4120,7 @@ export interface OpParams {
   'compress.file': CompressFileParams;
   'compress.fitSize': CompressFitSizeParams;
   'compress.pdf': CompressPdfParams;
+  'compress.toSize': CompressToSizeParams;
   'content.adjustImage': ContentAdjustImageParams;
   'content.delete': ContentDeleteParams;
   'content.duplicate': ContentDuplicateParams;
@@ -4019,6 +4180,7 @@ export interface OpParams {
   'layers.setVisibility': LayersSetVisibilityParams;
   'layout.analyze': LayoutAnalyzeParams;
   'layout.pageModel': LayoutPageModelParams;
+  'layout.review': LayoutReviewParams;
   'links.add': LinksAddParams;
   'links.autoDetect': LinksAutoDetectParams;
   'links.list': LinksListParams;
@@ -4053,11 +4215,15 @@ export interface OpParams {
   'page.split': PageSplitParams;
   'pageimg.autoCrop': PageimgAutoCropParams;
   'pageimg.crop': PageimgCropParams;
+  'pageimg.cropPreview': PageimgCropPreviewParams;
   'pageimg.deskew': PageimgDeskewParams;
   'pageimg.detectQuad': PageimgDetectQuadParams;
+  'pageimg.dewarp': PageimgDewarpParams;
+  'pageimg.dewarpPreview': PageimgDewarpPreviewParams;
   'pageimg.enhance': PageimgEnhanceParams;
   'pageimg.erase': PageimgEraseParams;
   'pageimg.proposeFingerMask': PageimgProposeFingerMaskParams;
+  'pageimg.quadPreview': PageimgQuadPreviewParams;
   'pageimg.removeFingers': PageimgRemoveFingersParams;
   'pageimg.removeStains': PageimgRemoveStainsParams;
   'pageimg.splitSpread': PageimgSplitSpreadParams;
@@ -4104,8 +4270,10 @@ export interface OpParams {
   'text.listFonts': TextListFontsParams;
   'text.styleParagraph': TextStyleParagraphParams;
   'toc.fromHeadings': TocFromHeadingsParams;
+  'toc.insertPage': TocInsertPageParams;
   'toc.preview': TocPreviewParams;
   'watch.markDone': WatchMarkDoneParams;
+  'watch.release': WatchReleaseParams;
   'watch.scan': WatchScanParams;
   'watermark.detect': WatermarkDetectParams;
   'watermark.remove': WatermarkRemoveParams;
@@ -4142,6 +4310,7 @@ export const OP_IDS = [
   'compress.file',
   'compress.fitSize',
   'compress.pdf',
+  'compress.toSize',
   'content.adjustImage',
   'content.delete',
   'content.duplicate',
@@ -4201,6 +4370,7 @@ export const OP_IDS = [
   'layers.setVisibility',
   'layout.analyze',
   'layout.pageModel',
+  'layout.review',
   'links.add',
   'links.autoDetect',
   'links.list',
@@ -4235,11 +4405,15 @@ export const OP_IDS = [
   'page.split',
   'pageimg.autoCrop',
   'pageimg.crop',
+  'pageimg.cropPreview',
   'pageimg.deskew',
   'pageimg.detectQuad',
+  'pageimg.dewarp',
+  'pageimg.dewarpPreview',
   'pageimg.enhance',
   'pageimg.erase',
   'pageimg.proposeFingerMask',
+  'pageimg.quadPreview',
   'pageimg.removeFingers',
   'pageimg.removeStains',
   'pageimg.splitSpread',
@@ -4286,8 +4460,10 @@ export const OP_IDS = [
   'text.listFonts',
   'text.styleParagraph',
   'toc.fromHeadings',
+  'toc.insertPage',
   'toc.preview',
   'watch.markDone',
+  'watch.release',
   'watch.scan',
   'watermark.detect',
   'watermark.remove',

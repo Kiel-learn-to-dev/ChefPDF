@@ -1,7 +1,9 @@
 /**
  * Electron main entry: wires window, menu, protocols, sidecar, settings and OS file opening.
  */
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {
   app,
@@ -24,6 +26,7 @@ import { RotatingLog } from './logger';
 import { installMenu } from './menu';
 import { ChefLibrary, secretKeyStore } from './library';
 import { captureClipboardPng } from './clipboardImage';
+import { CaptureService, type NetIface } from './capture';
 import { OpenFilesController, argvSkipCount, parseFileArgs } from './openFiles';
 import { repoRootFrom, resolveBundledFonts, resolveUi } from './paths';
 import { createAppHandler, createFileHandler, privilegedSchemes } from './protocol';
@@ -114,6 +117,25 @@ if (!gotLock) {
   void app.whenReady().then(onReady);
 }
 
+let capture: CaptureService | null = null;
+
+/** Every address of the machine, for the capture server's LAN choice. */
+function flattenInterfaces(): NetIface[] {
+  const out: NetIface[] = [];
+  for (const [name, list] of Object.entries(os.networkInterfaces())) {
+    for (const i of list ?? []) {
+      out.push({ name, address: i.address, family: i.family, internal: i.internal });
+    }
+  }
+  return out;
+}
+
+/** Loopback bind for E2E runs only (CHEF_E2E=1, unpackaged). Anything else is ignored. */
+function e2eCaptureBind(): string | undefined {
+  if (app.isPackaged || process.env.CHEF_E2E !== '1') return undefined;
+  return process.env.CHEF_E2E_CAPTURE_BIND === '127.0.0.1' ? '127.0.0.1' : undefined;
+}
+
 let settings: SettingsStore;
 let csp = '';
 let openMainWindow: () => void = () => {};
@@ -166,8 +188,27 @@ async function onReady(): Promise<void> {
     render: renderToPdf,
     log,
   });
+  capture = new CaptureService({
+    interfaces: flattenInterfaces,
+    // Test hook (E2E only, never in a packaged app): bind loopback instead of the LAN address.
+    bindHost: e2eCaptureBind(),
+    captureRoot: path.join(cacheDir, 'capture'),
+    pageHtml: () =>
+      fs.promises.readFile(path.join(app.getAppPath(), 'static', 'capture.html'), 'utf8'),
+    newSessionId: () => randomBytes(8).toString('hex'),
+    now: () => Date.now(),
+    setTimer: (fn, ms) => {
+      const t = setTimeout(fn, ms);
+      t.unref();
+      return t;
+    },
+    clearTimer: (t) => clearTimeout(t as NodeJS.Timeout),
+    emit: broadcast,
+    log,
+  });
   registerIpc({
     sidecar: sidecar!,
+    capture,
     web2pdf,
     clipboardImage: {
       capture: () =>
@@ -314,6 +355,8 @@ app.on('window-all-closed', () => {
 
 let shutdownDone = false;
 app.on('before-quit', (event) => {
+  // A phone capture server must not outlive the app (its sockets would hold the process).
+  void capture?.stop();
   if (shutdownDone || !sidecar) return;
   event.preventDefault();
   const s = sidecar;

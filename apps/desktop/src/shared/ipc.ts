@@ -34,7 +34,14 @@ export const IpcChannels = {
   libraryWorkDir: 'chef:library.workDir',
   clipboardReadImage: 'chef:clipboard.readImage',
   convertToPdf: 'chef:convert.toPdf',
+  captureStart: 'chef:capture.start',
+  captureStop: 'chef:capture.stop',
+  captureStatus: 'chef:capture.status',
 } as const;
+
+/** Result of a capture call: errors carry their code (CaptureError) across IPC. */
+export type CaptureEnvelope<T> =
+  { ok: true; value: T } | { ok: false; code: string; message: string };
 
 /** Envelope used for `chef:rpc` so structured RPC errors survive IPC. */
 export type RpcEnvelope =

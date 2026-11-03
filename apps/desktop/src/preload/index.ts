@@ -4,7 +4,13 @@
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { ChefBridge, ChefEvent } from '@chef/contracts';
-import { APP_VERSION_ARG, IpcChannels, fileUrl, type RpcEnvelope } from '../shared/ipc';
+import {
+  APP_VERSION_ARG,
+  IpcChannels,
+  fileUrl,
+  type CaptureEnvelope,
+  type RpcEnvelope,
+} from '../shared/ipc';
 
 type Listener = (event: ChefEvent) => void;
 
@@ -29,6 +35,12 @@ ipcRenderer.on(IpcChannels.event, (_e, event: ChefEvent) => {
     }
   }
 });
+
+/** Capture envelopes: rejects with a plain { name, code, message } (contextBridge drops Error props). */
+function unwrapCapture<T>(res: CaptureEnvelope<T>): T {
+  if (res.ok) return res.value;
+  throw { name: 'CaptureError', code: res.code, message: res.message };
+}
 
 const appVersion =
   process.argv.find((a) => a.startsWith(APP_VERSION_ARG))?.slice(APP_VERSION_ARG.length) ?? '0.0.0';
@@ -113,6 +125,15 @@ const bridge: ChefBridge = {
 
   convert: {
     toPdf: (request) => ipcRenderer.invoke(IpcChannels.convertToPdf, request),
+  },
+
+  capture: {
+    start: async (input) =>
+      unwrapCapture(await ipcRenderer.invoke(IpcChannels.captureStart, input)),
+    stop: async (sessionId) => {
+      unwrapCapture(await ipcRenderer.invoke(IpcChannels.captureStop, sessionId));
+    },
+    status: async () => unwrapCapture(await ipcRenderer.invoke(IpcChannels.captureStatus)),
   },
 
   clipboard: {
