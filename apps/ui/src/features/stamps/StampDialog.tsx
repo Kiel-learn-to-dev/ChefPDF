@@ -15,6 +15,7 @@ import { Button } from '../../components/Button';
 import { Checkbox, Field, Segmented, Select, Switch } from '../../components/Form';
 import { TaskDialog } from '../../components/TaskDialog';
 import { chef } from '../../lib/bridge';
+import { formatPageRanges } from '../../lib/pageRange';
 import { runOp } from '../../lib/rpc';
 import { ColorInput } from '../overlay/ColorInput';
 import { ANCHOR_GRID, fromPt } from '../overlay/overlayModel';
@@ -90,6 +91,12 @@ export function StampDialog() {
       .library.list()
       .then((items) => setLibrary(items.filter((i) => i.kind === 'stamp')))
       .catch(() => undefined);
+    // Opened from the page grid on a set of pages (menu C13): preset the page range to them.
+    const preset = useUi.getState().dialogData as { pages?: number[] } | undefined;
+    if (preset?.pages?.length) {
+      const pages = { choice: 'range' as const, range: formatPageRanges(preset.pages) };
+      setDraft((d) => ({ ...d, text: { ...d.text, pages }, image: { ...d.image, pages } }));
+    }
     // Back from the placement on the page: take the box once.
     const r = useOverlayState.getState().takeResult('stamp');
     if (r) {

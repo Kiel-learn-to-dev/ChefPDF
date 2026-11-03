@@ -84,3 +84,29 @@ export function clampSelection(sel: Selection, count: number): Selection {
     focus: inRange(sel.focus),
   };
 }
+
+/** Every page except the selected ones (menu: Đảo chọn). Focus and anchor move to the new selection. */
+export function invertSelection(sel: Selection, count: number): Selection {
+  const picked = new Set(sel.selected);
+  const selected = Array.from({ length: count }, (_, i) => i).filter((i) => !picked.has(i));
+  return {
+    selected,
+    anchor: selected[0] ?? null,
+    focus: selected[selected.length - 1] ?? null,
+  };
+}
+
+/**
+ * Select the odd- or even-numbered pages (1-based page numbers, so odd pages are the
+ * even 0-based indices). Used by the menu: Chọn trang lẻ / Chọn trang chẵn.
+ */
+export function selectByParity(count: number, parity: 'odd' | 'even'): Selection {
+  const selected = Array.from({ length: count }, (_, i) => i).filter(
+    (i) => (i % 2 === 0) === (parity === 'odd'),
+  );
+  return {
+    selected,
+    anchor: selected[0] ?? null,
+    focus: selected[selected.length - 1] ?? null,
+  };
+}

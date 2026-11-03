@@ -492,6 +492,16 @@
       "soon": "Sắp có"
     }
   },
+  "pageMenu": {
+    "createPdf": "Tạo PDF từ {{count}} trang đã chọn",
+    "selectAll": "Chọn tất cả",
+    "invertSelection": "Đảo chọn",
+    "selectOdd": "Chọn trang lẻ",
+    "selectEven": "Chọn trang chẵn",
+    "stamp": "Đóng dấu các trang đã chọn…",
+    "compress": "Nén các trang đã chọn…",
+    "toImages": "Xuất các trang đã chọn thành ảnh…"
+  },
   "sidebar": {
     "label": "Thanh bên",
     "notes": "Ghi chú",

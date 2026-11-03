@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import { RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -13,21 +14,8 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  ClipboardPaste,
-  Copy,
-  Eye,
-  FileOutput,
-  FilePlus,
-  ImagePlus,
-  RotateCcw,
-  RotateCw,
-  SquarePlus,
-  Trash2,
-} from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DocTab } from '../../app/state/documents';
-import { useUi } from '../../app/state/ui';
 import { ContextMenu, type MenuEntry } from '../../components/Menu';
 import { IconButton } from '../../components/Button';
 import { ProgressBar } from '../../components/Misc';
@@ -41,15 +29,13 @@ import {
   clearSelection,
   deletePages,
   duplicatePages,
-  extractPages,
-  insertBlank,
-  insertClipboardImage,
   nudgeSelection,
   openPageInViewer,
   reorderPages,
   rotatePages,
   selectAll,
 } from './pageActions';
+import { pageMenuEntries } from './pageMenu';
 import './PageOrganizer.css';
 
 const id = (i: number) => `p${i}`;
@@ -264,103 +250,14 @@ export function PageOrganizer({ doc }: { doc: DocTab }) {
     void reorderPages(doc.id, newOrder).finally(() => setPending(null));
   };
 
-  const menuFor = (pageIndex: number): MenuEntry[] => {
-    const n = sel.selected.includes(pageIndex) ? sel.selected.length : 1;
-    return [
-      {
-        id: 'open',
-        label: t('pages.openInViewer'),
-        icon: <Eye size={15} />,
-        shortcut: 'Enter',
-        onSelect: () => openPageInViewer(doc.id, pageIndex),
-      },
-      { type: 'separator', id: 's0' },
-      {
-        id: 'rl',
-        disabled: doc.state.signed,
-        label: t('pages.rotateLeft'),
-        icon: <RotateCcw size={15} />,
-        onSelect: () => void rotatePages(doc.id, 270),
-      },
-      {
-        id: 'rr',
-        disabled: doc.state.signed,
-        label: t('pages.rotateRight'),
-        icon: <RotateCw size={15} />,
-        onSelect: () => void rotatePages(doc.id, 90),
-      },
-      {
-        id: 'dup',
-        disabled: doc.state.signed,
-        label: t('pages.duplicate'),
-        icon: <Copy size={15} />,
-        shortcut: 'Mod+D',
-        onSelect: () => void duplicatePages(doc.id),
-      },
-      {
-        id: 'ext',
-        label: t('pages.extract'),
-        icon: <FileOutput size={15} />,
-        onSelect: () => void extractPages(doc.id),
-      },
-      { type: 'separator', id: 's1' },
-      {
-        id: 'blankBefore',
-        disabled: doc.state.signed,
-        label: t('pages.insertBlankBefore'),
-        icon: <SquarePlus size={15} />,
-        onSelect: () =>
-          void insertBlank(
-            doc.id,
-            Math.min(...(sel.selected.length ? sel.selected : [pageIndex])),
-            1,
-          ),
-      },
-      {
-        id: 'blankAfter',
-        disabled: doc.state.signed,
-        label: t('pages.insertBlankAfter'),
-        icon: <SquarePlus size={15} />,
-        onSelect: () =>
-          void insertBlank(
-            doc.id,
-            Math.max(...(sel.selected.length ? sel.selected : [pageIndex])) + 1,
-            1,
-          ),
-      },
-      {
-        id: 'file',
-        disabled: doc.state.signed,
-        label: t('pages.insertFromFile'),
-        icon: <FilePlus size={15} />,
-        onSelect: () => useUi.getState().openDialog('insertFromFile'),
-      },
-      {
-        id: 'img',
-        disabled: doc.state.signed,
-        label: t('pages.insertImages'),
-        icon: <ImagePlus size={15} />,
-        onSelect: () => useUi.getState().openDialog('insertImages'),
-      },
-      {
-        id: 'paste',
-        disabled: doc.state.signed,
-        label: t('pages.insertClipboard'),
-        icon: <ClipboardPaste size={15} />,
-        onSelect: () => void insertClipboardImage(doc.id),
-      },
-      { type: 'separator', id: 's2' },
-      {
-        id: 'del',
-        label: n > 1 ? t('pages.deleteN', { count: n }) : t('pages.delete'),
-        icon: <Trash2 size={15} />,
-        shortcut: 'Delete',
-        danger: true,
-        disabled: n >= count || doc.state.signed,
-        onSelect: () => void deletePages(doc.id),
-      },
-    ];
-  };
+  const menuFor = (pageIndex: number): MenuEntry[] =>
+    pageMenuEntries({
+      docId: doc.id,
+      pageIndex,
+      selected: sel.selected,
+      pageCount: count,
+      signed: doc.state.signed,
+    });
 
   const items = useMemo(() => order.map(id), [order]);
   const activeIndex = activeId ? indexOf(activeId) : null;

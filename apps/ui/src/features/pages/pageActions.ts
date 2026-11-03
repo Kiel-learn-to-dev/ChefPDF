@@ -9,7 +9,7 @@ import {
   pickSavePath,
   runDocOp,
 } from '../../app/actions';
-import { getDoc } from '../../app/state/documents';
+import { getDoc, useDocs } from '../../app/state/documents';
 import { useUi } from '../../app/state/ui';
 import { toast } from '../../components/Toast';
 import { i18n } from '../../i18n';
@@ -21,7 +21,9 @@ import { getSelection, usePageStore } from './pageStore';
 import {
   clampSelection,
   emptySelection,
+  invertSelection,
   selectAll as selectAllPages,
+  selectByParity,
   type Selection,
 } from './selection';
 import { isIdentity, moveToGap, remapAfterReorder } from './reorder';
@@ -141,6 +143,48 @@ export async function extractPages(docId: string, pages = targetPages(docId)) {
   if (r) announceOutputs(t('pages.extracted'), r.outputs.length ? r.outputs : [outputPath]);
 }
 
+/**
+ * Gathers the pages into a new PDF file (asks where to save) and opens it in a new tab.
+ * The source document is only read, so this also works on a signed file. Returns the new path.
+ */
+export async function createPdfFromPages(
+  docId: string,
+  pages = targetPages(docId),
+): Promise<string | null> {
+  const doc = getDoc(docId);
+  if (!doc || pages.length === 0) return null;
+  const name = `${stripExt(doc.name)}_${t('pages.extractSuffix')}_${formatPageRanges(pages).replaceAll(',', '_')}.pdf`;
+  const outputPath = await pickSavePath(name, doc.state.sourcePath);
+  if (!outputPath) return null;
+  const r = await runDocOp(docId, 'page.extract', { pages, outputPath }, t('ops.extract'));
+  if (!r) return null;
+  const out = r.outputs[0] ?? outputPath;
+  await openFiles([out]);
+  return out;
+}
+
+/** Makes a new PDF of the pages (see createPdfFromPages), then opens the compress dialog on that new tab. */
+export async function compressPagesInNewTab(docId: string, pages = targetPages(docId)) {
+  const out = await createPdfFromPages(docId, pages);
+  if (!out) return;
+  const created = useDocs.getState().docs.find((d) => d.state.sourcePath === out);
+  if (!created) return;
+  useDocs.getState().activate(created.id);
+  useUi.getState().openDialog('compress');
+}
+
+/** Stamp dialog with its page range preset to these pages (the source file is changed only when the stamp runs). */
+export function stampPages(docId: string, pages = targetPages(docId)) {
+  if (blockedBySignature(docId)) return;
+  useUi.getState().openDialog('stamp', { pages });
+}
+
+/** PDF to images dialog with its page range preset to these pages (read only, allowed on signed files). */
+export function imagesFromPages(docId: string, pages = targetPages(docId)) {
+  if (!getDoc(docId)) return;
+  useUi.getState().openDialog('pdfToImages', { pages });
+}
+
 export async function reorderPages(docId: string, order: number[]) {
   if (blockedBySignature(docId)) return;
   if (isIdentity(order)) return;
@@ -244,6 +288,16 @@ export async function insertClipboardImage(docId: string, at = insertionPoint(do
 export function selectAll(docId: string) {
   const count = getDoc(docId)?.info.pageCount ?? 0;
   setSel(docId, selectAllPages(count));
+}
+
+/** Menu: Đảo chọn (every page not selected now). */
+export function invertPageSelection(docId: string) {
+  setSel(docId, invertSelection(getSelection(docId), getDoc(docId)?.info.pageCount ?? 0));
+}
+
+/** Menu: Chọn trang lẻ / Chọn trang chẵn. */
+export function selectParityPages(docId: string, parity: 'odd' | 'even') {
+  setSel(docId, selectByParity(getDoc(docId)?.info.pageCount ?? 0, parity));
 }
 
 export function clearSelection(docId: string) {

@@ -492,6 +492,17 @@
       "soon": "Coming soon"
     }
   },
+  "pageMenu": {
+    "createPdf_one": "Create PDF from {{count}} selected page",
+    "createPdf_other": "Create PDF from {{count}} selected pages",
+    "selectAll": "Select all",
+    "invertSelection": "Invert selection",
+    "selectOdd": "Select odd pages",
+    "selectEven": "Select even pages",
+    "stamp": "Stamp the selected pages…",
+    "compress": "Compress the selected pages…",
+    "toImages": "Export the selected pages as images…"
+  },
   "sidebar": {
     "label": "Sidebar",
     "notes": "Notes",

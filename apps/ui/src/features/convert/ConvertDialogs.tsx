@@ -21,6 +21,7 @@ import { Checkbox, Field, Select, TextInput } from '../../components/Form';
 import { TaskDialog } from '../../components/TaskDialog';
 import { toast } from '../../components/Toast';
 import { chef } from '../../lib/bridge';
+import { formatPageRanges } from '../../lib/pageRange';
 import { runOp } from '../../lib/rpc';
 import { NumberField, PagesField, useCurrentPage } from '../overlay/OverlayControls';
 import { DEFAULT_PAGES, selectedPages, type PagesSel } from '../overlay/overlayModel';
@@ -48,7 +49,13 @@ export function PdfToImagesDialog() {
   const doc = useActiveDoc();
   const close = useUi((s) => s.closeDialog);
   const [form, setForm] = useState<PdfToImagesForm>(DEFAULT_PDF_TO_IMAGES);
-  const [pages, setPages] = useState<PagesSel>(DEFAULT_PAGES);
+  // Opened from the page grid on a set of pages (menu C13): preset the page range to them.
+  const [pages, setPages] = useState<PagesSel>(() => {
+    const preset = useUi.getState().dialogData as { pages?: number[] } | undefined;
+    return preset?.pages?.length
+      ? { choice: 'range', range: formatPageRanges(preset.pages) }
+      : DEFAULT_PAGES;
+  });
   const [busy, setBusy] = useState(false);
   const current = useCurrentPage(doc?.id);
   if (!doc) return null;

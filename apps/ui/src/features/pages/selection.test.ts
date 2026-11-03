@@ -3,9 +3,11 @@ import {
   clampSelection,
   clickSelect,
   emptySelection,
+  invertSelection,
   moveFocus,
   pressSelect,
   selectAll,
+  selectByParity,
 } from './selection';
 
 describe('selection', () => {
@@ -66,5 +68,32 @@ describe('selection', () => {
       anchor: null,
       focus: 4,
     });
+  });
+});
+
+describe('invertSelection and selectByParity', () => {
+  it('inverts the selection over the page count', () => {
+    const s = invertSelection({ selected: [1, 3], anchor: 1, focus: 3 }, 5);
+    expect(s).toEqual({ selected: [0, 2, 4], anchor: 0, focus: 4 });
+  });
+
+  it('inverting everything selected gives an empty selection', () => {
+    expect(invertSelection(selectAll(3), 3)).toEqual(emptySelection);
+  });
+
+  it('inverting nothing selects every page', () => {
+    expect(invertSelection(emptySelection, 2).selected).toEqual([0, 1]);
+  });
+
+  it('odd selects pages 1, 3, 5 (indices 0, 2, 4)', () => {
+    expect(selectByParity(5, 'odd').selected).toEqual([0, 2, 4]);
+  });
+
+  it('even selects pages 2, 4 (indices 1, 3)', () => {
+    expect(selectByParity(5, 'even').selected).toEqual([1, 3]);
+  });
+
+  it('parity of an empty document is empty', () => {
+    expect(selectByParity(0, 'odd')).toEqual(emptySelection);
   });
 });
