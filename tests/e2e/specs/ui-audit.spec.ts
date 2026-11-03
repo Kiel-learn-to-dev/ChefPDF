@@ -1,21 +1,25 @@
 /**
- * Bộ đo giao diện, lượt A3 (kế hoạch docs/UI_AUDIT.md mục 2): mở từng màn hình với lõi Python
- * THẬT, chụp ảnh, ghi tests/e2e/ui-audit-out/report.json. Lượt này chỉ mở và chụp; luật đo
- * (khoảng cách, lệch hàng, tràn chữ...) thêm ở các lượt sau.
+ * Bộ đo giao diện (kế hoạch docs/UI_AUDIT.md mục 2): mở từng màn hình với lõi Python THẬT, đo
+ * theo luật (uiAuditRules.ts), chụp ảnh có khung đỏ, ghi tests/e2e/ui-audit-out/ (report.json,
+ * report.md, shots/). Thêm biến thể cho từng tab và mục "nâng cao" đang đóng trong hộp thoại.
  *
- * Mặc định chỉ báo cáo, không fail: mỗi màn hình có try/catch, một lỗi không dừng cả lượt.
+ * Mặc định chỉ báo cáo, không fail. Các chế độ (biến môi trường):
+ * - UI_AUDIT_UPDATE=1: ghi tests/e2e/ui-audit-baseline.json (từ chối nếu dist cũ hoặc DPR ≠ 1).
+ * - UI_AUDIT_STRICT=1: so số phát hiện theo (màn hình, luật) với baseline, fail khi số tăng.
+ * - UI_AUDIT_SNAPSHOT=1: chụp ảnh gốc (không khung đỏ) so pixel với tests/e2e/ui-audit-snapshots/.
+ * - UI_AUDIT_ONLY=dialog:merge,main:view: chọn màn hình (khớp một phần tên).
+ *
  * Chạy: pnpm --filter @chef/ui build && pnpm --filter @chef/e2e exec playwright test ui-audit
- * Chọn màn hình: UI_AUDIT_ONLY=dialog:merge,main:view (khớp một phần tên).
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { launchApp, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
 import {
   Diagnostics,
   DIST_INDEX,
+  OUT_DIR,
   SHOT_DIR,
   VIEWPORT,
   buildScreens,
@@ -33,6 +37,19 @@ import {
   type Screen,
   type ScreenResult,
 } from '../fixtures/uiAudit';
+import {
+  attachCssHits,
+  buildCssIndex,
+  clearMarks,
+  countsOf,
+  DEVICE_DIALOGS,
+  drawMarks,
+  listVariants,
+  readBaseline,
+  writeBaseline,
+  writeMarkdown,
+  type VariantTarget,
+} from '../fixtures/uiAuditReport';
 import { AUDIT_CFG, auditInPage } from '../fixtures/uiAuditRules';
 
 const coreDir = path.join(repoRoot, 'core');
@@ -44,6 +61,15 @@ const only = (process.env.UI_AUDIT_ONLY ?? '')
   .map((s) => s.trim())
   .filter(Boolean);
 const wanted = (name: string): boolean => only.length === 0 || only.some((o) => name.includes(o));
+const mode =
+  process.env.UI_AUDIT_UPDATE === '1'
+    ? 'update'
+    : process.env.UI_AUDIT_STRICT === '1'
+      ? 'strict'
+      : 'report';
+const snapshotMode = process.env.UI_AUDIT_SNAPSHOT === '1';
+/** Màn hình có ảnh khác ảnh gốc (chế độ snapshot). Test cuối báo lỗi nếu còn. */
+const snapshotDiffs: string[] = [];
 
 let corpus = '';
 let source = '';
@@ -65,6 +91,8 @@ async function ensureDoc(): Promise<Launched & { diag: Diagnostics }> {
   if (!(await hasHook(l.page))) {
     throw new Error('dist thiếu window.__chefUi: build lại UI (pnpm --filter @chef/ui build)');
   }
+  // DPR thật của trang (khác 1 thì baseline không so được, xem test cuối).
+  report.meta.dpr = await l.page.evaluate(() => window.devicePixelRatio);
   const diag = new Diagnostics();
   diag.attach(l.page);
   doc = { ...l, diag };
@@ -85,27 +113,6 @@ function record(result: ScreenResult): void {
   writeReport(report);
 }
 
-/** Màn start: chạy riêng, không mở tài liệu. */
-async function auditStart(): Promise<ScreenResult> {
-  const r = blank({ name: 'start', kind: 'start' });
-  startApp = await launchApp({
-    args: ['--force-device-scale-factor=1'],
-    env: { CHEF_CORE_CMD: realCoreCmd },
-  });
-  await stubNativeDialogs(startApp.app);
-  await startApp.page.setViewportSize(VIEWPORT);
-  await startApp.page
-    .getByRole('heading', { name: 'Quy trình mẫu' })
-    .waitFor({ state: 'visible', timeout: 30_000 });
-  const diag = new Diagnostics();
-  diag.attach(startApp.page);
-  r.settled = await prepare(startApp.page);
-  Object.assign(r, await audit(startApp.page));
-  r.shot = await shoot(startApp.page, 'start');
-  Object.assign(r, diag.since({ c: 0, p: 0 }));
-  return r;
-}
-
 function blank(s: Pick<Screen, 'name' | 'kind'>): ScreenResult {
   return {
     name: s.name,
@@ -123,12 +130,6 @@ function blank(s: Pick<Screen, 'name' | 'kind'>): ScreenResult {
   };
 }
 
-/** Chạy luật đo trong trang (A4). */
-async function audit(page: Page): Promise<Pick<ScreenResult, 'findings' | 'scanned' | 'controls'>> {
-  const res = await page.evaluate(auditInPage, AUDIT_CFG);
-  return { findings: res.groups, scanned: res.scanned, controls: res.controls };
-}
-
 async function shoot(page: Page, name: string): Promise<string> {
   fs.mkdirSync(SHOT_DIR, { recursive: true });
   const file = shotName(name);
@@ -136,9 +137,97 @@ async function shoot(page: Page, name: string): Promise<string> {
   return `shots/${file}`;
 }
 
-/** Một màn hình trong tài liệu đang mở. Không ném lỗi: mọi lỗi ghi vào báo cáo. */
-async function auditDocScreen(screen: Screen): Promise<ScreenResult> {
+/**
+ * Đo một trạng thái đã mở: chuẩn bị, (tùy chọn) so ảnh gốc, chạy luật, vẽ khung đỏ, chụp, xóa khung.
+ * Thứ tự này giữ ảnh so sánh không có khung đỏ.
+ */
+async function measureNow(page: Page, r: ScreenResult, name: string): Promise<void> {
+  r.settled = await prepare(page);
+  if (!r.settled) r.status = 'settle-timeout';
+  if (snapshotMode) {
+    // Không dùng expect.soft: trong serial, một test lỗi sẽ làm bỏ qua các test sau.
+    // Lỗi được gom vào snapshotDiffs và test cuối mới fail.
+    // Ô có mã sinh ngẫu nhiên (workflow-xxxx) đổi mỗi lần mở: che đi, không tính là khác biệt.
+    await page.evaluate(() =>
+      document.querySelectorAll('input').forEach((i) => {
+        if (/^workflow-[a-z0-9]+$/i.test(i.value)) i.setAttribute('data-audit-mask', '1');
+      }),
+    );
+    try {
+      await expect(page).toHaveScreenshot(`${name.replace(/[^A-Za-z0-9_-]+/g, '_')}.png`, {
+        animations: 'disabled',
+        caret: 'hide',
+        maxDiffPixels: 0,
+        mask: [page.locator('[data-audit-mask]')],
+      });
+    } catch (e) {
+      snapshotDiffs.push(`${name}: ${String(e).split('\n').slice(0, 2).join(' ').slice(0, 200)}`);
+    }
+  }
+  const res = await page.evaluate(auditInPage, AUDIT_CFG);
+  r.findings = res.groups;
+  r.scanned = res.scanned;
+  r.controls = res.controls;
+  await drawMarks(page, r.findings);
+  r.shot = await shoot(page, name);
+  await clearMarks(page);
+}
+
+/** Màn start: chạy riêng, không mở tài liệu. */
+async function auditStart(): Promise<ScreenResult> {
+  const r = blank({ name: 'start', kind: 'start' });
+  startApp = await launchApp({
+    args: ['--force-device-scale-factor=1'],
+    env: { CHEF_CORE_CMD: realCoreCmd },
+  });
+  await stubNativeDialogs(startApp.app);
+  await startApp.page.setViewportSize(VIEWPORT);
+  await startApp.page
+    .getByRole('heading', { name: 'Quy trình mẫu' })
+    .waitFor({ state: 'visible', timeout: 30_000 });
+  const diag = new Diagnostics();
+  diag.attach(startApp.page);
+  await measureNow(startApp.page, r, 'start');
+  Object.assign(r, diag.since({ c: 0, p: 0 }));
+  return r;
+}
+
+/** Một biến thể (tab hoặc mục nâng cao) của hộp thoại: mở lại từ đầu rồi bấm đúng mục đó. */
+async function auditVariant(
+  l: Launched & { diag: Diagnostics },
+  screen: Screen,
+  t: VariantTarget,
+): Promise<ScreenResult> {
+  const name = `${screen.name}#${t.kind}${t.index}:${t.label}`;
+  const v = blank({ name, kind: 'dialog' });
+  const mark = l.diag.mark();
+  try {
+    await resetScreen(l.page);
+    const opened = await openScreen(l.page, screen, source);
+    if (!opened) {
+      v.status = 'open-failed';
+      return v;
+    }
+    const sel =
+      t.kind === 'tab' ? '.dlg[role=dialog] [role=tab]' : '.dlg[role=dialog] .collapsible__trigger';
+    await l.page.locator(sel).nth(t.index).click({ timeout: 3_000 });
+    await measureNow(l.page, v, name);
+  } catch (e) {
+    v.status = 'error';
+    v.error = String(e).slice(0, 300);
+  } finally {
+    Object.assign(v, l.diag.since(mark));
+  }
+  return v;
+}
+
+/**
+ * Một màn hình trong tài liệu đang mở, kèm biến thể của hộp thoại (trừ hộp thoại thiết bị).
+ * Không ném lỗi: mọi lỗi ghi vào báo cáo.
+ */
+async function auditDocScreen(screen: Screen): Promise<ScreenResult[]> {
   const r = blank(screen);
+  const out: ScreenResult[] = [r];
   const l = await ensureDoc();
   const mark = l.diag.mark();
   try {
@@ -147,7 +236,7 @@ async function auditDocScreen(screen: Screen): Promise<ScreenResult> {
     if (!opened) {
       r.status = 'open-failed';
       r.shot = await shoot(l.page, screen.name);
-      return r;
+      return out;
     }
     if (screen.kind === 'dialog') {
       r.dialogTitle = await l.page
@@ -156,28 +245,33 @@ async function auditDocScreen(screen: Screen): Promise<ScreenResult> {
         .textContent({ timeout: 2_000 })
         .catch(() => null);
     }
-    r.settled = await prepare(l.page);
-    if (!r.settled) r.status = 'settle-timeout';
-    Object.assign(r, await audit(l.page));
-    r.shot = await shoot(l.page, screen.name);
+    await measureNow(l.page, r, screen.name);
+    if (screen.kind === 'dialog' && screen.dialog && !DEVICE_DIALOGS.has(screen.dialog)) {
+      for (const t of await listVariants(l.page)) {
+        out.push(await auditVariant(l, screen, t));
+      }
+    }
   } catch (e) {
     r.status = 'error';
     r.error = String(e).slice(0, 300);
   } finally {
     Object.assign(r, l.diag.since(mark));
   }
-  return r;
+  return out;
 }
 
 test.describe('UI audit (report only)', () => {
   test.describe.configure({ mode: 'serial' });
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   test.skip(!uiBuilt, 'UI not built (run pnpm --filter @chef/ui build)');
 
   const screens = buildScreens();
 
   test.beforeAll(() => {
-    corpus = fs.mkdtempSync(path.join(os.tmpdir(), 'chef-ui-audit-'));
+    // Thư mục cố định: đường dẫn hiện trong hộp "Lưu vào thư mục" nếu đổi mỗi lần thì ảnh lệch.
+    corpus = path.join(OUT_DIR, 'corpus');
+    fs.rmSync(corpus, { recursive: true, force: true });
+    fs.mkdirSync(corpus, { recursive: true });
     execFileSync(
       'uv',
       [
@@ -221,9 +315,11 @@ test.describe('UI audit (report only)', () => {
     removeTempDirs();
     fs.rmSync(corpus, { recursive: true, force: true });
     if (report) {
+      attachCssHits(results, buildCssIndex());
       writeReport(report);
+      writeMarkdown(report);
       console.log(
-        `UI_AUDIT: ${JSON.stringify(report.summary)} -> ${path.join(repoRoot, 'tests', 'e2e', 'ui-audit-out', 'report.json')}`,
+        `UI_AUDIT: ${JSON.stringify(report.summary)} -> ${path.join(OUT_DIR, 'report.json')} và report.md`,
       );
     }
     for (const s of results) {
@@ -252,9 +348,46 @@ test.describe('UI audit (report only)', () => {
         record(r);
         return;
       }
-      const r = await auditDocScreen(screen);
-      r.ms = Date.now() - started;
-      record(r);
+      for (const r of await auditDocScreen(screen)) {
+        r.ms = Date.now() - started;
+        record(r);
+      }
     });
   }
+
+  // Cuối lượt: ghi hoặc so baseline. Chỉ test này fail khi số phát hiện tăng (chế độ strict).
+  test('baseline (số phát hiện theo màn hình và luật)', () => {
+    if (snapshotMode) {
+      expect(snapshotDiffs, 'ảnh khác ảnh gốc (chế độ snapshot)').toEqual([]);
+    }
+    if (mode === 'report') {
+      console.log('UI_AUDIT: chế độ báo cáo, không ghi và không so baseline');
+      return;
+    }
+    if (report.meta.staleDist) {
+      throw new Error(
+        'dist cũ: build lại UI (pnpm --filter @chef/ui build) trước khi ghi/so baseline',
+      );
+    }
+    if (report.meta.dpr !== 1) {
+      throw new Error(
+        `DPR ${report.meta.dpr}: baseline chỉ ghi/so ở DPR 1 (tắt scale của Windows hoặc dùng --force-device-scale-factor=1)`,
+      );
+    }
+    if (mode === 'update') {
+      writeBaseline(report, results);
+      console.log(`UI_AUDIT: đã ghi baseline (${results.length} màn hình)`);
+      return;
+    }
+    const base = readBaseline();
+    if (!base) throw new Error('chưa có baseline: chạy với UI_AUDIT_UPDATE=1 trước');
+    const regressions: string[] = [];
+    for (const [screen, rules] of Object.entries(countsOf(results))) {
+      for (const [rule, n] of Object.entries(rules)) {
+        const b = base.counts[screen]?.[rule] ?? 0;
+        if (n > b) regressions.push(`${screen} ${rule}: ${b} -> ${n}`);
+      }
+    }
+    expect(regressions, 'số phát hiện tăng so với baseline').toEqual([]);
+  });
 });

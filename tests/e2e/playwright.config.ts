@@ -10,5 +10,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // Ảnh so sánh của bộ đo giao diện (ui-audit, UI_AUDIT_SNAPSHOT=1) nằm ngoài specs, gitignore.
+  snapshotPathTemplate: '{testDir}/../ui-audit-snapshots/{arg}{ext}',
   use: { trace: 'retain-on-failure' },
 });

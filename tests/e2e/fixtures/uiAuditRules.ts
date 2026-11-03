@@ -37,6 +37,8 @@ export interface ElementInfo {
   text: string;
   rect: { x: number; y: number; w: number; h: number };
   classes: string;
+  /** File CSS định nghĩa các class của phần tử (gắn sau khi chạy, xem uiAudit.ts). */
+  cssHits?: string[];
 }
 
 export interface AuditGroup {
@@ -81,6 +83,38 @@ export const AUDIT_CFG: AuditCfg = {
     { rule: '*', within: '[data-audit="ignore"]', reason: 'đánh dấu bỏ qua trong mã' },
     { rule: '*', within: '.capture__tools', reason: 'kế hoạch mục 2: bỏ qua' },
     { rule: '*', within: '.merge__grip', reason: 'tay kéo (drag handle), kích thước theo cử chỉ' },
+    // Kích thước đã chốt trong kế hoạch mục 1.7 (thanh trạng thái, tab tài liệu, tab bên, chip).
+    // Các mục khác là quyết định thẩm mỹ, ghi vào danh sách D trong UI_AUDIT.md, không đưa vào đây.
+    {
+      rule: 'control-height',
+      within: '.status',
+      values: [20, 22],
+      reason: 'thanh trạng thái 22px (20px ở ô số trang), kế hoạch mục 1.7',
+    },
+    {
+      rule: 'control-height',
+      within: '.doctabs',
+      values: [20],
+      reason: 'nút đóng tab tài liệu 20px, mục 1.7',
+    },
+    {
+      rule: 'control-height',
+      within: '.sidenav__tab',
+      values: [24],
+      reason: 'tab bên 24px, mục 1.7',
+    },
+    {
+      rule: 'control-height',
+      within: '.split__var',
+      values: [20, 24],
+      reason: 'chip biến 20/24px, mục 1.7 (chờ duyệt chip-h)',
+    },
+    {
+      rule: 'control-height',
+      within: '.scan-preview__page',
+      values: [20, 24],
+      reason: 'chip trang 20/24px, mục 1.7 (chờ duyệt chip-h)',
+    },
   ],
 };
 
@@ -229,6 +263,18 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     message: string,
     hint: string,
   ): void => {
+    // ALLOW có values: so với số đầu tiên trong giá trị đo (ví dụ "28px" -> 28).
+    const num = parseFloat((measured.match(/-?\d+(?:\.\d+)?/) ?? ['NaN'])[0] ?? 'NaN');
+    if (
+      cfg.allow.some(
+        (a) =>
+          a.rule === rule &&
+          el.closest(a.within) !== null &&
+          (!a.values || a.values.some((v) => Math.abs(v - num) <= 0.5)),
+      )
+    ) {
+      return;
+    }
     const key = `${rule}|${sigOf(el)}|${measured}`;
     let g = groups.get(key);
     if (!g) {
@@ -554,13 +600,17 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     const s = [...vals].sort((a, b) => a - b);
     return s[Math.floor(s.length / 2)] ?? 0;
   };
-  const mode = (vals: number[]): number => {
+  // Giá trị xuất hiện nhiều nhất. Hòa: ưu tiên giá trị nằm trong `prefer` (thang), rồi giá trị nhỏ hơn.
+  const mode = (vals: number[], prefer: number[] = []): number => {
     const count = new Map<number, number>();
     for (const v of vals) count.set(v, (count.get(v) ?? 0) + 1);
+    const inPrefer = (v: number): boolean => prefer.some((p) => Math.abs(p - v) <= 0.5);
     let best = vals[0] ?? 0;
     let bestN = 0;
     for (const [v, n] of count) {
-      if (n > bestN || (n === bestN && v < best)) {
+      const tieWins = n === bestN && inPrefer(v) && !inPrefer(best);
+      const tieSmaller = n === bestN && inPrefer(v) === inPrefer(best) && v < best;
+      if (n > bestN || tieWins || tieSmaller) {
         best = v;
         bestN = n;
       }
@@ -623,7 +673,10 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
   });
   for (const row of rows.values()) {
     if (row.length < 2) continue;
-    const modeH = mode(row.map((c) => half(c.h)));
+    const modeH = mode(
+      row.map((c) => half(c.h)),
+      cfg.heights,
+    );
     const hs = [...new Set(row.map((c) => half(c.h)))];
     // row-mixed-height: điều khiển có chiều cao khác mức chung của hàng.
     if (hs.length > 1) {
@@ -690,13 +743,20 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     const kids = Array.from(P.children).filter((k) => shown(k, rectOf(k)));
     const ps = cs(P);
     // gap-off-scale: column-gap/row-gap của flex hoặc grid ngoài thang.
-    if ((ps.display.includes('flex') || ps.display.includes('grid')) && kids.length >= 2) {
-      for (const [name, value] of [
-        ['column-gap', ps.columnGap],
-        ['row-gap', ps.rowGap],
-      ] as const) {
+    // Chỉ báo khi khoảng cách thật sự có tác dụng: column-gap ở grid hoặc flex hàng;
+    // row-gap ở grid, flex có xuống dòng, hoặc flex cột.
+    const isGrid = ps.display.includes('grid');
+    const isFlex = ps.display.includes('flex');
+    const rowDir = ps.flexDirection.startsWith('row');
+    const wraps = ps.flexWrap !== 'nowrap';
+    if ((isGrid || isFlex) && kids.length >= 2) {
+      const active: [string, string, boolean][] = [
+        ['column-gap', ps.columnGap, isGrid || (isFlex && rowDir)],
+        ['row-gap', ps.rowGap, isGrid || (isFlex && (!rowDir || wraps))],
+      ];
+      for (const [name, value, on] of active) {
         const g = parseFloat(value);
-        if (Number.isFinite(g) && !GAP_SCALE.some((v) => Math.abs(v - g) <= 0.1)) {
+        if (on && Number.isFinite(g) && !GAP_SCALE.some((v) => Math.abs(v - g) <= 0.1)) {
           add(
             'gap-off-scale',
             'warn',
