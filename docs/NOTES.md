@@ -171,6 +171,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-11-03 (e2e Demo v0.5):** Thêm 3 e2e với lõi thật còn thiếu so với Demo v0.5: kiểm tra trước khi gửi (T5.03: cảnh báo trang trắng, bấm Sửa, kiểm tra lại sạch), nén theo dung lượng (T5.04: file quét 3 trang trên 2 MB lưu xuống ≤ 2 MB, vẫn mở được) và tách thông minh theo trang trắng (T5.09: 5 trang thành 2 file 3 + 2 trang, file nguồn không đổi). Hộp thoại chọn thư mục của hệ điều hành được thay bằng stub trong test. Cả 9 test của `tools5.spec.ts` đạt trên Windows. Chưa đóng task nào: còn phải rà từng task v0.5 theo định nghĩa 'xong' (PLAN_V1 mục 2).
+
 - **2026-11-03 (chấp nhận kết quả ký):** Chủ dự án xem kết quả ký bằng token Viettel và chấp nhận, đã trả token. Đóng T1.08, T3.01, T3.02, T3.03; T3.14 chuyển 🔄 (chưa có ảnh Adobe/Foxit). Chuyển sang đóng mốc v0.5. Lần dùng token kế tiếp chỉ cần khi giao diện ký và ký hàng loạt đã sẵn sàng, gom vào một lần.
 
 - **2026-11-03 (ưu tiên Windows):** Chủ dự án chốt làm bản Windows trước, macOS và Linux để sau (D37). Viết lại "Trạng thái hiện tại" và PLAN_V1.md theo hướng này; CI đặt E2E Linux/macOS ở chế độ không chặn; T11.01 chỉ còn kiểm thử trên Windows; hướng dẫn cài đặt ghi rõ bản 1.0 là Windows. Các lỗi nền tảng đã tìm ra khi chạy CI (Python 3.15 trên macOS, đường dẫn Windows trong cài đặt trên Linux, mở file hai lần bằng Ctrl+O, lỗi sửa file hỏng) đã được sửa vì chúng đều là lỗi thật hoặc test sai; phần còn lại của Linux/macOS chuyển sang "Sau 1.0".

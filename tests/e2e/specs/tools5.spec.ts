@@ -245,3 +245,91 @@ test('colour conversion to greyscale: the saved page has no colour left', async 
   const gray = py('tools5_check.py', [file, 'gray', '1']);
   expect(gray.maxChannelSpread).toBeLessThanOrEqual(2);
 });
+
+test('preflight: the checklist flags the blank page, Sửa removes it, the recheck is clean', async () => {
+  const l = await open('preflight_mixed.pdf');
+  await waitViewer(l);
+  await l.page.click('.ftab >> text=Ký & Bảo mật');
+  await l.page.getByRole('button', { name: 'Thêm', exact: true }).click();
+  await l.page.getByRole('menuitem', { name: /Kiểm tra trước khi gửi/ }).click();
+  await expect(l.page.locator('.dlg__title')).toHaveText('Kiểm tra trước khi gửi');
+
+  const blank = l.page.locator('.preflight__item', { hasText: 'Trang trắng' });
+  await expect(blank).toHaveClass(/preflight__item--warn/, { timeout: 60_000 });
+  await expect(blank).toContainText('2');
+  await l.page.screenshot({ path: path.join(shotsDir, 'preflight.png') });
+
+  await blank.getByRole('button', { name: 'Sửa', exact: true }).click();
+  await expect(blank).toHaveClass(/preflight__item--ok/, { timeout: 60_000 });
+  await waitJobs(l);
+  await l.page.locator('.dlg__close').click();
+  await expect(l.page.locator('.dlg__title')).toHaveCount(0);
+  await l.page.click('.ftab >> text=Trang');
+  await expect(l.page.locator('.page-card')).toHaveCount(2, { timeout: 30_000 });
+
+  await l.page.keyboard.press('Control+s');
+  await waitSaved(l);
+  expect(py('tools5_check.py', [path.join(corpus, 'preflight_mixed.pdf'), 'info'])).toEqual({
+    pages: 2,
+    opens: true,
+  });
+});
+
+test('compress to a size: a 3-page scan above 2 MB is saved at 2 MB or less', async () => {
+  const l = await open('big_scan.pdf');
+  await waitViewer(l);
+  const src = path.join(corpus, 'big_scan.pdf');
+  const limit = 2 * 1024 * 1024;
+  expect(fs.statSync(src).size).toBeGreaterThan(limit);
+
+  await l.page.click('.ftab >> text=Xuất');
+  await l.page.click('.toolbar__btn:has-text("Nén PDF")');
+  await expect(l.page.locator('.dlg__title')).toHaveText('Nén PDF');
+  await l.page.locator('#compress-fit').fill('2');
+  await l.page.getByRole('button', { name: 'Nén sao cho ≤ 2 MB', exact: true }).click();
+  await expect(l.page.locator('.dlg__body')).toContainText('Đạt dưới 2 MB', { timeout: 120_000 });
+  await l.page.locator('.dlg__footer').getByRole('button', { name: 'Nén', exact: true }).click();
+  await expect(l.page.locator('.compress__result')).toBeVisible({ timeout: 120_000 });
+  await l.page.keyboard.press('Escape');
+  await waitJobs(l);
+
+  await l.page.keyboard.press('Control+s');
+  await waitSaved(l);
+  expect(fs.statSync(src).size).toBeLessThanOrEqual(limit);
+  expect(py('tools5_check.py', [src, 'info'])).toEqual({ pages: 3, opens: true });
+});
+
+test('smart split: a blank separator page splits 5 pages into files of 3 and 2 pages', async () => {
+  const l = await open('separated.pdf');
+  await waitViewer(l);
+  const outDir = path.join(corpus, 'split_out');
+  await l.page.click('.ftab >> text=Trang');
+  await l.page.getByRole('button', { name: 'Thêm', exact: true }).click();
+  await l.page.getByRole('menuitem', { name: /Tách thông minh/ }).click();
+  await expect(l.page.locator('.dlg__title')).toHaveText('Tách thông minh');
+
+  await l.app.evaluate(({ dialog }, dir) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+  }, outDir);
+  await l.page.getByRole('button', { name: 'Chọn…' }).nth(1).click();
+  await expect(l.page.getByRole('textbox', { name: 'Thư mục lưu' })).toHaveValue(outDir);
+  await l.page
+    .locator('.dlg__footer')
+    .getByRole('button', { name: 'Tách file', exact: true })
+    .click();
+  await expect(l.page.locator('.pt-result')).toContainText('Đã tách thành 2 file', {
+    timeout: 60_000,
+  });
+
+  expect(py('tools5_check.py', [outDir, 'dir'])).toEqual({
+    files: [
+      { name: 'separated_1.pdf', pages: 3 },
+      { name: 'separated_2.pdf', pages: 2 },
+    ],
+  });
+  // The source is only read: it still has its 5 pages and was never marked as edited.
+  expect(py('tools5_check.py', [path.join(corpus, 'separated.pdf'), 'info'])).toEqual({
+    pages: 5,
+    opens: true,
+  });
+});

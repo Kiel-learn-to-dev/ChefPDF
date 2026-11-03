@@ -14,7 +14,9 @@ from PIL import Image, ImageDraw
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 
-COLOUR = b"1 0 0 rg 60 500 240 200 re f 0 0 1 rg 320 500 240 200 re f 0 0.6 0 rg 60 150 500 200 re f"
+COLOUR = (
+    b"1 0 0 rg 60 500 240 200 re f 0 0 1 rg 320 500 240 200 re f 0 0.6 0 rg 60 150 500 200 re f"
+)
 
 
 def colour_page(pdf: pikepdf.Pdf, content: bytes = COLOUR) -> None:
@@ -49,6 +51,7 @@ def mixed(pdf: pikepdf.Pdf) -> None:
 
 
 write("blank_mixed.pdf", mixed)
+write("preflight_mixed.pdf", mixed)  # its own copy: the blank-pages test saves over blank_mixed
 
 
 def heavy(pdf: pikepdf.Pdf) -> None:
@@ -79,6 +82,43 @@ def heavy(pdf: pikepdf.Pdf) -> None:
 
 
 write("image_heavy.pdf", heavy)
+
+
+def big_scan(pdf: pikepdf.Pdf) -> None:
+    # Three pages of pure noise JPEG: well over 2 MB in total, and it shrinks a lot when resampled.
+    rnd = random.Random(11)
+    for _ in range(3):
+        img = Image.frombytes("RGB", (1600, 1600), rnd.randbytes(1600 * 1600 * 3))
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=90)
+        pdf.add_blank_page(page_size=(612, 792))
+        xobj = pdf.make_stream(
+            buf.getvalue(),
+            Type=pikepdf.Name.XObject,
+            Subtype=pikepdf.Name.Image,
+            Width=1600,
+            Height=1600,
+            ColorSpace=pikepdf.Name.DeviceRGB,
+            BitsPerComponent=8,
+            Filter=pikepdf.Name.DCTDecode,
+        )
+        pdf.pages[-1].Resources = pikepdf.Dictionary(XObject=pikepdf.Dictionary(Im1=xobj))
+        pdf.pages[-1].Contents = pdf.make_stream(b"q 612 0 0 792 0 0 cm /Im1 Do Q")
+
+
+write("big_scan.pdf", big_scan)
+
+
+def separated(pdf: pikepdf.Pdf) -> None:
+    # Two pages, a blank separator, two more pages: smart split by blank page gives 3 + 2 pages.
+    colour_page(pdf)
+    colour_page(pdf)
+    pdf.add_blank_page(page_size=(612, 792))
+    colour_page(pdf)
+    colour_page(pdf)
+
+
+write("separated.pdf", separated)
 
 for name, colour in (("a.png", (200, 40, 40)), ("b.png", (40, 90, 200))):
     Image.new("RGB", (400, 300), colour).save(out / name)

@@ -2,11 +2,14 @@
 
 Usage: python tools5_check.py FILE MODE [PAGE]
   MODE 'info'  : page count and whether the file opens.
+  MODE 'meta'  : the /Author of the document, or null.
+  MODE 'dir'   : FILE is a folder; lists its PDFs with page counts.
   MODE 'gray'  : renders PAGE (1-based) and reports the largest colour difference of any pixel.
 """
 
 import json
 import sys
+from pathlib import Path
 
 import pikepdf
 import pypdfium2 as pdfium
@@ -20,6 +23,14 @@ if mode == "meta":
 elif mode == "info":
     with pikepdf.open(path) as pdf:
         print(json.dumps({"pages": len(pdf.pages), "opens": True}))
+elif mode == "dir":
+    # Every PDF of the folder PATH with its page count, sorted by file name.
+    folder = Path(path)
+    found = []
+    for item in sorted(folder.glob("*.pdf")):
+        with pikepdf.open(item) as pdf:
+            found.append({"name": item.name, "pages": len(pdf.pages)})
+    print(json.dumps({"files": found}))
 elif mode == "gray":
     page_no = int(sys.argv[3]) if len(sys.argv) > 3 else 1
     doc = pdfium.PdfDocument(path)
