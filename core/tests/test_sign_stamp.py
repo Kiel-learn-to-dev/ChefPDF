@@ -25,6 +25,7 @@ from token_support import (
     FakeToken,
     fake_cert_chain,
     make_module_file,
+    windows_environment,
 )
 
 from chef_core.ops import load_builtin_ops
@@ -39,6 +40,12 @@ RED = (220, 20, 20)
 @pytest.fixture(autouse=True)
 def _builtins() -> None:
     load_builtin_ops()
+
+
+@pytest.fixture(autouse=True)
+def _windows_env() -> Iterator[None]:
+    with windows_environment():
+        yield
 
 
 @pytest.fixture

@@ -22,6 +22,7 @@ from token_support import (
     FakeToken,
     fake_cert_chain,
     make_module_file,
+    windows_environment,
 )
 
 from chef_core.ops.sign import SignPadesParams
@@ -49,6 +50,12 @@ PFX_WIRE_PROPERTIES = {
     "certify",
     "template",
 }
+
+
+@pytest.fixture(autouse=True)
+def _windows_env() -> Iterator[None]:
+    with windows_environment():
+        yield
 
 
 @pytest.fixture

@@ -30,6 +30,7 @@ from token_support import (
     FakeToken,
     fake_cert_chain,
     make_module_file,
+    windows_environment,
 )
 
 from chef_core.signing.pkcs11 import use_backend
@@ -39,6 +40,12 @@ FILE_PASSWORD = "FILE-PW-LEAK-7741"
 CERT_ID = "01"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FONT = REPO_ROOT / "tests" / "corpus" / "fonts" / "BeVietnamPro-Regular.ttf"
+
+
+@pytest.fixture(autouse=True)
+def _windows_env() -> Iterator[None]:
+    with windows_environment():
+        yield
 
 
 @pytest.fixture

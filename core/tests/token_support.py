@@ -9,7 +9,8 @@ every C_Login attempt so tests can assert that.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import contextlib
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -20,6 +21,12 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 from pyhanko.sign.signers.pdf_cms import Signer, SimpleSigner
 
 from chef_core.errors import ChefError, ErrorKind
+from chef_core.signing.drivers import (
+    OsFileSystem,
+    TokenEnvironment,
+    load_database,
+    use_environment,
+)
 from chef_core.signing.pkcs11 import (
     CertListing,
     SlotInfo,
@@ -280,3 +287,11 @@ def make_module_file(directory: Any, name: str = "viettel-ca_v6.dll") -> str:
     path = directory / name
     path.write_bytes(b"MZ-fake-driver")
     return str(path)
+
+
+@contextlib.contextmanager
+def windows_environment() -> Iterator[None]:
+    """Token paths are checked as on Windows (``*.dll`` modules), whatever OS runs the tests."""
+    env = TokenEnvironment(fs=OsFileSystem(), os_name="windows", database=load_database())
+    with use_environment(env):
+        yield
