@@ -288,6 +288,16 @@ def test_split_spread_finds_the_gutter_within_two_percent() -> None:
     assert result["left"].shape[1] + result["right"].shape[1] == w
 
 
+def test_split_spread_with_a_deep_binding_shadow_is_still_found() -> None:
+    # A book photographed open: the shadow takes ~35 % of the paper level, deeper than the
+    # ink threshold of the old rule (paper - 60), which made the gutter column look like text.
+    spread = _spread(gutter_depth=90)
+    result = pi.split_spread(spread)
+    w = spread.shape[1]
+    assert abs(result["split_x"] - w / 2) / w < 0.02
+    assert result["confidence"] > 0.5
+
+
 def test_split_spread_manual_override() -> None:
     spread = _spread(gutter_depth=0)
     result = pi.split_spread(spread, x=0.45)

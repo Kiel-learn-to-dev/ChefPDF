@@ -891,7 +891,9 @@ def split_spread(img: np.ndarray, *, x: float | None = None) -> SplitResult:
         rows = small[int(sh * 0.03) : int(sh * 0.97)].astype(np.float32)
         col = rows.mean(axis=0)
         paper = float(np.percentile(rows, 80))
-        ink = (rows < paper - 60).mean(axis=0).astype(np.float32)
+        # Ink is much darker than paper. A deep shadow of the binding (paper 240 -> 150) must not
+        # count as ink, or the darkest column is rejected and the spread is never split.
+        ink = (rows < min(paper - 60, paper * 0.6)).mean(axis=0).astype(np.float32)
         sigma = max(2.0, sw * 0.01)
         col_s = _gauss1d(col, sigma)
         ink_s = _gauss1d(ink, sigma)
