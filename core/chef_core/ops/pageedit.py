@@ -300,6 +300,10 @@ def crop(ctx: OpContext, p: PageCropParams) -> OpOutput:
                         max(new[0], new[2]),
                         max(new[1], new[3]),
                     )
+                    if user[2] - user[0] <= 1 or user[3] - user[1] <= 1:
+                        raise invalid_params(
+                            "the box must be wider and taller than 1 pt", {"field": "box"}
+                        )
                     _write_box(page, key, user)
                     continue
                 else:

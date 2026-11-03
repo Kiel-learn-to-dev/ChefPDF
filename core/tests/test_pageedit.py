@@ -136,6 +136,18 @@ def test_crop_absolute_box_and_mediabox_mode(harness: Harness, tmp_path: Path) -
         assert [round(float(v)) for v in pdf.pages[0].obj.MediaBox] == [0, 0, 300, 300]
 
 
+@pytest.mark.parametrize("box", [[100, 100, 100, 500], [100, 100, 400, 100], [0, 0, 0.5, 300]])
+def test_crop_rejects_degenerate_absolute_box(
+    harness: Harness, tmp_path: Path, box: list[float]
+) -> None:
+    src = _doc(tmp_path / "degenerate.pdf", [{}])
+    sid = _sid(harness, src)
+    with pytest.raises(RpcFailure) as exc:
+        harness.op("page.crop", {"box": box}, sid)
+    assert exc.value.kind == "INVALID_PARAMS"
+    assert harness.call("session.state", {"sessionId": sid})["revision"] == 0
+
+
 def test_crop_needs_exactly_one_method(harness: Harness, tmp_path: Path) -> None:
     src = _doc(tmp_path / "x.pdf", [{}])
     sid = _sid(harness, src)
