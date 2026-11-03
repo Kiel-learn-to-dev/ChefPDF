@@ -30,15 +30,17 @@ def _vn4(path: Path) -> Path:
 
 
 def _complete_pages(data: bytes, cut: int) -> int:
-    """Pages whose content stream ends before ``cut`` (the page dictionaries come first)."""
+    """Pages whose content stream data is whole before ``cut`` (the page dictionaries come first).
+
+    A stream whose ``endstream`` survives is complete even when its ``endobj`` was cut off."""
     count = 0
     for match in re.finditer(rb"/Contents (\d+) 0 R", data):
         num = match.group(1)
         header = re.search(rb"(?<![0-9])" + num + rb" 0 obj", data)
         if header is None:
             continue
-        endobj = data.find(b"endobj", header.end())
-        if endobj >= 0 and endobj + len(b"endobj") <= cut:
+        end = data.find(b"endstream", header.end())
+        if end >= 0 and end + len(b"endstream") <= cut:
             count += 1
     return count
 
@@ -52,6 +54,24 @@ def _assert_pages_draw(out: Path, count: int) -> None:
     for index in range(count):
         assert ink_bbox(render(out, index), is_dark) is not None, f"page {index} is blank"
         assert f"Trang {index + 1}" in page_text(out, index), f"page {index} lost its text"
+
+
+def test_stream_cut_before_its_endobj_keeps_the_page_content(
+    harness: Harness, tmp_path: Path
+) -> None:
+    """qpdf drops a stream that lacks its endobj; the page must not silently turn blank."""
+    src = _vn4(tmp_path / "vn4.pdf")
+    data = src.read_bytes()
+    last = data.rfind(b"endstream")
+    cut = last + len(b"endstream") + 1  # the newline after endstream, no endobj
+    damaged = tmp_path / "no-endobj.pdf"
+    damaged.write_bytes(data[:cut])
+    assert _complete_pages(data, cut) == PAGES
+    out = tmp_path / "fixed.pdf"
+    result = _repair(harness, damaged, out)
+    assert result["pageCount"] == PAGES
+    assert not result["lostPages"]
+    _assert_pages_draw(out, PAGES)
 
 
 @pytest.mark.parametrize("cut", [17200, 17500, 18000])

@@ -296,10 +296,13 @@ def _font_ok(font: Any, texts: Texts) -> bool:
 
 
 def _contents_problem(page: Dictionary, raw: bytes | None, texts: Texts) -> str | None:
-    if raw is not None and any(num not in texts for num in _raw_refs(raw, b"/Contents")):
+    refs = _raw_refs(raw, b"/Contents") if raw is not None else []
+    if any(num not in texts for num in refs):
         return "content stream is missing or cut off"
     if "/Contents" not in page:
-        return None  # a page without content is blank
+        # Blank only if the page never had content. qpdf also drops a reference to an object it
+        # could not read (e.g. a stream cut before its endstream), which would hide lost content.
+        return "content stream is missing or cut off" if refs else None
     contents = page.get("/Contents")
     parts = list(contents) if isinstance(contents, Array) else [contents]
     for part in parts:
