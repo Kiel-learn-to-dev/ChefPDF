@@ -101,6 +101,17 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
   const groups = new Map<string, AuditGroup>();
   let scanned = 0;
   let controls = 0;
+  type Ctl = {
+    el: Element;
+    r: { x: number; y: number; w: number; h: number };
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+    h: number;
+    cy: number;
+  };
+  const ctrls: Ctl[] = [];
 
   const cs = (el: Element): CSSStyleDeclaration => getComputedStyle(el);
   const px = (v: string): number => parseFloat(v) || 0;
@@ -260,6 +271,16 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     // control-height: điều khiển cao 12–48px mà không thuộc thang 26/32/38.
     if (isControl) {
       controls += 1;
+      ctrls.push({
+        el,
+        r,
+        top: r.y,
+        bottom: r.y + r.h,
+        left: r.x,
+        right: r.x + r.w,
+        h: r.h,
+        cy: r.y + r.h / 2,
+      });
       const h = Math.round(r.h * 10) / 10;
       if (
         h >= cfg.heightMin &&
@@ -522,6 +543,297 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
           'trong viewport',
           'điều khiển nằm ngoài màn hình',
           'kiểm tra vị trí tuyệt đối hoặc cuộn',
+        );
+      }
+    }
+  }
+
+  // ---------- Luật theo quan hệ (A5): hàng, khe, chân hộp thoại ----------
+  const half = (v: number): number => Math.round(v * 2) / 2;
+  const median = (vals: number[]): number => {
+    const s = [...vals].sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)] ?? 0;
+  };
+  const mode = (vals: number[]): number => {
+    const count = new Map<number, number>();
+    for (const v of vals) count.set(v, (count.get(v) ?? 0) + 1);
+    let best = vals[0] ?? 0;
+    let bestN = 0;
+    for (const [v, n] of count) {
+      if (n > bestN || (n === bestN && v < best)) {
+        best = v;
+        bestN = n;
+      }
+    }
+    return best;
+  };
+  // Hai điều khiển cùng hàng: chồng dọc ≥ 50% chiều cao nhỏ hơn.
+  const sameRow = (a: Ctl, b: Ctl): boolean =>
+    Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) >= 0.5 * Math.min(a.h, b.h);
+  // Hai phần tử chung cha trong 4 cấp (gần nhau trong cây DOM).
+  const shareAncestor = (a: Element, b: Element): boolean => {
+    const up = (start: Element | null): Element[] => {
+      const out: Element[] = [];
+      let e = start;
+      for (let k = 0; e && k <= 4; k += 1) {
+        out.push(e);
+        e = e.parentElement;
+      }
+      return out;
+    };
+    const B = up(b);
+    return up(a).some((x) => B.includes(x));
+  };
+
+  // Gộp điều khiển thành hàng (union-find). Khe ngang 0..64px, cùng hàng, chung cha gần.
+  const parentOf = ctrls.map((_, i) => i);
+  const rootOf = (i: number): number => {
+    let x = i;
+    while (parentOf[x] !== x) x = parentOf[x] ?? x;
+    return x;
+  };
+  for (let i = 0; i < ctrls.length; i += 1) {
+    for (let j = i + 1; j < ctrls.length; j += 1) {
+      const a = ctrls[i];
+      const b = ctrls[j];
+      if (!a || !b || !sameRow(a, b) || !shareAncestor(a.el, b.el)) continue;
+      const gap = a.right <= b.left ? b.left - a.right : b.right <= a.left ? a.left - b.right : -1;
+      if (gap < 0 || gap > 64) continue;
+      parentOf[rootOf(i)] = rootOf(j);
+      // controls-touching: sát nhau (khe < 4px), trừ trong nhóm segmented (dính liền có chủ ý).
+      if (gap < 4 && a.el.closest('.segmented') === null) {
+        add(
+          'controls-touching',
+          'warn',
+          a.el,
+          a.r,
+          `khe ${r1(gap)}px`,
+          '≥ 4px',
+          'hai điều khiển sát nhau',
+          'đặt gap trên khung cha thay vì để sát',
+        );
+      }
+    }
+  }
+
+  const rows = new Map<number, Ctl[]>();
+  ctrls.forEach((c, i) => {
+    const k = rootOf(i);
+    rows.set(k, [...(rows.get(k) ?? []), c]);
+  });
+  for (const row of rows.values()) {
+    if (row.length < 2) continue;
+    const modeH = mode(row.map((c) => half(c.h)));
+    const hs = [...new Set(row.map((c) => half(c.h)))];
+    // row-mixed-height: điều khiển có chiều cao khác mức chung của hàng.
+    if (hs.length > 1) {
+      for (const c of row) {
+        if (Math.abs(half(c.h) - modeH) > 0.5) {
+          add(
+            'row-mixed-height',
+            'warn',
+            c.el,
+            c.r,
+            `${r1(c.h)}px (hàng ${r1(modeH)}px)`,
+            'cùng chiều cao trong hàng',
+            'điều khiển cùng hàng khác chiều cao',
+            'dùng cùng size (sm/md/lg) cho cả hàng',
+          );
+        }
+      }
+    }
+    // row-misaligned: cùng chiều cao thì so top/bottom với giá trị phổ biến; khác chiều cao thì so tâm dọc.
+    if (hs.length === 1) {
+      const mt = mode(row.map((c) => half(c.top)));
+      const mb = mode(row.map((c) => half(c.bottom)));
+      for (const c of row) {
+        const dt = c.top - mt;
+        const db = c.bottom - mb;
+        if (Math.abs(dt) > 0.5 || Math.abs(db) > 0.5) {
+          add(
+            'row-misaligned',
+            'error',
+            c.el,
+            c.r,
+            `lệch ${r1(dt)}px (top), ${r1(db)}px (bottom)`,
+            'top và bottom bằng hàng',
+            'điều khiển cùng hàng lệch dọc',
+            'align-items: center trên khung cha; bỏ margin tay',
+          );
+        }
+      }
+    } else {
+      const mc = median(row.map((c) => c.cy));
+      for (const c of row) {
+        const d = c.cy - mc;
+        if (Math.abs(d) > 1) {
+          add(
+            'row-misaligned',
+            'error',
+            c.el,
+            c.r,
+            `tâm lệch ${r1(d)}px`,
+            'tâm dọc bằng hàng (±1px)',
+            'điều khiển khác chiều cao lệch tâm',
+            'align-items: center trên khung cha',
+          );
+        }
+      }
+    }
+  }
+
+  // gap-uneven, gap-off-scale: theo khung cha có điều khiển.
+  const GAP_SCALE = [0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 56];
+  const parents = new Set<Element>();
+  for (const c of ctrls) if (c.el.parentElement) parents.add(c.el.parentElement);
+  for (const P of parents) {
+    const kids = Array.from(P.children).filter((k) => shown(k, rectOf(k)));
+    const ps = cs(P);
+    // gap-off-scale: column-gap/row-gap của flex hoặc grid ngoài thang.
+    if ((ps.display.includes('flex') || ps.display.includes('grid')) && kids.length >= 2) {
+      for (const [name, value] of [
+        ['column-gap', ps.columnGap],
+        ['row-gap', ps.rowGap],
+      ] as const) {
+        const g = parseFloat(value);
+        if (Number.isFinite(g) && !GAP_SCALE.some((v) => Math.abs(v - g) <= 0.1)) {
+          add(
+            'gap-off-scale',
+            'warn',
+            P,
+            rectOf(P),
+            `${name} ${r1(g)}px`,
+            GAP_SCALE.join(', ') + 'px',
+            'khoảng cách cha ngoài thang',
+            'dùng --space-* thay vì số lẻ',
+          );
+        }
+      }
+    }
+    // gap-uneven: ≥3 con cùng hàng, toàn điều khiển (bỏ qua nếu có phần tử lạ xen vào).
+    const controlish = (k: Element): boolean =>
+      k.matches(cfg.controlSelector) || k.querySelector(cfg.controlSelector) !== null;
+    if (kids.length < 3 || !kids.every(controlish)) continue;
+    const rects = kids.map((k) => ({ el: k, r: rectOf(k) })).sort((a, b) => a.r.x - b.r.x);
+    const first = rects[0];
+    if (!first) continue;
+    const sameLine = rects.every(
+      (x) =>
+        Math.min(x.r.y + x.r.h, first.r.y + first.r.h) - Math.max(x.r.y, first.r.y) >=
+        0.5 * Math.min(x.r.h, first.r.h),
+    );
+    if (!sameLine) continue;
+    const gaps: number[] = [];
+    for (let i = 1; i < rects.length; i += 1) {
+      const prev = rects[i - 1];
+      const cur = rects[i];
+      if (!prev || !cur) continue;
+      gaps.push(cur.r.x - (prev.r.x + prev.r.w));
+    }
+    if (gaps.some((g) => g < -0.5)) continue;
+    const lo = Math.min(...gaps);
+    const hi = Math.max(...gaps);
+    if (hi - lo > 1) {
+      add(
+        'gap-uneven',
+        'warn',
+        P,
+        rectOf(P),
+        `khe ${r1(lo)}–${r1(hi)}px`,
+        'khe đều (chênh ≤ 1px)',
+        'các điều khiển cùng hàng có khe không đều',
+        'dùng gap trên khung cha, bỏ margin ở con',
+      );
+    }
+  }
+
+  // Hộp thoại: padding header/body/footer, chân hộp, nút chính.
+  if (inDialog) {
+    const parts: { name: string; el: Element }[] = [];
+    for (const name of ['dlg__header', 'dlg__body', 'dlg__footer']) {
+      const el = rootEl.querySelector(`.${name}`);
+      if (el) parts.push({ name, el });
+    }
+    const pads = parts.map((p) => {
+      const s = cs(p.el);
+      return { name: p.name, l: px(s.paddingLeft), r: px(s.paddingRight) };
+    });
+    const lefts = new Set(pads.map((p) => p.l));
+    const rights = new Set(pads.map((p) => p.r));
+    if (pads.length > 1 && (lefts.size > 1 || rights.size > 1)) {
+      add(
+        'dialog-padding-mismatch',
+        'warn',
+        rootEl,
+        rectOf(rootEl),
+        pads.map((p) => `${p.name.replace('dlg__', '')} ${r1(p.l)}/${r1(p.r)}`).join(', '),
+        'padding trái/phải như nhau',
+        'lề trái/phải của đầu, thân và chân hộp không đều',
+        'bỏ ghi đè padding của .dlg__body',
+      );
+    }
+    const footer = rootEl.querySelector<HTMLElement>('.dlg__footer');
+    if (footer) {
+      const fr = rectOf(footer);
+      const fs = cs(footer);
+      const fc = ctrls.filter((c) => footer.contains(c.el));
+      const lastCtl = fc.reduce<Ctl | null>(
+        (a, c) => (a === null || c.right > a.right ? c : a),
+        null,
+      );
+      if (lastCtl) {
+        const expectRight = fr.x + fr.w - px(fs.borderRightWidth) - px(fs.paddingRight);
+        const off = lastCtl.right - expectRight;
+        if (Math.abs(off) > 0.5) {
+          add(
+            'footer-right-edge',
+            'error',
+            lastCtl.el,
+            lastCtl.r,
+            `lệch ${r1(off)}px`,
+            'mép phải khớp lề chân',
+            'nút cuối của chân không sát mép phải',
+            'chân chỉ chứa DialogSpacer và Button',
+          );
+        }
+        const rowsInFooter = new Set(fc.map((c) => half(c.top)));
+        if (rowsInFooter.size > 1) {
+          add(
+            'footer-wrapped',
+            'warn',
+            footer,
+            fr,
+            `${rowsInFooter.size} hàng`,
+            '1 hàng',
+            'chân hộp thoại xuống dòng',
+            'thêm flex-wrap và row-gap, hoặc rút gọn nhãn',
+          );
+        }
+        for (const p of fc.filter((c) => c.el.matches('.btn--primary'))) {
+          if (p.right < lastCtl.right - 0.5) {
+            add(
+              'primary-not-last',
+              'info',
+              p.el,
+              p.r,
+              'không ngoài cùng',
+              'ngoài cùng bên phải',
+              'nút chính không ở ngoài cùng bên phải',
+              'đưa nút chính ra cuối chân',
+            );
+          }
+        }
+      }
+      if (footer.scrollWidth > footer.clientWidth + 1) {
+        add(
+          'footer-overflow',
+          'error',
+          footer,
+          fr,
+          `tràn ${Math.round(footer.scrollWidth - footer.clientWidth)}px`,
+          'không tràn',
+          'chân hộp thoại tràn ngang',
+          'rút gọn nhãn nút hoặc cho chân xuống dòng',
         );
       }
     }
