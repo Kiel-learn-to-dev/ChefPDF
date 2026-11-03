@@ -39,6 +39,7 @@ from chef_core.signing.fields import certification_level, list_signature_fields
 from chef_core.signing.pfx import PfxCertificate
 from chef_core.signing.trust import default_trust_store
 from chef_core.signing.tsa import FallbackTimeStamper
+from chef_core.signing.verify import KEY_POLICY
 
 SigningLevel = Literal["B-B", "B-T", "B-LT", "B-LTA"]
 DigestName = Literal["sha256", "sha384", "sha512"]
@@ -174,7 +175,10 @@ def _trust_anchors(req: PadesRequest) -> list[asn1_x509.Certificate]:
 def _validation_context(req: PadesRequest) -> ValidationContext:
     # hard-fail: a signature must not be long-term without revocation data for its chain.
     return ValidationContext(
-        trust_roots=_trust_anchors(req), allow_fetching=True, revocation_mode="hard-fail"
+        trust_roots=_trust_anchors(req),
+        allow_fetching=True,
+        revocation_mode="hard-fail",
+        algorithm_usage_policy=KEY_POLICY,
     )
 
 

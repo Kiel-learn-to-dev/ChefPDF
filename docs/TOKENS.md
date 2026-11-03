@@ -69,13 +69,15 @@ Các CA Việt Nam phần lớn **không tự sản xuất token**. Họ mua tok
 
 | Ngày | OS | CA | Đời token | Thư viện PKCS#11 | Liệt kê | Cờ PIN | Cơ chế ký | Ký | Adobe |
 |---|---|---|---|---|---|---|---|---|---|
-| 2026-11-03 | Windows 11 x64 | Viettel-CA | V6 (HYP2003, Cryptoki 2.20) | `C:\Windows\System32\viettel-ca_v6.dll` (64-bit; bản SysWOW64 32-bit không nạp được vào Python 64-bit) | Qua: 1 slot, 2 chứng thư ký (một đã hết hạn 2026-09-12, một hiệu lực đến 2027-09-15), không có chứng thư CA trên token | Bình thường (không có cờ khóa) | `SHA256_RSA_PKCS` và `RSA_PKCS` đều có | Chưa thử (cần PIN do chủ dự án nhập: `scripts/token_sign_check.py`) | Chưa thử |
+| 2026-11-03 | Windows 11 x64 | Viettel-CA | V6 (HYP2003, Cryptoki 2.20) | `C:\Windows\System32\viettel-ca_v6.dll` (64-bit; bản SysWOW64 32-bit không nạp được vào Python 64-bit) | Qua: 1 slot, 2 chứng thư ký (một đã hết hạn 2026-09-12, một hiệu lực đến 2027-09-15), không có chứng thư CA trên token | Bình thường (không có cờ khóa) | `SHA256_RSA_PKCS` và `RSA_PKCS` đều có | **Qua** (2026-11-03, PAdES B-B bằng `scripts/token_sign_check.py` qua lõi của app; PIN chủ dự án tự nhập một lần) | Chưa thử (chờ mở bằng Adobe Reader/Foxit) |
 
 Ghi chú từ lần thử:
 
 - Lõi của app (`sign.driverScan`, `sign.listTokens`, `sign.diagnoseToken`) chạy đúng trên token thật không cần PIN: tìm đúng driver V6, 7 bước chẩn đoán đạt, bước ký thử bị bỏ qua vì không có PIN.
 - `viettel-ca_v6_s.dll` (CSP) không nạp được như PKCS#11, đúng như ghi chú ở mục 3; app chỉ dùng `viettel-ca_v6.dll`.
 - Chuỗi chứng thư: người ký ← `Viettel-CA SHA2` (hết hạn 2029-04-17) ← `Vietnam National Root CA` (tự cấp, hết hạn 2039-04-15). Chứng thư người ký ghi địa chỉ lấy chứng thư cấp (`viettel-ca.vn/downloads/sub/Viettel-CA_SHA2.crt`), OCSP (`ocsp.viettel-ca.vn`) và CRL (`crl.viettel-ca.vn`). Chứng thư trung gian ghi địa chỉ lấy gốc `rootca.gov.vn/crt/vnrca256.p7b`.
+- **Chứng thư Viettel dùng khóa RSA 1024 bit** (trung gian 2048, gốc quốc gia 4096). Chính sách mặc định của pyHanko (≥ 2048) làm chuỗi bị coi là chưa tin cậy dù chữ ký toàn vẹn. App nay chấp nhận khóa từ 1024 bit và hiện cảnh báo `WEAK_KEY` (trạng thái "hợp lệ nhưng có cảnh báo"); kết quả thử lại trên file đã ký: toàn chuỗi tin cậy, thu hồi "tốt" cho người ký và trung gian.
+- **Root CA Việt Nam công bố CRL ở dạng PEM** (`rootca.gov.vn/crl/vnrca256.crl`), không phải DER; trước đây app bỏ qua nên chứng thư trung gian luôn "chưa biết thu hồi". App nay đọc cả hai dạng.
 - Thư mục `core/chef_core/resources/certs` vẫn **trống**, nên chữ ký Viettel báo `CERT_UNTRUSTED` cho đến khi chủ dự án đối chiếu dấu vân tay hai chứng thư trên với trang của NEAC/rootca.gov.vn rồi đặt vào đó (xem README trong thư mục). SHA-256 lấy được ngày 2026-11-03: gốc `bac8bf60…0908e7`, trung gian `dcc79cac…f72e4`.
 
 ## Nguồn

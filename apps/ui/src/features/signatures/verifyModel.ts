@@ -78,6 +78,10 @@ export const REASON_TEXT: Record<SignatureReason, { vi: string; en: string }> = 
     vi: 'chưa kiểm tra được trạng thái thu hồi',
     en: 'revocation status could not be checked',
   },
+  WEAK_KEY: {
+    vi: 'chứng thư dùng khóa RSA dưới 2048 bit (yếu)',
+    en: 'the certificate uses an RSA key under 2048 bits (weak)',
+  },
   DOCMDP_VIOLATION: {
     vi: 'thay đổi vi phạm quyền của chữ ký chứng nhận',
     en: 'a change breaks the certification permissions',

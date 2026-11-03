@@ -128,6 +128,7 @@ class Pki:
     ocsp_unknown: Identity  # answered "unknown"
     ocsp_dead: Identity  # OCSP URL where nothing listens
     short: Identity  # expires in two days (CERT_EXPIRED_NOW tests verify later)
+    weak: Identity  # RSA 1024, as older Vietnamese CA certificates
 
     def pfx(
         self, name: str, identity: Identity, password: str | None, chain: list[x509.Certificate]
@@ -165,13 +166,16 @@ class Pki:
             "revoked", self.revoked, PASSWORD_REVOKED, [self.inter.cert, self.root.cert]
         )
 
+    def pfx_weak(self) -> Path:
+        return self.pfx("weak", self.weak, PASSWORD_A, [self.inter.cert, self.root.cert])
+
     def pfx_a_without_root(self) -> Path:
         """Chain that does not include the Root CA (the caller must supply the trust root)."""
         return self.pfx("signer-a-noroot", self.signer_a, PASSWORD_A, [self.inter.cert])
 
 
-def _key() -> rsa.RSAPrivateKey:
-    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+def _key(bits: int = 2048) -> rsa.RSAPrivateKey:
+    return rsa.generate_private_key(public_exponent=65537, key_size=bits)
 
 
 def _name(*attrs: tuple[ObjectIdentifier, str]) -> x509.Name:
@@ -312,8 +316,9 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
         not_after: dt.datetime,
         ocsp_url: str | None = None,
         crl: bool = True,
+        key_bits: int = 2048,
     ) -> Identity:
-        key = _key()
+        key = _key(key_bits)
         extensions: list[tuple[x509.ExtensionType, bool]] = [
             (x509.BasicConstraints(ca=False, path_length=None), True),
             (_signer_usage(), True),
@@ -424,6 +429,13 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
         not_after=NOW + dt.timedelta(days=2),
     )
 
+    weak = signer(
+        person("Khóa 1024 Bit", (UID_OID, "CCCD:002000000006")),
+        not_before=NOW - dt.timedelta(days=1),
+        not_after=year,
+        key_bits=1024,
+    )
+
     # OCSP responder: signed by the intermediate CA (the issuer of every OCSP leaf above).
     answers: dict[int, tuple[ocsp.OCSPCertStatus, dt.datetime | None]] = {
         ocsp_good.cert.serial_number: (ocsp.OCSPCertStatus.GOOD, None),
@@ -510,6 +522,7 @@ def build_pki(services: LocalServices, directory: Path) -> Pki:
         ocsp_unknown=ocsp_unknown,
         ocsp_dead=ocsp_dead,
         short=short,
+        weak=weak,
     )
 
 

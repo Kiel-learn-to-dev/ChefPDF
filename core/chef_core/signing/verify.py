@@ -39,6 +39,7 @@ from pyhanko.sign.fields import MDPPerm
 from pyhanko.sign.validation import validate_pdf_signature
 from pyhanko.sign.validation.status import PdfSignatureStatus, SignatureCoverageLevel
 from pyhanko_certvalidator import ValidationContext
+from pyhanko_certvalidator.policy_decl import DisallowWeakAlgorithmsPolicy
 
 from chef_core.errors import ChefError, ErrorKind, invalid_params
 from chef_core.pdf.io import atomic_write, opened_pdf
@@ -62,6 +63,14 @@ INVALID_REASONS = frozenset(
     }
 )
 
+# Vietnamese CAs have issued 1024-bit signing certificates for years and they stay valid until
+# they expire, so they are accepted (with a warning) rather than treated as untrusted.
+MIN_RSA_BITS = 1024
+RECOMMENDED_RSA_BITS = 2048
+KEY_POLICY = DisallowWeakAlgorithmsPolicy(  # type: ignore[no-untyped-call]
+    rsa_key_size_threshold=MIN_RSA_BITS
+)
+
 REASON_TEXT: dict[str, tuple[str, str]] = {
     "INTEGRITY_FAILED": ("nội dung đã ký bị thay đổi", "the signed content was changed"),
     "MODIFIED_AFTER_SIGNING": (
@@ -81,6 +90,10 @@ REASON_TEXT: dict[str, tuple[str, str]] = {
     "REVOCATION_UNKNOWN": (
         "chưa kiểm tra được trạng thái thu hồi",
         "revocation status could not be checked",
+    ),
+    "WEAK_KEY": (
+        f"chứng thư dùng khóa RSA dưới {RECOMMENDED_RSA_BITS} bit (yếu)",
+        f"the certificate uses an RSA key under {RECOMMENDED_RSA_BITS} bits (weak)",
     ),
     "DOCMDP_VIOLATION": (
         "thay đổi vi phạm quyền của chữ ký chứng nhận",
@@ -355,6 +368,13 @@ def _ocsp_request(cert: x509.Certificate, issuer: x509.Certificate) -> bytes:
     return builder.build().public_bytes(serialization.Encoding.DER)
 
 
+def load_crl(raw: bytes) -> x509.CertificateRevocationList:
+    """A CRL as published: DER, or PEM (the Vietnam National Root CA publishes PEM)."""
+    if raw.lstrip().startswith(b"-----BEGIN"):
+        return x509.load_pem_x509_crl(raw)
+    return x509.load_der_x509_crl(raw)
+
+
 def _revocation_for(
     cert: x509.Certificate,
     issuer: x509.Certificate | None,
@@ -380,12 +400,15 @@ def _revocation_for(
     for url in _cdp_urls(cert):
         try:
             raw = fetch(url, timeout)
-            crl = x509.load_der_x509_crl(raw)
+            crl = load_crl(raw)
         except Exception:
             continue
         status = _crl_status(crl, cert, issuer, now)
         if status is not None:
-            return _Revocation(cert, "crl", status, crl=raw)
+            # pyHanko takes DER only, whatever form the CA published.
+            return _Revocation(
+                cert, "crl", status, crl=crl.public_bytes(serialization.Encoding.DER)
+            )
     for url in _ocsp_urls(cert):
         try:
             raw = fetch(url, timeout, _ocsp_request(cert, issuer))
@@ -457,6 +480,7 @@ def _context(
         ocsps=[bytes(o) for o in ocsps],
         allow_fetching=False,
         revocation_mode="hard-fail" if mode == "hard" else "soft-fail",
+        algorithm_usage_policy=KEY_POLICY,
     )
 
 
@@ -499,6 +523,11 @@ def _status_of(reasons: list[str], strict_revocation: bool) -> str:
     if "CERT_UNTRUSTED" in reasons or (strict_revocation and "REVOCATION_UNKNOWN" in reasons):
         return "unknown"
     return "valid-with-warnings" if reasons else "valid"
+
+
+def _weak_key(cert: x509.Certificate) -> bool:
+    key = cert.public_key()
+    return isinstance(key, rsa.RSAPublicKey) and key.key_size < RECOMMENDED_RSA_BITS
 
 
 def _rev_rows(rows: list[_Revocation]) -> list[dict[str, Any]]:
@@ -638,6 +667,8 @@ def _signature_item(
         add("MODIFIED_AFTER_SIGNING")
     if any(r.status == "unknown" for r in revs):
         add("REVOCATION_UNKNOWN")
+    if intact and any(_weak_key(cert) for cert in chain):
+        add("WEAK_KEY")
     untrusted_explained = {"REVOCATION_UNKNOWN", "CERT_EXPIRED_AT_SIGNING"}
     if intact and not status.trusted and not revoked and not untrusted_explained & set(reasons):
         add("CERT_UNTRUSTED")

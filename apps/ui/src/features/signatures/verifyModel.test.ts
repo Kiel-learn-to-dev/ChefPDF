@@ -13,7 +13,7 @@ import {
   summaryOf,
 } from './verifyModel';
 
-/** The eleven reason codes the core can send (spec of T3.08). */
+/** The twelve reason codes the core can send (spec of T3.08). */
 const ALL_REASONS: SignatureReason[] = [
   'INTEGRITY_FAILED',
   'MODIFIED_AFTER_SIGNING',
@@ -22,6 +22,7 @@ const ALL_REASONS: SignatureReason[] = [
   'CERT_EXPIRED_NOW',
   'CERT_REVOKED',
   'REVOCATION_UNKNOWN',
+  'WEAK_KEY',
   'DOCMDP_VIOLATION',
   'TIMESTAMP_INVALID',
   'SIGNATURE_UNREADABLE',

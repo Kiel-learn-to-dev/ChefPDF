@@ -269,6 +269,57 @@ def test_b_b_signature_is_valid_with_full_details(
     assert "valid" in sig["summaryEn"].lower()
 
 
+def test_one_thousand_twenty_four_bit_key_is_trusted_but_flagged_weak(
+    harness: Harness, pki: Any, tmp_path: Path
+) -> None:
+    """Older Vietnamese CA certificates use RSA 1024: valid and trusted, with a warning."""
+    params = {"pfxPath": str(pki.pfx_weak()), "password": PASSWORD_A}
+    signed = signed_copy(harness, tmp_path, "weak", [params])
+    [sig] = verify_file(harness, signed, trustRootPaths=_root(pki))["signatures"]
+    assert sig["status"] == "valid-with-warnings"
+    assert sig["reasons"] == ["WEAK_KEY"]
+    assert sig["signerCert"]["keySize"] == 1024
+    assert [c["trusted"] for c in sig["chain"]] == [True, True, True]
+
+
+def test_crl_published_as_pem_is_read_and_handed_to_the_validator_as_der(
+    pki: Any, tmp_path: Path
+) -> None:
+    """The Vietnam National Root CA publishes its CRL as PEM; the intermediate was 'unknown'."""
+    from cryptography.hazmat.primitives import hashes
+
+    from chef_core.signing.verify import _revocation_for, load_crl
+
+    builder = (
+        x509.CertificateRevocationListBuilder()
+        .issuer_name(pki.root.cert.subject)
+        .last_update(NOW - dt.timedelta(days=1))
+        .next_update(NOW + dt.timedelta(days=30))
+    )
+    crl = builder.sign(pki.root.key, hashes.SHA256())
+    pem = crl.public_bytes(serialization.Encoding.PEM)
+    der = crl.public_bytes(serialization.Encoding.DER)
+    assert load_crl(pem).signature == load_crl(der).signature
+
+    row = _revocation_for(
+        pki.inter.cert,
+        pki.root.cert,
+        verify_embedded_none(),
+        "soft",
+        lambda url, timeout, body=None: pem,
+        2.0,
+        NOW,
+    )
+    assert (row.source, row.status) == ("crl", "good")
+    assert row.crl == der
+
+
+def verify_embedded_none() -> Any:
+    from chef_core.signing.verify import _Embedded
+
+    return _Embedded()
+
+
 def test_session_verify_matches_the_standalone_verify(
     harness: Harness, pki: Any, tmp_path: Path, services: Any
 ) -> None:
