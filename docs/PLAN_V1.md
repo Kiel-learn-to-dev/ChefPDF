@@ -4,8 +4,8 @@
 
 ## Hiện trạng (2026-11-03)
 
-- 118 task: 57 ✅, 54 🔄, 6 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **159** tính năng.
-- Test trên Windows đều xanh: lõi Python 1638, giao diện 736, desktop 230, e2e Electron + lõi thật 86/86.
+- 118 task: 67 ✅, 44 🔄, 6 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **159** tính năng.
+- Test trên Windows đều xanh: lõi Python 1638, giao diện 738, desktop 230, e2e Electron + lõi thật 100 đạt, 1 bỏ qua.
 - CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
 - Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 🔄).
 - Trạng thái 🔄 nghĩa là code đã có nhưng chưa qua cổng nghiệm thu của mốc. Mỗi mốc có một **Demo** trong TASKS.md; đó là tiêu chí nghiệm thu thật.
@@ -48,7 +48,7 @@ Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫ
 
 | Mốc | Demo (cổng nghiệm thu) | Task cần đóng |
 |---|---|---|
-| v0.5 | Soi file, kiểm tra trước khi gửi, nén còn ≤ 2 MB, tách thông minh theo trang trắng, crash giữa chừng vẫn khôi phục | T4.03, T5.01–T5.05, T5.07–T5.11 |
+| v0.5 | Soi file, kiểm tra trước khi gửi, nén còn ≤ 2 MB, tách thông minh theo trang trắng, crash giữa chừng vẫn khôi phục | ✅ đã đóng 10 task (2026-11-03); còn T5.05 (chụp màn hình trực tiếp, e2e hộp thoại Ảnh→PDF) |
 | v0.6 | Gỡ logo chìm mọi trang, tẩy một vùng, che CCCD rồi kiểm chứng không copy ra được chữ bên dưới | T6.03–T6.07 |
 | v0.7 | Sửa một câu tiếng Việt trong hợp đồng, thay tên công ty toàn tài liệu, highlight và ghi chú | T7.01, T7.02, T7.04–T7.07 |
 

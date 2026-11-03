@@ -6,7 +6,7 @@
 ## Trạng thái hiện tại
 
 - **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
-- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 57 xong, 54 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows đều xanh: lõi 1638, giao diện 736, desktop 230, e2e Electron với lõi thật 86/86. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
+- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 67 xong, 44 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows đều xanh: lõi 1638, giao diện 738, desktop 230, e2e Electron với lõi thật 100 đạt, 1 bỏ qua (`test.fixme` gỡ watermark ở v0.6). CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
 - **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
@@ -170,6 +170,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (đóng task v0.5):** Chạy đủ bộ kiểm tra trên Windows: lõi 1638, giao diện 738, desktop 230, typecheck, lint, ruff, mypy sạch, e2e Electron + lõi thật 100 đạt, 1 bỏ qua. Đóng 10 task: T4.03, T5.01–T5.04, T5.07–T5.11 (đủ test lõi, test giao diện và e2e đường chính). **T5.05 giữ 🔄:** M4 mới có dán ảnh từ clipboard, chưa có chụp màn hình trực tiếp; hộp thoại Ảnh→PDF chưa có e2e qua giao diện (e2e hiện gọi thẳng RPC). Hộp thoại 'Thuộc tính & tiện ích' thiếu `htmlFor` ở nhãn ô (T11.05). Test `test.fixme` còn lại: gỡ watermark của lõi (redact.spec.ts), thuộc v0.6.
 
 - **2026-11-03 (e2e M2, M11, J2 và một lỗi thật):** Thêm `tools5-convert.spec.ts`, 3 e2e với lõi thật: PDF sang ảnh (2 trang thành 2 file PNG 612 x 792 ở 72 dpi), sửa file hỏng từ màn hình Start (file cắt mất bảng xref cho ra bản sạch đọc được không cần phục hồi, file gốc không đổi), gỡ mật khẩu (file lưu xong mở được không cần mật khẩu). **Lỗi tìm ra và đã sửa (T5.05):** xuất PDF sang ảnh đặt tên theo bản làm việc nội bộ (`rev-0000_1.png`) thay vì tên tài liệu, vì hộp thoại đọc revision hiện tại; nay giao diện điền `{name}` bằng tên tài liệu trước khi gọi lõi, có test đơn vị. Ghi chú: mặc định hộp thoại này chỉ xuất trang đang xem, người dùng phải chọn 'Tất cả'. Các e2e chính của v0.5 nay đã đủ; việc còn lại của v0.5 là rà đóng từng task.
 
