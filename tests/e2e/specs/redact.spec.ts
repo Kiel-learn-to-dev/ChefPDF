@@ -193,10 +193,9 @@ test('watermark: a document without watermarks shows the empty state', async () 
   await expect(l.page.getByTestId('wm-candidate')).toHaveCount(0);
 });
 
-// Known gap in the core, not in the UI: overlay.watermark wraps a Form XObject call (Do) in the
-// ChefOverlay marks, and core/chef_core/content/watermark.py skips form objects in detect(), so the
-// watermark is never listed. Enable this test once the detector reads the marks around Do.
-test.fixme('watermark: the core watermark is listed with confidence 100% and removal leaves no marker', async () => {
+// The watermark is drawn as a Form XObject (Do) inside the ChefOverlay marks. The form object
+// carries those marks itself (content/engine.py), so the detector lists it at tier 4.
+test('watermark: the core watermark is listed with confidence 100% and removal leaves no marker', async () => {
   const wm = path.join(corpus, 'wm.pdf');
   await makeWatermarked(path.join(corpus, 'wm-base.pdf'), wm);
   expect(check(wm, 'contains', 'ChefOverlay')).toEqual({ found: true });
