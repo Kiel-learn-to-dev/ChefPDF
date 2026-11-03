@@ -34,3 +34,6 @@ playwright-report/
 # UI audit output and screenshot snapshots (tests/e2e)
 tests/e2e/ui-audit-out/
 tests/e2e/ui-audit-snapshots/
+
+# UI audit output for the narrow and dark passes
+tests/e2e/ui-audit-out-*/
