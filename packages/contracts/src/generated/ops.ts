@@ -1708,6 +1708,11 @@ export interface ExportDocumentParams {
   options?: ExportOptions;
   /** Reviewed model (layout.analyze modelPath). Null: analyse the document now. */
   modelPath?: string;
+  /**
+   * Replace an existing outputPath. Only for a path the user confirmed.
+   * @default false
+   */
+  replaceExisting?: boolean;
 }
 
 export interface ExportRefreshParams {
@@ -1716,6 +1721,11 @@ export interface ExportRefreshParams {
   pages?: number[];
   options?: ExportOptions;
   modelPath?: string;
+  /**
+   * Replace an existing outputPath. Only for a path the user confirmed.
+   * @default false
+   */
+  replaceExisting?: boolean;
 }
 
 /** Merge several PDFs (in order) into a new file. */

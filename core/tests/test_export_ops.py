@@ -130,6 +130,36 @@ def test_export_rejects_source_and_current_revision_as_destinations(
     assert source.read_bytes() == original
 
 
+def test_export_replaces_an_existing_file_only_when_asked(
+    harness: Harness, tmp_path: Path
+) -> None:
+    sid = _sid(harness, report_pdf(tmp_path / "r.pdf", pages=3))
+    for op, params in (
+        ("export.document", {"format": "txt", "outputPath": str(tmp_path / "out.txt")}),
+        ("export.refresh", {"outputPath": str(tmp_path / "out.pdf")}),
+    ):
+        target = Path(str(params["outputPath"]))
+        target.write_bytes(b"old")
+        with raises(RpcFailure) as refused:
+            harness.op(op, params, sid)
+        assert refused.value.kind == "INVALID_PARAMS"
+        assert target.read_bytes() == b"old"
+        harness.op(op, {**params, "replaceExisting": True}, sid)
+        assert target.read_bytes() != b"old"
+        assert not list(tmp_path.glob(".*tmp*"))
+
+
+def test_replace_existing_never_allows_the_source_document(
+    harness: Harness, tmp_path: Path
+) -> None:
+    source = report_pdf(tmp_path / "source.pdf", pages=2)
+    before = source.read_bytes()
+    sid = _sid(harness, source)
+    with raises(RpcFailure):
+        harness.op("export.refresh", {"outputPath": str(source), "replaceExisting": True}, sid)
+    assert source.read_bytes() == before
+
+
 def test_export_rejects_hard_link_and_symlink_aliases(
     harness: Harness, tmp_path: Path
 ) -> None:

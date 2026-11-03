@@ -203,9 +203,29 @@ def atomic_write(
         raise
 
 
+_REPLACEABLE: ContextVar[Path | None] = ContextVar("replaceable_output", default=None)
+
+
+@contextlib.contextmanager
+def allow_replacing(path: Path | None) -> Iterator[None]:
+    """Let ``atomic_write_new`` replace ``path`` (and only that path) while the context is active.
+
+    The caller has the user's explicit confirmation, e.g. from the operating system's save dialog.
+    """
+    token: Token[Path | None] = _REPLACEABLE.set(path.resolve() if path else None)
+    try:
+        yield
+    finally:
+        _REPLACEABLE.reset(token)
+
+
 def atomic_write_new(dest: str | Path, writer: Callable[[Path], None]) -> None:
-    """Atomically create a new file, refusing to replace an existing path."""
-    atomic_write(dest, writer, overwrite=False)
+    """Atomically create a file, refusing to replace an existing path unless it was declared
+    with ``allow_replacing``."""
+    replaceable = _REPLACEABLE.get()
+    atomic_write(
+        dest, writer, overwrite=replaceable is not None and Path(dest).resolve() == replaceable
+    )
 
 
 def atomic_save(

@@ -28,7 +28,7 @@ from chef_core.export.options import ExportOptions, Format
 from chef_core.export.run import load_model, run_export, run_refresh
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
-from chef_core.pdf.io import track_created_outputs
+from chef_core.pdf.io import allow_replacing, track_created_outputs
 
 MAX_PAGES = 5000
 
@@ -45,6 +45,10 @@ class ExportDocumentParams(WireModel):
         max_length=1024,
         description="Reviewed model (layout.analyze modelPath). Null: analyse the document now.",
     )
+    replace_existing: bool = Field(
+        default=False,
+        description="Replace an existing outputPath. Only for a path the user confirmed.",
+    )
 
 
 class ExportRefreshParams(WireModel):
@@ -52,9 +56,13 @@ class ExportRefreshParams(WireModel):
     pages: list[int] | None = Field(default=None, max_length=MAX_PAGES)
     options: ExportOptions = Field(default_factory=ExportOptions)
     model_path: str | None = Field(default=None, max_length=1024)
+    replace_existing: bool = Field(
+        default=False,
+        description="Replace an existing outputPath. Only for a path the user confirmed.",
+    )
 
 
-def _output(path: str, ctx: OpContext, fmt: str) -> Path:
+def _output(path: str, ctx: OpContext, fmt: str, *, replace: bool) -> Path:
     target = Path(path).expanduser()
     if not target.is_absolute():
         raise ChefError(
@@ -62,12 +70,6 @@ def _output(path: str, ctx: OpContext, fmt: str) -> Path:
         )
     if target.is_dir():
         raise ChefError(ErrorKind.INVALID_PARAMS, "outputPath is a folder", {"field": "outputPath"})
-    if target.exists() or (fmt in ("md", "html") and assets_folder(target).exists()):
-        raise ChefError(
-            ErrorKind.INVALID_PARAMS,
-            "Export output already exists",
-            {"field": "outputPath"},
-        )
     for protected in (ctx.input_path, ctx.source_path):
         if protected is None:
             continue
@@ -81,6 +83,14 @@ def _output(path: str, ctx: OpContext, fmt: str) -> Path:
                 "Export cannot replace the source or current document revision",
                 {"field": "outputPath"},
             )
+    if (target.exists() and not replace) or (
+        fmt in ("md", "html") and assets_folder(target).exists()
+    ):
+        raise ChefError(
+            ErrorKind.INVALID_PARAMS,
+            "Export output already exists",
+            {"field": "outputPath"},
+        )
     return target
 
 
@@ -100,13 +110,17 @@ def _cleanup_created_outputs(outputs: list[tuple[Path, int, int]]) -> None:
 
 
 @contextmanager
-def _cleanup_on_failure(ctx: OpContext) -> Iterator[None]:
-    """Remove every file the export created if it is cancelled or fails half-way."""
+def _cleanup_on_failure(ctx: OpContext, replaceable: Path | None) -> Iterator[None]:
+    """Remove every file the export created if it is cancelled or fails half-way. Only
+    ``replaceable`` (when given) may overwrite an existing file."""
     created: list[tuple[Path, int, int]] = []
     ctx.on_cancel(lambda: _cleanup_created_outputs(created))
     try:
-        with track_created_outputs(
-            lambda path, stat: created.append((path, stat.st_dev, stat.st_ino))
+        with (
+            allow_replacing(replaceable),
+            track_created_outputs(
+                lambda path, stat: created.append((path, stat.st_dev, stat.st_ino))
+            ),
         ):
             yield
     except BaseException:
@@ -135,11 +149,11 @@ def _result_data(result: Any, fmt: str | None = None) -> dict[str, Any]:
 def export_document(ctx: OpContext, p: ExportDocumentParams) -> OpOutput:
     if ctx.input_path is None:
         raise RuntimeError("export.document needs a session")
-    out = _output(p.output_path, ctx, p.format)
+    out = _output(p.output_path, ctx, p.format, replace=p.replace_existing)
     ctx.progress(0, 2, "Đọc mô hình")
     model = load_model(ctx.input_path, None, p.model_path, ctx.doc_name)
     ctx.progress(1, 2, "Xuất")
-    with _cleanup_on_failure(ctx):
+    with _cleanup_on_failure(ctx, out if p.replace_existing else None):
         result = run_export(
             model, ctx.input_path, None, p.format, out, p.pages, p.options, name=ctx.doc_name
         )
@@ -158,11 +172,11 @@ def export_document(ctx: OpContext, p: ExportDocumentParams) -> OpOutput:
 def export_refresh(ctx: OpContext, p: ExportRefreshParams) -> OpOutput:
     if ctx.input_path is None:
         raise RuntimeError("export.refresh needs a session")
-    out = _output(p.output_path, ctx, "pdf")
+    out = _output(p.output_path, ctx, "pdf", replace=p.replace_existing)
     ctx.progress(0, 2, "Đọc mô hình")
     model = load_model(ctx.input_path, None, p.model_path, ctx.doc_name)
     ctx.progress(1, 2, "Dàn trang")
-    with _cleanup_on_failure(ctx):
+    with _cleanup_on_failure(ctx, out if p.replace_existing else None):
         result = run_refresh(
             model, ctx.input_path, None, out, p.pages, p.options, name=ctx.doc_name
         )
