@@ -21,14 +21,32 @@ from pathlib import Path
 from typing import Any
 
 from chef_core import ops
+from chef_core.models import WireModel
+from chef_core.workflow.contracts import (
+    WorkflowRunResult,
+    WorkflowSamplesResult,
+    WorkflowValidationResult,
+)
+from chef_core.workflow.model import Workflow, WorkflowInputs, WorkflowOutput, WorkflowStep
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "ops.ts"
+DEFAULT_WORKFLOW_OUTPUT = (
+    REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "workflow.ts"
+)
 
 HEADER = """\
 /**
  * GENERATED FILE - DO NOT EDIT.
  * Source: pydantic params models of the core operations (core/chef_core/ops).
+ * Regenerate: cd core && uv run python -m chef_core.codegen
+ */
+"""
+
+WORKFLOW_HEADER = """\
+/**
+ * GENERATED FILE - DO NOT EDIT.
+ * Source: pydantic workflow models and result contracts (core/chef_core/workflow).
  * Regenerate: cd core && uv run python -m chef_core.codegen
  */
 """
@@ -125,14 +143,20 @@ def _prop_key(name: str) -> str:
     return name if _IDENT_RE.match(name) else _literal(name)
 
 
-def _object_body(schema: Schema, indent: str) -> str:
+def _object_body(schema: Schema, indent: str, *, preserve_null: bool = False) -> str:
     required = set(schema.get("required", []))
     inner = indent + "  "
     lines = ["{"]
     for name, prop in schema.get("properties", {}).items():
         lines.extend(_doc(prop, inner))
         optional = "" if name in required else "?"
-        if optional and "default" in prop and prop["default"] is None and "anyOf" in prop:
+        if (
+            not preserve_null
+            and optional
+            and "default" in prop
+            and prop["default"] is None
+            and "anyOf" in prop
+        ):
             # Optional[X] = None: an omitted field is enough on the TypeScript side.
             branches = [b for b in prop["anyOf"] if b != {"type": "null"}]
             prop = {**prop, "anyOf": branches}
@@ -141,9 +165,9 @@ def _object_body(schema: Schema, indent: str) -> str:
     return "\n".join(lines)
 
 
-def _interface(name: str, schema: Schema) -> str:
+def _interface(name: str, schema: Schema, *, preserve_null: bool = False) -> str:
     doc = _doc({"description": schema.get("description")}, "")
-    body = _object_body(schema, "")
+    body = _object_body(schema, "", preserve_null=preserve_null)
     return "\n".join([*doc, f"export interface {name} {body}"])
 
 
@@ -174,26 +198,75 @@ def render() -> str:
     return HEADER + "\n" + "\n\n".join([*def_blocks, *blocks, *tail]) + "\n"
 
 
+def render_workflow() -> str:
+    """Render the workflow JSON and operation result contracts for TypeScript."""
+    models: list[type[WireModel]] = [
+        Workflow,
+        WorkflowStep,
+        WorkflowInputs,
+        WorkflowOutput,
+        WorkflowValidationResult,
+        WorkflowRunResult,
+        WorkflowSamplesResult,
+    ]
+    roots: dict[str, Schema] = {}
+    defs: dict[str, Schema] = {}
+    for model in models:
+        schema = model.model_json_schema(by_alias=True)
+        root_name = schema.pop("title")
+        roots[root_name] = schema
+        for name, definition in schema.pop("$defs", {}).items():
+            definition.pop("title", None)
+            prior = defs.get(name)
+            if prior is not None and prior != definition:
+                raise ValueError(f"conflicting workflow definitions for {name}")
+            defs[name] = definition
+    for name, definition in defs.items():
+        if name in roots and roots[name] != definition:
+            raise ValueError(f"conflicting workflow root and definition for {name}")
+    blocks = [
+        _interface(name, defs.get(name, schema), preserve_null=True)
+        for name, schema in roots.items()
+    ]
+    blocks += [
+        _interface(name, schema, preserve_null=True)
+        for name, schema in sorted(defs.items())
+        if name not in roots
+    ]
+    return WORKFLOW_HEADER + "\n" + "\n\n".join(blocks) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m chef_core.codegen")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--workflow-out", type=Path, default=DEFAULT_WORKFLOW_OUTPUT)
     parser.add_argument("--check", action="store_true", help="fail if the file is outdated")
     parser.add_argument("--stdout", action="store_true", help="print instead of writing")
     args = parser.parse_args(argv)
     content = render()
+    workflow_content = render_workflow()
     if args.stdout:
         sys.stdout.write(content)
         return 0
     out: Path = args.out
     if args.check:
-        current = out.read_text(encoding="utf-8") if out.is_file() else ""
-        if current != content:
-            print(f"{out} is out of date; run python -m chef_core.codegen", file=sys.stderr)
-            return 1
-        return 0
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(content, encoding="utf-8", newline="\n")
-    print(f"wrote {out}", file=sys.stderr)
+        targets = [(out, content)]
+        if args.out == DEFAULT_OUTPUT:
+            targets.append((args.workflow_out, workflow_content))
+        stale = False
+        for target, expected in targets:
+            current = target.read_text(encoding="utf-8") if target.is_file() else ""
+            if current != expected:
+                print(f"{target} is out of date; run python -m chef_core.codegen", file=sys.stderr)
+                stale = True
+        return int(stale)
+    targets = [(out, content)]
+    if args.out == DEFAULT_OUTPUT:
+        targets.append((args.workflow_out, workflow_content))
+    for target, expected in targets:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(expected, encoding="utf-8", newline="\n")
+        print(f"wrote {target}", file=sys.stderr)
     return 0
 
 

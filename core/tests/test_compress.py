@@ -284,6 +284,26 @@ def test_fit_size_unreachable(harness: Harness, tmp_path: Path) -> None:
     assert data["estimatedBytes"] > 10
 
 
+def test_fit_and_apply_size_writes_a_revision_within_target(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _big_photo_pdf(tmp_path / "photo.pdf")
+    sid = _open(harness, src)
+    target = pdf_size(src) // 2
+    result = harness.op("compress.toSize", {"preset": "print", "targetBytes": target}, sid)
+    assert result["state"]["revision"] == 1
+    assert _rev(harness, sid).stat().st_size <= target
+
+
+def test_fit_and_apply_size_refuses_unreachable_target(harness: Harness, tmp_path: Path) -> None:
+    src = _big_photo_pdf(tmp_path / "photo.pdf", 400, 400)
+    sid = _open(harness, src)
+    with pytest.raises(RpcFailure) as exc:
+        harness.op("compress.toSize", {"targetBytes": 10, "minDpi": 72}, sid)
+    assert exc.value.kind == "INVALID_PARAMS"
+    assert _rev(harness, sid).read_bytes() == src.read_bytes()
+
+
 def test_fit_size_validation(harness: Harness, tmp_path: Path) -> None:
     src = _big_photo_pdf(tmp_path / "photo.pdf", 400, 400)
     sid = _open(harness, src)

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from conftest import Harness, RpcFailure, make_numbered_pdf
 
 from chef_core.ops import load_builtin_ops
@@ -27,6 +28,33 @@ def test_preview_shows_names_and_touches_nothing(harness: Harness, tmp_path: Pat
     targets = [Path(item["to"]).name for item in data["items"]]
     assert targets == ["Hồ sơ_01_a.pdf", "Hồ sơ_02_b.pdf"]
     assert all(p.exists() for p in files)
+
+
+def test_first_line_token_reads_pdf_text_and_falls_back_for_a_blank_page(
+    harness: Harness, tmp_path: Path
+) -> None:
+    from reportlab.pdfgen import canvas
+
+    readable = tmp_path / "readable.pdf"
+    c = canvas.Canvas(str(readable))
+    c.drawString(72, 740, "HOP DONG 2026")
+    c.drawString(72, 710, "Second line")
+    c.save()
+    blank = make_numbered_pdf(tmp_path / "blank.pdf", 1)
+    result = harness.op(
+        "naming.preview", {"files": [str(readable), str(blank)], "template": "{firstline}"}
+    )["data"]
+    assert [Path(row["to"]).name for row in result["items"]] == ["HOP DONG 2026.pdf", "blank.pdf"]
+
+
+def test_first_line_token_keeps_vietnamese_characters(harness: Harness, tmp_path: Path) -> None:
+    from layout_support import report_pdf
+
+    source = report_pdf(tmp_path / "document.pdf", pages=2)
+    result = harness.op("naming.preview", {"files": [str(source)], "template": "{firstline}"})[
+        "data"
+    ]
+    assert Path(result["items"][0]["to"]).name.startswith("Báo cáo thường niên")
 
 
 def test_apply_renames_and_the_mapping_undoes_it(harness: Harness, tmp_path: Path) -> None:
@@ -141,3 +169,54 @@ def test_watch_scan_and_mark_done_over_rpc(harness: Harness, tmp_path: Path) -> 
         {"directory": str(watched), "ledgerPath": str(ledger), "settleSeconds": 0},
     )["data"]
     assert after["ready"] == []  # processed, and its output is never picked up
+
+
+def test_watch_scan_rejects_resolved_source_output_alias(harness: Harness, tmp_path: Path) -> None:
+    from chef_core.errors import INVALID_PARAMS_CODE
+
+    watched = tmp_path / "inbox"
+    watched.mkdir()
+    alias = tmp_path / "output-alias"
+    try:
+        alias.symlink_to(watched, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlinks unavailable: {exc}")
+    try:
+        harness.op(
+            "watch.scan",
+            {
+                "directory": str(watched),
+                "outputDirectory": str(alias),
+                "ledgerPath": str(tmp_path / "state.json"),
+            },
+        )
+        raise AssertionError("resolved aliases of the source folder must be rejected")
+    except RpcFailure as exc:
+        assert exc.code == INVALID_PARAMS_CODE
+
+
+def test_watch_release_allows_unprocessed_batch_items_to_be_scanned_again(
+    harness: Harness, tmp_path: Path
+) -> None:
+    watched = tmp_path / "inbox"
+    watched.mkdir()
+    ledger = tmp_path / "state.json"
+    make_numbered_pdf(watched / "a.pdf", 1)
+    make_numbered_pdf(watched / "b.pdf", 1)
+    ready = harness.op(
+        "watch.scan", {"directory": str(watched), "ledgerPath": str(ledger), "settleSeconds": 0}
+    )["data"]["ready"]
+    assert len(ready) == 2
+    harness.op(
+        "watch.markDone",
+        {"ledgerPath": str(ledger), "path": ready[0]["path"], "status": "done"},
+    )
+    released = harness.op(
+        "watch.release",
+        {"ledgerPath": str(ledger), "paths": [item["path"] for item in ready]},
+    )["data"]
+    assert released["released"] == 1
+    again = harness.op(
+        "watch.scan", {"directory": str(watched), "ledgerPath": str(ledger), "settleSeconds": 0}
+    )["data"]["ready"]
+    assert [Path(item["path"]).name for item in again] == ["b.pdf"]

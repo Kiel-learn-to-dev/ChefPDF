@@ -19,6 +19,7 @@ from chef_core.ops.page import copy_pages
 from chef_core.pdf.io import atomic_save, open_pdf
 from chef_core.pdf.outline import build_items, read_bookmarks
 from chef_core.pdf.pages import check_indices, page_objgen_index
+from chef_core.session.info import has_signatures
 
 PageIndex = Annotated[int, Field(ge=0)]
 
@@ -66,6 +67,24 @@ def merge(ctx: OpContext, p: FileMergeParams) -> OpOutput:
                     exc.detail = {**(exc.detail or {}), "inputIndex": index}
                     raise
                 sources.append(src)
+                input_name = Path(item.path).name
+                if has_signatures(src):
+                    ctx.warn(
+                        f"{input_name}: chữ ký số không được giữ lại trong PDF ghép mới."
+                    )
+                acroform = src.Root.get("/AcroForm")
+                fields = (
+                    acroform.get("/Fields")
+                    if isinstance(acroform, pikepdf.Dictionary)
+                    else None
+                )
+                has_form_data = isinstance(fields, pikepdf.Array) and len(fields) > 0
+                has_xfa = isinstance(acroform, pikepdf.Dictionary) and "/XFA" in acroform
+                if has_form_data or has_xfa:
+                    ctx.warn(
+                        f"{input_name}: trường biểu mẫu tương tác không được giữ lại "
+                        "trong PDF ghép mới."
+                    )
                 pages = (
                     list(range(len(src.pages)))
                     if item.pages is None

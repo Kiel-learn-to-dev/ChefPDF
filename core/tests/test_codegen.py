@@ -1,4 +1,4 @@
-"""The committed TypeScript params file must match the current pydantic models."""
+"""Committed TypeScript contracts must match the current pydantic models."""
 
 from __future__ import annotations
 
@@ -11,6 +11,16 @@ def test_generated_ops_ts_is_up_to_date() -> None:
     assert current == expected, "run: cd core && uv run python -m chef_core.codegen"
 
 
+def test_generated_workflow_ts_is_up_to_date() -> None:
+    expected = codegen.render_workflow()
+    current = codegen.DEFAULT_WORKFLOW_OUTPUT.read_text(encoding="utf-8")
+    assert current == expected, "run: cd core && uv run python -m chef_core.codegen"
+
+
+def test_codegen_check_covers_both_generated_contract_files() -> None:
+    assert codegen.main(["--check"]) == 0
+
+
 def test_render_contents() -> None:
     text = codegen.render()
     assert "export interface PageRotateParams {" in text
@@ -19,6 +29,19 @@ def test_render_contents() -> None:
     assert "  password?: string;" in text
     assert "  'page.insertImages': PageInsertImagesParams;" in text
     assert "export type OpId = keyof OpParams;" in text
+
+
+def test_render_workflow_preserves_wire_names_nulls_and_result_shapes() -> None:
+    text = codegen.render_workflow()
+    assert "export interface WorkflowStep {" in text
+    assert "  onError?: 'stop' | 'skip';" in text
+    assert "  label?: string | null;" in text
+    assert "export interface WorkflowOutput {" in text
+    assert "  alsoSavePdf?: boolean;" in text
+    assert "export interface WorkflowValidationResult {" in text
+    assert "export interface WorkflowRunResult {" in text
+    assert "export interface WorkflowSamplesResult {" in text
+    assert "  plannedOutputs: string[];" in text
 
 
 def test_interface_name() -> None:

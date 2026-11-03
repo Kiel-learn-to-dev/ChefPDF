@@ -139,11 +139,17 @@ class WatchState:
         """Record the result of a file. Its output is ignored by later scans."""
         key = str(path)
         obs = self.pending.pop(key, None)
-        try:
-            stat = path.stat()
-            size, mtime_ns = stat.st_size, stat.st_mtime_ns
-        except OSError:
-            size, mtime_ns = (obs.size, obs.mtime_ns) if obs else (-1, -1)
+        # The queued fingerprint identifies the version the workflow received. The
+        # file may be replaced while that workflow is running; recording its current
+        # stat here would incorrectly mark the newer version as processed as well.
+        if obs is not None:
+            size, mtime_ns = obs.size, obs.mtime_ns
+        else:
+            try:
+                stat = path.stat()
+                size, mtime_ns = stat.st_size, stat.st_mtime_ns
+            except OSError:
+                size, mtime_ns = (-1, -1)
         self.processed[f"{path}|{size}|{mtime_ns}"] = {
             "path": key,
             "size": size,
@@ -157,6 +163,16 @@ class WatchState:
         if len(self.processed) > MAX_PROCESSED:
             for old in list(self.processed)[: len(self.processed) - MAX_PROCESSED]:
                 del self.processed[old]
+
+    def release(self, paths: list[Path]) -> int:
+        """Release unprocessed queue leases after an orderly stop."""
+        released = 0
+        for path in paths:
+            obs = self.pending.get(str(path))
+            if obs is not None and obs.queued_at is not None:
+                obs.queued_at = None
+                released += 1
+        return released
 
     # -- ledger -------------------------------------------------------------------------
 

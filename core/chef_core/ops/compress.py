@@ -718,3 +718,63 @@ def fit_size(ctx: OpContext, p: CompressFitSizeParams) -> OpOutput:
             "steps": search.steps,
         },
     )
+
+
+@operation(
+    id="compress.toSize",
+    title="Compress to a target size",
+    group="compress",
+    params=CompressFitSizeParams,
+    destructive=True,
+    batchable=True,
+)
+def compress_to_size(ctx: OpContext, p: CompressFitSizeParams) -> OpOutput:
+    """Find and apply the first compression setting that fits, or stop without a revision."""
+    res = resolve(p)
+    base_dpi = res.max_dpi or 300
+    if p.min_dpi > base_dpi:
+        raise invalid_params("minDpi must not be above maxImageDpi", {"field": "minDpi"})
+    top = res.jpeg_quality or JPEG_DEFAULT_QUALITY
+    if p.min_jpeg_quality > top:
+        raise invalid_params(
+            "minJpegQuality must not be above jpegQuality", {"field": "minJpegQuality"}
+        )
+    search = _FitSearch(ctx, p)
+    reachable, params, value = search.run(
+        p.target_bytes, top, p.min_jpeg_quality, base_dpi, p.min_dpi
+    )
+    if not reachable:
+        raise invalid_params(
+            "Target size cannot be reached within the configured compression limits.",
+            {
+                "targetBytes": p.target_bytes,
+                "smallestEstimatedBytes": value,
+                "minDpi": p.min_dpi,
+                "minJpegQuality": p.min_jpeg_quality,
+            },
+        )
+
+    assert ctx.input_path is not None and ctx.result_path is not None
+    stats = CompressStats()
+    before = ctx.input_path.stat().st_size
+    applied = resolve(params)
+    with ctx.open_input() as pdf:
+        compress_document(ctx, pdf, applied, stats)
+        ctx.check_cancelled()
+        atomic_save(pdf, ctx.result_path, **save_options(applied))
+    ctx.modified = True
+    after = ctx.result_path.stat().st_size
+    if after > p.target_bytes:
+        # The search measures a temporary serialization; keep the real output as the authority.
+        # Refuse to commit so a workflow never proceeds to signing with a false size claim.
+        ctx.result_path.unlink(missing_ok=True)
+        ctx.modified = False
+        raise invalid_params(
+            "The measured output exceeded the target; no compressed revision was committed.",
+            {"targetBytes": p.target_bytes, "actualBytes": after},
+        )
+    report = _report(before, after, stats)
+    return OpOutput(
+        changed_pages="all",
+        data={**report, "targetBytes": p.target_bytes, "reachable": True, "steps": search.steps},
+    )

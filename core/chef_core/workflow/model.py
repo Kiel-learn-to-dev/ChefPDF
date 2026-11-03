@@ -36,7 +36,7 @@ MAX_STEPS = 50
 
 # Standalone operations that take explicit file paths. None of them can run on a workflow file
 # yet, so the list is empty; the rule and the list stay in place for later additions.
-DOCUMENT_TRANSFORM_OPS: frozenset[str] = frozenset()
+DOCUMENT_TRANSFORM_OPS: frozenset[str] = frozenset({"export.document", "export.refresh"})
 
 # Operations that need a person to point at something on the page (an object id, a region drawn
 # by hand, a line picked from a list). A workflow can run them on one file but not on a batch.
@@ -74,6 +74,10 @@ class WorkflowStep(WireModel):
 
 
 class WorkflowInputs(WireModel):
+    mode: Literal["each", "merge"] = Field(
+        default="each",
+        description="each: run once per PDF; merge: combine all selected PDFs and run once.",
+    )
     accept: list[Literal["pdf", "images"]] = Field(default=["pdf"], min_length=1)
     password: bool = Field(
         default=False, description="Ask for a password of an encrypted input file."
@@ -88,6 +92,15 @@ class WorkflowOutput(WireModel):
     folder: str | None = Field(default=None, max_length=1024)
     name_template: str | None = Field(
         default=None, max_length=200, description="Name template, e.g. {name}_{date}_da-ky."
+    )
+    also_save_pdf: bool = Field(
+        default=False,
+        description="Lưu thêm PDF đã xử lý khi quy trình có bước xuất tài liệu.",
+    )
+    max_bytes: int | None = Field(
+        default=None,
+        gt=0,
+        description="Giới hạn dung lượng PDF cuối cùng; file vượt giới hạn sẽ được báo lỗi.",
     )
 
 
@@ -298,7 +311,15 @@ def validate_workflow(
                 )
             )
         try:
-            spec.params_model.model_validate(step.params)
+            params = step.params
+            if step.op in DOCUMENT_TRANSFORM_OPS and not (
+                "outputPath" in params or "output_path" in params
+            ):
+                # The operation contract requires a path for direct callers. Workflows may omit
+                # it because the runner derives one from WorkflowOutput; this value is
+                # validation-only.
+                params = {**params, "outputPath": "workflow-generated-output.pdf"}
+            spec.params_model.model_validate(params)
         except ValidationError as exc:
             for err in exc.errors():
                 field_path = f"{base}.params" + (
@@ -360,6 +381,15 @@ def _check_placeholders(
 
 def _check_output(flow: Workflow, report: ValidationReport) -> None:
     out = flow.output
+    if flow.inputs.mode == "merge" and out.mode == "overwrite":
+        report.errors.append(
+            Issue(
+                "OUTPUT",
+                "Quy trình ghép nhiều PDF không được ghi đè tệp nguồn.",
+                None,
+                "output.mode",
+            )
+        )
     if out.mode == "folder" and not out.folder:
         report.errors.append(
             Issue("OUTPUT", "Chế độ lưu vào thư mục cần có thư mục đích.", None, "output.folder")

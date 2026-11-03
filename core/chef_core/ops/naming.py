@@ -21,7 +21,9 @@ from chef_core.workflow.naming import (
     RenamePlan,
     apply_mapping,
     check_template,
+    pdf_first_line,
     plan_renames,
+    uses_first_line,
 )
 from chef_core.workflow.runner import pdf_facts
 
@@ -63,7 +65,7 @@ class RenameBatchParams(WireModel):
         return self
 
 
-def _values_for(path: Path) -> NameValues:
+def _values_for(path: Path, include_first_line: bool = False) -> NameValues:
     stat = path.stat()
     pages, title = pdf_facts(path, None) if path.suffix.lower() == ".pdf" else (None, None)
     return NameValues(
@@ -73,6 +75,7 @@ def _values_for(path: Path) -> NameValues:
         pages=pages,
         parent=path.parent.name,
         title=title,
+        first_line=pdf_first_line(path) if include_first_line else None,
     )
 
 
@@ -119,7 +122,9 @@ def rename_by_template(
         raise invalid_params(problems[0], {"field": "template"})
     paths = [Path(f) for f in files]
     _require_files(paths)
-    plans = plan_renames(paths, template, conflict, _values_for)
+    plans = plan_renames(
+        paths, template, conflict, lambda path: _values_for(path, uses_first_line(template))
+    )
     if dry_run:
         return _result([_plan_row(p) for p in plans], dry_run=True)
     pairs = [(p.source, p.target) for p in plans if p.status == "ready" and p.target is not None]

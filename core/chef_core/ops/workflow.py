@@ -128,7 +128,7 @@ def workflow_run(ctx: OpContext, p: WorkflowRunParams) -> OpOutput:
         progress=ctx.progress,
         check_cancel=ctx.check_cancelled,
     )
-    outputs = [row["outputPath"] for row in report["results"] if row["outputPath"]]
+    outputs = [path for row in report["results"] for path in row["outputs"]]
     return OpOutput(outputs=outputs, data=report)
 
 
@@ -162,7 +162,7 @@ def batch_run(ctx: OpContext, p: BatchRunParams) -> OpOutput:
         progress=ctx.progress,
         check_cancel=ctx.check_cancelled,
     )
-    outputs = [row["outputPath"] for row in report["results"] if row["outputPath"]]
+    outputs = [path for row in report["results"] for path in row["outputs"]]
     return OpOutput(outputs=outputs, data=report)
 
 

@@ -1,0 +1,22 @@
+{
+  "id": "ra-word",
+  "name": "Rã tài liệu ra Word",
+  "description": "Phân tích bố cục PDF có chữ rồi xuất thành Word dễ chỉnh sửa.",
+  "version": 1,
+  "steps": [
+    {
+      "op": "export.document",
+      "label": "Xuất Word dễ chỉnh sửa",
+      "params": {
+        "format": "docx",
+        "options": {
+          "mode": "editable",
+          "pageBreaks": true
+        }
+      }
+    }
+  ],
+  "inputs": {"accept": ["pdf"], "password": false},
+  "output": {"mode": "suffix", "suffix": "_word"},
+  "variables": {}
+}

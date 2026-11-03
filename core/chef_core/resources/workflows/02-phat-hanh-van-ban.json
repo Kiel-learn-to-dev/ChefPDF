@@ -1,7 +1,7 @@
 {
   "id": "phat-hanh-van-ban",
   "name": "Phát hành văn bản",
-  "description": "Đánh số trang theo NĐ 30, đóng dấu giáp lai, ký số. Cần ảnh dấu giáp lai (PNG/JPEG) và file chứng thư số.",
+  "description": "Đánh số trang theo NĐ 30, đóng dấu giáp lai rồi ký số để chữ ký bao phủ bản PDF cuối. Cần ảnh dấu giáp lai (PNG/JPEG), file chứng thư số và mật khẩu.",
   "version": 1,
   "steps": [
     {

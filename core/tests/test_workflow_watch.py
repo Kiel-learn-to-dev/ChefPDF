@@ -55,6 +55,36 @@ def test_changed_content_is_a_new_file(tmp_path: Path) -> None:
     assert names(state.scan(tmp_path, settle_seconds=0, now=2.0)) == ["a.pdf"]
 
 
+def test_file_changed_during_workflow_is_queued_as_new_version(tmp_path: Path) -> None:
+    f = tmp_path / "a.pdf"
+    f.write_bytes(b"first version")
+    state = WatchState()
+    queued = state.scan(tmp_path, settle_seconds=0, now=0.0)
+    assert queued[0].size == len(b"first version")
+
+    # A new version arrives while the first version is being processed.
+    f.write_bytes(b"second version is longer")
+    state.mark_done(f, output_path=None, status="done", now=1.0)
+
+    next_queued = state.scan(tmp_path, settle_seconds=0, now=2.0)
+    assert names(next_queued) == ["a.pdf"]
+    assert next_queued[0].size == len(b"second version is longer")
+
+
+def test_release_returns_unprocessed_queued_files_immediately(tmp_path: Path) -> None:
+    a = tmp_path / "a.pdf"
+    b = tmp_path / "b.pdf"
+    a.write_bytes(b"a")
+    b.write_bytes(b"b")
+    state = WatchState()
+    queued = state.scan(tmp_path, settle_seconds=0, now=0.0)
+    assert len(queued) == 2
+    state.mark_done(a, output_path=None, status="done", now=1.0)
+    assert state.release([Path(item.path) for item in queued]) == 1
+    requeued = state.scan(tmp_path, settle_seconds=0, now=2.0)
+    assert names(requeued) == ["b.pdf"]
+
+
 def test_locked_file_waits(tmp_path: Path) -> None:
     (tmp_path / "a.pdf").write_bytes(b"1")
     locked = {"yes": True}

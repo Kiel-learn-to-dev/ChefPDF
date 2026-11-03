@@ -6,6 +6,7 @@ Template tokens (single braces)::
     {index}    1-based position in the batch         {time}  HHMMSS
     {seq:N}    index padded with zeros to N digits   {pages} page count (PDF only)
     {parent}   name of the folder that holds it      {title} /Title in the metadata (PDF only)
+    {firstline} first non-empty line of page 1 (PDF only, falls back to the file name)
     {counter}  1-based count of files that got a name so far in this batch
 
 Conflict policy: ``suffix`` gives ``name (2).pdf``, ``skip`` leaves the item out, ``overwrite``
@@ -35,7 +36,9 @@ PlanStatus = Literal["ready", "unchanged", "skipped", "invalid"]
 CONFLICT_POLICIES: tuple[str, ...] = ("suffix", "skip", "overwrite")
 TOKEN_RE = re.compile(r"\{([^{}]*)\}")
 SEQ_RE = re.compile(r"^seq:([1-9][0-9]?)$")
-PLAIN_TOKENS = frozenset({"name", "index", "date", "time", "pages", "parent", "title", "counter"})
+PLAIN_TOKENS = frozenset(
+    {"name", "index", "date", "time", "pages", "parent", "title", "firstline", "counter"}
+)
 ILLEGAL_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 RESERVED = frozenset(
     {"CON", "PRN", "AUX", "NUL"}
@@ -58,6 +61,7 @@ class NameValues:
     pages: int | None = None
     parent: str = ""
     title: str | None = None
+    first_line: str | None = None
     counter: int = 1
 
 
@@ -73,6 +77,10 @@ def check_template(template: str) -> list[str]:
     if "{" in TOKEN_RE.sub("", template) or "}" in TOKEN_RE.sub("", template):
         problems.append("Dấu ngoặc nhọn không đóng đúng cặp.")
     return problems
+
+
+def uses_first_line(template: str) -> bool:
+    return any(match.group(1).strip() == "firstline" for match in TOKEN_RE.finditer(template))
 
 
 def render_template(template: str, values: NameValues) -> str:
@@ -91,6 +99,7 @@ def render_template(template: str, values: NameValues) -> str:
             "pages": "" if values.pages is None else str(values.pages),
             "parent": values.parent,
             "title": values.title or "",
+            "firstline": values.first_line or values.name,
             "counter": str(values.counter),
         }
         if key not in simple:
@@ -98,6 +107,35 @@ def render_template(template: str, values: NameValues) -> str:
         return simple[key]
 
     return TOKEN_RE.sub(token, template)
+
+
+def pdf_first_line(path: Path) -> str | None:
+    """Read the first non-empty line of page one; scanned or unreadable PDFs have none."""
+    if path.suffix.lower() != ".pdf":
+        return None
+    import pypdfium2 as pdfium
+
+    try:
+        doc = pdfium.PdfDocument(str(path))
+        try:
+            if len(doc) == 0:
+                return None
+            page = doc[0]
+            try:
+                text_page = page.get_textpage()
+                try:
+                    text = text_page.get_text_range(0, min(text_page.count_chars(), 2000))
+                finally:
+                    text_page.close()
+            finally:
+                page.close()
+        finally:
+            doc.close()
+    except (OSError, ValueError, pdfium.PdfiumError):
+        return None
+    return next(
+        (line.strip()[:MAX_BASE_LENGTH] for line in text.splitlines() if line.strip()), None
+    )
 
 
 def sanitize_base(text: str, max_length: int = MAX_BASE_LENGTH) -> str:

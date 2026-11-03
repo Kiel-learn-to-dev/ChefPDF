@@ -184,3 +184,25 @@ def test_output_rules_are_checked() -> None:
         )
     )
     assert any(e.field == "output.nameTemplate" for e in bad.errors)
+
+
+def test_workflow_allows_multiple_exports_and_also_save_pdf() -> None:
+    report = validate_workflow(
+        wf(
+            [
+                {"op": "export.document", "params": {"format": "md"}},
+                {"op": "export.refresh", "params": {}},
+            ],
+            output={"alsoSavePdf": True},
+        )
+    )
+    assert report.valid
+    assert '"alsoSavePdf": true' in to_json(
+        wf(
+            [
+                {"op": "export.document", "params": {"format": "md"}},
+                {"op": "export.refresh", "params": {}},
+            ],
+            output={"alsoSavePdf": True},
+        )
+    )

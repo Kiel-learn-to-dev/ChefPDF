@@ -1,7 +1,7 @@
 {
   "id": "chup-sach",
   "name": "Chụp sách",
-  "description": "Dò viền và cắt trang, nắn thẳng chữ, làm trắng nền, nén và ghép thành PDF. Dùng cho ảnh chụp sách bằng điện thoại.",
+  "description": "Nhập PDF đã tạo từ ảnh chụp sách; dò viền/cắt, tách trang đôi, nắn thẳng/làm phẳng cong, làm trắng nền và nén PDF. Nếu cần xóa ngón tay, hãy dùng bước đề xuất rồi chỉnh mask thủ công trước khi áp dụng. Kết quả cần kiểm tra vì có thể cắt mất nội dung. Chưa nhận ảnh điện thoại trực tiếp.",
   "version": 1,
   "steps": [
     {
@@ -9,8 +9,17 @@
       "label": "Dò viền và cắt trang"
     },
     {
+      "op": "pageimg.splitSpread",
+      "label": "Tách trang đôi",
+      "params": {"mode": "auto"}
+    },
+    {
       "op": "pageimg.deskew",
       "label": "Nắn thẳng chữ"
+    },
+    {
+      "op": "pageimg.dewarp",
+      "label": "Làm phẳng trang cong"
     },
     {
       "op": "pageimg.enhance",

@@ -1,18 +1,18 @@
 {
   "id": "nop-ho-so-online",
   "name": "Nộp hồ sơ online",
-  "description": "Nén dưới 2 MB, đánh số trang theo NĐ 30, ký số. Cần file chứng thư số (.pfx/.p12) và mật khẩu của chứng thư.",
+  "description": "Ghép tất cả PDF đã chọn theo thứ tự thành một hồ sơ, raster hóa ở 200 dpi xám, nén tối đa 4 MB trước khi ký để chừa chỗ cho chữ ký; file không thể đạt giới hạn sẽ dừng trước khi ký. Kiểm tra lại PDF cuối và báo lỗi nếu vượt 5 MB (5.000.000 byte). Cần mật khẩu cho từng PDF được bảo vệ và file chứng thư số (.pfx/.p12) cùng mật khẩu chứng thư.",
   "version": 1,
   "steps": [
     {
-      "op": "compress.fitSize",
-      "label": "Nén dưới 2 MB",
-      "params": {"preset": "ebook", "targetBytes": 2097152}
+      "op": "scan.rasterize",
+      "label": "Raster hóa 200 dpi xám",
+      "params": {"dpi": 200, "color": "gray"}
     },
     {
-      "op": "overlay.pageNumbers",
-      "label": "Đánh số trang (NĐ 30)",
-      "params": {"preset": "nd30"}
+      "op": "compress.toSize",
+      "label": "Nén tối đa 4 MB",
+      "params": {"preset": "custom", "maxImageDpi": 200, "grayscale": true, "jpegQuality": 65, "targetBytes": 4000000, "minDpi": 72, "minJpegQuality": 20}
     },
     {
       "op": "sign.pades",
@@ -20,7 +20,7 @@
       "params": {"pfxPath": "{{pfxPath}}", "password": "{{secret:password}}"}
     }
   ],
-  "inputs": {"accept": ["pdf"], "password": true},
-  "output": {"mode": "suffix", "suffix": "_da-ky"},
+  "inputs": {"mode": "merge", "accept": ["pdf"], "password": true},
+  "output": {"mode": "suffix", "suffix": "_da-ky", "maxBytes": 5000000},
   "variables": {"pfxPath": ""}
 }

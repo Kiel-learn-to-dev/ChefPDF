@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any
 
 import pikepdf
-from conftest import Harness, make_numbered_pdf, page_count
+import pytest
+from conftest import Harness, RpcFailure, make_numbered_pdf, page_count
+from docx import Document
 from PIL import Image
 from signing_support import PASSWORD_A, validate_pdf_signatures
 
@@ -18,7 +20,13 @@ from chef_core.workflow.samples import load_samples
 load_builtin_ops()
 
 SECRET = "SAMPLE-SECRET-7319"
-IDS = ["nop-ho-so-online", "phat-hanh-van-ban", "chup-sach", "gui-ban-sao-gon"]
+IDS = [
+    "nop-ho-so-online",
+    "phat-hanh-van-ban",
+    "chup-sach",
+    "gui-ban-sao-gon",
+    "ra-word",
+]
 
 
 def sample(flow_id: str) -> dict[str, Any]:
@@ -28,7 +36,7 @@ def sample(flow_id: str) -> dict[str, Any]:
     raise AssertionError(f"no sample {flow_id}")
 
 
-def test_four_samples_exist_and_validate_structurally() -> None:
+def test_samples_exist_and_validate_structurally() -> None:
     samples = load_samples()
     assert [s.id for s in samples] == IDS
     for flow in samples:
@@ -44,6 +52,30 @@ def test_samples_declare_their_secrets_and_variables() -> None:
     assert by_id["phat-hanh-van-ban"].required_variables == ["pfxPath", "seamPath"]
     assert by_id["chup-sach"].required_secrets == []
     assert by_id["gui-ban-sao-gon"].required_secrets == ["password"]
+
+
+def test_samples_match_available_o7_steps_and_keep_signing_last() -> None:
+    flows = {flow.id: flow for flow in load_samples()}
+    nophoso = flows["nop-ho-so-online"].steps
+    assert [step.op for step in nophoso] == ["scan.rasterize", "compress.toSize", "sign.pades"]
+    assert flows["nop-ho-so-online"].inputs.mode == "merge"
+    assert nophoso[0].params == {"dpi": 200, "color": "gray"}
+    assert nophoso[1].params["targetBytes"] == 4_000_000
+    assert nophoso[1].params["minDpi"] == 72
+    assert flows["nop-ho-so-online"].output.max_bytes == 5_000_000
+
+    publish = flows["phat-hanh-van-ban"].steps
+    assert [step.op for step in publish] == ["overlay.pageNumbers", "stamp.seam", "sign.pades"]
+    book = flows["chup-sach"].steps
+    assert [step.op for step in book] == [
+        "pageimg.autoCrop",
+        "pageimg.splitSpread",
+        "pageimg.deskew",
+        "pageimg.dewarp",
+        "pageimg.enhance",
+        "compress.pdf",
+    ]
+    assert "mask" in flows["chup-sach"].description.lower()
 
 
 def test_chup_sach_runs_end_to_end(harness: Harness, tmp_path: Path) -> None:
@@ -82,7 +114,25 @@ def test_gui_ban_sao_gon_runs_with_its_secret(harness: Harness, tmp_path: Path) 
         assert len(opened.pages) == 3
 
 
-def test_nop_ho_so_online_compresses_numbers_and_signs(
+def test_ra_word_validates_and_runs_end_to_end(harness: Harness, tmp_path: Path) -> None:
+    source = make_numbered_pdf(tmp_path / "hoso.pdf", 2)
+    flow = sample("ra-word")
+    report = validate_workflow(load_samples()[-1])
+    assert report.valid
+    assert [step["op"] for step in flow["steps"]] == ["export.document"]
+
+    row = harness.op(
+        "workflow.run", {"workflow": flow, "files": [{"path": str(source)}]}
+    )["data"]["results"][0]
+
+    assert row["status"] == "done", row
+    assert Path(row["outputPath"]).name == "hoso_word.docx"
+    assert row["outputs"] == [row["outputPath"]]
+    doc = Document(row["outputPath"])
+    assert doc.paragraphs
+
+
+def test_nop_ho_so_online_rasterizes_compresses_and_signs(
     harness: Harness, pki: Any, tmp_path: Path
 ) -> None:
     folder = tmp_path / "ho-so"
@@ -97,17 +147,58 @@ def test_nop_ho_so_online_compresses_numbers_and_signs(
             "secrets": {"password": PASSWORD_A},
         },
     )["data"]
-    assert [r["status"] for r in data["results"]] == ["done"] * 3, data["results"]
-    for row in data["results"]:
-        out = Path(row["outputPath"])
-        assert out.stat().st_size <= 2 * 1024 * 1024
-        assert [s["op"] for s in row["stepResults"]] == [
-            "compress.fitSize",
-            "overlay.pageNumbers",
-            "sign.pades",
-        ]
-        assert validate_pdf_signatures(out, pki.root.cert).signatures[0].valid
+    assert [r["status"] for r in data["results"]] == ["done"], data["results"]
+    row = data["results"][0]
+    out = Path(row["outputPath"])
+    assert out.name == "hs0_da-ky.pdf"
+    assert out.stat().st_size <= 5_000_000
+    assert [s["op"] for s in row["stepResults"]] == [
+        "scan.rasterize",
+        "compress.toSize",
+        "sign.pades",
+    ]
+    assert validate_pdf_signatures(out, pki.root.cert).signatures[0].valid
+    assert page_count(out) == 6
+    assert all(p.exists() for p in files)
     assert PASSWORD_A not in json.dumps(data)
+
+
+def test_nop_ho_so_rejects_one_pdf_and_overwrite_mode(harness: Harness, tmp_path: Path) -> None:
+    source = make_numbered_pdf(tmp_path / "single.pdf", 1)
+    flow = sample("nop-ho-so-online")
+    with pytest.raises(RpcFailure) as error:
+        harness.op("workflow.run", {"workflow": flow, "files": [{"path": str(source)}]})
+    assert error.value.kind == "INVALID_PARAMS"
+
+    flow["output"]["mode"] = "overwrite"
+    result = harness.op("workflow.validate", {"workflow": flow})["data"]
+    assert not result["valid"]
+    assert any(issue["field"] == "output.mode" for issue in result["errors"])
+
+
+def test_nop_ho_so_reports_final_size_limit_after_signing(
+    harness: Harness, pki: Any, tmp_path: Path
+) -> None:
+    src = make_numbered_pdf(tmp_path / f"{PASSWORD_A}.pdf", 1)
+    second = make_numbered_pdf(tmp_path / "second.pdf", 1)
+    flow = sample("nop-ho-so-online")
+    flow["output"]["maxBytes"] = 1
+    row = harness.op(
+        "workflow.run",
+        {
+            "workflow": flow,
+            "files": [{"path": str(src)}, {"path": str(second)}],
+            "variables": {"pfxPath": str(pki.pfx_a())},
+            "secrets": {"password": PASSWORD_A},
+            "output": {"mode": "suffix", "suffix": "_cap-override"},
+        },
+    )["data"]["results"][0]
+    assert row["status"] == "failed"
+    assert "vượt giới hạn" in row["message"]
+    assert PASSWORD_A not in row["message"]
+    assert Path(row["outputPath"]).name == f"{PASSWORD_A}_cap-override.pdf"
+    assert Path(row["outputPath"]).is_file()
+    assert validate_pdf_signatures(Path(row["outputPath"]), pki.root.cert).signatures[0].valid
 
 
 def test_phat_hanh_van_ban_stamps_then_signs(harness: Harness, pki: Any, tmp_path: Path) -> None:
