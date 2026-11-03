@@ -2,7 +2,7 @@
 name = "chef-core"
 version = "0.1.0"
 description = "Chef PDF core sidecar (JSON-RPC over stdio)"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.15"
 dependencies = [
   "pydantic>=2.9",
   "pikepdf>=9.0",
