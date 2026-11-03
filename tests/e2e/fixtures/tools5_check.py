@@ -8,6 +8,9 @@ Usage: python tools5_check.py FILE MODE [PAGE]
   MODE 'linear': whether the file is linearized, and its page count.
   MODE 'pagetexts': the text of every page.
   MODE 'sizes' : the visible size of every page in points.
+  MODE 'clean' : whether the file reads without recovery, and its page count.
+  MODE 'encrypted': whether the file needs a password to open.
+  MODE 'images': image files of a folder with format and pixel size.
   MODE 'dir'   : FILE is a folder; lists its PDFs with page counts.
   MODE 'gray'  : renders PAGE (1-based) and reports the largest colour difference of any pixel.
 """
@@ -43,6 +46,28 @@ elif mode == "sizes":
     # Visible size of every page (CropBox and rotation included), rounded to whole points.
     doc = pdfium.PdfDocument(path)
     print(json.dumps({"sizes": [[round(v) for v in doc[i].get_size()] for i in range(len(doc))]}))
+elif mode == "clean":
+    # Whether the file reads without any recovery (qpdf would otherwise rebuild its xref table).
+    try:
+        with pikepdf.open(path, attempt_recovery=False) as pdf:
+            print(json.dumps({"clean": True, "pages": len(pdf.pages)}))
+    except pikepdf.PdfError:
+        print(json.dumps({"clean": False, "pages": None}))
+elif mode == "encrypted":
+    try:
+        with pikepdf.open(path) as pdf:
+            print(json.dumps({"encrypted": pdf.is_encrypted, "pages": len(pdf.pages)}))
+    except pikepdf.PasswordError:
+        print(json.dumps({"encrypted": True, "pages": None}))
+elif mode == "images":
+    # Every image file of the folder PATH: name, format and pixel size.
+    from PIL import Image
+
+    found = []
+    for item in sorted(Path(path).iterdir()):
+        with Image.open(item) as img:
+            found.append({"name": item.name, "format": img.format, "size": list(img.size)})
+    print(json.dumps({"images": found}))
 elif mode == "info":
     with pikepdf.open(path) as pdf:
         print(json.dumps({"pages": len(pdf.pages), "opens": True}))
