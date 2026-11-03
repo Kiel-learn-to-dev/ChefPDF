@@ -447,6 +447,8 @@
   flex: none;
   display: grid;
   place-items: center;
+  /* button mặc định có padding 6px ngang: vùng nội dung còn 2px và dấu tích bị đẩy lệch */
+  padding: 0;
   width: 16px;
   height: 16px;
   margin-top: 2px;
@@ -454,6 +456,15 @@
   border: 1px solid var(--c-border-strong);
   background: var(--c-surface);
   color: #fff;
+}
+/* Indicator là span: thành flex để svg căn giữa, không để khoảng dòng đẩy dấu tích lên */
+.checkbox > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox svg {
+  display: block;
 }
 .checkbox[data-state='checked'] {
   background: var(--c-accent);
