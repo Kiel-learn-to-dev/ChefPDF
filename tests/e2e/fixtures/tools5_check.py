@@ -3,6 +3,9 @@
 Usage: python tools5_check.py FILE MODE [PAGE]
   MODE 'info'  : page count and whether the file opens.
   MODE 'meta'  : the /Author of the document, or null.
+  MODE 'title' : the /Title of the document, or null.
+  MODE 'attachments': names of the embedded files.
+  MODE 'linear': whether the file is linearized, and its page count.
   MODE 'dir'   : FILE is a folder; lists its PDFs with page counts.
   MODE 'gray'  : renders PAGE (1-based) and reports the largest colour difference of any pixel.
 """
@@ -20,6 +23,16 @@ if mode == "meta":
     with pikepdf.open(path) as pdf:
         author = pdf.docinfo.get("/Author")
         print(json.dumps({"author": str(author) if author is not None else None}))
+elif mode == "title":
+    with pikepdf.open(path) as pdf:
+        title = pdf.docinfo.get("/Title")
+        print(json.dumps({"title": str(title) if title is not None else None}))
+elif mode == "attachments":
+    with pikepdf.open(path) as pdf:
+        print(json.dumps({"names": sorted(pdf.attachments.keys())}))
+elif mode == "linear":
+    with pikepdf.open(path) as pdf:
+        print(json.dumps({"linearized": pdf.is_linearized, "pages": len(pdf.pages)}))
 elif mode == "info":
     with pikepdf.open(path) as pdf:
         print(json.dumps({"pages": len(pdf.pages), "opens": True}))
