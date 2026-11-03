@@ -446,7 +446,7 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 | Mức | Số tính năng |
 |---|---|
 | Bản 1.0 (v0.1–v0.10) | 159 |
-| Sau 1.0 | 4 |
+| Sau 1.0 | 5 |
 | Nâng cấp | 12 |
 | Ý tưởng | 20 |
 | **Tổng** | 196 |
@@ -457,6 +457,7 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
+| 2026-11-03 | A8 | Bản 1.0 chỉ cam kết **bộ cài và kiểm thử trên Windows**; macOS và Linux (cấu hình build vẫn giữ) kiểm thử sau 1.0. Mức của A8 không đổi, số tính năng không đổi | Chủ dự án: ưu tiên phiên bản Windows (D37) |
 | 2026-11-03 | A10 | **Tự cập nhật** chuyển từ v0.9 sang **Sau 1.0**. Bản 1.0 còn 159 tính năng; T9.08 tạm dừng | Chủ dự án (trả lời CH2): phát hành bản mới sau, chưa cần tự cập nhật |
 | 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |
 | 2026-10-31 | (nhiều mã) | **Chia lại mốc khi lập kế hoạch:** v0.4 cũ tách thành v0.4 + v0.5; các mốc sau lùi một bậc; v0.7 cũ tách thành v0.8 (ảnh scan) + v0.9 (form, quy trình); rã tài liệu thành v0.10. Không thêm/bớt tính năng | v0.4 cũ có 43 tính năng, quá nặng (D29) |

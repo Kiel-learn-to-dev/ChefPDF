@@ -1,47 +1,48 @@
-# Chef PDF: Kế hoạch đến bản 1.0
+# Chef PDF: Kế hoạch đến bản 1.0 (Windows trước)
 
-> Lập ngày 2026-11-03, sau khi chủ dự án trả lời CH1 (Windows, token Viettel-CA) và CH2 (chưa cần tự cập nhật). Đi kèm [TASKS.md](TASKS.md) (danh sách task gốc) và [NOTES.md](NOTES.md) (quyết định). **Cập nhật trạng thái ở đây và ở TASKS.md khi xong từng bước.**
+> Viết lại ngày 2026-11-03 sau khi chủ dự án chốt **ưu tiên bản Windows** (D37): bản 1.0 chỉ cam kết chạy tốt trên Windows với token Viettel-CA (D35). macOS và Linux để sau 1.0. Đi kèm [TASKS.md](TASKS.md) (danh sách task gốc) và [NOTES.md](NOTES.md) (quyết định). **Cập nhật trạng thái ở đây và ở TASKS.md khi xong từng bước.**
 
-## Hiện trạng
+## Hiện trạng (2026-11-03)
 
-- 118 task: 57 ✅, 54 🔄, 6 ⬜, 1 ⏸ (T9.08, làm sau 1.0). Bản 1.0 còn **159** tính năng.
-- Các test đã chạy trên Windows: lõi Python 1635, giao diện 736, desktop 228, e2e Electron + lõi thật (khoảng 80 spec).
-- **CI GitHub chưa chạy từ 2026-10-31**: nhánh `claude/modest-dijkstra-ifoeki` đang **43 commit chưa push**, và lần chạy cuối hỏng ở e2e macOS và Windows. Vì vậy macOS và Linux gần như chưa được kiểm chứng với code hiện tại.
+- 118 task: 57 ✅, 54 🔄, 6 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **159** tính năng.
+- Test trên Windows đều xanh: lõi Python 1638, giao diện 736, desktop 230, e2e Electron + lõi thật 86/86.
+- CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
+- Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt. Chưa mở bằng Adobe Reader và Foxit.
 - Trạng thái 🔄 nghĩa là code đã có nhưng chưa qua cổng nghiệm thu của mốc. Mỗi mốc có một **Demo** trong TASKS.md; đó là tiêu chí nghiệm thu thật.
 
 ## Nguyên tắc làm
 
-1. **Cắt dọc theo Demo của mốc**, không đóng từng task rời: mỗi bước đi từ lõi đến giao diện đến e2e với lõi thật.
-2. **Định nghĩa "xong" cho một task** (đóng 🔄 → ✅): (a) có test lõi hoặc test giao diện cho hành vi chính và lỗi chính; (b) có ít nhất một e2e đường chính với lõi thật; (c) `pnpm typecheck`, `pnpm lint`, `ruff`, `mypy`, test đều xanh; (d) quyết định mới ghi vào NOTES.md; (e) cập nhật trạng thái trong TASKS.md.
-3. Phần việc cần phần cứng hoặc người thật (token, điện thoại, Adobe Reader) được **gom thành danh sách kiểm thử tay cho chủ dự án**, không chặn phần còn lại.
-4. Việc rủi ro cao làm trước: ký số với token thật, CI 3 hệ điều hành.
-5. Mỗi mảng review xong thì commit riêng; không đẩy lên remote khi chưa được chủ dự án đồng ý.
+1. **Windows là nền duy nhất phải xanh** để coi một việc là xong. macOS và Linux: code vẫn giữ được chạy (CI vẫn chạy nhưng không chặn), lỗi riêng của chúng ghi vào danh sách "Sau 1.0" bên dưới, không sửa ngay.
+2. **Cắt dọc theo Demo của mốc**, không đóng từng task rời: mỗi bước đi từ lõi đến giao diện đến e2e với lõi thật.
+3. **Định nghĩa "xong" cho một task** (đóng 🔄 → ✅): (a) có test lõi hoặc test giao diện cho hành vi chính và lỗi chính; (b) có ít nhất một e2e đường chính với lõi thật; (c) `pnpm typecheck`, `pnpm lint`, `ruff`, `mypy`, test đều xanh trên Windows; (d) quyết định mới ghi vào NOTES.md; (e) cập nhật trạng thái trong TASKS.md.
+4. Phần việc cần phần cứng hoặc người thật (token, điện thoại, Adobe Reader) được gom thành **danh sách kiểm thử tay cho chủ dự án**, không chặn phần còn lại.
+5. Việc rủi ro cao làm trước: ký số với token thật.
+6. Mỗi mảng review xong thì commit riêng; push lên remote chỉ khi chủ dự án cho phép.
 
-## Giai đoạn 0: Nền chất lượng (làm ngay)
+## Giai đoạn 0: Nền chất lượng ✅
 
-| Bước | Việc | Tiêu chí nghiệm thu | Kiểm tra |
-|---|---|---|---|
-| 0.1 ✅ | `ruff format` sạch (CI đang chạy `ruff format --check`) | `ruff format --check .` không báo file nào | `cd core && uv run ruff format --check .` và toàn bộ pytest vẫn xanh |
-| 0.2 ✅ | Sửa race mở file khi app đang khởi động | File từ instance thứ hai tới trước khi cửa sổ nạp xong vẫn mở được, không rơi vào hàng đợi "file ban đầu" sau khi giao diện đã đọc | Unit test `OpenFilesController`; spec `smoke` bỏ được `waitForTimeout` |
-| 0.3 ✅ | E2E chạy cả bộ ổn định | Chạy `pnpm e2e` toàn bộ đều xanh trên Windows (đạt: 86/86 ngày 2026-11-03 sau khi sửa các race trong spec `forms`, `tools5`) | Dọn tiến trình Electron treo giữa các spec, tăng chờ khởi động lõi |
-| 0.4 ⬜ | **Push và CI 3 hệ điều hành xanh** (cần chủ dự án đồng ý push) | Cả 5 job CI xanh: JS, Core, E2E trên ubuntu, windows, macos | `gh run list` |
+| Bước | Việc | Kết quả |
+|---|---|---|
+| 0.1 ✅ | `ruff format` sạch | Đạt |
+| 0.2 ✅ | Sửa race mở file lúc khởi động | Đạt, có unit test |
+| 0.3 ✅ | E2E chạy cả bộ ổn định trên Windows | 86/86 |
+| 0.4 ✅ | Push và CI | Core, JS, E2E Windows xanh. Linux/macOS: xem "Sau 1.0" |
 
-**Kiểm tra giữa chặng:** CI xanh trên 3 hệ điều hành trước khi sang giai đoạn sau (hoàn thành phần đầu của T11.01).
-
-## Giai đoạn 1: Ký số với token Viettel (★, mốc v0.3)
+## Giai đoạn 1: Ký số với token Viettel (★, mốc v0.3), đang làm
 
 Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫu chữ ký có ảnh tách nền, ký theo chữ mốc cho 10 file, Adobe Reader báo chữ ký hợp lệ.
 
-| Bước | Việc | Task | Tiêu chí nghiệm thu |
+| Bước | Việc | Task | Trạng thái |
 |---|---|---|---|
-| 1.1 🔄 | **Chủ dự án cắm token Viettel, chạy `spikes/s1_token_probe.py`**, gửi `token_probe_report.json` (hướng dẫn: `docs/spikes/S1-pkcs11.md` mục 9) | T1.08 | Biết đời token (V6/V4…), tên module PKCS#11, ký thử được một file. **Đã biết (2026-11-03):** V6, `viettel-ca_v6.dll`, liệt kê và chẩn đoán đạt. **Còn lại:** ký thử với PIN bằng `scripts/token_sign_check.py` |
-| 1.2 | Chỉnh danh bạ driver và lớp PKCS#11 theo báo cáo thật | T3.01, T3.02 | App tự dò driver Viettel trên máy bạn, liệt kê chứng thư |
-| 1.3 | Màn hình chẩn đoán từng bước, cảnh báo PIN sắp khóa | T3.03 | Kịch bản: thiếu driver, sai PIN, token rút ra giữa chừng đều có hướng dẫn tiếng Việt |
-| 1.4 | Ký `.pfx`, kiểm tra chữ ký (chuỗi chứng thư, OCSP/CRL), thư viện ảnh chữ ký | T3.04, T3.08, T3.11 | E2E ký bằng pfx rồi kiểm tra ra "hợp lệ"; panel hiển thị người ký thật, không phải chữ hiển thị |
-| 1.5 | Ký bằng kho chứng thư Windows (CNG) | T4.11 (phần Windows) | Ký được bằng chứng thư trong kho Windows khi không dùng PKCS#11 |
-| 1.6 | **Kiểm tra chéo** trong Adobe Reader, Foxit; checklist thử token | T3.14 | Danh sách kiểm thử tay có kết quả; sửa lỗi tương thích nếu có |
+| 1.1 ✅ | Dò token thật: driver `viettel-ca_v6.dll`, 2 chứng thư, cờ PIN bình thường | T1.08, T3.01, T3.02 | Đạt; ghi ở TOKENS.md |
+| 1.2 ✅ | Chẩn đoán từng bước trên token thật | T3.03 | Đạt 7/7 bước (bước ký thử cần PIN) |
+| 1.3 ✅ | Ký thật bằng token qua lõi, kiểm tra lại | T3.06 | Đạt; sửa 2 lỗi kiểm tra (khóa 1024 bit, CRL dạng PEM) |
+| 1.4 ⬜ | **Mở file ký bằng Adobe Reader và Foxit**, chụp bảng chữ ký; đối chiếu dấu vân tay Root CA rồi đưa vào kho đi kèm (`core/chef_core/resources/certs`) | T3.14, I35 | Chờ chủ dự án |
+| 1.5 ⬜ | Ký từ giao diện app (không qua script): chọn token, nhập PIN, mẫu chữ ký, ký hàng loạt 10 file theo chữ mốc | T3.04–T3.13 | Cần token lần nữa |
+| 1.6 ⬜ | Ký bằng kho chứng thư Windows (CNG) khi không dùng PKCS#11 | T4.11 (phần Windows) | |
+| 1.7 ⬜ | Kiểm tra chữ ký: panel trạng thái, thư viện ảnh chữ ký (đóng T3.08, T3.11) | T3.08, T3.11 | |
 
-**Rủi ro:** driver Viettel V6 tự hiện hộp PIN riêng (TOKENS.md), PIN sai nhiều lần làm khóa token. Mitigation: chỉ dùng module PKCS#11, đọc cờ PIN trước mỗi lần hỏi, không thử PIN tự động quá một lần.
+**Rủi ro:** driver Viettel V6 tự hiện hộp PIN riêng nếu dùng CSP (TOKENS.md); PIN sai nhiều lần làm khóa token. Cách giảm: chỉ dùng PKCS#11, đọc cờ PIN trước mỗi lần hỏi, không thử PIN tự động quá một lần. **Khóa 1024 bit** của chứng thư Viettel nay được chấp nhận với cảnh báo; nếu Adobe Reader từ chối thì ghi vào TOKENS.md.
 
 ## Giai đoạn 2: Đóng các mốc v0.5, v0.6, v0.7
 
@@ -53,7 +54,7 @@ Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫ
 
 Mỗi mốc: (1) viết một e2e theo đúng câu Demo bằng lõi thật; (2) chạy, sửa lỗi; (3) rà từng task theo định nghĩa "xong", đóng ✅ những task đạt, ghi lý do cho task chưa đạt. Cần tập tài liệu thật (hợp đồng, CCCD giả lập, file có watermark) trong `tests/e2e/fixtures`.
 
-**Kiểm tra giữa chặng:** CI xanh sau mỗi mốc; chủ dự án dùng thử Demo trên máy thật.
+**Kiểm tra giữa chặng:** test Windows xanh sau mỗi mốc; chủ dự án dùng thử Demo trên máy thật.
 
 ## Giai đoạn 3: Đóng các mốc v0.8 và v0.9
 
@@ -62,36 +63,42 @@ Mỗi mốc: (1) viết một e2e theo đúng câu Demo bằng lõi thật; (2) 
 | v0.8 | Chụp 20 trang sách bằng điện thoại qua QR, tự dò viền, tách trang đôi, làm phẳng, xóa ngón tay, ra PDF đẹp | T8.01–T8.04, T8.06–T8.11 | **Thử trang chụp trên điện thoại thật** (chưa từng thử); 20 trang sách thật để chỉnh ngưỡng |
 | v0.9 | Tạo quy trình "Nộp hồ sơ online", thả 20 file vào thư mục tự động, lấy kết quả đã ký | T9.01–T9.07 (T9.08 hoãn) | Cần giai đoạn 1 xong để có bước ký thật |
 
-Việc còn mở đã biết: nối "Lưu thành bước quy trình" cho các hộp thoại còn lại (T9.03), bám viền tự động và hoàn thiện cắt hàng loạt (T8.06, T8.07), gỡ giới hạn "xuất Markdown/HTML vào tên đã có thư mục ảnh".
+Việc còn mở đã biết: nối "Lưu thành bước quy trình" cho các hộp thoại còn lại (T9.03), bám viền tự động và hoàn thiện cắt hàng loạt (T8.06, T8.07).
 
 ## Giai đoạn 4: Mốc v0.10, rã tài liệu
 
 Demo: rã một báo cáo 2 cột có bảng thành Word "giữ bố cục" và Markdown. Task: T10.01–T10.07. Việc còn mở đã biết: sửa vùng phi văn bản mà không mất dữ liệu (T10.03), kiểm thử DOCX bằng Word/LibreOffice thật (T10.05, chủ dự án mở thử), tài liệu cũ thiếu tọa độ (đang ước lượng).
 
-## Giai đoạn 5: Cổng bản 1.0 (mốc v1.0)
+## Giai đoạn 5: Cổng bản 1.0 (mốc v1.0, Windows)
 
 | Bước | Task | Tiêu chí nghiệm thu |
 |---|---|---|
 | 5.1 | T11.02 hiệu năng | File 1000 trang mở và cuộn mượt; file 300 MB không tràn RAM; khởi động ≤ ngưỡng ghi trong BLUEPRINT; có số đo trong NOTES |
 | 5.2 | T11.03 giấy phép | Rà toàn bộ thư viện, font, mô hình (có DocAligner, onnxruntime); tạo file NOTICE; không có thư viện AGPL (D7) |
 | 5.3 | T11.05 đánh bóng | Phím tắt, điều hướng bằng bàn phím, trạng thái rỗng và lỗi thống nhất |
-| 5.4 | T11.04 hướng dẫn | `docs/HUONG_DAN_SU_DUNG.md` khớp tính năng cuối, kèm ảnh/chú thích nơi cần |
-| 5.5 | T11.01 kiểm thử 3 hệ điều hành | CI xanh liên tục; chủ dự án thử bộ cài Windows, ghi nhận macOS/Linux chỉ qua CI |
-| 5.6 | **Dùng hằng ngày một tuần** | Không lỗi nghiêm trọng (tiêu chí Demo v1.0); lỗi tìm thấy ghi vào NOTES và sửa |
+| 5.4 | T11.04 hướng dẫn | `docs/HUONG_DAN_SU_DUNG.md` khớp tính năng cuối, phần cài đặt chỉ Windows |
+| 5.5 | T11.01 kiểm thử **trên Windows** | Bộ cài Windows `.exe` cài và chạy được trên máy sạch; CI Windows xanh liên tục |
+| 5.6 | **Dùng hằng ngày một tuần trên Windows** | Không lỗi nghiêm trọng (tiêu chí Demo v1.0); lỗi tìm thấy ghi vào NOTES và sửa |
+
+## Sau 1.0 (để sau, không chặn bản 1.0)
+
+- **E2E Linux:** spec `integration › side-by-side` hỏng trên CI do mở file hai lần với Ctrl+O. Đã sửa ở menu (`registerAccelerator: false`) nhưng chưa có kết quả CI xác nhận; còn các lỗi khác chưa biết vì log chỉ đọc được khi cả lượt CI kết thúc.
+- **E2E macOS:** lượt CI xếp hàng rất lâu; lỗi cũ từ v0.1: tìm kiếm không dấu (`page.fill` hết hạn) và khởi động lại lõi sau crash. Python đã giới hạn `<3.15` vì onnxruntime chưa có wheel cho 3.15.
+- **Bộ cài và ký trên macOS/Linux:** driver token, PKCS#11 và đường dẫn khác nhau; cần máy hoặc CI thật.
+- **Tự cập nhật (T9.08, A10).**
+- Xuất Markdown/HTML có ảnh vào tên đã có thư mục ảnh đi kèm vẫn bị từ chối.
+- Tách bớt `commands.tsx` và `mockBridge.ts` khi chạm vào.
 
 ## Rủi ro và cách giảm
 
 | Rủi ro | Mức | Cách giảm |
 |---|---|---|
-| Token Viettel khác với giả định (đời, driver) | Cao | Làm bước 1.1 sớm nhất; chỉ dùng PKCS#11; chẩn đoán rõ ràng |
-| CI 3 OS lộ nhiều lỗi sau 43 commit chưa kiểm | Cao | Làm giai đoạn 0 đầu tiên; sửa theo từng job |
-| E2E không ổn định khi chạy cả bộ | Trung bình | Bước 0.3; dọn tiến trình; chờ tường minh thay vì `waitForTimeout` |
+| Adobe Reader/Foxit không tin chữ ký khóa 1024 bit của Viettel | Trung bình | Bước 1.4; ghi kết quả vào TOKENS.md; hướng dẫn thêm Root CA vào Adobe trong tài liệu |
 | 54 task 🔄 không có tiêu chí riêng | Trung bình | Dùng Demo từng mốc làm cổng, ghi lý do cho task chưa đạt |
-| Tệp lớn (`commands.tsx`, `mockBridge.ts`) khó bảo trì | Thấp | Tách khi chạm vào, không làm riêng |
-| macOS/Linux không có máy thử | Trung bình | CI là nguồn kiểm chứng duy nhất (D35); ghi rõ phạm vi trong hướng dẫn |
+| E2E không ổn định khi chạy cả bộ | Thấp | Đã đạt 86/86; giữ nguyên tắc chờ tường minh thay vì `waitForTimeout` |
+| Chỉ có một máy Windows để thử | Trung bình | CI Windows là bản đối chứng; thử bộ cài trên máy sạch trước khi dùng hằng ngày |
 
 ## Câu hỏi còn mở
 
-- Cho phép push nhánh hiện tại lên GitHub để chạy CI không (bước 0.4)?
 - Điện thoại dùng thử trang chụp: Android hay iPhone (trình duyệt nào)?
-- Ban Cơ yếu / VNPT / FPT: chỉ cần Viettel cho 1.0, hay phải thử thêm CA khác?
+- Ngoài Viettel, 1.0 có cần thử thêm CA khác (VNPT, FPT, Ban Cơ yếu) không? Mặc định: không.

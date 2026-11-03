@@ -16,5 +16,6 @@ App PDF desktop đa nền tảng (Windows/macOS/Linux), mạnh nhưng gọn gàn
 - Bản 1.0 không có OCR, không có AI (ngoại lệ duy nhất: mô hình dò viền trang L20). OCR/AI thuộc gói nâng cấp sau (nhóm Q).
 - Thay đổi phạm vi sau khi chốt phải ghi vào mục "Thay đổi sau khi chốt" trong FEATURES.md.
 - App chỉ để chủ dự án tự dùng: không ký mã, không phát hành.
+- **Bản 1.0 ưu tiên Windows** (D37): macOS và Linux để sau; đừng sửa lỗi riêng của chúng trước 1.0. Máy chính: Windows, token Viettel-CA. Kế hoạch: `docs/PLAN_V1.md`.
 - Mọi tính năng tác động lên tài liệu phải là một Operation trong lõi Python (BLUEPRINT mục 3). Không sửa PDF ở renderer.
 - Stack đã chốt: Electron + React + TypeScript + pdf.js (giao diện); Python sidecar với pyHanko, pypdfium2, pikepdf, Pillow, img2pdf (lõi xử lý).

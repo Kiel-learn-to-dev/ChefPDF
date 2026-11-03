@@ -4,6 +4,8 @@
 
 ## 1. Cài đặt
 
+> **Bản 1.0 chỉ được kiểm thử trên Windows.** Các phần macOS và Linux dưới đây chỉ là hướng dẫn tham khảo, chưa kiểm thử.
+
 Chỉ mở bộ cài lấy từ nguồn mà bạn tin cậy. Cấu hình phát hành hiện tạo bộ cài Windows `.exe`, macOS `.dmg` cho Intel và Apple Silicon, cùng Linux `.AppImage`, `.deb`, `.rpm`. Quy trình build nằm trong [release workflow](../.github/workflows/release.yml); khi CI phát hành, hãy dùng đúng gói cho hệ điều hành và kiến trúc máy.
 
 Ứng dụng chưa được ký bằng chứng thư nhà phát triển. macOS dùng chữ ký ad-hoc để chạy trên Apple Silicon, nhưng không notarize. Vì vậy Windows hoặc macOS có thể hiện cảnh báo. Hãy kiểm tra nguồn file trước khi cho phép mở; không tắt SmartScreen, Gatekeeper hay phần mềm bảo vệ toàn hệ thống.

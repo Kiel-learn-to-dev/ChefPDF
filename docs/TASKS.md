@@ -258,7 +258,7 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T11.01 | Kiểm thử toàn bộ trên 3 OS, sửa lỗi | | 5 | tất cả | ⬜ |
+| T11.01 | Kiểm thử toàn bộ **trên Windows**, sửa lỗi (macOS/Linux sau 1.0, D37) | | 5 | tất cả | ⬜ |
 | T11.02 | Hiệu năng: file 1000 trang, file 300MB, RAM, thời gian khởi động | | 3 | tất cả | ⬜ |
 | T11.03 | Rà soát giấy phép toàn bộ thư viện, font, mô hình; tạo file NOTICE | | 1 | tất cả | ⬜ |
 | T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | 🔄 |

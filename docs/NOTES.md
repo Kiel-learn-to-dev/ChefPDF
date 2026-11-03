@@ -5,28 +5,31 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** Đã chốt phạm vi và lập kế hoạch ([BLUEPRINT.md](BLUEPRINT.md), [TASKS.md](TASKS.md)); đang tiếp tục triển khai và kiểm thử các mốc đến v1. Nhiều task vẫn đang thực hiện, chưa thể coi v1 đã hoàn tất.
+- **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
+- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 57 xong, 54 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows đều xanh: lõi 1638, giao diện 736, desktop 230, e2e Electron với lõi thật 86/86. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
+- **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B). Chưa mở bằng Adobe Reader/Foxit; chưa ký từ giao diện app.
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
   |---|---|
   | Bản 1.0 (v0.1–v0.10) | 159 |
-  | Sau 1.0 | 4 |
+  | Sau 1.0 | 5 |
   | Gói nâng cấp OCR/AI | 12 |
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo:** Tiếp tục các task còn mở trong TASKS.md và các kiểm thử v1; thử phần cứng token thật, kiểm tra trên ba hệ điều hành và hoàn tất các cổng ổn định trước khi phát hành.
+- **Việc tiếp theo (Windows):** (1) chủ dự án mở file ký bằng Adobe Reader/Foxit và đối chiếu dấu vân tay Root CA để đưa vào kho đi kèm; (2) ký từ giao diện app, ký hàng loạt; (3) đóng các mốc v0.5, v0.6, v0.7 theo Demo, rồi v0.8, v0.9, v0.10; (4) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần.
+- **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
-  - **CH1 (đã trả lời 2026-11-03):** máy chính chạy **Windows**, token của **Viettel-CA**. Còn việc: cắm token rồi chạy `cd spikes && uv sync && uv run python s1_token_probe.py`, gửi lại `token_probe_report.json` (hướng dẫn ở `docs/spikes/S1-pkcs11.md` mục 9)
-  - **CH2 (đã trả lời 2026-11-03):** chưa cần tự cập nhật; phát hành bản mới sau (D36).
-  - Cần **token thật** (Viettel, VNPT, FPT, Ban Cơ yếu, MISA…) để thử ký số. Xem [TOKENS.md](TOKENS.md).
+  - Điện thoại dùng thử trang chụp (Android hay iPhone, trình duyệt nào)?
+  - Ngoài Viettel, bản 1.0 có cần thử thêm CA khác? Mặc định: không.
+  - Đã đóng: CH1 (Windows, Viettel-CA), CH2 (chưa cần tự cập nhật). Thông tin token ở [TOKENS.md](TOKENS.md).
 
 ## Mục tiêu sản phẩm
 
 - App PDF desktop **mạnh nhưng gọn gàng**, lấy cảm hứng từ ABBYY FineReader. Chủ dự án chê các app miễn phí hiện có là rối.
-- Chạy được trên **Windows, macOS, Linux**.
+- Chạy được trên **Windows, macOS, Linux**; **bản 1.0 ưu tiên và chỉ cam kết Windows** (D37), macOS và Linux sau 1.0.
 - **Offline hoàn toàn**, không tải file lên server.
 - **Tiếng Việt là ưu tiên số 1**: giao diện, font, tìm không dấu, thể thức văn bản hành chính, chữ ký số Việt Nam.
 - **Bản 1.0 không có OCR, không có AI.** Ngoại lệ duy nhất: mô hình dò viền trang loại nhỏ (L20).
@@ -70,6 +73,7 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D31 | Main ↔ lõi Python giao tiếp bằng **JSON-RPC 2.0 qua stdin/stdout** (không mở cổng mạng). Dữ liệu lớn truyền bằng đường dẫn file | BLUEPRINT mục 5 |
 | D35 | **Máy chính: Windows; token: Viettel-CA** (module PKCS#11 `viettel-ca_v6.dll` hoặc đời cũ, xem TOKENS.md). Windows là nền kiểm thử tay chính; macOS và Linux kiểm thử bằng CI | Chủ dự án trả lời CH1 |
 | D36 | **Tự cập nhật (A10, T9.08) làm sau 1.0**; bản 1.0 cập nhật bằng cách cài bản mới. CH2 đóng | Chủ dự án trả lời CH2 |
+| D37 | **Bản 1.0 ưu tiên Windows.** macOS và Linux để sau 1.0: code vẫn giữ chạy được và CI vẫn chạy nhưng E2E Linux/macOS không chặn; lỗi riêng của chúng không sửa trước 1.0. Thay D35 phần "macOS và Linux kiểm thử bằng CI" | Chủ dự án, 2026-11-03 |
 | D32 | **Phiên tài liệu** dùng bản sao làm việc và các bản sửa trên đĩa; không động vào file gốc tới khi Lưu; hoàn tác bằng bản sửa | BLUEPRINT mục 4 |
 | D33 | **Giữ stack giấy phép thoáng (D7)** cho sửa đối tượng/chữ: pypdfium2 + pikepdf + fontTools. Không dùng PyMuPDF | Spike S2: đủ sức; PyMuPDF còn làm lộ chữ đã che qua `/ActualText` trong mẫu thử |
 | D34 | Giao diện chữ ký số **tự vẽ bằng reportlab** rồi nhúng vào, không dùng bộ vẽ chữ của pyHanko. Giữ **một phiên đăng nhập cho mỗi token**; đọc lại cờ PIN ngay trước mỗi lần hỏi PIN | Spike S1: pyHanko 0.38 giãn chữ sai với font TrueType; đăng nhập lần 2 trong cùng tiến trình bị lỗi |
@@ -166,6 +170,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (ưu tiên Windows):** Chủ dự án chốt làm bản Windows trước, macOS và Linux để sau (D37). Viết lại "Trạng thái hiện tại" và PLAN_V1.md theo hướng này; CI đặt E2E Linux/macOS ở chế độ không chặn; T11.01 chỉ còn kiểm thử trên Windows; hướng dẫn cài đặt ghi rõ bản 1.0 là Windows. Các lỗi nền tảng đã tìm ra khi chạy CI (Python 3.15 trên macOS, đường dẫn Windows trong cài đặt trên Linux, mở file hai lần bằng Ctrl+O, lỗi sửa file hỏng) đã được sửa vì chúng đều là lỗi thật hoặc test sai; phần còn lại của Linux/macOS chuyển sang "Sau 1.0".
 
 - **2026-11-03 (ký thử bằng token thật):** Chủ dự án nhập PIN và chạy `scripts/token_sign_check.py`: ký PAdES B-B bằng token Viettel V6 qua lõi của app thành công, kiểm tra lại cho chữ ký toàn vẹn. Hai lỗi của bộ kiểm tra được tìm ra và sửa: (1) chứng thư Viettel dùng RSA 1024 bit nên chính sách mặc định của pyHanko (≥ 2048) làm chuỗi "chưa tin cậy"; nay chấp nhận từ 1024 bit và thêm cảnh báo `WEAK_KEY`; (2) CRL của Root CA Việt Nam ở dạng PEM nên bị bỏ qua, trạng thái thu hồi của chứng thư trung gian luôn "chưa biết"; nay đọc cả PEM và DER (pyHanko vẫn nhận DER). Có test hồi quy cho cả hai. **Chưa làm:** mở file bằng Adobe Reader/Foxit (T3.14), đưa Root CA vào kho đi kèm sau khi đối chiếu dấu vân tay.
 
