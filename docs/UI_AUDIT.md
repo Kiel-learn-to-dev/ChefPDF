@@ -129,7 +129,9 @@ Tránh dương tính giả: lọc phần tử ẩn, tắt hoạt ảnh, chờ fo
 
 **Sửa đã làm ngoài kế hoạch:** checkbox căn dấu tích (commit `2c89c1e`): `button` mặc định có padding 6px làm vùng nội dung của ô 16px còn 2px, dấu tích bị lệch 5px ngang; span Indicator là block chứa svg inline nên bị đẩy lên. Đã sửa `.checkbox` (padding 0, span flex, svg block). Đo lại: tâm ô và tâm dấu tích trùng nhau, lệch dưới 0.3px do hình Lucide.
 
-### Danh sách D: quyết định cho chủ dự án (chưa sửa)
+### Danh sách D: đã xử lý theo ủy quyền (D41 trong NOTES.md)
+
+Chủ dự án ủy quyền quyết định thẩm mỹ theo tiêu chí cân đối. Các mục dưới đây đã được sửa; kết quả: bộ đo 1280×820 sáng và 960×640 đều 0 phát hiện, baseline ghi lại ở `ui-audit-baseline.json`, giao diện tối chụp và xem bằng mắt. Mục nào còn ghi "chưa" bên dưới là chưa làm.
 
 Đây là các mục mà agent không tự quyết. Mỗi mục có số lượng từ baseline (xem `report.md`).
 
@@ -190,3 +192,12 @@ Chạy trên `apps/ui/src`: **409 phát hiện trong 38 file**. Theo loại: rem
 | 20 | features/annots/annots.css | 7 | font-size 3, radius 2, height 1, var-undefined 1 |
 
 Ghi chú về số đo: `rem` đếm mọi giá trị rem (kể cả trong `calc()`). `height` chỉ báo giá trị 12–48px khác 26/32/38 (kích thước bố cục tự do không báo). `font-size` báo mọi giá trị px, có cờ `inScale`. Mục `font:` viết tắt chưa đo. Các phát hiện này là đầu vào cho A4–A5 và B2–B3, chưa phải danh sách sửa.
+
+
+### Đợt đánh bóng theo ủy quyền (2026-11-04)
+
+- Thanh tiêu đề, tab tài liệu, thanh trạng thái, thanh tìm, nhóm zoom, ô màu chú thích: mỗi thanh một cỡ.
+- Thanh Chỉnh sửa: nhãn không xuống dòng; hai nút ít dùng chuyển vào menu ⋯ để vừa 1280px. Ở 960px, thanh chuyển sang icon thuần (có sẵn trong app).
+- Chân hộp căn phải; hộp Ghép, Tách, Thư mục tự động, Mẫu chữ ký được sửa khoảng cách và dòng.
+- Mọi khoảng cách, bo góc, cỡ chữ ngoài thang được đưa về token gần nhất (129 giá trị, 35 file). Biến màu không khai báo đổi sang token thật.
+- Chưa làm: alias màu cho chế độ tối còn kiểm bằng mắt (không có luật tự động cho chế độ tối); và `css-audit.mjs --fix` (script chỉ báo cáo, phần chuyển đổi đã làm bằng script một lần ngoài repo).

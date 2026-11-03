@@ -80,6 +80,7 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D33 | **Giữ stack giấy phép thoáng (D7)** cho sửa đối tượng/chữ: pypdfium2 + pikepdf + fontTools. Không dùng PyMuPDF | Spike S2: đủ sức; PyMuPDF còn làm lộ chữ đã che qua `/ActualText` trong mẫu thử |
 | D34 | Giao diện chữ ký số **tự vẽ bằng reportlab** rồi nhúng vào, không dùng bộ vẽ chữ của pyHanko. Giữ **một phiên đăng nhập cho mỗi token**; đọc lại cờ PIN ngay trước mỗi lần hỏi PIN | Spike S1: pyHanko 0.38 giãn chữ sai với font TrueType; đăng nhập lần 2 trong cùng tiến trình bị lỗi |
 | D40 | **Hook test giao diện:** `apps/ui/src/main.tsx` lộ `useUi` ra `window.__chefUi` (một dòng, không bọc điều kiện) để bộ đo giao diện (`ui-audit.spec.ts`) mở hộp thoại và tab bằng `getState()`/`openDialog()`. Bản e2e chạy trên dist production nên không thể dùng cờ dev | Kế hoạch [UI_AUDIT.md](UI_AUDIT.md) mục 2; không lộ hàm đổi trạng thái ra ngoài ngoài test |
+| D41 | **Chủ dự án ủy quyền quyết định thẩm mỹ giao diện**, tiêu chí duy nhất là **cân đối** (không lệch hàng, khe, cỡ, bo góc, chữ; không lỗi UI). Quy tắc áp dụng: một giá trị cho mỗi hàng, thanh hoặc vai trò (thanh tiêu đề và thanh trạng thái theo một cỡ; nút trong hộp thoại cùng cỡ 32px; khoảng cách trong nhóm icon 4px; chân hộp căn phải). Mọi lựa chọn được ghi ở nhật ký và [UI_AUDIT.md](UI_AUDIT.md) | Chủ dự án, nhắn cuối phiên: "miễn sao đẹp, cân đối, không lỗi UI, không lộn xộn". Các mục trong danh sách D cũ được coi là đã quyết theo tiêu chí này |
 
 ## Kiến trúc dự kiến
 
