@@ -10,7 +10,7 @@
 
   | Mức | Số tính năng |
   |---|---|
-  | Bản 1.0 (v0.1–v0.10) | 160 |
+  | Bản 1.0 (v0.1–v0.10) | 159 |
   | Sau 1.0 | 4 |
   | Gói nâng cấp OCR/AI | 12 |
   | Ý tưởng chưa cam kết | 20 |
@@ -19,8 +19,8 @@
 - **Việc tiếp theo:** Tiếp tục các task còn mở trong TASKS.md và các kiểm thử v1; thử phần cứng token thật, kiểm tra trên ba hệ điều hành và hoàn tất các cổng ổn định trước khi phát hành.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
-  - **CH1:** máy chính chạy OS nào? Token của CA nào? → chạy `cd spikes && uv sync && uv run python s1_token_probe.py` trên máy có token, gửi lại `token_probe_report.json` (hướng dẫn ở `docs/spikes/S1-pkcs11.md` mục 9)
-  - **CH2:** cách tự cập nhật khi repo private (cần trước T9.08). Xem TASKS.md.
+  - **CH1 (đã trả lời 2026-11-03):** máy chính chạy **Windows**, token của **Viettel-CA**. Còn việc: cắm token rồi chạy `cd spikes && uv sync && uv run python s1_token_probe.py`, gửi lại `token_probe_report.json` (hướng dẫn ở `docs/spikes/S1-pkcs11.md` mục 9)
+  - **CH2 (đã trả lời 2026-11-03):** chưa cần tự cập nhật; phát hành bản mới sau (D36).
   - Cần **token thật** (Viettel, VNPT, FPT, Ban Cơ yếu, MISA…) để thử ký số. Xem [TOKENS.md](TOKENS.md).
 
 ## Mục tiêu sản phẩm
@@ -68,6 +68,8 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D29 | **Chia lại mốc** thành v0.1 → v0.10 → 1.0 (11 mốc), theo BLUEPRINT mục 13. Nhãn "Mức" trong FEATURES.md đã cập nhật | v0.4 cũ có 43 tính năng, quá nặng |
 | D30 | Kiến trúc **mô hình thao tác (Operation)**: mỗi tính năng tác động lên tài liệu là một operation có Params dạng pydantic (sinh JSON Schema và kiểu TS). UI, hàng loạt, quy trình và dòng lệnh dùng chung | Chi tiết ở BLUEPRINT mục 3 |
 | D31 | Main ↔ lõi Python giao tiếp bằng **JSON-RPC 2.0 qua stdin/stdout** (không mở cổng mạng). Dữ liệu lớn truyền bằng đường dẫn file | BLUEPRINT mục 5 |
+| D35 | **Máy chính: Windows; token: Viettel-CA** (module PKCS#11 `viettel-ca_v6.dll` hoặc đời cũ, xem TOKENS.md). Windows là nền kiểm thử tay chính; macOS và Linux kiểm thử bằng CI | Chủ dự án trả lời CH1 |
+| D36 | **Tự cập nhật (A10, T9.08) làm sau 1.0**; bản 1.0 cập nhật bằng cách cài bản mới. CH2 đóng | Chủ dự án trả lời CH2 |
 | D32 | **Phiên tài liệu** dùng bản sao làm việc và các bản sửa trên đĩa; không động vào file gốc tới khi Lưu; hoàn tác bằng bản sửa | BLUEPRINT mục 4 |
 | D33 | **Giữ stack giấy phép thoáng (D7)** cho sửa đối tượng/chữ: pypdfium2 + pikepdf + fontTools. Không dùng PyMuPDF | Spike S2: đủ sức; PyMuPDF còn làm lộ chữ đã che qua `/ActualText` trong mẫu thử |
 | D34 | Giao diện chữ ký số **tự vẽ bằng reportlab** rồi nhúng vào, không dùng bộ vẽ chữ của pyHanko. Giữ **một phiên đăng nhập cho mỗi token**; đọc lại cờ PIN ngay trước mỗi lần hỏi PIN | Spike S1: pyHanko 0.38 giãn chữ sai với font TrueType; đăng nhập lần 2 trong cùng tiến trình bị lỗi |
@@ -164,6 +166,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (CH1, CH2):** Chủ dự án trả lời: máy chính Windows, token Viettel-CA (D35); chưa cần tự cập nhật (D36). A10 chuyển sang "Sau 1.0", bản 1.0 còn 159 tính năng, T9.08 tạm dừng, CH2 đóng. Kế hoạch đến 1.0 ở `docs/PLAN_V1.md`.
 
 - **2026-11-03 (rà chất lượng trước commit):** Chủ dự án chọn hai thay đổi sau khi rà. (1) T6.07: nền hình chữ nhật đơn giản (một `re`, không xoay) chứa trọn vùng che chỉ còn cảnh báo thay vì làm hỏng cả lệnh che, vì hình này không mang thông tin của vùng che; mọi vector khác (đường cong, đa giác, hình chữ nhật mà vùng che chỉ cắt một phần) vẫn bị từ chối. Trước đó trang có nền tô kín cả trang không che được. (2) T10.05: `export.document` và `export.refresh` có cờ `replaceExisting` (mặc định tắt), chỉ giao diện bật sau khi hộp thoại lưu của hệ điều hành đã hỏi ghi đè; chỉ đúng `outputPath` đó được thay, bản nguồn và revision hiện tại không bao giờ được thay, quy trình tự động vẫn chọn tên không trùng. Hạn chế còn lại: xuất Markdown/HTML có ảnh vào tên đã có thư mục ảnh đi kèm vẫn bị từ chối (không xóa thư mục của người dùng). `pageimg.crop` giờ từ chối tứ giác bị chéo giống bản xem trước; lỗi mô hình DocAligner chuyển sang bộ dò cổ điển và ghi log.
 

@@ -10,7 +10,7 @@
 | # | Câu hỏi | Cần trước task |
 |---|---|---|
 | CH1 | Máy chính của bạn chạy **Windows, macOS hay Linux**? Token của bạn là của **CA nào**? | T1.08 (spike token), kiểm thử tay mọi mốc |
-| CH2 | Tự cập nhật: để repo **public**, hay tạo **repo riêng public chỉ chứa bộ cài**, hay **tự kiểm tra bằng tay**? Lý do: app không đọc được release của repo private nếu không nhét token GitHub vào app | T9.08 |
+| CH2 (đã trả lời: chưa cần, D36) | Tự cập nhật: để repo **public**, hay tạo **repo riêng public chỉ chứa bộ cài**, hay **tự kiểm tra bằng tay**? Lý do: app không đọc được release của repo private nếu không nhét token GitHub vào app | T9.08 |
 
 ## Tổng quan
 
@@ -231,7 +231,7 @@
 | T9.05 | Thư mục tự động (theo dõi thư mục, hàng đợi, chống chạy trùng) | O3 | 1,5 | T9.04 | 🔄 |
 | T9.06 | Quy tắc đặt tên đầu ra; đổi tên file hàng loạt | O4, O6 | 1,5 | T9.04 | 🔄 |
 | T9.07 | Quy trình mẫu (Nộp hồ sơ online, Phát hành văn bản, Chụp sách); kéo thả file lên quy trình ở Start | O7, O8 | 1,5 | T9.03 | 🔄 |
-| T9.08 | Tự cập nhật (Windows/Linux tự động, macOS báo bản mới) | A10 | 2 | T1.06, CH2 | ⬜ |
+| T9.08 | Tự cập nhật (Windows/Linux tự động, macOS báo bản mới). **Làm sau 1.0** (D36) | A10 | 2 | T1.06 | ⏸ |
 
 ---
 
@@ -268,7 +268,7 @@
 
 ## Kiểm tra độ phủ
 
-Mọi tính năng thuộc bản 1.0 trong FEATURES.md (160 mục) đều có ít nhất một task ở trên. Khi thêm hoặc đổi tính năng, chạy lại kiểm tra này:
+Mọi tính năng thuộc bản 1.0 trong FEATURES.md (159 mục) đều có ít nhất một task ở trên. Khi thêm hoặc đổi tính năng, chạy lại kiểm tra này:
 
 ```bash
 python3 scripts/check_coverage.py

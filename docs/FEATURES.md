@@ -81,7 +81,7 @@ Chef PDF
 | v0.6 | Bộ máy nội dung: chọn/xóa đối tượng, tẩy vùng, lớp, gỡ watermark, che thông tin mật |
 | v0.7 | Sửa chữ có sẵn, tìm & thay thế, liên kết; ghi chú |
 | v0.8 | Ảnh scan & chụp sách: trình sửa ảnh, dò viền & cắt, tách trang đôi, làm phẳng, xóa ngón tay, chụp bằng điện thoại |
-| v0.9 | Form; quy trình tự động; tự cập nhật |
+| v0.9 | Form; quy trình tự động |
 | v0.10 | Rã PDF có chữ và tái tạo định dạng |
 | **1.0** | Ổn định & hoàn thiện |
 
@@ -113,7 +113,7 @@ Chef PDF
 | A7 | In | Hộp thoại in của hệ điều hành, chọn trang | v0.1 |
 | A8 | Bộ cài 3 hệ điều hành | Windows (`.exe`/`.msi`), macOS (`.dmg` cho Intel và Apple Silicon), Linux (`.AppImage`/`.deb`/`.rpm`), build tự động bằng GitHub Actions | v0.1 |
 | A9 | Khôi phục khi crash | Tự lưu nháp, mở lại file đang làm dở | v0.5 |
-| A10 | Tự cập nhật | Kiểm tra và cài bản mới | v0.9 |
+| A10 | Tự cập nhật | Kiểm tra và cài bản mới | Sau 1.0 |
 | A11 | Phím tắt tùy chỉnh | | Ý tưởng |
 | A12 | Bản portable | Chạy từ USB, không cần cài đặt | Ý tưởng |
 | A13 | Hệ thống plugin | Cho phép bên thứ ba viết thêm tính năng | Ý tưởng |
@@ -445,7 +445,7 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.10) | 160 |
+| Bản 1.0 (v0.1–v0.10) | 159 |
 | Sau 1.0 | 4 |
 | Nâng cấp | 12 |
 | Ý tưởng | 20 |
@@ -457,6 +457,7 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
+| 2026-11-03 | A10 | **Tự cập nhật** chuyển từ v0.9 sang **Sau 1.0**. Bản 1.0 còn 159 tính năng; T9.08 tạm dừng | Chủ dự án (trả lời CH2): phát hành bản mới sau, chưa cần tự cập nhật |
 | 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |
 | 2026-10-31 | (nhiều mã) | **Chia lại mốc khi lập kế hoạch:** v0.4 cũ tách thành v0.4 + v0.5; các mốc sau lùi một bậc; v0.7 cũ tách thành v0.8 (ảnh scan) + v0.9 (form, quy trình); rã tài liệu thành v0.10. Không thêm/bớt tính năng | v0.4 cũ có 43 tính năng, quá nặng (D29) |
 | 2026-10-31 | L6 | Từ "Ý tưởng" lên **v0.7**, mô tả chi tiết hơn | Chủ dự án đồng ý, để đủ quy trình chụp sách |
