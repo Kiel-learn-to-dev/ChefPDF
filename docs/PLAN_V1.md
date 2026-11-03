@@ -4,8 +4,8 @@
 
 ## Hiện trạng (2026-11-03)
 
-- 119 task: 76 ✅, 36 🔄, 6 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **161** tính năng.
-- Test trên Windows: lõi Python 1638 (chạy đủ lần cuối ở 216a873, lõi không đổi từ đó), giao diện 738, desktop 230, e2e Electron + lõi thật 104 đạt; 1 test smoke (lõi dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt. Không còn `test.fixme`.
+- 119 task: 77 ✅, 36 🔄, 5 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **161** tính năng.
+- Test trên Windows: lõi Python 1638 (chạy đủ lần cuối ở 216a873, lõi không đổi từ đó), giao diện 752, desktop 230, e2e Electron + lõi thật 104 đạt; 1 test smoke (lõi dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt. Không còn `test.fixme`.
 - CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
 - Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 🔄).
 - Trạng thái 🔄 nghĩa là code đã có nhưng chưa qua cổng nghiệm thu của mốc. Mỗi mốc có một **Demo** trong TASKS.md; đó là tiêu chí nghiệm thu thật.
@@ -75,7 +75,7 @@ Demo: rã một báo cáo 2 cột có bảng thành Word "giữ bố cục" và 
 |---|---|---|
 | 5.1 | T11.02 hiệu năng | File 1000 trang mở và cuộn mượt; file 300 MB không tràn RAM; khởi động ≤ ngưỡng ghi trong BLUEPRINT; có số đo trong NOTES |
 | 5.2 | T11.03 giấy phép | Rà toàn bộ thư viện, font, mô hình (có DocAligner, onnxruntime); tạo file NOTICE; không có thư viện AGPL (D7) |
-| 5.2b | T11.06 menu chuột phải trang | Chọn nhiều trang, chuột phải, tạo PDF từ trang đã chọn mở ở tab mới; đóng dấu và nén đúng các trang đã chọn; e2e với lõi thật |
+| 5.2b ✅ | T11.06 menu chuột phải trang (lưới trang; thanh bên chưa có chọn nhiều, xem NOTES) | Chọn nhiều trang, chuột phải, tạo PDF từ trang đã chọn mở ở tab mới; đóng dấu và nén đúng các trang đã chọn; e2e với lõi thật |
 | 5.3 | T11.05 đánh bóng | Phím tắt, điều hướng bằng bàn phím, trạng thái rỗng và lỗi thống nhất |
 | 5.4 | T11.04 hướng dẫn | `docs/HUONG_DAN_SU_DUNG.md` khớp tính năng cuối, phần cài đặt chỉ Windows |
 | 5.5 | T11.01 kiểm thử **trên Windows** | Bộ cài Windows `.exe` cài và chạy được trên máy sạch; CI Windows xanh liên tục |

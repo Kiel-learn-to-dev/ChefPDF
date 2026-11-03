@@ -263,7 +263,7 @@
 | T11.03 | Rà soát giấy phép toàn bộ thư viện, font, mô hình; tạo file NOTICE | | 1 | tất cả | ⬜ |
 | T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | 🔄 |
 | T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ⬜ |
-| T11.06 | Menu chuột phải trên các trang đã chọn (kiểu ABBYY): **tạo PDF từ các trang đã chọn** mở ở tab mới, đóng dấu và nén đúng các trang đã chọn, chọn tất cả/đảo chọn, xuất ảnh; dùng chung ở lưới thumbnail và thanh bên | C13, C14 | 3 | T1.24, T4.05, T5.04 | ⬜ |
+| T11.06 | Menu chuột phải trên các trang đã chọn (kiểu ABBYY): **tạo PDF từ các trang đã chọn** mở ở tab mới, đóng dấu và nén đúng các trang đã chọn, chọn tất cả/đảo chọn, xuất ảnh; dùng chung ở lưới thumbnail và thanh bên. **Đã làm ở lưới trang; thanh bên chưa có** (ThumbnailList không chọn nhiều), xem NOTES 2026-11-03 | C13, C14 | 3 | T1.24, T4.05, T5.04 | ✅ |
 
 ---
 
