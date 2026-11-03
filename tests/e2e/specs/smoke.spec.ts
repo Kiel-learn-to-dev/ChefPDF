@@ -202,10 +202,9 @@ test('a second instance forwards its files as an open-files event and exits', as
   launched = await launchApp();
   const { page, userDataDir } = launched;
   await recordEvents(page);
-  // Files are only forwarded as events once the window finished loading (did-finish-load);
-  // an earlier second instance lands in the initial-files queue instead.
-  await page.waitForLoadState('load');
-  await page.waitForTimeout(1500);
+  // Files are forwarded as events once the renderer has read the initial files; an earlier
+  // second instance lands in that queue instead.
+  await page.evaluate(() => window.chef.app.initialFiles());
   const doc = path.join(makeUserDataDir(), 'second.pdf');
   writePdf(doc);
   const second = spawn(electronBin, [desktopDir, ...sandboxArgs, doc], {

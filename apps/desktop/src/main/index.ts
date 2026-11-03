@@ -252,16 +252,18 @@ async function onReady(): Promise<void> {
       log,
     });
     mainWindow = win;
+    const deliverFiles = (paths: string[]) => {
+      broadcast({ type: 'open-files', paths });
+      focusMainWindow();
+    };
+    openFiles.prepare(deliverFiles);
     win.webContents.on('did-finish-load', () => {
       log(`startup: renderer loaded at ${Math.round(process.uptime() * 1000)} ms`);
       win.webContents.send(IpcChannels.event, {
         type: 'core-status',
         status: coreStatus,
       } satisfies ChefEvent);
-      openFiles.attach((paths) => {
-        broadcast({ type: 'open-files', paths });
-        focusMainWindow();
-      });
+      openFiles.attach(deliverFiles);
     });
     win.on('closed', () => {
       if (mainWindow === win) {

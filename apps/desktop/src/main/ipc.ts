@@ -259,7 +259,7 @@ export function registerIpc(d: IpcDeps): void {
   );
   handle(IpcChannels.captureStatus, () => captureCall(async () => d.capture.status()));
 
-  handle(IpcChannels.appInitialFiles, () => d.openFiles.initialFiles);
+  handle(IpcChannels.appInitialFiles, () => d.openFiles.takeInitialFiles());
 
   handle(IpcChannels.clipboardWriteText, async (_event, text) => {
     await clipboard.writeText(validateText(text));

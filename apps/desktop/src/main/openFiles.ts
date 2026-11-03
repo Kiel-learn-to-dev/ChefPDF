@@ -56,6 +56,7 @@ export function argvSkipCount(isPackaged: boolean, defaultApp: boolean): number 
 export class OpenFilesController {
   private readonly initial: string[] = [];
   private deliver: ((paths: string[]) => void) | null = null;
+  private prepared: ((paths: string[]) => void) | null = null;
 
   constructor(private readonly grant: (file: string) => void) {}
 
@@ -63,12 +64,28 @@ export class OpenFilesController {
     return [...this.initial];
   }
 
+  /** Says how files reach the window. Events start flowing at `takeInitialFiles` or `attach`. */
+  prepare(deliver: (paths: string[]) => void): void {
+    this.prepared = deliver;
+  }
+
+  /**
+   * What the renderer reads at startup. It registers its event listener before this call, so
+   * from here on files go out as events instead of being queued where nobody will look again.
+   */
+  takeInitialFiles(): string[] {
+    if (this.prepared) this.deliver = this.prepared;
+    return this.initialFiles;
+  }
+
   /** Called once the main window's renderer is ready to receive events. */
   attach(deliver: (paths: string[]) => void): void {
+    this.prepared = deliver;
     this.deliver = deliver;
   }
 
   detach(): void {
+    this.prepared = null;
     this.deliver = null;
   }
 

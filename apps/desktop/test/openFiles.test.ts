@@ -57,4 +57,22 @@ describe('OpenFilesController', () => {
     expect(c.initialFiles).toEqual(['/a.pdf', '/c.pdf']);
     expect(granted).toEqual(['/a.pdf', '/a.pdf', '/b.pdf', '/c.pdf']);
   });
+
+  it('delivers as events once the renderer has read the initial files, before the load ends', () => {
+    const c = new OpenFilesController(() => undefined);
+    const delivered: string[][] = [];
+    c.prepare((paths) => delivered.push(paths));
+    c.add(['/early.pdf']); // the window is still loading: queued for the first read
+    expect(c.takeInitialFiles()).toEqual(['/early.pdf']);
+    c.add(['/late.pdf']); // the renderer listens now, did-finish-load has not fired yet
+    expect(delivered).toEqual([['/late.pdf']]);
+    expect(c.initialFiles).toEqual(['/early.pdf']);
+  });
+
+  it('keeps queueing when no window is prepared', () => {
+    const c = new OpenFilesController(() => undefined);
+    expect(c.takeInitialFiles()).toEqual([]);
+    c.add(['/a.pdf']);
+    expect(c.initialFiles).toEqual(['/a.pdf']);
+  });
 });
