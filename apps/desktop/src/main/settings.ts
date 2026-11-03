@@ -318,21 +318,27 @@ export function validateScanPresets(value: unknown): ScanUserPreset[] {
 }
 
 /** Label of a certificate file: the trimmed label, or the file name when it is empty. */
-function pfxLabel(label: string, filePath: string): string {
+function pfxLabel(label: string, filePath: string, flavour: typeof path): string {
   const trimmed = label.trim();
   if (trimmed.length > 0) return trimmed.slice(0, MAX_PFX_LABEL);
-  return path.basename(filePath).slice(0, MAX_PFX_LABEL) || filePath.slice(0, MAX_PFX_LABEL);
+  return flavour.basename(filePath).slice(0, MAX_PFX_LABEL) || filePath.slice(0, MAX_PFX_LABEL);
 }
 
-function normalizeKnownPfx(v: unknown): KnownPfxFile | null {
-  if (!isPlainObject(v) || typeof v.path !== 'string' || !path.isAbsolute(v.path)) return null;
+/** Path rules of the platform the settings belong to, not of the machine running the code. */
+function pathFlavour(platform: NodeJS.Platform): typeof path {
+  return platform === 'win32' ? path.win32 : path.posix;
+}
+
+function normalizeKnownPfx(v: unknown, platform: NodeJS.Platform): KnownPfxFile | null {
+  const flavour = pathFlavour(platform);
+  if (!isPlainObject(v) || typeof v.path !== 'string' || !flavour.isAbsolute(v.path)) return null;
   if (v.path.length > 32_768 || v.path.includes('\0')) return null;
   if (v.label !== undefined && typeof v.label !== 'string') return null;
   if (v.remembered !== undefined && typeof v.remembered !== 'boolean') return null;
-  const file = path.normalize(v.path);
+  const file = flavour.normalize(v.path);
   return {
     path: file,
-    label: pfxLabel(typeof v.label === 'string' ? v.label : '', file),
+    label: pfxLabel(typeof v.label === 'string' ? v.label : '', file, flavour),
     remembered: v.remembered === true,
   };
 }
@@ -345,7 +351,7 @@ export function sanitizeKnownPfx(
   if (!Array.isArray(raw)) return [];
   const out: KnownPfxFile[] = [];
   for (const item of raw) {
-    const entry = normalizeKnownPfx(item);
+    const entry = normalizeKnownPfx(item, platform);
     if (!entry || out.some((o) => samePath(o.path, entry.path, platform))) continue;
     out.push(entry);
     if (out.length >= MAX_KNOWN_PFX) break;
@@ -363,7 +369,7 @@ export function validateKnownPfx(
   }
   const out: KnownPfxFile[] = [];
   for (const item of value) {
-    const entry = normalizeKnownPfx(item);
+    const entry = normalizeKnownPfx(item, platform);
     if (!entry) throw new SettingsValidationError('Invalid certificate file entry');
     if (out.some((o) => samePath(o.path, entry.path, platform))) {
       throw new SettingsValidationError(`Duplicate certificate file: ${entry.path}`);

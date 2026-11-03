@@ -39,7 +39,14 @@ export function buildMenuTemplate(
   template.push({
     label: l.file,
     submenu: [
-      { label: l.open, accelerator: 'CmdOrCtrl+O', click: actions.open },
+      // The window handles Ctrl+O itself; registering it here as well opens two dialogs on
+      // Linux and macOS. The menu only shows the shortcut.
+      {
+        label: l.open,
+        accelerator: 'CmdOrCtrl+O',
+        registerAccelerator: false,
+        click: actions.open,
+      },
       { type: 'separator' },
       mac ? { role: 'close', label: l.closeWindow } : { role: 'quit', label: l.quit },
     ],

@@ -224,6 +224,8 @@ describe('SettingsStore', () => {
 describe('certificate settings (knownPfxFiles, lastDriverPath)', () => {
   const dir = path.resolve('chef-test-certs');
   const pfx = (name: string) => path.join(dir, name);
+  // Explicit 'linux' calls use POSIX rules whatever machine runs the test.
+  const posixPfx = (name: string) => path.posix.join('/chef-test-certs', name);
 
   it('reads older files without the new fields as empty / null', () => {
     const s = sanitizeSettings({ language: 'en', version: 1 });
@@ -233,23 +235,25 @@ describe('certificate settings (knownPfxFiles, lastDriverPath)', () => {
 
   it('keeps valid entries from disk and drops malformed or duplicate ones', () => {
     const raw = [
-      { path: pfx('a.pfx'), label: 'Ký A', remembered: true },
-      { path: pfx('a.pfx'), label: 'trùng' },
+      { path: posixPfx('a.pfx'), label: 'Ký A', remembered: true },
+      { path: posixPfx('a.pfx'), label: 'trùng' },
       { path: 'relative.pfx', label: 'x' },
-      { path: pfx('b.p12') },
+      { path: posixPfx('b.p12') },
       { label: 'no path' },
       'junk',
     ];
     const list = sanitizeKnownPfx(raw, 'linux');
     expect(list).toEqual([
-      { path: pfx('a.pfx'), label: 'Ký A', remembered: true },
-      { path: pfx('b.p12'), label: 'b.p12', remembered: false },
+      { path: posixPfx('a.pfx'), label: 'Ký A', remembered: true },
+      { path: posixPfx('b.p12'), label: 'b.p12', remembered: false },
     ]);
     expect(sanitizeKnownPfx('nope')).toEqual([]);
   });
 
   it('caps the list and treats Windows paths case-insensitively', () => {
-    const many = Array.from({ length: MAX_KNOWN_PFX + 5 }, (_, i) => ({ path: pfx(`f${i}.pfx`) }));
+    const many = Array.from({ length: MAX_KNOWN_PFX + 5 }, (_, i) => ({
+      path: posixPfx(`f${i}.pfx`),
+    }));
     expect(sanitizeKnownPfx(many, 'linux')).toHaveLength(MAX_KNOWN_PFX);
     const win = sanitizeKnownPfx(
       [{ path: 'C:\\Certs\\a.pfx' }, { path: 'c:\\certs\\A.pfx' }],
@@ -260,12 +264,14 @@ describe('certificate settings (knownPfxFiles, lastDriverPath)', () => {
 
   it('validates knownPfxFiles patches strictly', () => {
     expect(
-      validateKnownPfx([{ path: pfx('a.pfx'), label: 'A', remembered: false }], 'linux'),
-    ).toEqual([{ path: pfx('a.pfx'), label: 'A', remembered: false }]);
+      validateKnownPfx([{ path: posixPfx('a.pfx'), label: 'A', remembered: false }], 'linux'),
+    ).toEqual([{ path: posixPfx('a.pfx'), label: 'A', remembered: false }]);
     expect(() => validateKnownPfx([{ path: 'a.pfx' }], 'linux')).toThrow(/Invalid/);
-    expect(() => validateKnownPfx([{ path: pfx('a.pfx'), remembered: 'yes' }], 'linux')).toThrow();
     expect(() =>
-      validateKnownPfx([{ path: pfx('a.pfx') }, { path: pfx('a.pfx') }], 'linux'),
+      validateKnownPfx([{ path: posixPfx('a.pfx'), remembered: 'yes' }], 'linux'),
+    ).toThrow();
+    expect(() =>
+      validateKnownPfx([{ path: posixPfx('a.pfx') }, { path: posixPfx('a.pfx') }], 'linux'),
     ).toThrow(/Duplicate/);
     expect(() => validateKnownPfx('x', 'linux')).toThrow();
   });
