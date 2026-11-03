@@ -162,7 +162,7 @@
 | T5.08 | Trích ảnh/chữ; file đính kèm; sửa metadata; tối ưu cho web; sửa file hỏng | M7–M11 | 2,5 | T1.05 | 🔄 |
 | T5.09 | Thay trang; cắt lề/đổi khổ (CropBox); xóa trang trắng; chia đôi trang; tách thông minh | C6–C10 | 3,5 | T1.24 | 🔄 |
 | T5.10 | Khôi phục phiên khi crash | A9 | 1,5 | T1.05 | 🔄 |
-| T5.11 | Xem song song; chế độ đọc ban đêm | B8, B9 | 1,5 | T1.16 | ⬜ |
+| T5.11 | Xem song song; chế độ đọc ban đêm | B8, B9 | 1,5 | T1.16 | 🔄 |
 
 ---
 
@@ -190,7 +190,7 @@
 |---|---|---|---|---|---|
 | T7.01 | Mô hình chữ: gom ký tự → dòng → đoạn; ánh xạ font; kiểm tra font có đủ ký tự tiếng Việt không | | 4 | T6.01 | 🔄 |
 | T7.02 | Sửa chữ mức dòng, tự thay font khi thiếu ký tự | D8 | 4 | T7.01 | 🔄 |
-| T7.03 | Sửa chữ mức đoạn, tự xuống dòng lại, đổi kiểu chữ | D9 | 5 | T7.02 | 🔄 |
+| T7.03 | Sửa chữ mức đoạn, tự xuống dòng lại, đổi kiểu chữ | D9 | 5 | T7.02 | ✅ |
 | T7.04 | Tìm & thay thế chữ toàn tài liệu | D10 | 2 | T7.02 | 🔄 |
 | T7.05 | Liên kết | D11 | 1 | T6.01 | 🔄 |
 | T7.06 | Ghi chú: highlight/gạch chân/gạch ngang, note, vẽ (tận dụng annotation editor của pdf.js) | G1, G2, G3 | 3 | T1.16 | 🔄 |
@@ -208,13 +208,13 @@
 | T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | 🔄 |
 | T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | 🔄 |
 | T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | 🔄 |
-| T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ⬜ |
+| T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ✅ |
 | T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | 🔄 |
-| T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | ⬜ |
+| T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | 🔄 |
 | T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | 🔄 |
-| T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | ⬜ |
+| T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | 🔄 |
 | T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | 🔄 |
-| T8.11 | Chụp bằng điện thoại qua QR: máy chủ LAN tạm có token, trang web chụp, nhận ảnh, dò viền ngay. Dùng cho cả chụp chữ ký (I19) | L5, (I19) | 4 | T8.04 | ⬜ |
+| T8.11 | Chụp bằng điện thoại qua QR: máy chủ LAN tạm có token, trang web chụp, nhận ảnh, dò viền ngay. Dùng cho cả chụp chữ ký (I19) | L5, (I19) | 4 | T8.04 | 🔄 |
 
 ---
 
@@ -226,7 +226,7 @@
 |---|---|---|---|---|---|
 | T9.01 | Form: điền, tạo trường (chữ, checkbox, radio, dropdown, ô ký), làm phẳng | H1, H2, H3 | 5 | T6.01 | 🔄 |
 | T9.02 | Workflow engine: chuỗi operation, kiểm tra tham số, **kiểm tra thứ tự an toàn** | O1, O5 | 3 | T1.04 | 🔄 |
-| T9.03 | UI trình tạo quy trình; "Lưu thành bước quy trình" từ task dialog | O1 | 3 | T9.02 | ⬜ |
+| T9.03 | UI trình tạo quy trình; "Lưu thành bước quy trình" từ task dialog | O1 | 3 | T9.02 | 🔄 |
 | T9.04 | Chạy hàng loạt: tiến độ, báo lỗi từng file, chạy tiếp khi có file lỗi | O2 | 2 | T9.02 | 🔄 |
 | T9.05 | Thư mục tự động (theo dõi thư mục, hàng đợi, chống chạy trùng) | O3 | 1,5 | T9.04 | 🔄 |
 | T9.06 | Quy tắc đặt tên đầu ra; đổi tên file hàng loạt | O4, O6 | 1,5 | T9.04 | 🔄 |
@@ -243,12 +243,12 @@
 |---|---|---|---|---|---|
 | T10.01 | Mô hình tài liệu JSON + dò bố cục bằng quy tắc (dòng, đoạn, tiêu đề, danh sách, nhiều cột, thứ tự đọc, bỏ header/footer lặp) | N1 | 6 | T7.01 | 🔄 |
 | T10.02 | Nhận bảng có đường kẻ | N2 | 3 | T10.01 | 🔄 |
-| T10.03 | Màn hình kiểm tra & sửa (gốc/kết quả song song, đổi loại vùng) | N3 | 4 | T10.01 | ⬜ |
+| T10.03 | Màn hình kiểm tra & sửa (gốc/kết quả song song, đổi loại vùng) | N3 | 4 | T10.01 | 🔄 |
 | T10.04 | Bộ xuất Markdown, HTML, TXT, JSON, EPUB, ODT, XLSX | N4 | 3 | T10.01 | 🔄 |
 | T10.05 | Xuất DOCX hai chế độ: dễ chỉnh sửa / giữ bố cục | N5 | 4 | T10.01 | 🔄 |
 | T10.06 | Làm mới tài liệu (dàn trang lại thành PDF sạch) | N6 | 2,5 | T10.01 | 🔄 |
 | T10.07 | Rã hàng loạt; làm thành một bước quy trình | N7 | 1 | T10.04, T9.02 | 🔄 |
-| T10.08 | Tự tạo mục lục từ tiêu đề đã dò | D12 | 1 | T10.01 | 🔄 |
+| T10.08 | Tự tạo mục lục từ tiêu đề đã dò | D12 | 1 | T10.01 | ✅ |
 
 ---
 
@@ -261,7 +261,7 @@
 | T11.01 | Kiểm thử toàn bộ trên 3 OS, sửa lỗi | | 5 | tất cả | ⬜ |
 | T11.02 | Hiệu năng: file 1000 trang, file 300MB, RAM, thời gian khởi động | | 3 | tất cả | ⬜ |
 | T11.03 | Rà soát giấy phép toàn bộ thư viện, font, mô hình; tạo file NOTICE | | 1 | tất cả | ⬜ |
-| T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | ⬜ |
+| T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | 🔄 |
 | T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ⬜ |
 
 ---

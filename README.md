@@ -2,6 +2,8 @@
 
 App PDF desktop gọn gàng, mạnh mẽ, chạy trên Windows, macOS và Linux. Chỉ dùng cá nhân.
 
+Hướng dẫn sử dụng: [Tiếng Việt](docs/HUONG_DAN_SU_DUNG.md)
+
 Tài liệu dự án: [docs/NOTES.md](docs/NOTES.md) · [docs/FEATURES.md](docs/FEATURES.md) · [docs/BLUEPRINT.md](docs/BLUEPRINT.md) · [docs/TASKS.md](docs/TASKS.md) · [docs/CONTRACTS.md](docs/CONTRACTS.md)
 
 ## Phát triển
