@@ -72,11 +72,12 @@ export function AnnotPanel({ doc }: { doc: DocTab }) {
             key={c}
             type="button"
             className="annot-swatch"
-            style={{ background: c }}
             aria-label={t('annots.palette.colour', { colour: c })}
             aria-pressed={color === c}
             onClick={() => useAnnotUi.getState().set({ color: c })}
-          />
+          >
+            <span className="annot-swatch__dot" style={{ background: c }} aria-hidden />
+          </button>
         ))}
         <Select<string>
           aria-label={t('annots.palette.opacity')}
@@ -147,7 +148,6 @@ export function AnnotPanel({ doc }: { doc: DocTab }) {
           value={format}
           onChange={setFormat}
           options={EXPORT_FORMATS.map((f) => ({ value: f, label: f.toUpperCase() }))}
-          size="sm"
         />
         <Button
           variant="secondary"

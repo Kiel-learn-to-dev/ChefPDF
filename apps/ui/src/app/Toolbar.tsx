@@ -264,13 +264,13 @@ const EDIT_ITEMS: Item[] = [
   { kind: 'cmd', id: 'edit.watermark', label: true },
   { kind: 'cmd', id: 'edit.headerFooter', label: true },
   { kind: 'cmd', id: 'edit.pageNumbers', label: true },
-  { kind: 'cmd', id: 'edit.letterhead', label: true },
   { kind: 'cmd', id: 'edit.qrBarcode', label: true },
-  { kind: 'cmd', id: 'edit.overlays', label: true },
   { kind: 'cmd', id: 'edit.objects', label: true },
   { kind: 'cmd', id: 'edit.textEdit', label: true },
 ];
 const EDIT_OVERFLOW = [
+  'edit.overlays',
+  'edit.letterhead',
   'edit.insertToc',
   'edit.findReplace',
   'edit.links',

@@ -21,7 +21,8 @@
   min-width: 0;
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  /* một khoảng cách cho mọi mục trong dải tab: brand, tab, nút thêm */
+  gap: var(--space-2);
   height: 100%;
   overflow: hidden;
 }
@@ -66,9 +67,6 @@
   gap: var(--space-4);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
-.doctab-wrap:first-child {
-  margin-right: var(--space-3);
-}
 .doctab__brand {
   font-weight: var(--weight-semibold);
   color: var(--c-text);
@@ -89,16 +87,23 @@
 .doctab__close {
   position: absolute;
   right: var(--space-3);
+  /* nút đóng vuông 20px: không padding, không để độ rộng mặc định của icon-btn */
+  width: 20px;
   min-width: 20px !important;
   height: 20px !important;
+  padding: 0;
   opacity: 0;
 }
 .doctab-wrap:hover .doctab__close,
 .doctab-wrap.is-active .doctab__close {
   opacity: 1;
 }
-.doctabs__add {
-  margin: 0 0 3px var(--space-2);
+/* Nút thêm tab cùng cỡ 32px với dải tab và nút Cài đặt */
+.doctabs .doctabs__add {
+  width: var(--control-h);
+  min-width: var(--control-h);
+  height: var(--control-h);
+  margin: 0;
 }
 .topbar__right {
   display: flex;
@@ -110,7 +115,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  height: 28px;
+  /* cùng chiều cao với nút Cài đặt bên cạnh (32px) */
+  height: var(--control-h);
   width: 220px;
   padding: 0 var(--space-3) 0 var(--space-5);
   border-radius: var(--radius-md);
@@ -184,7 +190,8 @@
 .toolbar__group {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  /* một khoảng cách trong nhóm icon (4px), không để 2px làm các nút dính nhau */
+  gap: var(--space-2);
 }
 .toolbar__main {
   gap: var(--space-2);
@@ -217,11 +224,13 @@
     clip: rect(0, 0, 0, 0);
   }
 }
+/* Nhóm zoom là một điều khiển: khung 32px (cỡ thanh công cụ), nút bên trong 26px */
 .zoom {
   display: flex;
   align-items: center;
-  gap: 1px;
-  padding: 2px;
+  gap: var(--space-1);
+  height: var(--control-h);
+  padding: 0 3px;
   border-radius: var(--radius-md);
   background: var(--c-surface-sunken);
   margin-right: var(--space-2);
@@ -571,8 +580,11 @@
   color: var(--c-text-2);
 }
 .status .icon-btn--sm {
-  min-width: 22px;
-  height: 22px;
+  /* vuông 22px: mọi điều khiển thanh trạng thái cùng cỡ */
+  width: var(--control-h-xs);
+  min-width: var(--control-h-xs);
+  height: var(--control-h-xs);
+  padding: 0;
 }
 .status__item {
   display: inline-flex;
@@ -584,7 +596,7 @@
 .status__page-input {
   width: auto;
   min-width: 26px;
-  height: 20px;
+  height: var(--control-h-xs);
   padding: 0 var(--space-2);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-xs);

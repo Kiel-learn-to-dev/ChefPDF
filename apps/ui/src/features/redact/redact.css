@@ -12,7 +12,7 @@
   box-sizing: border-box;
   background: rgba(255, 170, 0, 0.28);
   border: 2px solid #e08a00;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .rd-warning {

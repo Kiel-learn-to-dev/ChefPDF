@@ -70,63 +70,62 @@ export function FindBar({ docId }: { docId: string }) {
           }
         }}
       />
-      <span
-        className={clsx(
-          'findbar__count',
-          query &&
-            status !== 'pending' &&
-            total === 0 &&
-            status !== 'idle' &&
-            'findbar__count--none',
-        )}
-        aria-live="polite"
-      >
-        {countText}
-      </span>
-      <IconButton
-        size="sm"
-        label={t('find.matchDiacritics')}
-        icon={<span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1 }}>ă</span>}
-        pressed={matchDiacritics}
-        onClick={() => search({ matchDiacritics: !matchDiacritics })}
-      />
-      <IconButton
-        size="sm"
-        label={t('find.caseSensitive')}
-        icon={<CaseSensitive size={16} />}
-        pressed={caseSensitive}
-        onClick={() => search({ caseSensitive: !caseSensitive })}
-      />
-      <IconButton
-        size="sm"
-        label={t('find.wholeWord')}
-        icon={<WholeWord size={16} />}
-        pressed={entireWord}
-        onClick={() => search({ entireWord: !entireWord })}
-      />
-      <IconButton
-        size="sm"
-        label={t('find.previous')}
-        shortcut="Shift+Enter"
-        icon={<ChevronUp size={16} />}
-        disabled={!total}
-        onClick={() => search({}, 'again', true)}
-      />
-      <IconButton
-        size="sm"
-        label={t('find.next')}
-        shortcut="Enter"
-        icon={<ChevronDown size={16} />}
-        disabled={!total}
-        onClick={() => search({}, 'again')}
-      />
-      <IconButton
-        size="sm"
-        label={t('common.close')}
-        shortcut="Escape"
-        icon={<X size={15} />}
-        onClick={close}
-      />
+      {/* Nhóm tùy chọn và nhóm điều hướng: ô nhập giãn, các khe giữa nhóm đều nhau */}
+      <div className="findbar__group">
+        <IconButton
+          label={t('find.matchDiacritics')}
+          icon={<span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1 }}>ă</span>}
+          pressed={matchDiacritics}
+          onClick={() => search({ matchDiacritics: !matchDiacritics })}
+        />
+        <IconButton
+          label={t('find.caseSensitive')}
+          icon={<CaseSensitive size={16} />}
+          pressed={caseSensitive}
+          onClick={() => search({ caseSensitive: !caseSensitive })}
+        />
+        <IconButton
+          label={t('find.wholeWord')}
+          icon={<WholeWord size={16} />}
+          pressed={entireWord}
+          onClick={() => search({ entireWord: !entireWord })}
+        />
+      </div>
+      <div className="findbar__group">
+        <span
+          className={clsx(
+            'findbar__count',
+            query &&
+              status !== 'pending' &&
+              total === 0 &&
+              status !== 'idle' &&
+              'findbar__count--none',
+          )}
+          aria-live="polite"
+        >
+          {countText}
+        </span>
+        <IconButton
+          label={t('find.previous')}
+          shortcut="Shift+Enter"
+          icon={<ChevronUp size={16} />}
+          disabled={!total}
+          onClick={() => search({}, 'again', true)}
+        />
+        <IconButton
+          label={t('find.next')}
+          shortcut="Enter"
+          icon={<ChevronDown size={16} />}
+          disabled={!total}
+          onClick={() => search({}, 'again')}
+        />
+        <IconButton
+          label={t('common.close')}
+          shortcut="Escape"
+          icon={<X size={15} />}
+          onClick={close}
+        />
+      </div>
     </div>
   );
 }

@@ -42,6 +42,7 @@
   --radius-full: 999px;
 
   /* Sizes */
+  --control-h-xs: 22px;
   --control-h-sm: 26px;
   --control-h: 32px;
   --control-h-lg: 38px;

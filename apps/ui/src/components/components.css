@@ -111,6 +111,8 @@
 .icon-btn__label {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  /* nhãn một dòng: nếu xuống dòng, nút cao không đều và thanh trông lộn xộn */
+  white-space: nowrap;
 }
 
 /* ---------- Tooltip ---------- */

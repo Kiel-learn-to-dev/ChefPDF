@@ -67,7 +67,7 @@
   margin: -5px 0 0 -5px;
   box-sizing: border-box;
   border: 1.5px solid var(--c-accent);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: #fff;
   pointer-events: none;
 }

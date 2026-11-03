@@ -54,12 +54,23 @@
   gap: 4px;
   align-items: center;
 }
+/* Vùng bấm 26px (cỡ điều khiển nhỏ của thang), chấm màu 16px ở giữa */
 .annot-swatch {
+  display: inline-grid;
+  place-items: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+.annot-swatch__dot {
   width: 16px;
   height: 16px;
   border-radius: 999px;
   border: 1px solid rgb(0 0 0 / 0.25);
-  cursor: pointer;
 }
 .annot-swatch[aria-pressed='true'] {
   outline: 2px solid #2563eb;
