@@ -7,7 +7,7 @@
 - 118 task: 57 ✅, 54 🔄, 6 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **159** tính năng.
 - Test trên Windows đều xanh: lõi Python 1638, giao diện 736, desktop 230, e2e Electron + lõi thật 86/86.
 - CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
-- Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt. Chưa mở bằng Adobe Reader và Foxit.
+- Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 🔄).
 - Trạng thái 🔄 nghĩa là code đã có nhưng chưa qua cổng nghiệm thu của mốc. Mỗi mốc có một **Demo** trong TASKS.md; đó là tiêu chí nghiệm thu thật.
 
 ## Nguyên tắc làm
@@ -28,7 +28,7 @@
 | 0.3 ✅ | E2E chạy cả bộ ổn định trên Windows | 86/86 |
 | 0.4 ✅ | Push và CI | Core, JS, E2E Windows xanh. Linux/macOS: xem "Sau 1.0" |
 
-## Giai đoạn 1: Ký số với token Viettel (★, mốc v0.3), đang làm
+## Giai đoạn 1: Ký số với token Viettel (★, mốc v0.3), tạm xong; còn các bước 1.4–1.7
 
 Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫu chữ ký có ảnh tách nền, ký theo chữ mốc cho 10 file, Adobe Reader báo chữ ký hợp lệ.
 
@@ -37,7 +37,7 @@ Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫ
 | 1.1 ✅ | Dò token thật: driver `viettel-ca_v6.dll`, 2 chứng thư, cờ PIN bình thường | T1.08, T3.01, T3.02 | Đạt; ghi ở TOKENS.md |
 | 1.2 ✅ | Chẩn đoán từng bước trên token thật | T3.03 | Đạt 7/7 bước (bước ký thử cần PIN) |
 | 1.3 ✅ | Ký thật bằng token qua lõi, kiểm tra lại | T3.06 | Đạt; sửa 2 lỗi kiểm tra (khóa 1024 bit, CRL dạng PEM) |
-| 1.4 ⬜ | **Mở file ký bằng Adobe Reader và Foxit**, chụp bảng chữ ký; đối chiếu dấu vân tay Root CA rồi đưa vào kho đi kèm (`core/chef_core/resources/certs`) | T3.14, I35 | Chờ chủ dự án |
+| 1.4 🔄 | Chủ dự án xem kết quả ký và chấp nhận (2026-11-03). **Còn lại, làm sau:** ảnh chụp Adobe Reader/Foxit; đối chiếu dấu vân tay Root CA rồi đưa vào kho đi kèm (`core/chef_core/resources/certs`) | T3.14, I35 | Không chặn các mốc sau |
 | 1.5 ⬜ | Ký từ giao diện app (không qua script): chọn token, nhập PIN, mẫu chữ ký, ký hàng loạt 10 file theo chữ mốc | T3.04–T3.13 | Cần token lần nữa |
 | 1.6 ⬜ | Ký bằng kho chứng thư Windows (CNG) khi không dùng PKCS#11 | T4.11 (phần Windows) | |
 | 1.7 ⬜ | Kiểm tra chữ ký: panel trạng thái, thư viện ảnh chữ ký (đóng T3.08, T3.11) | T3.08, T3.11 | |

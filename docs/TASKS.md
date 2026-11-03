@@ -52,7 +52,7 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T1.08 | **S1:** pyHanko + PKCS#11 với SoftHSM2, rồi với **token thật** trên máy chủ dự án. Ghi kết quả vào TOKENS.md. *Phần SoftHSM2 xong ([báo cáo](spikes/S1-pkcs11.md)); chờ chủ dự án chạy `spikes/s1_token_probe.py` với token thật* | (I1) | 1,5 | T1.03, CH1 | 🔄 |
+| T1.08 | **S1:** pyHanko + PKCS#11 với SoftHSM2, rồi với **token thật** trên máy chủ dự án. Ghi kết quả vào TOKENS.md. *Phần SoftHSM2 xong ([báo cáo](spikes/S1-pkcs11.md)); token thật Viettel V6 đã dò và ký thử thành công ngày 2026-11-03 ([TOKENS.md](TOKENS.md))* | (I1) | 1,5 | T1.03, CH1 | ✅ |
 | T1.09 | **S2:** đánh giá pypdfium2/pikepdf cho chọn/xóa/di chuyển đối tượng và sửa chữ tiếng Việt. Kết luận có cần xem lại D7 không | (D4–D9) | 1,5 | T1.03 | ✅ |
 
 ### Giao diện & trình xem
@@ -106,9 +106,9 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T3.01 | Lớp PKCS#11: nạp module, liệt kê slot/token/chứng thư, đăng nhập PIN, quản lý phiên | I1 | 2,5 | T1.08 | 🔄 |
-| T3.02 | Danh bạ driver (file dữ liệu theo CA → đời token → OS) + tự dò + nút "Quét tìm driver" + chọn file thủ công | I4, I5 | 2 | T3.01 | 🔄 |
-| T3.03 | Màn hình chẩn đoán token từng bước, hướng dẫn sửa bằng tiếng Việt; cảnh báo PIN sắp khóa | I6, I7 | 2 | T3.02 | 🔄 |
+| T3.01 | Lớp PKCS#11: nạp module, liệt kê slot/token/chứng thư, đăng nhập PIN, quản lý phiên | I1 | 2,5 | T1.08 | ✅ |
+| T3.02 | Danh bạ driver (file dữ liệu theo CA → đời token → OS) + tự dò + nút "Quét tìm driver" + chọn file thủ công | I4, I5 | 2 | T3.01 | ✅ |
+| T3.03 | Màn hình chẩn đoán token từng bước, hướng dẫn sửa bằng tiếng Việt; cảnh báo PIN sắp khóa | I6, I7 | 2 | T3.02 | ✅ |
 | T3.04 | Ký bằng file `.pfx`/`.p12`, ghi nhớ mật khẩu bằng safeStorage | I2 | 1 | T1.04 | 🔄 |
 | T3.05 | Đọc thông tin chứng thư (gồm MST/CCCD theo cách CA Việt Nam ghi), nhắc trước khi hết hạn | I3 | 1,5 | T3.01 | ✅ |
 | T3.06 | Engine ký PAdES: B-B / B-T / B-LT / B-LTA, TSA có dự phòng, SHA-256, ghi incremental | I28 | 3 | T3.01, T3.04 | ✅ |
@@ -119,7 +119,7 @@
 | T3.11 | Thư viện ảnh chữ ký & con dấu: nhập ảnh / vẽ (có lực bút) / gõ font viết tay; tách nền tự động; làm sạch & chỉnh; mã hóa thư viện. *Phần "chụp qua QR" của I19 làm ở T8.11* | I19, I20, I21, I23 | 3,5 | T1.10 | 🔄 |
 | T3.12 | Đặt chữ ký: kéo thả khung, ký ẩn, ký vào ô có sẵn, **đặt theo chữ mốc**, vị trí cố định | I25, I26, I27 | 2,5 | T3.09 | ✅ |
 | T3.13 | Ký hàng loạt (nhập PIN 1 lần); việc sau khi ký (đặt tên, mở panel kiểm tra, mở thư mục) | I31, I32 | 1,5 | T3.12 | ✅ |
-| T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 1,5 | T3.13, T3.08 | ⬜ |
+| T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 1,5 | T3.13, T3.08 | 🔄 |
 
 ---
 

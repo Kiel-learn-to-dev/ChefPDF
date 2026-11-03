@@ -7,7 +7,7 @@
 
 - **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
 - **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 57 xong, 54 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows đều xanh: lõi 1638, giao diện 736, desktop 230, e2e Electron với lõi thật 86/86. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
-- **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B). Chưa mở bằng Adobe Reader/Foxit; chưa ký từ giao diện app.
+- **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
@@ -18,7 +18,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo (Windows):** (1) chủ dự án mở file ký bằng Adobe Reader/Foxit và đối chiếu dấu vân tay Root CA để đưa vào kho đi kèm; (2) ký từ giao diện app, ký hàng loạt; (3) đóng các mốc v0.5, v0.6, v0.7 theo Demo, rồi v0.8, v0.9, v0.10; (4) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần.
+- **Việc tiếp theo (Windows):** (1) đóng các mốc v0.5, v0.6, v0.7 theo Demo, rồi v0.8, v0.9, v0.10; (2) cuối v0.9: một lần dùng token để ký từ giao diện và ký hàng loạt; (3) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần. Việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit, đối chiếu dấu vân tay Root CA.
 - **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
@@ -170,6 +170,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (chấp nhận kết quả ký):** Chủ dự án xem kết quả ký bằng token Viettel và chấp nhận, đã trả token. Đóng T1.08, T3.01, T3.02, T3.03; T3.14 chuyển 🔄 (chưa có ảnh Adobe/Foxit). Chuyển sang đóng mốc v0.5. Lần dùng token kế tiếp chỉ cần khi giao diện ký và ký hàng loạt đã sẵn sàng, gom vào một lần.
 
 - **2026-11-03 (ưu tiên Windows):** Chủ dự án chốt làm bản Windows trước, macOS và Linux để sau (D37). Viết lại "Trạng thái hiện tại" và PLAN_V1.md theo hướng này; CI đặt E2E Linux/macOS ở chế độ không chặn; T11.01 chỉ còn kiểm thử trên Windows; hướng dẫn cài đặt ghi rõ bản 1.0 là Windows. Các lỗi nền tảng đã tìm ra khi chạy CI (Python 3.15 trên macOS, đường dẫn Windows trong cài đặt trên Linux, mở file hai lần bằng Ctrl+O, lỗi sửa file hỏng) đã được sửa vì chúng đều là lỗi thật hoặc test sai; phần còn lại của Linux/macOS chuyển sang "Sau 1.0".
 
