@@ -1,7 +1,7 @@
 {
   "meta": {
-    "commit": "9f952d5",
-    "generatedAt": "2026-11-03T18:37:33.284Z",
+    "commit": "eb41a22",
+    "generatedAt": "2026-11-03T19:19:08.325Z",
     "dpr": 1,
     "platform": "win32",
     "viewport": {
@@ -11,399 +11,102 @@
     "screens": 97
   },
   "counts": {
-    "start": {
-      "control-height": 1,
-      "row-mixed-height": 1
-    },
-    "main:view": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 4,
-      "row-mixed-height": 6,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
-    "main:pages": {
-      "control-height": 3,
-      "radius-off-scale": 4,
-      "controls-touching": 10,
-      "row-mixed-height": 2,
-      "gap-uneven": 1,
-      "gap-off-scale": 4
-    },
-    "main:edit": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 2,
-      "row-mixed-height": 3,
-      "gap-uneven": 1
-    },
-    "main:annotate": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 2,
-      "row-mixed-height": 3,
-      "gap-uneven": 1
-    },
-    "main:forms": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 2,
-      "row-mixed-height": 3,
-      "gap-uneven": 1
-    },
-    "main:sign": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 2,
-      "row-mixed-height": 3,
-      "gap-uneven": 1
-    },
-    "main:export": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 2,
-      "row-mixed-height": 3,
-      "gap-uneven": 1
-    },
-    "main:workflow": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 2,
-      "row-mixed-height": 3,
-      "gap-uneven": 1
-    },
-    "main:view/sidebar:thumbnails": {
-      "control-height": 6,
-      "radius-off-scale": 4,
-      "controls-touching": 4,
-      "row-mixed-height": 6,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
-    "main:view/sidebar:outline": {
-      "control-height": 6,
-      "controls-touching": 4,
-      "row-mixed-height": 6,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
-    "main:view/sidebar:signatures": {
-      "control-height": 6,
-      "controls-touching": 4,
-      "row-mixed-height": 6,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
-    "main:view/sidebar:layers": {
-      "control-height": 6,
-      "controls-touching": 4,
-      "row-mixed-height": 6,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
-    "main:view/sidebar:notes": {
-      "control-height": 12,
-      "controls-touching": 4,
-      "row-mixed-height": 8,
-      "row-misaligned": 2,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
+    "start": {},
+    "main:view": {},
+    "main:pages": {},
+    "main:edit": {},
+    "main:annotate": {},
+    "main:forms": {},
+    "main:sign": {},
+    "main:export": {},
+    "main:workflow": {},
+    "main:view/sidebar:thumbnails": {},
+    "main:view/sidebar:outline": {},
+    "main:view/sidebar:signatures": {},
+    "main:view/sidebar:layers": {},
+    "main:view/sidebar:notes": {},
     "overlay:palette": {},
-    "overlay:jobPanel": {
-      "control-height": 12,
-      "controls-touching": 4,
-      "row-mixed-height": 8,
-      "row-misaligned": 2,
-      "gap-uneven": 1,
-      "gap-off-scale": 1
-    },
-    "overlay:findbar": {
-      "control-height": 13,
-      "controls-touching": 4,
-      "row-mixed-height": 8,
-      "row-misaligned": 2,
-      "gap-uneven": 2,
-      "gap-off-scale": 1
-    },
-    "dialog:merge": {
-      "controls-touching": 4,
-      "gap-off-scale": 2
-    },
-    "dialog:split": {
-      "control-height": 1,
-      "gap-uneven": 1
-    },
-    "dialog:split#adv0:Nâng cao": {
-      "control-height": 1,
-      "gap-uneven": 1
-    },
+    "overlay:jobPanel": {},
+    "overlay:findbar": {},
+    "dialog:merge": {},
+    "dialog:split": {},
+    "dialog:split#adv0:Nâng cao": {},
     "dialog:print": {},
     "dialog:properties": {},
     "dialog:settings": {},
     "dialog:insertBlank": {},
     "dialog:insertFromFile": {},
     "dialog:insertImages": {},
-    "dialog:scan": {
-      "control-height": 1
-    },
+    "dialog:scan": {},
     "dialog:certs": {},
-    "dialog:tokenWizard": {
-      "footer-right-edge": 1
-    },
+    "dialog:tokenWizard": {},
     "dialog:trust": {},
-    "dialog:signTemplates": {
-      "control-height": 3,
-      "controls-touching": 12,
-      "row-mixed-height": 2,
-      "gap-uneven": 1,
-      "footer-wrapped": 1
-    },
+    "dialog:signTemplates": {},
     "dialog:sigLibrary": {},
-    "dialog:signDoc": {
-      "row-misaligned": 2
-    },
-    "dialog:batchSign": {
-      "row-misaligned": 1
-    },
-    "dialog:overlayText": {
-      "control-height": 2,
-      "font-off-scale": 1
-    },
-    "dialog:overlayText#adv0:Nâng cao": {
-      "control-height": 11,
-      "font-off-scale": 1,
-      "controls-touching": 6,
-      "gap-off-scale": 2
-    },
-    "dialog:overlayImage": {
-      "control-height": 1,
-      "font-off-scale": 2
-    },
-    "dialog:overlayImage#adv0:Nâng cao": {
-      "control-height": 10,
-      "font-off-scale": 2,
-      "controls-touching": 6,
-      "gap-off-scale": 2
-    },
-    "dialog:overlayWatermark": {
-      "control-height": 2
-    },
-    "dialog:overlayWatermark#adv0:Nâng cao": {
-      "control-height": 2
-    },
-    "dialog:overlayHeaderFooter": {
-      "control-height": 12,
-      "font-off-scale": 3,
-      "controls-touching": 8
-    },
-    "dialog:overlayHeaderFooter#adv0:Nâng cao": {
-      "control-height": 13,
-      "font-off-scale": 3,
-      "controls-touching": 8
-    },
-    "dialog:overlayPageNumbers": {
-      "control-height": 18,
-      "font-off-scale": 2,
-      "controls-touching": 8
-    },
-    "dialog:overlayPageNumbers#adv0:Nâng cao": {
-      "control-height": 19,
-      "font-off-scale": 2,
-      "controls-touching": 8
-    },
-    "dialog:overlayCode": {
-      "control-height": 12,
-      "font-off-scale": 2,
-      "controls-touching": 9
-    },
-    "dialog:overlayCode#adv0:Nâng cao": {
-      "control-height": 13,
-      "font-off-scale": 2,
-      "controls-touching": 9
-    },
-    "dialog:overlayLetterhead": {
-      "control-height": 1,
-      "font-off-scale": 1
-    },
-    "dialog:overlayLetterhead#adv0:Nâng cao": {
-      "control-height": 1,
-      "font-off-scale": 1
-    },
+    "dialog:signDoc": {},
+    "dialog:batchSign": {},
+    "dialog:overlayText": {},
+    "dialog:overlayText#adv0:Nâng cao": {},
+    "dialog:overlayImage": {},
+    "dialog:overlayImage#adv0:Nâng cao": {},
+    "dialog:overlayWatermark": {},
+    "dialog:overlayWatermark#adv0:Nâng cao": {},
+    "dialog:overlayHeaderFooter": {},
+    "dialog:overlayHeaderFooter#adv0:Nâng cao": {},
+    "dialog:overlayPageNumbers": {},
+    "dialog:overlayPageNumbers#adv0:Nâng cao": {},
+    "dialog:overlayCode": {},
+    "dialog:overlayCode#adv0:Nâng cao": {},
+    "dialog:overlayLetterhead": {},
+    "dialog:overlayLetterhead#adv0:Nâng cao": {},
     "dialog:overlayBates": {},
-    "dialog:overlayManager": {
-      "gap-uneven": 1
-    },
-    "dialog:stamp": {
-      "control-height": 5,
-      "font-off-scale": 1,
-      "controls-touching": 2,
-      "row-mixed-height": 1,
-      "row-misaligned": 1
-    },
-    "dialog:stamp#adv0:Nâng cao": {
-      "control-height": 5,
-      "font-off-scale": 1,
-      "controls-touching": 2,
-      "row-mixed-height": 1,
-      "row-misaligned": 1
-    },
-    "dialog:seam": {
-      "control-height": 1,
-      "font-off-scale": 5
-    },
-    "dialog:seam#adv0:Nâng cao": {
-      "control-height": 1,
-      "font-off-scale": 5
-    },
-    "dialog:initials": {
-      "control-height": 2,
-      "font-off-scale": 2,
-      "row-mixed-height": 1,
-      "row-misaligned": 2
-    },
-    "dialog:initials#adv0:Nâng cao": {
-      "control-height": 2,
-      "font-off-scale": 2,
-      "row-mixed-height": 1,
-      "row-misaligned": 2
-    },
-    "dialog:recovery": {
-      "footer-right-edge": 1
-    },
-    "dialog:security": {
-      "font-off-scale": 2,
-      "radius-off-scale": 1,
-      "row-misaligned": 1,
-      "footer-right-edge": 1
-    },
-    "dialog:inspect": {
-      "radius-off-scale": 1,
-      "font-off-scale": 4,
-      "footer-right-edge": 1
-    },
-    "dialog:preflight": {
-      "radius-off-scale": 22,
-      "font-off-scale": 20,
-      "footer-right-edge": 1
-    },
-    "dialog:compress": {
-      "control-height": 1,
-      "row-mixed-height": 1
-    },
-    "dialog:compress#adv0:Nâng cao": {
-      "control-height": 1,
-      "row-mixed-height": 1
-    },
-    "dialog:pdfToImages": {
-      "control-height": 1,
-      "row-misaligned": 1
-    },
-    "dialog:pdfToImages#adv0:Nâng cao": {
-      "control-height": 1,
-      "row-misaligned": 1
-    },
+    "dialog:overlayManager": {},
+    "dialog:stamp": {},
+    "dialog:stamp#adv0:Nâng cao": {},
+    "dialog:seam": {},
+    "dialog:seam#adv0:Nâng cao": {},
+    "dialog:initials": {},
+    "dialog:initials#adv0:Nâng cao": {},
+    "dialog:recovery": {},
+    "dialog:security": {},
+    "dialog:inspect": {},
+    "dialog:preflight": {},
+    "dialog:compress": {},
+    "dialog:compress#adv0:Nâng cao": {},
+    "dialog:pdfToImages": {},
+    "dialog:pdfToImages#adv0:Nâng cao": {},
     "dialog:documentExport": {},
     "dialog:batchExport": {},
-    "dialog:toc": {
-      "font-off-scale": 1
-    },
-    "dialog:layoutReview": {
-      "gap-uneven": 1
-    },
-    "dialog:rename": {
-      "gap-uneven": 1
-    },
+    "dialog:toc": {},
+    "dialog:layoutReview": {},
+    "dialog:rename": {},
     "dialog:cropReview": {},
-    "dialog:batchCrop": {
-      "font-off-scale": 1
-    },
-    "dialog:forms": {
-      "gap-uneven": 1
-    },
-    "dialog:imagesToPdf": {
-      "footer-right-edge": 1
-    },
-    "dialog:web2pdf": {
-      "row-misaligned": 1,
-      "footer-right-edge": 1
-    },
-    "dialog:verifyBatch": {
-      "row-mixed-height": 1,
-      "row-misaligned": 1
-    },
+    "dialog:batchCrop": {},
+    "dialog:forms": {},
+    "dialog:imagesToPdf": {},
+    "dialog:web2pdf": {},
+    "dialog:verifyBatch": {},
     "dialog:docTools": {},
     "dialog:repair": {},
-    "dialog:color": {
-      "font-off-scale": 1,
-      "control-height": 1
-    },
-    "dialog:color#adv0:Nâng cao": {
-      "font-off-scale": 1,
-      "control-height": 1
-    },
+    "dialog:color": {},
+    "dialog:color#adv0:Nâng cao": {},
     "dialog:pageReplace": {},
     "dialog:pageCrop": {},
-    "dialog:pageBlank": {
-      "font-off-scale": 1,
-      "radius-off-scale": 4,
-      "control-height": 1
-    },
-    "dialog:pageBlank#adv0:Nâng cao": {
-      "font-off-scale": 1,
-      "radius-off-scale": 4,
-      "control-height": 1
-    },
+    "dialog:pageBlank": {},
+    "dialog:pageBlank#adv0:Nâng cao": {},
     "dialog:pageGridSplit": {},
-    "dialog:smartSplit": {
-      "control-height": 1
-    },
-    "dialog:smartSplit#adv0:Nâng cao": {
-      "control-height": 1
-    },
-    "dialog:watermarkRemove": {
-      "font-off-scale": 1,
-      "radius-off-scale": 1
-    },
-    "dialog:backgroundRemove": {
-      "radius-off-scale": 1
-    },
-    "dialog:removeSimilar": {
-      "radius-off-scale": 1
-    },
-    "dialog:redact": {
-      "radius-off-scale": 1,
-      "font-off-scale": 3,
-      "control-height": 1,
-      "row-mixed-height": 1
-    },
-    "dialog:findReplace": {
-      "footer-right-edge": 1
-    },
-    "dialog:linkDialog": {
-      "footer-right-edge": 1
-    },
-    "dialog:capture": {
-      "radius-off-scale": 1,
-      "footer-right-edge": 1
-    },
+    "dialog:smartSplit": {},
+    "dialog:smartSplit#adv0:Nâng cao": {},
+    "dialog:watermarkRemove": {},
+    "dialog:backgroundRemove": {},
+    "dialog:removeSimilar": {},
+    "dialog:redact": {},
+    "dialog:findReplace": {},
+    "dialog:linkDialog": {},
+    "dialog:capture": {},
     "dialog:dewarp": {},
-    "dialog:watch": {
-      "font-off-scale": 6,
-      "row-mixed-height": 2,
-      "row-misaligned": 2,
-      "gap-off-scale": 4,
-      "dialog-padding-mismatch": 1
-    },
+    "dialog:watch": {},
     "dialog:shortcuts": {},
-    "dialog:workflow": {
-      "font-off-scale": 4,
-      "row-mixed-height": 2,
-      "row-misaligned": 2,
-      "gap-uneven": 1,
-      "gap-off-scale": 4,
-      "dialog-padding-mismatch": 1
-    }
+    "dialog:workflow": {}
   }
 }

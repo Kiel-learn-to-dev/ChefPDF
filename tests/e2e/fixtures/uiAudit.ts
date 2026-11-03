@@ -14,10 +14,28 @@ export const UI_DIR = path.join(repoRoot, 'apps', 'ui');
 export const SRC_DIR = path.join(UI_DIR, 'src');
 export const DIST_INDEX = path.join(UI_DIR, 'dist', 'index.html');
 const UI_STATE_FILE = path.join(SRC_DIR, 'app', 'state', 'ui.ts');
-export const OUT_DIR = path.join(repoRoot, 'tests', 'e2e', 'ui-audit-out');
+/**
+ * Chế độ phụ (không thay baseline 1280 sáng):
+ * - UI_AUDIT_VIEWPORT=960x640: cỡ cửa sổ hẹp, kiểm tràn chân hộp và xuống dòng;
+ * - UI_AUDIT_THEME=dark: chụp giao diện tối để xem bằng mắt (không so baseline).
+ * Mỗi chế độ ghi ra thư mục riêng để không ghi đè báo cáo chính.
+ */
+const vpEnv = process.env.UI_AUDIT_VIEWPORT ?? '';
+const vpMatch = /^(\d+)x(\d+)$/.exec(vpEnv);
+export const VIEWPORT = vpMatch
+  ? { width: Number(vpMatch[1]), height: Number(vpMatch[2]) }
+  : { width: 1280, height: 820 };
+export const THEME: 'light' | 'dark' = process.env.UI_AUDIT_THEME === 'dark' ? 'dark' : 'light';
+export const THEME_NAME = THEME;
+const suffix = [vpMatch ? vpEnv : '', THEME === 'dark' ? 'dark' : ''].filter(Boolean).join('-');
+export const OUT_DIR = path.join(
+  repoRoot,
+  'tests',
+  'e2e',
+  suffix ? `ui-audit-out-${suffix}` : 'ui-audit-out',
+);
 export const SHOT_DIR = path.join(OUT_DIR, 'shots');
 export const REPORT_FILE = path.join(OUT_DIR, 'report.json');
-export const VIEWPORT = { width: 1280, height: 820 };
 
 // ---------- Danh sách màn hình (đọc từ ui.ts, không ghi tay) ----------
 
@@ -170,7 +188,7 @@ export async function openScreen(page: Page, screen: Screen, source: string): Pr
  * màn hình (tooltip không bật). Trả về false nếu còn spinner trong hộp thoại sau 10 giây.
  */
 export async function prepare(page: Page): Promise<boolean> {
-  await page.evaluate(() => {
+  await page.evaluate((theme) => {
     if (!document.getElementById('ui-audit-style')) {
       const style = document.createElement('style');
       style.id = 'ui-audit-style';
@@ -178,10 +196,10 @@ export async function prepare(page: Page): Promise<boolean> {
         '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';
       document.head.append(style);
     }
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.theme = theme;
     (document.activeElement as HTMLElement | null)?.blur();
-  });
-  await page.emulateMedia({ colorScheme: 'light' }).catch(() => undefined);
+  }, THEME_NAME);
+  await page.emulateMedia({ colorScheme: THEME_NAME }).catch(() => undefined);
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.mouse.move(0, 0);
   await page.waitForTimeout(200);
@@ -295,7 +313,7 @@ export interface AuditReport {
     generatedAt: string;
     viewport: typeof VIEWPORT;
     dpr: number;
-    theme: 'light';
+    theme: 'light' | 'dark';
     distBuiltAt: string | null;
     srcNewestAt: string | null;
     staleDist: boolean;

@@ -83,6 +83,33 @@ export const AUDIT_CFG: AuditCfg = {
     { rule: '*', within: '[data-audit="ignore"]', reason: 'đánh dấu bỏ qua trong mã' },
     { rule: '*', within: '.capture__tools', reason: 'kế hoạch mục 2: bỏ qua' },
     { rule: '*', within: '.merge__grip', reason: 'tay kéo (drag handle), kích thước theo cử chỉ' },
+    // Chữ thu nhỏ trong ảnh xem trước: cỡ tỉ lệ theo trang, không phải chữ giao diện.
+    {
+      rule: 'font-off-scale',
+      within: '.ov-band',
+      reason: 'chữ thu nhỏ theo tỉ lệ trang trong ảnh xem trước',
+    },
+    {
+      rule: 'font-off-scale',
+      within: '.ov-page',
+      reason: 'chữ thu nhỏ theo tỉ lệ trang trong ảnh xem trước',
+    },
+    {
+      rule: 'font-off-scale',
+      within: '.ov-number',
+      reason: 'số trang trong ảnh xem trước theo tỉ lệ trang',
+    },
+    // Chân hộp và thanh công cụ: nhóm trái và nhóm phải cách nhau bằng khoảng đẩy (spacer) có chủ ý.
+    {
+      rule: 'gap-uneven',
+      within: '.dlg__footer',
+      reason: 'chân hộp: nhóm trái và nhóm phải cách nhau bằng khoảng đẩy',
+    },
+    {
+      rule: 'gap-uneven',
+      within: '.workflow-toolbar',
+      reason: 'thanh công cụ: nhóm nút bên trái, chọn mẫu bên phải',
+    },
     // Nhóm zoom là một điều khiển (khung 32px): nút bên trong 26px và khe nhỏ là có chủ ý.
     { rule: 'row-mixed-height', within: '.zoom', reason: 'nhóm zoom: nút trong 26px, khung 32px' },
     { rule: 'controls-touching', within: '.zoom', reason: 'nhóm zoom: các nút dính nhau có chủ ý' },
@@ -161,6 +188,12 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     Array.from(el.childNodes).some(
       (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim().length > 0,
     );
+  // Ẩn kiểu clip (sr-only, nhãn icon ở cửa sổ hẹp): chữ không hiển thị, không đo tràn.
+  const isClipped = (el: Element | null): boolean => {
+    if (!el) return false;
+    const c = cs(el);
+    return c.clip !== 'auto' && c.clip !== '' && c.position === 'absolute';
+  };
   const textOf = (el: Element): string => {
     const own = Array.from(el.childNodes)
       .filter((n) => n.nodeType === Node.TEXT_NODE)
@@ -433,7 +466,13 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     }
 
     // text-overflow / text-truncated: chữ tràn hoặc bị rút gọn.
-    if (hasOwnText(el) && !isField && s.display !== 'inline' && el.clientWidth > 0) {
+    if (
+      hasOwnText(el) &&
+      !isField &&
+      s.display !== 'inline' &&
+      el.clientWidth > 0 &&
+      !isClipped(el)
+    ) {
       if (el.scrollWidth > el.clientWidth + 1) {
         const over = Math.round(el.scrollWidth - el.clientWidth);
         const clipping = /hidden|clip/.test(s.overflowX);
@@ -489,7 +528,7 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
         let maxR = -Infinity;
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-          if (!(node.textContent ?? '').trim()) continue;
+          if (!(node.textContent ?? '').trim() || isClipped(node.parentElement)) continue;
           const range = document.createRange();
           range.selectNodeContents(node);
           for (const rc of Array.from(range.getClientRects())) {
@@ -563,7 +602,7 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
         let maxR = -Infinity;
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-          if (!(node.textContent ?? '').trim()) continue;
+          if (!(node.textContent ?? '').trim() || isClipped(node.parentElement)) continue;
           const range = document.createRange();
           range.selectNodeContents(node);
           for (const rc of Array.from(range.getClientRects())) {

@@ -21,6 +21,7 @@ import {
   DIST_INDEX,
   OUT_DIR,
   SHOT_DIR,
+  THEME,
   VIEWPORT,
   buildScreens,
   distStatus,
@@ -297,7 +298,7 @@ test.describe('UI audit (report only)', () => {
         generatedAt: new Date().toISOString(),
         viewport: VIEWPORT,
         dpr: 1,
-        theme: 'light',
+        theme: THEME,
         ...dist,
         screensPlanned: screens.length,
       },
@@ -357,6 +358,12 @@ test.describe('UI audit (report only)', () => {
 
   // Cuối lượt: ghi hoặc so baseline. Chỉ test này fail khi số phát hiện tăng (chế độ strict).
   test('baseline (số phát hiện theo màn hình và luật)', () => {
+    // Baseline và snapshot chỉ là số đo của 1280×820 sáng: cỡ khác không được ghi đè.
+    if ((mode !== 'report' || snapshotMode) && (VIEWPORT.width !== 1280 || THEME === 'dark')) {
+      throw new Error(
+        'baseline/snapshot chỉ chạy ở 1280×820 sáng (bỏ UI_AUDIT_VIEWPORT và UI_AUDIT_THEME)',
+      );
+    }
     if (snapshotMode) {
       expect(snapshotDiffs, 'ảnh khác ảnh gốc (chế độ snapshot)').toEqual([]);
     }
