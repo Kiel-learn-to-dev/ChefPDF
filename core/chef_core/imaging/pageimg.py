@@ -1139,10 +1139,11 @@ def remove_fingers(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Erase finger regions. Without ``mask`` the proposal of ``find_skin_regions`` is used.
     Returns (image, mask used): the mask is always returned so the caller can show and edit it.
-    With the paper colour the fill stays on the sheet: a part of the mask outside the sheet
-    (the finger on the desk past the edge) is left as it is, otherwise a white bulge appears
-    outside the page. Failure mode: whatever is under the finger is lost; see
-    ``find_skin_regions``."""
+    With the paper colour the fill stays on the sheet: the part of the mask inside the sheet
+    (``_sheet_hull``) takes the paper colour, and the part past the sheet's edge (the finger on
+    the desk) takes the desk colour, otherwise a white bulge appears outside the page. The desk
+    part is filled so that a finger left on the desk does not confuse the corner detection.
+    Failure mode: whatever is under the finger is lost; see ``find_skin_regions``."""
     used = find_skin_regions(img) if mask is None else (np.asarray(mask) > 0).astype(np.uint8) * 255
     if used.shape != img.shape[:2]:
         raise ValueError("mask size does not match the image")
