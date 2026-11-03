@@ -7,3 +7,5 @@ docs/
 *.md
 packages/contracts/src/generated/
 .claude/
+spikes/token_probe_report.json
+token-check-out/
