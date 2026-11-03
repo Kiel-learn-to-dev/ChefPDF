@@ -6,7 +6,7 @@
 ## Trạng thái hiện tại
 
 - **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
-- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 119 task: 76 xong, 36 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows: lõi 1638 (chạy đủ lần cuối ở 216a873, từ đó lõi không đổi; hôm nay chạy 132 test liên quan đều đạt), giao diện 738 đạt, desktop 230 đạt, typecheck, lint, ruff, mypy sạch, e2e Electron với lõi thật 104 đạt và 1 test (smoke: lõi bị dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt 2/2 lần; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
+- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 119 task: 83 xong, 30 đang làm, 5 chưa làm, 1 tạm dừng (T9.08). Test trên Windows: lõi 1638 (chạy đủ lần cuối ở 216a873, từ đó lõi không đổi; hôm nay chạy 132 test liên quan đều đạt), giao diện 738 đạt, desktop 230 đạt, typecheck, lint, ruff, mypy sạch, e2e Electron với lõi thật 104 đạt và 1 test (smoke: lõi bị dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt 2/2 lần; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
 - **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
@@ -18,7 +18,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo (Windows):** (1) đóng mốc v0.7 theo Demo (v0.5 và v0.6 đã đóng), rồi v0.8, v0.9, v0.10; (2) cuối v0.9: một lần dùng token để ký từ giao diện và ký hàng loạt; (3) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần. Việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit, đối chiếu dấu vân tay Root CA.
+- **Việc tiếp theo (Windows):** (1) đóng mốc v0.8 theo Demo (v0.5, v0.6, v0.7 đã đóng), rồi v0.9, v0.10; (2) cuối v0.9: một lần dùng token để ký từ giao diện và ký hàng loạt; (3) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần. Việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit, đối chiếu dấu vân tay Root CA.
 - **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
@@ -171,6 +171,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (đóng mốc v0.7):** Thêm `demo-v07.spec.ts` (fixture `demo_v07_corpus.py`, `demo_v07_check.py`): hợp đồng 4 trang tiếng Việt, 'Công ty ABC' 6 lần trên 4 trang, và file khác đi kèm. Chạy đúng Demo với lõi thật: (a) sửa câu 'Thanh toán trong vòng 30 ngày…' thành câu có ư, ớ mà font con không có; chip cảnh báo hiện, văn bản đúng, mọi chữ của câu có glyph trong font nhúng (đọc cmap bằng fontTools), các dòng khác không đổi; (b) tìm thay 6 chỗ trên 4 trang, văn bản mỗi trang bằng văn bản gốc với đúng hai thay đổi; (c) tô sáng câu mới, ghi chú dán, trả lời; lưu, pixel vàng có trong file; lọc theo 'Tô sáng' rồi xuất CSV (chỉ có highlight, không có ghi chú); mở lại thấy đủ; (d) làm phẳng: không còn annotation, chữ và pixel vàng giữ nguyên; file lưu mở được bằng pikepdf và pdfium; file khác và file gốc giữ nguyên SHA-256. **Lỗi do chính spec, không phải lõi:** chọn câu bằng `span` chứa '2026' lấy nhầm tiêu đề 'số 07/2026' đứng trước, vùng chọn ngược và rỗng; sửa thành 'năm 2026'. Không có lỗi lõi hay giao diện nào cần sửa. Kiểm thử Windows: e2e đủ 109/109 đạt (trước khi có spec demo, gồm textedit, annots, smoke), `demo-v07` 1/1 đạt; lõi 137 test (text edit, text model, text find, text paragraph, text registry, annots, links, export text, forms create/flatten) đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); typecheck, lint, prettier, eslint, ruff (fixture) sạch. Mypy không chạy trên fixture e2e vì cấu hình mypy chỉ phủ `core/`. **Đóng 6 task:** T7.01, T7.02, T7.04, T7.05, T7.06, T7.07. Ghi chú: 'vẽ' của T7.06 (bút vẽ, hình vẽ) có test lõi (`test_annots.py`) và test giao diện nhưng chưa có e2e riêng; đường chính (highlight, note) đã có e2e. Các mục chưa làm: chưa có e2e cho ghi chú kiểu gạch chân/gạch ngang/sóng.
 
 - **2026-11-03 (gỡ nhãn "Sắp có" sót):** Chủ dự án thấy Đóng dấu và Nén ghi "Sắp có". Nguyên nhân: hai ô trên màn hình Start chưa được nối vào hộp thoại (phần sót từ lúc làm khung), và bảng lệnh Ctrl+K còn ba mục giữ chỗ "Sắp có" (Ký số, Sửa chữ, Xuất sang Word) dù tính năng thật đã có. Đã nối hai ô vào hộp thoại Đóng dấu và Nén (hỏi chọn PDF trước nếu chưa mở file, như ô Tách file) và xóa ba mục giữ chỗ. Chưa có e2e cho hai ô này; typecheck, lint, 755 test giao diện đạt.
 
