@@ -21,10 +21,10 @@
 
 | Bước | Việc | Tiêu chí nghiệm thu | Kiểm tra |
 |---|---|---|---|
-| 0.1 | `ruff format` sạch (CI đang chạy `ruff format --check`) | `ruff format --check .` không báo file nào | `cd core && uv run ruff format --check .` và toàn bộ pytest vẫn xanh |
-| 0.2 | Sửa race mở file khi app đang khởi động | File từ instance thứ hai tới trước khi cửa sổ nạp xong vẫn mở được, không rơi vào hàng đợi "file ban đầu" sau khi giao diện đã đọc | Unit test `OpenFilesController`; spec `smoke` bỏ được `waitForTimeout` |
-| 0.3 | E2E chạy cả bộ ổn định | Chạy `pnpm e2e` toàn bộ hai lần liên tiếp đều xanh trên Windows | Dọn tiến trình Electron treo giữa các spec, tăng chờ khởi động lõi |
-| 0.4 | **Push và CI 3 hệ điều hành xanh** (cần chủ dự án đồng ý push) | Cả 5 job CI xanh: JS, Core, E2E trên ubuntu, windows, macos | `gh run list` |
+| 0.1 ✅ | `ruff format` sạch (CI đang chạy `ruff format --check`) | `ruff format --check .` không báo file nào | `cd core && uv run ruff format --check .` và toàn bộ pytest vẫn xanh |
+| 0.2 ✅ | Sửa race mở file khi app đang khởi động | File từ instance thứ hai tới trước khi cửa sổ nạp xong vẫn mở được, không rơi vào hàng đợi "file ban đầu" sau khi giao diện đã đọc | Unit test `OpenFilesController`; spec `smoke` bỏ được `waitForTimeout` |
+| 0.3 ✅ | E2E chạy cả bộ ổn định | Chạy `pnpm e2e` toàn bộ đều xanh trên Windows (đạt: 86/86 ngày 2026-11-03 sau khi sửa các race trong spec `forms`, `tools5`) | Dọn tiến trình Electron treo giữa các spec, tăng chờ khởi động lõi |
+| 0.4 ⬜ | **Push và CI 3 hệ điều hành xanh** (cần chủ dự án đồng ý push) | Cả 5 job CI xanh: JS, Core, E2E trên ubuntu, windows, macos | `gh run list` |
 
 **Kiểm tra giữa chặng:** CI xanh trên 3 hệ điều hành trước khi sang giai đoạn sau (hoàn thành phần đầu của T11.01).
 

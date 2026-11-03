@@ -120,6 +120,8 @@ test('list, fill, create and flatten form fields with the real core', async () =
     await expect(page.locator('.form-draw__hint')).toBeVisible({ timeout: 5_000 });
     const sigCanvas = page.locator('.pdfViewer .page canvas').first();
     await expect(sigCanvas).toBeVisible({ timeout: 30_000 });
+    // The viewer repaints after the dialog closes; wait for a stable box.
+    await expect.poll(() => sigCanvas.boundingBox()).not.toBeNull();
     const sigBox = await sigCanvas.boundingBox();
     if (!sigBox) throw new Error('PDF page canvas is not visible');
     await page.mouse.move(sigBox.x + 280, sigBox.y + 210);

@@ -135,7 +135,9 @@ test('inspect: a metadata finding is removed and the rescan finds nothing', asyn
   });
 
   // The cleaned document is saved, so closing the app does not raise the unsaved-changes prompt.
-  await l.page.keyboard.press('Escape');
+  await l.page.locator('.dlg__close').click();
+  // Shortcuts are ignored while a dialog is open, so wait until it is gone.
+  await expect(l.page.locator('.dlg__title')).toHaveCount(0);
   await l.page.keyboard.press('Control+s');
   await waitSaved(l);
   expect(py('tools5_check.py', [path.join(corpus, 'meta.pdf'), 'meta'])).toEqual({ author: null });
