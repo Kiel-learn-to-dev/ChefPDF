@@ -135,3 +135,33 @@ test('compress the selected pages: the new tab opens with the compress dialog', 
   await expect(l.page.locator('.doctab.is-active')).toContainText('selected_compress');
   expect(check(out, 'pagetexts')).toEqual({ texts: ['M2', 'M4'] });
 });
+
+test('the sidebar thumbnails share the selection: Ctrl+click two pages, the menu creates a PDF from them', async () => {
+  const before = sha(source);
+  launched = await launchApp({ args: [source], env: { CHEF_CORE_CMD: realCoreCmd } });
+  const l = launched;
+  await l.page.setViewportSize({ width: 1280, height: 800 });
+  await l.page.waitForSelector('.pdfViewer .page canvas', { timeout: 30_000 });
+  const thumbs = l.page.locator('.thumbs__item');
+  await expect(thumbs).toHaveCount(4);
+  await thumbs.nth(1).click();
+  await thumbs.nth(3).click({ modifiers: ['Control'] });
+  await expect(l.page.locator('.thumbs__item.is-selected')).toHaveCount(2);
+
+  const out = path.join(corpus, 'sidebar_2_4.pdf');
+  await l.app.evaluate(({ dialog }, p) => {
+    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: p })) as never;
+  }, out);
+
+  await thumbs.nth(3).click({ button: 'right' });
+  await l.page.getByRole('menuitem', { name: 'Tạo PDF từ 2 trang đã chọn' }).click();
+
+  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(2, { timeout: 60_000 });
+  await expect(l.page.locator('.doctab.is-active')).toContainText('sidebar_2_4');
+  await l.page.waitForFunction(() => !document.querySelector('.status__job.is-running'), null, {
+    timeout: 30_000,
+  });
+
+  expect(check(out, 'pagetexts')).toEqual({ texts: ['M2', 'M4'] });
+  expect(sha(source)).toBe(before);
+});

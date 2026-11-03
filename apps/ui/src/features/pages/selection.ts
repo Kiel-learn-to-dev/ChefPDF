@@ -47,6 +47,23 @@ export function clickSelect(sel: Selection, index: number, mods: ClickModifiers 
   return { selected: [index], anchor: index, focus: index };
 }
 
+/** Click modifiers of a mouse event: Shift for ranges, Ctrl (Cmd on macOS) for toggling. */
+export function mouseModifiers(e: {
+  shiftKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+}): ClickModifiers {
+  return { shift: e.shiftKey, toggle: e.ctrlKey || e.metaKey };
+}
+
+/**
+ * Right click on a page (thumbnail list, grid): a page outside the selection becomes the only
+ * selected page first; a page inside it keeps the whole selection, so the menu acts on all of it.
+ */
+export function contextSelect(sel: Selection, index: number): Selection {
+  return sel.selected.includes(index) ? { ...sel, focus: index } : clickSelect(sel, index);
+}
+
 /** Click that should keep a multi-selection when the item is already selected (e.g. before a drag or context menu). */
 export function pressSelect(sel: Selection, index: number, mods: ClickModifiers = {}): Selection {
   if (!mods.shift && !mods.toggle && sel.selected.includes(index)) {

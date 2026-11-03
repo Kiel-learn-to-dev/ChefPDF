@@ -23,7 +23,7 @@ import { isEditableTarget } from '../../lib/shortcuts';
 import { usePdfDocument } from '../viewer/pdfCache';
 import { PageThumb } from '../viewer/PageThumb';
 import { getSelection, usePageStore, useSelection } from './pageStore';
-import { clampSelection, clickSelect, moveFocus, pressSelect } from './selection';
+import { clampSelection, clickSelect, moveFocus, mouseModifiers, pressSelect } from './selection';
 import { dragOrder, identityOrder } from './reorder';
 import {
   clearSelection,
@@ -313,7 +313,7 @@ export function PageOrganizer({ doc }: { doc: DocTab }) {
                 }
                 menu={menuFor(pageIndex)}
                 onPress={(e) => {
-                  const mods = { shift: e.shiftKey, toggle: e.ctrlKey || e.metaKey };
+                  const mods = mouseModifiers(e);
                   setSel(
                     e.type === 'pointerdown'
                       ? pressSelect(sel, pageIndex, mods)

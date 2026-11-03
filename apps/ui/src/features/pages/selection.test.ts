@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   clampSelection,
   clickSelect,
+  contextSelect,
   emptySelection,
   invertSelection,
+  mouseModifiers,
   moveFocus,
   pressSelect,
   selectAll,
@@ -95,5 +97,29 @@ describe('invertSelection and selectByParity', () => {
 
   it('parity of an empty document is empty', () => {
     expect(selectByParity(0, 'odd')).toEqual(emptySelection);
+  });
+
+  it('mouse modifiers: Ctrl or Cmd toggles, Shift ranges, plain click is neither', () => {
+    expect(mouseModifiers({ shiftKey: false, ctrlKey: false, metaKey: false })).toEqual({
+      shift: false,
+      toggle: false,
+    });
+    expect(mouseModifiers({ shiftKey: false, ctrlKey: true, metaKey: false }).toggle).toBe(true);
+    expect(mouseModifiers({ shiftKey: false, ctrlKey: false, metaKey: true }).toggle).toBe(true);
+    expect(mouseModifiers({ shiftKey: true, ctrlKey: false, metaKey: false }).shift).toBe(true);
+  });
+
+  it('right click outside the selection selects only that page', () => {
+    let s = clickSelect(emptySelection, 1);
+    s = clickSelect(s, 3, { toggle: true });
+    expect(contextSelect(s, 5)).toEqual({ selected: [5], anchor: 5, focus: 5 });
+  });
+
+  it('right click inside the selection keeps the whole selection', () => {
+    let s = clickSelect(emptySelection, 1);
+    s = clickSelect(s, 3, { toggle: true });
+    const r = contextSelect(s, 3);
+    expect(r.selected).toEqual([1, 3]);
+    expect(r.focus).toBe(3);
   });
 });

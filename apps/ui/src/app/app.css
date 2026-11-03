@@ -394,6 +394,12 @@
 .thumbs__item:hover {
   background: var(--c-hover);
 }
+.thumbs__item.is-selected {
+  background: var(--c-accent-soft);
+}
+.thumbs__item.is-selected .thumbs__num {
+  color: var(--c-accent-text);
+}
 .thumbs__item .page-thumb {
   box-shadow: var(--c-page-shadow);
 }
