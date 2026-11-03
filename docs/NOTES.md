@@ -171,6 +171,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-11-03 (e2e C6, C7, C9):** Thêm `tools5-pages.spec.ts`, 4 e2e với lõi thật: thay trang 2 bằng trang của file khác (nguồn không đổi), cắt lề 10 mm bốn phía (khung hiển thị 555 x 735 pt, chữ còn nguyên), đổi khổ Letter sang A4, chia đôi trang thành lưới 1 x 2 (2 trang thành 4 trang rộng 306 pt). Còn thiếu e2e cho v0.5: PDF sang ảnh trong giao diện (M2), sửa file hỏng (M11), gỡ mật khẩu (J2).
+
 - **2026-11-03 (e2e M7–M10):** Thêm `tools5-docs.spec.ts`, 4 e2e với lõi thật cho hộp thoại 'Thuộc tính & tiện ích': sửa tiêu đề rồi lưu (M9), đính kèm xem/lưu ra/thêm/xóa (M8), trích ảnh và trích chữ (M7), tối ưu cho web cho ra file linearized (M10). Phát hiện nhỏ chưa sửa (thuộc T11.05): nhãn các ô trong hộp thoại này không gắn với ô nhập (thiếu `htmlFor`), nên trình đọc màn hình không đọc được tên ô. Còn thiếu e2e cho v0.5: PDF→ảnh trong giao diện (M2), sửa file hỏng (M11), thay trang (C6), cắt lề/đổi khổ (C7), chia đôi trang (C9), gỡ mật khẩu (J2).
 
 - **2026-11-03 (e2e Demo v0.5):** Thêm 3 e2e với lõi thật còn thiếu so với Demo v0.5: kiểm tra trước khi gửi (T5.03: cảnh báo trang trắng, bấm Sửa, kiểm tra lại sạch), nén theo dung lượng (T5.04: file quét 3 trang trên 2 MB lưu xuống ≤ 2 MB, vẫn mở được) và tách thông minh theo trang trắng (T5.09: 5 trang thành 2 file 3 + 2 trang, file nguồn không đổi). Hộp thoại chọn thư mục của hệ điều hành được thay bằng stub trong test. Cả 9 test của `tools5.spec.ts` đạt trên Windows. Chưa đóng task nào: còn phải rà từng task v0.5 theo định nghĩa 'xong' (PLAN_V1 mục 2).

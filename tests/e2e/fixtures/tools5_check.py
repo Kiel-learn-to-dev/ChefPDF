@@ -6,6 +6,8 @@ Usage: python tools5_check.py FILE MODE [PAGE]
   MODE 'title' : the /Title of the document, or null.
   MODE 'attachments': names of the embedded files.
   MODE 'linear': whether the file is linearized, and its page count.
+  MODE 'pagetexts': the text of every page.
+  MODE 'sizes' : the visible size of every page in points.
   MODE 'dir'   : FILE is a folder; lists its PDFs with page counts.
   MODE 'gray'  : renders PAGE (1-based) and reports the largest colour difference of any pixel.
 """
@@ -33,6 +35,14 @@ elif mode == "attachments":
 elif mode == "linear":
     with pikepdf.open(path) as pdf:
         print(json.dumps({"linearized": pdf.is_linearized, "pages": len(pdf.pages)}))
+elif mode == "pagetexts":
+    doc = pdfium.PdfDocument(path)
+    texts = [doc[i].get_textpage().get_text_range().strip() for i in range(len(doc))]
+    print(json.dumps({"texts": texts}))
+elif mode == "sizes":
+    # Visible size of every page (CropBox and rotation included), rounded to whole points.
+    doc = pdfium.PdfDocument(path)
+    print(json.dumps({"sizes": [[round(v) for v in doc[i].get_size()] for i in range(len(doc))]}))
 elif mode == "info":
     with pikepdf.open(path) as pdf:
         print(json.dumps({"pages": len(pdf.pages), "opens": True}))
