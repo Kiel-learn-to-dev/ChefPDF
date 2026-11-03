@@ -117,7 +117,39 @@ Tránh dương tính giả: lọc phần tử ẩn, tắt hoạt ảnh, chờ fo
 
 | Lượt | Trạng thái |
 |---|---|
-| A1–A7 | ⬜ |
+| A1–A2 | ✅ (A1 hook `__chefUi`; A2 `scripts/css-audit.mjs`) |
+| A3–A7 | ⬜ |
 | B1–B9 | ⬜ |
 | C (từng file) | ⬜ |
 | D (danh sách quyết định) | ⬜ |
+
+### Kết quả A2: `node scripts/css-audit.mjs` (2026-11-04)
+
+Chạy trên `apps/ui/src`: **409 phát hiện trong 38 file**. Theo loại: rem 113, var-undefined 81, radius 42, height 41, font-size 55, spacing 37, var-fallback-mismatch 34, important 5, var-fallback-redundant 1. Khớp phát hiện ban đầu: 25 tên `var()` không định nghĩa, rem nằm ở đúng 8 file, `var(--space-3, 10px)` lệch fallback. Unit test: `node --test scripts/css-audit.test.mjs` (15 ca, gồm calc(), @keyframes, shorthand nhiều giá trị, giá trị âm, comment).
+
+20 file nhiều phát hiện nhất (`node scripts/css-audit.mjs` xem chi tiết từng dòng; `--json` cho máy đọc):
+
+| # | File (dưới apps/ui/src) | Tổng | Theo loại |
+|---|---|---|---|
+| 1 | features/workflow/workflow.css | 52 | rem 52 |
+| 2 | features/watch/watch.css | 43 | rem 27, var-undefined 16 |
+| 3 | features/layout/review.css | 26 | rem 17, var-undefined 9 |
+| 4 | features/pagetools/pagetools.css | 23 | rem 11, var-undefined 7, radius 5 |
+| 5 | features/redact/redact.css | 20 | radius 5, var-undefined 5, spacing 5, font-size 4, height 1 |
+| 6 | features/textedit/textedit.css | 20 | radius 6, font-size 9, var-undefined 4, spacing 1 |
+| 7 | features/security/security.css | 17 | var-fallback-mismatch 8, var-undefined 5, rem 2, radius 1, spacing 1 |
+| 8 | features/capture/capture.css | 16 | var-undefined 4, radius 6, font-size 4, spacing 1, height 1 |
+| 9 | features/inspect/inspect.css | 16 | var-fallback-mismatch 7, var-undefined 3, radius 2, rem 2, spacing 2 |
+| 10 | app/app.css | 14 | height 9, important 2, radius 2, spacing 1 |
+| 11 | components/components.css | 14 | height 10, spacing 2, important 2 |
+| 12 | features/preflight/preflight.css | 14 | var-fallback-mismatch 6, var-undefined 6, radius 1, rem 1 |
+| 13 | features/sign/sign.css | 14 | font-size 8, spacing 2, var-undefined 3, radius 1 |
+| 14 | features/forms/forms.css | 11 | font-size 2, var-undefined 5, spacing 2, radius 1, var-fallback-redundant 1 |
+| 15 | features/objects/objects.css | 10 | var-fallback-mismatch 5, spacing 2, radius 2, font-size 1 |
+| 16 | features/docTools/docTools.css | 8 | font-size 4, spacing 3, var-undefined 1 |
+| 17 | features/layers/layers.css | 8 | spacing 4, font-size 3, radius 1 |
+| 18 | features/overlay/overlay.css | 8 | font-size 5, height 2, spacing 1 |
+| 19 | features/viewer/bookmarkEditor.css | 8 | var-undefined 3, radius 2, font-size 2, height 1 |
+| 20 | features/annots/annots.css | 7 | font-size 3, radius 2, height 1, var-undefined 1 |
+
+Ghi chú về số đo: `rem` đếm mọi giá trị rem (kể cả trong `calc()`). `height` chỉ báo giá trị 12–48px khác 26/32/38 (kích thước bố cục tự do không báo). `font-size` báo mọi giá trị px, có cờ `inScale`. Mục `font:` viết tắt chưa đo. Các phát hiện này là đầu vào cho A4–A5 và B2–B3, chưa phải danh sách sửa.
