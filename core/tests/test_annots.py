@@ -21,6 +21,7 @@ from conftest import Harness, RpcFailure
 from content_support import vietnamese_pdf
 from text_support import canvas_pdf, put
 
+from chef_core.annots.flatten import placement
 from chef_core.content.verify import render_rgb
 
 
@@ -431,6 +432,27 @@ def test_flatten_keeps_links_by_default(harness: Harness, tmp_path: Path) -> Non
     assert subtypes == []
     links = harness.op("links.list", {"pageIndex": 0}, sid)["data"]["links"]
     assert len(links) == 1
+
+
+def test_flatten_placement_preserves_appearance_matrix_rotation() -> None:
+    pdf = pikepdf.Pdf.new()
+    try:
+        stream = pdf.make_stream(b"")
+        stream.BBox = pikepdf.Array([0, 0, 100, 50])
+        stream.Matrix = pikepdf.Array([0, 1, -1, 0, 100, 0])
+
+        matrix = placement(stream, (10, 20, 110, 220))
+
+        def transform(x: float, y: float) -> tuple[float, float]:
+            a, b, c, d, e, f = matrix
+            return a * x + c * y + e, b * x + d * y + f
+
+        assert transform(0, 0) == pytest.approx((110, 20))
+        assert transform(100, 0) == pytest.approx((110, 220))
+        assert transform(0, 50) == pytest.approx((10, 20))
+        assert transform(100, 50) == pytest.approx((10, 220))
+    finally:
+        pdf.close()
 
 
 def test_signed_document_blocks_annotation_changes(

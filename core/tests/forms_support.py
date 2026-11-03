@@ -197,6 +197,12 @@ class Runner:
         self.count = 0
 
     def run(self, op_id: str, params: dict[str, Any], src: Path) -> OpOutput:
+        output, _ctx = self.run_with_context(op_id, params, src)
+        return output
+
+    def run_with_context(
+        self, op_id: str, params: dict[str, Any], src: Path
+    ) -> tuple[OpOutput, OpContext]:
         spec = get_op(op_id)
         assert spec is not None, op_id
         try:
@@ -211,7 +217,7 @@ class Runner:
             input_path=src,
             result_path=dst,
         )
-        return spec.run(ctx, model)
+        return spec.run(ctx, model), ctx
 
     def step(self, op_id: str, params: dict[str, Any], src: Path) -> Path:
         """Run a destructive op and return the file it wrote (``src`` when nothing changed)."""

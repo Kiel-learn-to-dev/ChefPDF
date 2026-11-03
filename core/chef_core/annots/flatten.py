@@ -67,7 +67,11 @@ def placement(stream: pikepdf.Stream, rect: tuple[float, float, float, float]) -
     rx0, ry0, rx1, ry1 = rect
     sx = (rx1 - rx0) / (tx1 - tx0) if tx1 - tx0 > 1e-9 else 1.0
     sy = (ry1 - ry0) / (ty1 - ty0) if ty1 - ty0 > 1e-9 else 1.0
-    return (sx, 0.0, 0.0, sy, rx0 - tx0 * sx, ry0 - ty0 * sy)
+    # Map the transformed appearance bounds onto /Rect, then compose that mapping with
+    # the appearance's own matrix. Keeping the linear terms matters for rotated/sheared APs.
+    ox = rx0 - tx0 * sx
+    oy = ry0 - ty0 * sy
+    return (sx * a, sy * b, sx * c, sy * d, sx * e + ox, sy * f + oy)
 
 
 def flatten_page(

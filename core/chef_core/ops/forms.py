@@ -21,7 +21,7 @@ from chef_core.errors import ChefError, ErrorKind, invalid_params
 from chef_core.forms import data as form_data
 from chef_core.forms import edit
 from chef_core.forms.detect import detect
-from chef_core.forms.flatten import flatten
+from chef_core.forms.flatten import FlattenResult, flatten
 from chef_core.forms.listing import list_result
 from chef_core.forms.model import FieldRef, FormDoc
 from chef_core.models import WireModel
@@ -170,10 +170,25 @@ def fill_op(ctx: OpContext, p: FillParams) -> OpOutput:
         result = edit.fill(fd, dict(p.values), force=p.force, highlight=p.highlight_required)
         pages = set(result.pages)
         if p.flatten:
-            pages |= flatten(fd).pages
+            flattened = flatten(fd)
+            pages |= flattened.pages
+            _warn_flatten_gaps(ctx, fd, flattened)
         return pages, {"applied": result.applied, "flattened": p.flatten}
 
     return _edit(ctx, run)
+
+
+def _warn_flatten_gaps(ctx: OpContext, fd: FormDoc, result: FlattenResult) -> None:
+    if result.skipped_without_appearance:
+        ctx.warn(
+            "Some form fields could not be flattened because their appearance is "
+            "unsupported; those fields were kept editable."
+        )
+    if fd.acroform is not None and "/XFA" in fd.acroform:
+        ctx.warn(
+            "An XFA form remains in this document and may still contain interactive "
+            "form data; not all form data was flattened."
+        )
 
 
 class ImportParams(WireModel):
@@ -473,6 +488,7 @@ def flatten_op(ctx: OpContext, p: FlattenParams) -> OpOutput:
             keep_signatures=p.keep_signatures,
             remove_javascript=p.remove_javascript,
         )
+        _warn_flatten_gaps(ctx, fd, result)
         data = {
             "flattened": result.flattened,
             "kept": result.kept,

@@ -23,7 +23,7 @@ covers). ``sample_background`` reads the colour around a rectangle from a render
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -53,6 +53,7 @@ class CutOptions:
     partial: bool = True
     image_fill: ImageFill = "transparent"
     colour: tuple[int, int, int] = (0, 0, 0)  # used by image_fill == "color"
+    secure_image_sources: bool = False  # redaction must prove source bytes have no other refs
 
 
 @dataclass
@@ -256,6 +257,67 @@ def _image_mask(size: tuple[int, int], ctm: Any, regions: list[Rect]) -> Image.I
     return mask if mask.getbbox() is not None else None
 
 
+def _image_placement_count(model: Any, target: pikepdf.Stream) -> int:
+    """Count paint placements of an image on this flattened page model.
+
+    Redaction writes a private replacement for one placement. If the source is shared, the
+    original bytes remain reachable through the other placement and can still be extracted.
+    Structural reference counting separately detects references from other pages/resources.
+    """
+    target_id = target.objgen
+    count = 0
+    xobjects = model.res.get("/XObject")
+    if not isinstance(xobjects, Dictionary):
+        return count
+    for obj in model.objects:
+        if obj.kind != "image" or obj.image_name is None:
+            continue
+        stream = xobjects.get(Name(obj.image_name))
+        if isinstance(stream, pikepdf.Stream) and stream.objgen == target_id:
+            count += 1
+            if count > 1:
+                return count
+    return count
+
+
+def _image_reference_count(pdf: pikepdf.Pdf, target: pikepdf.Stream) -> int:
+    """Count structural references to an image, including unused resources and appearances."""
+    target_id = target.objgen
+    count = 0
+
+    def visit(value: Any) -> None:
+        nonlocal count
+        children: Iterable[tuple[Any, Any]]
+        if isinstance(value, (pikepdf.Stream, Dictionary)):
+            children = value.items()
+        elif isinstance(value, Array):
+            children = enumerate(value)
+        else:
+            return
+        for _key, child in children:
+            if isinstance(child, pikepdf.Stream) and child.objgen == target_id:
+                count += 1
+            elif isinstance(child, (pikepdf.Stream, Dictionary, Array)) and child.objgen == (0, 0):
+                visit(child)
+
+    for obj in pdf.objects:
+        if obj.objgen != target_id:
+            visit(obj)
+    return count
+
+
+def _image_source(editor: PageEditor, obj: PageObject) -> pikepdf.Stream | None:
+    table = editor.res.get("/XObject")
+    if obj.image_name is None or table is None or Name(obj.image_name) not in table:
+        return None
+    stream = table[Name(obj.image_name)]
+    return stream if isinstance(stream, pikepdf.Stream) else None
+
+
+def _image_source_private(pdf: pikepdf.Pdf, model: Any, stream: pikepdf.Stream) -> bool:
+    return _image_placement_count(model, stream) <= 1 and _image_reference_count(pdf, stream) == 1
+
+
 def _cut_image(
     pdf: pikepdf.Pdf,
     editor: PageEditor,
@@ -275,6 +337,10 @@ def _cut_image(
             return False
         stream = table[Name(obj.image_name)]
         if not isinstance(stream, pikepdf.Stream):
+            return False
+        if opts.secure_image_sources and not _image_source_private(pdf, editor.model, stream):
+            # Refuse the whole redaction: the source image would remain extractable from its
+            # other placement even though this placement received a sanitized replacement.
             return False
         img, alpha = _decode(stream)
     try:
@@ -373,6 +439,16 @@ def cut_page(
             stats.skipped.append(f"{obj.id}: partly inside, not cut (partial off)")
             continue
         if inside:
+            if obj.kind == "image" and opts.secure_image_sources and not obj.inline:
+                source = _image_source(editor, obj)
+                if (
+                    obj.image_name is None
+                    or source is None
+                    or not _image_source_private(pdf, editor.model, source)
+                ):
+                    stats.skipped.append(f"{obj.id}: image source is shared")
+                    continue
+                editor.drop_candidates.add(obj.image_name)
             editor._remove(obj)
             stats.removed += 1
         elif obj.kind == "image":

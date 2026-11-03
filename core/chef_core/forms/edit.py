@@ -228,14 +228,19 @@ def ensure_acroform(pdf: pikepdf.Pdf) -> Dictionary:
 
 
 def draw(
-    fd: FormDoc, ref: FieldRef, *, highlight: bool = False, on_hint: str | None = None
+    fd: FormDoc,
+    ref: FieldRef,
+    *,
+    highlight: bool = False,
+    on_hint: str | None = None,
+    widgets: list[Dictionary] | None = None,
 ) -> None:
     """Build the appearance streams of every widget of ``ref`` from its current value."""
     kind = ref.kind
     if kind in ("button", "signature", "unknown"):
         return
     value = value_of(ref)
-    for widget in ref.widgets:
+    for widget in ref.widgets if widgets is None else widgets:
         if kind in TEXT_KINDS or kind == "dropdown":
             text = "" if value is None else str(value)
             if kind == "dropdown":
@@ -308,8 +313,14 @@ def _h(widget: Dictionary) -> float:
     return abs(rect[3] - rect[1])
 
 
-def refresh(fd: FormDoc, ref: FieldRef, *, highlight: bool = False) -> None:
-    draw(fd, ref, highlight=highlight)
+def refresh(
+    fd: FormDoc,
+    ref: FieldRef,
+    *,
+    highlight: bool = False,
+    widgets: list[Dictionary] | None = None,
+) -> None:
+    draw(fd, ref, highlight=highlight, widgets=widgets)
 
 
 # -- fill, reset ------------------------------------------------------------------------
@@ -368,8 +379,24 @@ def reset(fd: FormDoc, names: list[str] | None, pages: set[int] | None) -> FillR
         if ref.read_only or ref.kind in ("button", "signature", "unknown"):
             continue
         default = attr(ref.node, "/DV")
-        if default is not None and ref.kind in ("text", "multiline", "password", "comb"):
-            ref.node["/V"] = default
+        if default is not None:
+            value: Any
+            if ref.kind in TEXT_KINDS or ref.kind == "dropdown":
+                value = text_of(default)
+            elif ref.kind == "checkbox":
+                value = text_of(default) not in ("", "Off")
+            elif ref.kind == "radio":
+                value = text_of(default)
+                value = None if value in ("", "Off") else value
+            elif ref.kind == "listbox":
+                value = (
+                    [text_of(item) for item in default]
+                    if isinstance(default, Array)
+                    else text_of(default)
+                )
+            else:
+                value = None
+            store(fd, ref, normalize(ref, value, force=True))
         else:
             _clear(ref)
         draw(fd, ref)

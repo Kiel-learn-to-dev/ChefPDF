@@ -45,9 +45,9 @@ def _intersects(annot_rect: Any, regions: list[Rect]) -> bool:
     return any(lo_x < r[2] and hi_x > r[0] and lo_y < r[3] and hi_y > r[1] for r in regions)
 
 
-def remove_annotations(page: pikepdf.Page, regions: list[Rect]) -> int:
+def remove_annotations(pdf: pikepdf.Pdf, page: pikepdf.Page, regions: list[Rect]) -> int:
     """Delete the annotations whose rectangle meets a region. Form values of the removed widgets
-    are deleted as well (the field and its parent)."""
+    and the stale appearances of sibling widgets sharing those values are removed too."""
     annots = page.obj.get("/Annots")
     if not isinstance(annots, Array):
         return 0
@@ -56,14 +56,68 @@ def remove_annotations(page: pikepdf.Page, regions: list[Rect]) -> int:
     for annot in annots:
         if isinstance(annot, Dictionary) and _intersects(annot.get("/Rect"), regions):
             removed += 1
-            for holder in (annot, annot.get("/Parent")):
-                if isinstance(holder, Dictionary) and "/V" in holder:
-                    del holder["/V"]
+            parent = annot.get("/Parent")
+            if str(annot.get("/Subtype", "")) == "/Widget":
+                _remove_widget_field(pdf, annot, parent)
+            for key in ("/V", "/DV", "/AP", "/AS", "/Contents", "/RC"):
+                if key in annot:
+                    del annot[key]
             continue
         kept.append(annot)
     if removed:
         page.obj["/Annots"] = Array(kept)
     return removed
+
+
+def _same_object(left: Any, right: Any) -> bool:
+    left_id = getattr(left, "objgen", (0, 0))
+    right_id = getattr(right, "objgen", (0, 0))
+    return (left_id != (0, 0) and left_id == right_id) or left is right
+
+
+def _without(array: Any, target: Any) -> Array:
+    return Array([item for item in array if not _same_object(item, target)])
+
+
+def _remove_widget_field(pdf: pikepdf.Pdf, widget: Dictionary, parent: Any) -> None:
+    """Remove the redacted widget and scrub its shared field value and stale appearances."""
+    if isinstance(parent, Dictionary):
+        field = parent
+        for key in ("/V", "/DV"):
+            if key in field:
+                del field[key]
+        kids = field.get("/Kids")
+        if isinstance(kids, Array):
+            for sibling in kids:
+                if (
+                    isinstance(sibling, Dictionary)
+                    and str(sibling.get("/Subtype", "")) == "/Widget"
+                ):
+                    for key in ("/AP", "/AS"):
+                        if key in sibling:
+                            del sibling[key]
+            field["/Kids"] = _without(kids, widget)
+            if len(field["/Kids"]):
+                return
+    else:
+        field = widget
+        for key in ("/V", "/DV"):
+            if key in field:
+                del field[key]
+    _remove_field_node(pdf, field)
+
+
+def _remove_field_node(pdf: pikepdf.Pdf, field: Dictionary) -> None:
+    parent = field.get("/Parent")
+    if isinstance(parent, Dictionary) and isinstance(parent.get("/Kids"), Array):
+        parent["/Kids"] = _without(parent["/Kids"], field)
+        if len(parent["/Kids"]):
+            return
+        _remove_field_node(pdf, parent)
+        return
+    acro = pdf.Root.get("/AcroForm")
+    if isinstance(acro, Dictionary) and isinstance(acro.get("/Fields"), Array):
+        acro["/Fields"] = _without(acro["/Fields"], field)
 
 
 # -- metadata ---------------------------------------------------------------------------------
@@ -245,6 +299,12 @@ def verify(path: Path, texts: list[str], regions: dict[int, list[Rect]]) -> list
         doc.close()
     with pikepdf.open(path) as pdf:
         fonts: dict[Any, FontInfo] = {}
+        for index, page in enumerate(pdf.pages):
+            for annot in page.obj.get("/Annots", []):
+                if isinstance(annot, Dictionary) and _intersects(
+                    annot.get("/Rect"), regions.get(index, [])
+                ):
+                    leaks.append(Leak(f"page {index} annotation", "annotation"))
         for where, stream in content_units(pdf):
             text = norm(_decoded_text(stream, fonts))
             if any(key in text for _t, key in targets):
@@ -267,7 +327,34 @@ def verify(path: Path, texts: list[str], regions: dict[int, list[Rect]]) -> list
             flat = norm(meta.read_bytes().decode("utf-8", errors="ignore"))
             if any(key in flat for _t, key in targets):
                 leaks.append(Leak("xmp metadata", "xmp"))
+        for key, value in _pdf_strings(pdf.Root, set()):
+            if any(target in norm(value) for _text, target in targets):
+                leaks.append(Leak(f"PDF value {key}", "value"))
     return _unique(leaks)
+
+
+def _pdf_strings(
+    value: Any, seen: set[tuple[int, int]], parent_key: str = "object"
+) -> Iterator[tuple[str, str]]:
+    if isinstance(value, pikepdf.String):
+        yield parent_key, str(value)
+        return
+    if isinstance(value, Dictionary):
+        objgen = getattr(value, "objgen", (0, 0))
+        if objgen != (0, 0):
+            if objgen in seen:
+                return
+            seen.add(objgen)
+        for key, child in value.items():
+            yield from _pdf_strings(child, seen, str(key))
+    elif isinstance(value, Array):
+        objgen = getattr(value, "objgen", (0, 0))
+        if objgen != (0, 0):
+            if objgen in seen:
+                return
+            seen.add(objgen)
+        for child in value:
+            yield from _pdf_strings(child, seen, parent_key)
 
 
 def _region_leaks(textpage: pdfium.PdfTextPage, index: int, rect: Rect) -> list[Leak]:

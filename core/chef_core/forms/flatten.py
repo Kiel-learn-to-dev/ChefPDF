@@ -16,7 +16,7 @@ from typing import Any
 import pikepdf
 from pikepdf import Array, Dictionary
 
-from chef_core.forms.edit import _remove_annot, _remove_node, _same
+from chef_core.forms.edit import _remove_annot, _remove_node, _same, refresh
 from chef_core.forms.model import FormDoc
 from chef_core.overlay.geometry import number
 from chef_core.overlay.pagecontent import category, content_bytes, own_resources, set_content
@@ -99,24 +99,31 @@ def flatten(
         targets = [w for w in ref.widgets if _on_pages(fd, w, pages)]
         if not targets:
             continue
-        drawn_any = False
+        # Some PDFs defer widget rendering to the viewer with /NeedAppearances and
+        # have no /AP at all. Build a stable appearance before flattening those fields.
+        missing_appearances = [widget for widget in targets if _normal_appearance(widget) is None]
+        if missing_appearances:
+            refresh(fd, ref, widgets=missing_appearances)
+        drawn_widgets: list[Dictionary] = []
         for widget in targets:
             index = fd.page_of(widget)
             if index is None:
                 continue
             if _draw_widget(fd, index, widget, counter):
-                drawn_any = True
+                drawn_widgets.append(widget)
+                result.pages.add(index)
+            else:
+                result.skipped_without_appearance.append(ref.name)
             counter += 1
-            result.pages.add(index)
-        if not drawn_any:
-            result.skipped_without_appearance.append(ref.name)
+        if not drawn_widgets:
+            continue
         result.flattened.append(ref.name)
-        for widget in targets:
+        for widget in drawn_widgets:
             _remove_annot(fd, widget)
-        if all(_on_pages(fd, w, pages) for w in ref.widgets):
+        if len(drawn_widgets) == len(ref.widgets):
             _remove_node(fd, ref.node)
         else:
-            for widget in targets:
+            for widget in drawn_widgets:
                 if _same(ref.node, widget):
                     continue
                 kids = [k for k in ref.node.get("/Kids", []) if not _same(k, widget)]
@@ -133,14 +140,23 @@ def _on_pages(fd: FormDoc, widget: Dictionary, pages: set[int] | None) -> bool:
 
 
 def _clean_acroform(fd: FormDoc, result: FlattenResult, *, remove_javascript: bool) -> None:
+    # An XFA-only document has no AcroForm widgets to flatten. Do not strip its
+    # form packet or AcroForm dictionary just because the widget list is empty.
+    if not result.flattened:
+        return
     acro = fd.acroform
     if acro is None:
         return
-    if "/NeedAppearances" in acro:
+    needs_deferred_appearances = any(
+        _normal_appearance(widget) is None for ref in fd.fields() for widget in ref.widgets
+    )
+    if "/NeedAppearances" in acro and not needs_deferred_appearances:
         del acro["/NeedAppearances"]
-    if "/XFA" in acro:
-        del acro["/XFA"]
     remaining = [f for f in acro.get("/Fields", []) if isinstance(f, Dictionary)]
+    # XFA is the source of truth for hybrid forms. A partial flatten must not
+    # discard it while editable fields remain; remove it only with the last field.
+    if not remaining and "/XFA" in acro:
+        del acro["/XFA"]
     if remove_javascript:
         if "/AA" in acro:
             del acro["/AA"]

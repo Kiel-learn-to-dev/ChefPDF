@@ -149,6 +149,30 @@ def test_image_pixels_inside_are_removed_and_the_rest_kept(
     assert ink_bbox(img.crop((100, 792 - 500, 300, 792 - 300)), is_dark) is not None
 
 
+def test_ordinary_erase_keeps_existing_behavior_for_shared_image(
+    harness: Harness, tmp_path: Path
+) -> None:
+    pdf = pikepdf.new()
+    pages = [pdf.add_blank_page(page_size=(612, 792)) for _ in range(2)]
+    image = Image.new("RGB", (100, 100), "black")
+    stream = image_xobject(pdf, image, codec="flate")
+    for page in pages:
+        page.obj.Resources = pikepdf.Dictionary(XObject=pikepdf.Dictionary(Im1=stream))
+        page.obj.Contents = pdf.make_stream(b"q 200 0 0 200 100 300 cm /Im1 Do Q")
+    path = tmp_path / "shared-image.pdf"
+    pdf.save(path)
+    pdf.close()
+
+    sid = _sid(harness, path)
+    result = _erase(harness, sid, _user_to_display((150, 350, 250, 450)))
+    assert result["data"]["modifiedImages"] == 1
+    after = _revision(harness, sid)
+    with pikepdf.open(path) as original, pikepdf.open(after) as redacted:
+        actual = redacted.pages[1].obj.Contents.read_bytes()
+        expected = original.pages[1].obj.Contents.read_bytes()
+        assert actual == expected
+
+
 def test_cover_paints_a_hex_rectangle_and_keeps_content(harness: Harness, tmp_path: Path) -> None:
     path = raw_pdf(tmp_path / "cover.pdf", b"q 0 0 1 rg 100 100 300 200 re f Q")
     sid = _sid(harness, path)

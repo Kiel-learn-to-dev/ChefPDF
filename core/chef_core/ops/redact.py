@@ -229,10 +229,28 @@ def redact_apply(ctx: OpContext, p: RedactApplyParams) -> OpOutput:
         for index in sorted(regions):
             page = pdf.pages[index]
             rects = regions[index]
-            opts = CutOptions(image_fill="color", colour=fill8, partial=True)
+            opts = CutOptions(
+                image_fill="color", colour=fill8, partial=True, secure_image_sources=True
+            )
             editor, stats = cut_page(pdf, page, index, rects, opts, flatten=True)
-            for reason in stats.skipped:
-                ctx.warn(reason)
+            if stats.skipped or stats.clipped:
+                # Clipping hides vector geometry without removing it; skipped objects may
+                # retain image pixels or text. Neither is a secure redaction.
+                raise ChefError(
+                    ErrorKind.REDACTION_VERIFY_FAILED,
+                    "Không thể xóa an toàn một số nội dung trong vùng che.",
+                    {
+                        "leaks": [
+                            {
+                                "where": f"Trang {index + 1}",
+                                "pattern": (
+                                    "Nội dung chưa được xóa hoàn toàn; hãy chọn toàn bộ đối tượng "
+                                    "hoặc chuyển trang thành ảnh trước khi che."
+                                ),
+                            }
+                        ]
+                    },
+                )
             totals["removedObjects"] += stats.removed
             totals["splitObjects"] += stats.split
             totals["modifiedImages"] += stats.images
@@ -240,8 +258,15 @@ def redact_apply(ctx: OpContext, p: RedactApplyParams) -> OpOutput:
             paint_rects(editor, rects, fill_f)
             editor.write()
             if p.remove_from_annotations:
-                removed_annots += remove_annotations(page, rects)
+                removed_annots += remove_annotations(pdf, page, rects)
             pages_done.append(index)
+        if removed_annots:
+            # A widget can share a field and appearances with widgets on other pages.
+            pages_done = list(range(len(pdf.pages)))
+            ctx.warn(
+                "Trường biểu mẫu liên kết với vùng che có thể bị xóa giá trị và giao diện "
+                "trên các trang khác."
+            )
         remove_thumbnails(pdf)
         scrubbed = scrub_metadata(pdf, texts) if p.also_metadata else {}
         ctx.save_document(pdf)

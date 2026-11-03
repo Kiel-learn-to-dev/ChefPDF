@@ -293,11 +293,190 @@ def test_flatten_by_name_and_page_keeps_other_fields(runner: Runner, tmp_path: P
     assert "hoten" not in names and "ten" in names
 
 
+def test_partial_flatten_preserves_xfa_until_the_last_field_is_removed(
+    runner: Runner, tmp_path: Path
+) -> None:
+    src = pikepdf_form(tmp_path / "hybrid.pdf")
+    with pikepdf.open(src, allow_overwriting_input=True) as pdf:
+        acro = pdf.Root.AcroForm
+        acro.XFA = pdf.make_stream(b"<template><subform/></template>")
+        pdf.save(src)
+
+    _partial_output, partial_ctx = runner.run_with_context(
+        "forms.flatten", {"names": ["hoten"]}, src
+    )
+    partial = runner.work / f"rev{runner.count - 1}.pdf"
+    assert any("XFA form remains" in warning for warning in partial_ctx.warnings)
+    with pikepdf.open(partial) as pdf:
+        assert "/XFA" in pdf.Root.AcroForm
+        assert "ten" in {
+            field["name"] for field in runner.data("forms.list", {}, partial)["fields"]
+        }
+
+    complete = runner.step("forms.flatten", {}, partial)
+    with pikepdf.open(complete) as pdf:
+        assert "/AcroForm" not in pdf.Root
+
+
+def test_fill_and_flatten_warns_when_xfa_remains(runner: Runner, tmp_path: Path) -> None:
+    src = pikepdf_form(tmp_path / "hybrid-fill.pdf")
+    with pikepdf.open(src, allow_overwriting_input=True) as pdf:
+        pdf.Root.AcroForm.XFA = pdf.make_stream(b"<template/>")
+        pdf.save(src)
+    src = runner.step(
+        "forms.addField",
+        {"kind": "signature", "pageIndex": 0, "rect": [20, 20, 180, 60], "name": "sign"},
+        src,
+    )
+
+    _output, ctx = runner.run_with_context(
+        "forms.fill", {"values": {"hoten": "Lan"}, "flatten": True}, src
+    )
+    assert any("XFA form remains" in warning for warning in ctx.warnings)
+
+
+def test_flatten_xfa_only_document_does_not_remove_form_packet(
+    runner: Runner, tmp_path: Path
+) -> None:
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(300, 300))
+    pdf.Root.AcroForm = pdf.make_indirect(
+        pikepdf.Dictionary(XFA=pdf.make_stream(b"<template><subform/></template>"))
+    )
+    src = tmp_path / "xfa-only.pdf"
+    pdf.save(src)
+
+    output = runner.step("forms.flatten", {}, src)
+    with pikepdf.open(output) as result:
+        assert "/AcroForm" in result.Root
+        assert "/XFA" in result.Root.AcroForm
+
+
 def test_flatten_reportlab_form(runner: Runner, tmp_path: Path) -> None:
     src = reportlab_form(tmp_path / "rl.pdf")
     filled = runner.step("forms.fill", {"values": {"hoten": VI}}, src)
     flat = runner.step("forms.flatten", {}, filled)
     assert runner.data("forms.list", {}, flat)["fields"] == []
+
+
+def test_flatten_generates_missing_appearance_before_removing_field(
+    runner: Runner, tmp_path: Path
+) -> None:
+    src = pikepdf_form(tmp_path / "deferred.pdf")
+    with pikepdf.open(src, allow_overwriting_input=True) as pdf:
+        pdf.Root.AcroForm.NeedAppearances = True
+        pdf.save(src)
+
+    filled = runner.step("forms.fill", {"values": {"hoten": VI}}, src)
+    # Simulate a PDF whose viewer was expected to draw values: remove the generated /AP too.
+    with pikepdf.open(filled, allow_overwriting_input=True) as pdf:
+        hoten = next(a for a in pdf.pages[0].obj.Annots if str(a.get("/T", "")) == "hoten")
+        del hoten["/AP"]
+        pdf.save(filled)
+    flat = runner.step("forms.flatten", {}, filled)
+    assert "hoten" not in _by_name(runner, flat)
+    assert dark_pixels(render(flat), (20, 20, 180, 40)) > 30
+
+
+def test_flatten_keeps_widget_without_supported_appearance(runner: Runner, tmp_path: Path) -> None:
+    src = blank(tmp_path / "button.pdf")
+    rev = _add(runner, src, kind="button", pageIndex=0, rect=[20, 20, 100, 40], name="submit")
+    flat = runner.step("forms.flatten", {}, rev)
+    assert "submit" in _by_name(runner, flat)
+    assert runner.data("forms.list", {}, flat)["fields"][0]["widgets"][0]["hasAppearance"] is False
+
+
+def test_flatten_warning_is_reported_by_each_operation(runner: Runner, tmp_path: Path) -> None:
+    src = blank(tmp_path / "button.pdf")
+    with_text = _add(runner, src, kind="text", pageIndex=0, rect=[110, 20, 200, 40], name="other")
+    with_button = _add(
+        runner, with_text, kind="button", pageIndex=0, rect=[20, 20, 100, 40], name="submit"
+    )
+
+    _output, ctx = runner.run_with_context("forms.flatten", {}, with_button)
+    assert any("could not be flattened" in warning for warning in ctx.warnings)
+
+    output, ctx = runner.run_with_context(
+        "forms.fill", {"values": {"other": "value"}, "flatten": True}, with_button
+    )
+    assert output.changed_pages == [0]
+    assert any("could not be flattened" in warning for warning in ctx.warnings)
+
+
+def test_page_limited_flatten_does_not_refresh_other_radio_widgets(
+    runner: Runner, tmp_path: Path
+) -> None:
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(300, 300))
+    pdf.add_blank_page(page_size=(300, 300))
+    src = tmp_path / "two-pages.pdf"
+    pdf.save(src)
+    rev = _add(
+        runner,
+        src,
+        kind="radio",
+        pageIndex=0,
+        rect=[20, 20, 34, 34],
+        name="choice",
+        exportValue="a",
+    )
+    rev = _add(
+        runner,
+        rev,
+        kind="radio",
+        pageIndex=1,
+        rect=[20, 20, 34, 34],
+        name="choice",
+        exportValue="b",
+    )
+    with pikepdf.open(rev, allow_overwriting_input=True) as pdf:
+        for page in pdf.pages:
+            for annot in page.obj.Annots:
+                if "/Parent" in annot:
+                    del annot["/AP"]
+        pdf.Root.AcroForm.NeedAppearances = True
+        pdf.save(rev)
+
+    output, _ctx = runner.run_with_context("forms.flatten", {"pages": [0]}, rev)
+    assert output.changed_pages == [0]
+    with pikepdf.open(runner.work / f"rev{runner.count - 1}.pdf") as pdf:
+        assert "/AP" not in pdf.pages[1].obj.Annots[0]
+        assert pdf.Root.AcroForm.NeedAppearances is True
+
+
+def test_flatten_preserves_existing_radio_appearance_when_sibling_is_missing(
+    runner: Runner, tmp_path: Path
+) -> None:
+    src = blank(tmp_path / "radio.pdf")
+    rev = _add(
+        runner,
+        src,
+        kind="radio",
+        pageIndex=0,
+        rect=[20, 20, 34, 34],
+        name="choice",
+        exportValue="a",
+    )
+    rev = _add(
+        runner,
+        rev,
+        kind="radio",
+        pageIndex=0,
+        rect=[50, 20, 64, 34],
+        name="choice",
+        exportValue="b",
+    )
+    custom_appearance = b"0 1 0 rg 1 1 12 12 re f"
+    with pikepdf.open(rev, allow_overwriting_input=True) as pdf:
+        widgets = [annot for annot in pdf.pages[0].obj.Annots if "/Parent" in annot]
+        widgets[0]["/AP"]["/N"]["/Off"] = pdf.make_stream(custom_appearance)
+        del widgets[1]["/AP"]
+        pdf.save(rev)
+
+    flat = runner.step("forms.flatten", {}, rev)
+    with pikepdf.open(flat) as pdf:
+        xobjects = pdf.pages[0].obj.Resources.XObject
+        assert xobjects["/ChefFlat0"].read_bytes() == custom_appearance
 
 
 def test_flatten_drops_javascript_and_xfa_hooks(runner: Runner, tmp_path: Path) -> None:

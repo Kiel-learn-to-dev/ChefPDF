@@ -259,6 +259,38 @@ def test_reset_clears_values(runner: Runner, tmp_path: Path) -> None:
     assert got["dongy"] is False
 
 
+def test_reset_restores_choice_field_default_value(runner: Runner, tmp_path: Path) -> None:
+    src = pikepdf_form(tmp_path / "f.pdf")
+    with pikepdf.open(src, allow_overwriting_input=True) as pdf:
+        dropdown = next(
+            field for field in pdf.Root.AcroForm.Fields if str(field.get("/T", "")) == "tinh"
+        )
+        dropdown["/DV"] = pikepdf.String("HN")
+        pdf.save(src)
+
+    filled = runner.step("forms.fill", {"values": {"tinh": "HCM"}}, src)
+    reset = runner.step("forms.reset", {"names": ["tinh"]}, filled)
+    assert runner.data("forms.getValues", {}, reset)["values"]["tinh"] == "HN"
+
+
+def test_reset_restores_button_and_multiselect_defaults(runner: Runner, tmp_path: Path) -> None:
+    src = pikepdf_form(tmp_path / "defaults.pdf")
+    with pikepdf.open(src, allow_overwriting_input=True) as pdf:
+        fields = {str(field.get("/T", "")): field for field in pdf.Root.AcroForm.Fields}
+        fields["dongy"]["/DV"] = pikepdf.Name.Yes
+        fields["gioitinh"]["/DV"] = pikepdf.Name("/nu")
+        fields["ngonngu"]["/DV"] = pikepdf.Array([pikepdf.String("Vi"), pikepdf.String("Fr")])
+        pdf.save(src)
+    filled = runner.step(
+        "forms.fill", {"values": {"dongy": False, "gioitinh": "nam", "ngonngu": ["En"]}}, src
+    )
+    reset = runner.step("forms.reset", {"names": ["dongy", "gioitinh", "ngonngu"]}, filled)
+    values = runner.data("forms.getValues", {}, reset)["values"]
+    assert values["dongy"] is True
+    assert values["gioitinh"] == "nu"
+    assert values["ngonngu"] == ["Vi", "Fr"]
+
+
 def test_fill_is_destructive_and_listing_is_not() -> None:
     from chef_core.ops.base import get_op
 
