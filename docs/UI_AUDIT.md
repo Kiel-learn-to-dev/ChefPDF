@@ -118,7 +118,7 @@ Tránh dương tính giả: lọc phần tử ẩn, tắt hoạt ảnh, chờ fo
 | Lượt | Trạng thái |
 |---|---|
 | A1–A2 | ✅ (A1 hook `__chefUi`; A2 `scripts/css-audit.mjs`) |
-| A3 | ✅ khung spec: 81 màn hình (start, 8 tab, 5 sidebar, 3 lớp phủ, 67 hộp thoại); chạy 51 giây: 80 ok, 1 `settle-timeout` (`tokenWizard`, đang dò USB token: đúng dự kiến, không bấm gì). Báo cáo `tests/e2e/ui-audit-out/report.json` + 81 ảnh chụp |
+| A3 | ✅ khung spec: 81 màn hình (start, 8 tab, 5 sidebar, 3 lớp phủ, 64 hộp thoại; đã kiểm: 64 tiêu đề khác nhau, không trống); chạy 51 giây: 80 ok, 1 `settle-timeout` (`tokenWizard`, đang dò USB token: đúng dự kiến, không bấm gì). Báo cáo `tests/e2e/ui-audit-out/report.json` + 81 ảnh chụp |
 | A4–A7 | ⬜ |
 | B1–B9 | ⬜ |
 | C (từng file) | ⬜ |
