@@ -16,11 +16,14 @@ export const READY_TABS: ReadonlySet<FunctionTab> = new Set<FunctionTab>([
   'view',
   'pages',
   'edit',
+  'annotate',
+  'forms',
   'sign',
   'export',
+  'workflow',
 ]);
 
-export type SidebarTab = 'thumbnails' | 'outline' | 'signatures' | 'layers';
+export type SidebarTab = 'thumbnails' | 'outline' | 'signatures' | 'layers' | 'notes';
 export type ViewerTool = 'select' | 'snapshot';
 export type DialogId =
   | 'merge'
@@ -57,6 +60,14 @@ export type DialogId =
   | 'preflight'
   | 'compress'
   | 'pdfToImages'
+  | 'documentExport'
+  | 'batchExport'
+  | 'toc'
+  | 'layoutReview'
+  | 'rename'
+  | 'cropReview'
+  | 'batchCrop'
+  | 'forms'
   | 'imagesToPdf'
   | 'web2pdf'
   | 'verifyBatch'
@@ -72,7 +83,13 @@ export type DialogId =
   | 'backgroundRemove'
   | 'removeSimilar'
   | 'redact'
-  | 'shortcuts';
+  | 'findReplace'
+  | 'linkDialog'
+  | 'capture'
+  | 'dewarp'
+  | 'watch'
+  | 'shortcuts'
+  | 'workflow';
 
 export type CoreStatus = 'starting' | 'ready' | 'crashed' | 'restarting';
 

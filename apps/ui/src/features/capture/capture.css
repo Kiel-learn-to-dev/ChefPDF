@@ -1,0 +1,180 @@
+/* Phone capture dialog (L5). Uses the app's CSS variables; no fixed colours. */
+.capture {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 200px;
+}
+
+.capture p {
+  margin: 0;
+}
+
+.capture__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.capture__start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  border: 1px dashed var(--border, #888);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.capture__start:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.capture__wait {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.capture__qr {
+  width: 220px;
+  max-width: 100%;
+  background: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  line-height: 0;
+}
+
+.capture__qr svg {
+  width: 100%;
+  height: auto;
+}
+
+.capture__info {
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.capture__url code {
+  word-break: break-all;
+  font-size: 13px;
+}
+
+.capture__hint {
+  font-weight: 600;
+}
+
+.capture__firewall,
+.capture__muted {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.capture__count {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.capture__error {
+  color: var(--danger, #c0392b);
+  font-weight: 600;
+}
+
+.capture__strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.capture__thumb {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.capture__thumb.is-picked {
+  border-color: var(--accent, #2563eb);
+}
+
+.capture__pick {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.capture__pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.capture__pick:disabled {
+  cursor: default;
+}
+
+.capture__num {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  font-size: 12px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+.capture__tools {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+.capture__tools button {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+}
+
+.capture__tools button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.capture__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border, #888);
+  border-radius: 8px;
+  padding: 10px 12px;
+}

@@ -114,6 +114,11 @@ export function PageNumbersDialog() {
       sideWidth={400}
       runLabel={t('overlay.apply')}
       onRun={() => void run()}
+      workflowStep={{
+        op: 'overlay.pageNumbers',
+        params: pageNumbersParams(form, current, pageCount) as unknown as Record<string, unknown>,
+        label: t('overlay.numbers.title'),
+      }}
       canRun={
         check.ok &&
         !blocked &&

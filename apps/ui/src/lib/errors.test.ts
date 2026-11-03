@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { ChefError, objectErrorCode, redactionLeaks, toChefError } from './errors';
+import { ChefError, objectErrorCode, redactionLeaks, textErrorCode, toChefError } from './errors';
+
+describe('textErrorCode', () => {
+  it('maps the core message of a text error to its code', () => {
+    const e = toChefError({
+      name: 'RpcError',
+      code: -32602,
+      message: 'TEXT_GLYPH_MISSING',
+      data: { kind: 'INVALID_PARAMS', detail: { missing: ['ệ'] } },
+    });
+    expect(textErrorCode(e)).toBe('TEXT_GLYPH_MISSING');
+    expect(textErrorCode(new Error('PARAGRAPH_SHARES_RUN'))).toBe('PARAGRAPH_SHARES_RUN');
+    expect(textErrorCode(new Error('DISK_FULL'))).toBeNull();
+  });
+});
 
 describe('toChefError', () => {
   it('reads the plain RpcError object rejected by chef.rpc', () => {

@@ -6,6 +6,22 @@
  */
 
 import type {
+  PageimgDetectQuadParams,
+  PageimgAutoCropParams,
+  PageimgQuadPreviewParams,
+  PageimgCropPreviewParams,
+  PageimgCropParams,
+  NamingPreviewParams,
+  FilesRenameBatchParams,
+  LayoutAnalyzeParams,
+  LayoutReviewParams,
+  TocInsertPageParams,
+  TocPreviewParams,
+  ExportDocumentParams,
+  ExportBatchParams,
+  ExportRefreshParams,
+  PageimgDewarpParams,
+  PageimgDewarpPreviewParams,
   ImageCleanupParams,
   ImageFromStrokesParams,
   ImageRemoveBackgroundParams,
@@ -104,6 +120,40 @@ import type {
   RedactFindParams,
   WatermarkDetectParams,
   WatermarkRemoveParams,
+  TextCheckTextParams,
+  TextEditLineParams,
+  TextEditParagraphParams,
+  TextFindReplaceParams,
+  TextGetLinesParams,
+  TextListFontsParams,
+  TextStyleParagraphParams,
+  LinksAddParams,
+  LinksAutoDetectParams,
+  LinksListParams,
+  LinksRemoveParams,
+  LinksUpdateParams,
+  AnnotsAddFreeTextParams,
+  AnnotsAddInkParams,
+  AnnotsAddNoteParams,
+  AnnotsAddShapeParams,
+  AnnotsAddTextMarkupParams,
+  AnnotsExportParams,
+  AnnotsFlattenParams,
+  AnnotsListParams,
+  AnnotsRemoveParams,
+  AnnotsRemoveAllParams,
+  AnnotsReplyParams,
+  AnnotsSetStatusParams,
+  AnnotsUpdateParams,
+  FormsAddFieldParams,
+  FormsFillParams,
+  FormsFlattenParams,
+  FormsListParams,
+  FormsGetValuesParams,
+  FormsRemoveParams,
+  WorkflowRunParams,
+  WorkflowSamplesParams,
+  WorkflowValidateParams,
 } from '@chef/contracts';
 
 export type RotateAngle = 90 | 180 | 270;
@@ -111,6 +161,31 @@ export type SplitMode = 'ranges' | 'everyN' | 'bookmarks' | 'maxSize' | 'oddEven
 export type ImageSource = { path: string } | { dataUrl: string };
 
 export interface OpParams {
+  'pageimg.detectQuad': PageimgDetectQuadParams;
+  'pageimg.autoCrop': PageimgAutoCropParams;
+  'pageimg.quadPreview': PageimgQuadPreviewParams;
+  'pageimg.cropPreview': PageimgCropPreviewParams;
+  'pageimg.crop': PageimgCropParams;
+  'naming.preview': NamingPreviewParams;
+  'files.renameBatch': FilesRenameBatchParams;
+  'workflow.validate': WorkflowValidateParams;
+  'workflow.run': WorkflowRunParams;
+  'workflow.samples': WorkflowSamplesParams;
+  'forms.list': FormsListParams;
+  'forms.getValues': FormsGetValuesParams;
+  'forms.fill': FormsFillParams;
+  'forms.addField': FormsAddFieldParams;
+  'forms.flatten': FormsFlattenParams;
+  'forms.remove': FormsRemoveParams;
+  'layout.analyze': LayoutAnalyzeParams;
+  'layout.review': LayoutReviewParams;
+  'toc.preview': TocPreviewParams;
+  'toc.insertPage': TocInsertPageParams;
+  'export.batch': ExportBatchParams;
+  'pageimg.dewarp': PageimgDewarpParams;
+  'pageimg.dewarpPreview': PageimgDewarpPreviewParams;
+  'export.document': ExportDocumentParams;
+  'export.refresh': ExportRefreshParams;
   'page.rotate': { pages: number[]; angle: RotateAngle };
   'page.delete': { pages: number[] };
   'page.duplicate': { pages: number[] };
@@ -235,11 +310,39 @@ export interface OpParams {
   'background.remove': BackgroundRemoveParams;
   'redact.find': RedactFindParams;
   'redact.apply': RedactApplyParams;
+  'text.getLines': TextGetLinesParams;
+  'text.listFonts': TextListFontsParams;
+  'text.checkText': TextCheckTextParams;
+  'text.editLine': TextEditLineParams;
+  'text.editParagraph': TextEditParagraphParams;
+  'text.styleParagraph': TextStyleParagraphParams;
+  'text.findReplace': TextFindReplaceParams;
+  'links.list': LinksListParams;
+  'links.add': LinksAddParams;
+  'links.update': LinksUpdateParams;
+  'links.remove': LinksRemoveParams;
+  'links.autoDetect': LinksAutoDetectParams;
+  'annots.list': AnnotsListParams;
+  'annots.addTextMarkup': AnnotsAddTextMarkupParams;
+  'annots.addNote': AnnotsAddNoteParams;
+  'annots.addFreeText': AnnotsAddFreeTextParams;
+  'annots.addInk': AnnotsAddInkParams;
+  'annots.addShape': AnnotsAddShapeParams;
+  'annots.update': AnnotsUpdateParams;
+  'annots.remove': AnnotsRemoveParams;
+  'annots.removeAll': AnnotsRemoveAllParams;
+  'annots.reply': AnnotsReplyParams;
+  'annots.setStatus': AnnotsSetStatusParams;
+  'annots.export': AnnotsExportParams;
+  'annots.flatten': AnnotsFlattenParams;
 }
 
 export type OpId = keyof OpParams;
 
 export const STANDALONE_OPS: ReadonlySet<OpId> = new Set<OpId>([
+  'naming.preview',
+  'files.renameBatch',
+  'export.batch',
   'file.merge',
   'convert.pdfToImages',
   'convert.imagesToPdf',

@@ -133,16 +133,22 @@ function BeforeAfter({
 
 // -- (a) from an image file --------------------------------------------------------------------
 
-export function ImageFlow({ onSaved, onCancel }: FlowProps) {
+export function ImageFlow({
+  onSaved,
+  onCancel,
+  initialInput = null,
+}: FlowProps & { initialInput?: string | null }) {
   const { t } = useTranslation();
-  const [input, setInput] = useState<string | null>(null);
+  const [input, setInput] = useState<string | null>(initialInput);
   const [bg, setBg] = useState<BackgroundOptions>(DEFAULT_BACKGROUND);
   const [cl, setCl] = useState<CleanupOptions>(DEFAULT_CLEANUP);
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [kind, setKind] = useState<LibraryKind>('signature');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(() =>
+    initialInput ? basename(initialInput).replace(/\.[^.]+$/, '') : '',
+  );
   const runSeq = useRef(0);
   const made = useRef<Set<string>>(new Set());
 

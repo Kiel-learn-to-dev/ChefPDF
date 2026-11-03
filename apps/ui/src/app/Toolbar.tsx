@@ -6,6 +6,7 @@ import {
   Ellipsis,
   FilePlus,
   Minus,
+  Moon,
   Plus,
   RectangleVertical,
   Redo2,
@@ -18,7 +19,7 @@ import type { ReactNode } from 'react';
 import { useCommands, findCommand, type Command } from './commands';
 import { useActiveDoc } from './state/documents';
 import { READY_TABS, useUi } from './state/ui';
-import { useView, ZOOM_STEPS, type ViewMode } from './state/viewer';
+import { useView, useViewStore, ZOOM_STEPS, type ViewMode } from './state/viewer';
 import { IconButton } from '../components/Button';
 import { DropdownMenu, type MenuEntry } from '../components/Menu';
 import { Separator } from '../components/Misc';
@@ -27,11 +28,15 @@ import { getViewer } from '../features/viewer/controllers';
 import { usePageStore, useSelection } from '../features/pages/pageStore';
 import { useObjectEdit } from '../features/objects/objectState';
 import { useEraseState } from '../features/erase/eraseState';
+import { useTextEdit } from '../features/textedit/textEditState';
+import { useAnnotUi } from '../features/annots/annotState';
 
 type Item =
   | { kind: 'cmd'; id: string; label?: boolean; pressed?: boolean }
   | { kind: 'zoom' }
   | { kind: 'viewMode' }
+  | { kind: 'night' }
+  | { kind: 'split' }
   | { kind: 'insert' }
   | { kind: 'sep'; id: string };
 
@@ -196,6 +201,8 @@ const VIEW_ITEMS: Item[] = [
   { kind: 'zoom' },
   { kind: 'cmd', id: 'view.rotateCw' },
   { kind: 'viewMode' },
+  { kind: 'night' },
+  { kind: 'split' },
   { kind: 'sep', id: 's1' },
   { kind: 'cmd', id: 'view.find', label: true },
   { kind: 'cmd', id: 'view.snapshot', label: true },
@@ -227,11 +234,14 @@ const PAGES_ITEMS: Item[] = [
 ];
 /** Trang tab overflow: page tools (C6-C9) and smart split (C10), then the usual items. */
 const PAGES_OVERFLOW = [
+  'pages.batchCrop',
+  'pages.cropImage',
   'pages.replace',
   'pages.cropResize',
   'pages.blank',
   'pages.gridSplit',
   'tools.smartSplit',
+  'tools.dewarp',
   'pages.selectAll',
   'file.saveAs',
   'file.print',
@@ -239,6 +249,7 @@ const PAGES_OVERFLOW = [
 ];
 
 const EXPORT_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'tools.documentExport', label: true },
   { kind: 'cmd', id: 'tools.scan', label: true },
   { kind: 'cmd', id: 'tools.compress', label: true },
   { kind: 'cmd', id: 'tools.pdfToImages', label: true },
@@ -257,8 +268,35 @@ const EDIT_ITEMS: Item[] = [
   { kind: 'cmd', id: 'edit.qrBarcode', label: true },
   { kind: 'cmd', id: 'edit.overlays', label: true },
   { kind: 'cmd', id: 'edit.objects', label: true },
+  { kind: 'cmd', id: 'edit.textEdit', label: true },
 ];
-const EDIT_OVERFLOW = ['tools.bates', 'edit.stamp', 'edit.seam', 'edit.initials', 'edit.erase'];
+const EDIT_OVERFLOW = [
+  'edit.insertToc',
+  'edit.findReplace',
+  'edit.links',
+  'edit.textParagraph',
+  'tools.bates',
+  'edit.stamp',
+  'edit.seam',
+  'edit.initials',
+  'edit.erase',
+];
+
+/** Ghi chú (G1-G4): markup of the selection, the drawing tools and the list. */
+const ANNOTATE_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'annot.highlight', label: true },
+  { kind: 'cmd', id: 'annot.underline', label: true },
+  { kind: 'cmd', id: 'annot.strike', label: true },
+  { kind: 'cmd', id: 'annot.squiggly', label: true },
+  { kind: 'sep', id: 'a1' },
+  { kind: 'cmd', id: 'annot.note', label: true },
+  { kind: 'cmd', id: 'annot.freeText', label: true },
+  { kind: 'cmd', id: 'annot.ink', label: true },
+  { kind: 'cmd', id: 'annot.shape', label: true },
+  { kind: 'sep', id: 'a2' },
+  { kind: 'cmd', id: 'annot.list', label: true },
+];
+const ANNOTATE_OVERFLOW: string[] = [];
 
 const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.certs', label: true },
@@ -271,22 +309,38 @@ const SIGN_ITEMS: Item[] = [
   { kind: 'cmd', id: 'sign.batchSign', label: true },
   { kind: 'cmd', id: 'sign.security', label: true },
 ];
+const FORMS_ITEMS: Item[] = [{ kind: 'cmd', id: 'forms.open', label: true }];
+const WORKFLOW_ITEMS: Item[] = [
+  { kind: 'cmd', id: 'tools.workflow', label: true },
+  { kind: 'cmd', id: 'tools.watch', label: true },
+];
 /** Sign & security tab overflow: data cleanup and the pre-send checks. */
 const SIGN_OVERFLOW = ['sign.inspect', 'tools.preflight', 'sign.verifyBatch'];
 
 /** Xuất tab overflow: document properties and utilities, and repair of a damaged file (M7-M11). */
-const EXPORT_OVERFLOW = ['tools.docUtils', 'tools.repair'];
+const EXPORT_OVERFLOW = [
+  'tools.renameBatch',
+  'tools.layoutReview',
+  'tools.batchExport',
+  'tools.docUtils',
+  'tools.repair',
+];
 
 /** Contextual toolbar of the active function tab (≤ ~8 controls + overflow). */
 export function Toolbar() {
   const { t } = useTranslation();
   const doc = useActiveDoc();
+  const view = useView(doc?.id);
+  const split = useViewStore((s) => s.split);
   const tab = useUi((s) => s.functionTab);
   const tool = useUi((s) => s.tool);
   const findOpen = useUi((s) => s.findOpen);
   const commands = useCommands();
   const objectActive = useObjectEdit((s) => s.active);
   const eraseActive = useEraseState((s) => s.active);
+  const textActive = useTextEdit((s) => s.active);
+  const textParagraph = useTextEdit((s) => s.paragraphMode);
+  const annotTool = useAnnotUi((s) => s.tool);
   const selection = useSelection(doc?.id);
   const thumbWidth = usePageStore((s) => s.thumbWidth);
   const setThumbWidth = usePageStore((s) => s.setThumbWidth);
@@ -305,7 +359,13 @@ export function Toolbar() {
             ? EXPORT_ITEMS
             : tab === 'sign'
               ? SIGN_ITEMS
-              : [];
+              : tab === 'annotate'
+                ? ANNOTATE_ITEMS
+                : tab === 'forms'
+                  ? FORMS_ITEMS
+                  : tab === 'workflow'
+                    ? WORKFLOW_ITEMS
+                    : [];
   const overflow =
     tab === 'view'
       ? VIEW_OVERFLOW
@@ -317,11 +377,19 @@ export function Toolbar() {
             ? SIGN_OVERFLOW
             : tab === 'export'
               ? EXPORT_OVERFLOW
-              : [];
+              : tab === 'annotate'
+                ? ANNOTATE_OVERFLOW
+                : [];
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
     'view.find': findOpen,
     'edit.objects': objectActive,
+    'edit.textEdit': textActive,
+    'edit.textParagraph': textParagraph,
+    'annot.note': annotTool === 'note',
+    'annot.freeText': annotTool === 'freetext',
+    'annot.ink': annotTool === 'ink',
+    'annot.shape': annotTool === 'shape',
     'edit.erase': eraseActive,
   };
 
@@ -368,6 +436,28 @@ export function Toolbar() {
                 return <ZoomControl key="zoom" docId={doc.id} />;
               case 'viewMode':
                 return <ViewModeMenu key="mode" docId={doc.id} commands={commands} />;
+              case 'night':
+                return (
+                  <IconButton
+                    key="night"
+                    label={t('viewer.night')}
+                    icon={<Moon size={16} />}
+                    pressed={view.night}
+                    onClick={() => useViewStore.getState().patch(doc.id, { night: !view.night })}
+                    className="toolbar__btn"
+                  />
+                );
+              case 'split':
+                return (
+                  <IconButton
+                    key="split"
+                    label={t('viewer.split')}
+                    icon={<Columns2 size={16} />}
+                    pressed={split}
+                    onClick={() => useViewStore.getState().setSplit(!split)}
+                    className="toolbar__btn"
+                  />
+                );
               case 'insert':
                 return <InsertMenu key="insert" commands={commands} />;
               case 'sep':

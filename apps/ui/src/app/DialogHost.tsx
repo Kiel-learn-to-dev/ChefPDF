@@ -35,6 +35,16 @@ import { PreflightDialog } from '../features/preflight/PreflightDialog';
 import { CompressDialog } from '../features/compress/CompressDialog';
 import { ImagesToPdfDialog, PdfToImagesDialog } from '../features/convert/ConvertDialogs';
 import { Web2PdfDialog } from '../features/web2pdf/Web2PdfDialog';
+import { CaptureDialog } from '../features/capture/CaptureDialog';
+import { DewarpDialog } from '../features/pageimg/DewarpDialog';
+import { DocumentExportDialog } from '../features/export/DocumentExportDialog';
+import { BatchExportDialog } from '../features/export/BatchExportDialog';
+import { TocDialog } from '../features/toc/TocDialog';
+import { LayoutReviewDialog } from '../features/layout/LayoutReviewDialog';
+import { RenameDialog } from '../features/naming/RenameDialog';
+import { CropDialog } from '../features/crop/CropDialog';
+import { BatchCropDialog } from '../features/crop/BatchCropDialog';
+import { FormsDialog } from '../features/forms/FormsDialog';
 import { VerifyBatchDialog } from '../features/verifyBatch/VerifyBatchDialog';
 import { DocToolsDialog } from '../features/docTools/DocToolsDialog';
 import { RepairDialog } from '../features/docTools/RepairDialog';
@@ -50,6 +60,10 @@ import { WatermarkRemoveDialog } from '../features/cleanup/WatermarkRemoveDialog
 import { BackgroundDialog } from '../features/cleanup/BackgroundDialog';
 import { RemoveSimilarDialog } from '../features/cleanup/RemoveSimilarDialog';
 import { RedactDialog } from '../features/redact/RedactDialog';
+import { FindReplaceDialog } from '../features/textedit/FindReplaceDialog';
+import { LinkDialog } from '../features/links/LinkDialog';
+import { WorkflowDialog } from '../features/workflow/WorkflowDialog';
+import { WatchDialog } from '../features/watch/WatchDialog';
 import {
   InsertBlankDialog,
   InsertFromFileDialog,
@@ -161,10 +175,30 @@ export function DialogHost() {
       return <CompressDialog />;
     case 'pdfToImages':
       return <PdfToImagesDialog />;
+    case 'documentExport':
+      return <DocumentExportDialog />;
+    case 'batchExport':
+      return <BatchExportDialog />;
+    case 'toc':
+      return <TocDialog />;
+    case 'layoutReview':
+      return <LayoutReviewDialog />;
+    case 'rename':
+      return <RenameDialog />;
+    case 'cropReview':
+      return <CropDialog />;
+    case 'batchCrop':
+      return <BatchCropDialog />;
+    case 'forms':
+      return <FormsDialog />;
     case 'imagesToPdf':
       return <ImagesToPdfDialog />;
     case 'web2pdf':
       return <Web2PdfDialog />;
+    case 'capture':
+      return <CaptureDialog />;
+    case 'dewarp':
+      return <DewarpDialog />;
     case 'verifyBatch':
       return <VerifyBatchDialog />;
     case 'docTools':
@@ -191,8 +225,16 @@ export function DialogHost() {
       return <RemoveSimilarDialog />;
     case 'redact':
       return <RedactDialog />;
+    case 'findReplace':
+      return <FindReplaceDialog />;
+    case 'linkDialog':
+      return <LinkDialog />;
     case 'shortcuts':
       return <ShortcutsDialog />;
+    case 'workflow':
+      return <WorkflowDialog />;
+    case 'watch':
+      return <WatchDialog />;
     default:
       return null;
   }

@@ -130,6 +130,41 @@ export function objectErrorCode(e: unknown): ObjectErrorCode | null {
     : null;
 }
 
+/**
+ * Codes of the text operations (text.*). The core sends them as the message of an INVALID_PARAMS
+ * error. Each one has a Vietnamese text under `textEdit.err.<CODE>` (i18n).
+ */
+export const TEXT_ERROR_CODES = [
+  'TEXT_GLYPH_MISSING',
+  'TEXT_NOT_EDITABLE',
+  'TEXT_TRANSFORM_UNSUPPORTED',
+  'TEXT_KEEP_UNSUPPORTED',
+  'PARAGRAPH_SHARES_RUN',
+  'PARAGRAPH_NOT_FOUND',
+  'PARAGRAPH_NOT_ON_PAGE',
+  'LINE_NOT_FOUND',
+  'LINE_NOT_ON_PAGE',
+  'STALE_OBJECT_IDS',
+  'INVALID_LINE_ID',
+  'INVALID_PARAGRAPH_ID',
+  'INVALID_FONT_STRATEGY',
+  'INVALID_FIT_WIDTH',
+  'INVALID_REGEX',
+  'INVALID_REPLACEMENT',
+  'FIND_REQUIRED',
+  'UNKNOWN_FONT',
+  'PAGE_OUT_OF_RANGE',
+] as const;
+export type TextErrorCode = (typeof TEXT_ERROR_CODES)[number];
+
+/** The text error code of a failed call (null when the error is something else). */
+export function textErrorCode(e: unknown): TextErrorCode | null {
+  const message = toChefError(e).message.trim();
+  return (TEXT_ERROR_CODES as readonly string[]).includes(message)
+    ? (message as TextErrorCode)
+    : null;
+}
+
 /** One place where text is still present after a redaction (REDACTION_VERIFY_FAILED). */
 export interface RedactionLeak {
   where: string;

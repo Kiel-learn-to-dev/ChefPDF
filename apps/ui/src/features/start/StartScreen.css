@@ -36,6 +36,11 @@
   letter-spacing: 0.05em;
   margin-bottom: var(--space-5);
 }
+.start__workflow-hint {
+  margin: 0 0 var(--space-5);
+  color: var(--c-text-3);
+  font-size: var(--text-sm);
+}
 .start__tiles {
   list-style: none;
   margin: 0;

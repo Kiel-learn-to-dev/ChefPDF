@@ -398,6 +398,15 @@ export function ScanDialog() {
       progress={job ? jobProgress(job) : null}
       onCancelRun={jobId ? () => void cancelJob(jobId) : undefined}
       warnings={warnings}
+      workflowStep={
+        params
+          ? {
+              op: 'scan.rasterize',
+              params: params as unknown as Record<string, unknown>,
+              label: t('scan.title'),
+            }
+          : undefined
+      }
       estimate={
         estimate
           ? t('scan.estimateValue', {

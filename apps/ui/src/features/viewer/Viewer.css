@@ -49,6 +49,9 @@
 .viewer .pdfViewer .page {
   box-shadow: var(--c-page-shadow);
 }
+.viewer[data-night='true'] .pdfViewer .page {
+  filter: invert(1) hue-rotate(180deg);
+}
 .viewer .pdfViewer .spread {
   margin-bottom: 18px;
 }

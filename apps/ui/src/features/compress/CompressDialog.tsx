@@ -243,6 +243,11 @@ export function CompressDialog() {
       canRun={issues.length === 0 && !signed && busy === null}
       running={busy === 'run'}
       warnings={warnings}
+      workflowStep={{
+        op: 'compress.pdf',
+        params: params() as unknown as Record<string, unknown>,
+        label: t('compress.title'),
+      }}
       estimate={
         busy === 'estimate' ? (
           <Spinner label={t('compress.estimating')} />

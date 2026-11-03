@@ -1,6 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import * as RT from '@radix-ui/react-tabs';
-import { Images, Layers3, ListTree, PanelLeftClose, ShieldCheck } from 'lucide-react';
+import {
+  Images,
+  Layers3,
+  ListTree,
+  MessageSquareText,
+  PanelLeftClose,
+  ShieldCheck,
+} from 'lucide-react';
+import { AnnotPanel } from '../features/annots/AnnotPanel';
 import type { DocTab } from './state/documents';
 import { useUi, type SidebarTab } from './state/ui';
 import { IconButton } from '../components/Button';
@@ -47,6 +55,11 @@ export function Sidebar({ doc }: { doc: DocTab }) {
                 <Layers3 size={16} />
               </RT.Trigger>
             </Tooltip>
+            <Tooltip content={t('sidebar.notes')}>
+              <RT.Trigger value="notes" className="sidenav__tab" aria-label={t('sidebar.notes')}>
+                <MessageSquareText size={16} />
+              </RT.Trigger>
+            </Tooltip>
             <Tooltip content={t('sidebar.signatures')}>
               <RT.Trigger
                 value="signatures"
@@ -73,6 +86,9 @@ export function Sidebar({ doc }: { doc: DocTab }) {
         </RT.Content>
         <RT.Content value="layers" className="sidenav__content">
           <LayersPanel doc={doc} />
+        </RT.Content>
+        <RT.Content value="notes" className="sidenav__content">
+          <AnnotPanel doc={doc} />
         </RT.Content>
         <RT.Content value="signatures" className="sidenav__content">
           <SignaturePanel doc={doc} />

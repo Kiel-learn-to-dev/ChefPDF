@@ -7,10 +7,12 @@ import { Toaster } from '../components/Toast';
 import { EmptyState } from '../components/Misc';
 import { StartScreen } from '../features/start/StartScreen';
 import { Viewer } from '../features/viewer/Viewer';
+import { ComparePane } from '../features/viewer/ComparePane';
 import { Presentation } from '../features/viewer/Presentation';
 import { PageOrganizer } from '../features/pages/PageOrganizer';
 import { CommandPalette } from '../features/palette/CommandPalette';
 import { useActiveDoc, type DocTab } from './state/documents';
+import { useViewStore } from './state/viewer';
 import { READY_TABS, useUi } from './state/ui';
 import { useCommands } from './commands';
 import { useBootstrap } from './useBootstrap';
@@ -60,6 +62,7 @@ function Workspace({ doc }: { doc: DocTab }) {
   const sidebarOpen = useUi((s) => s.sidebarOpen);
   const panelOpen = useUi((s) => s.panelOpen);
   const presenting = useUi((s) => s.presenting);
+  const split = useViewStore((s) => s.split);
   const organizer = tab === 'pages';
   return (
     <div className="workspace">
@@ -67,7 +70,14 @@ function Workspace({ doc }: { doc: DocTab }) {
       <main className="workspace__main" aria-label={doc.name}>
         {doc.state.signed && <SignedBanner doc={doc} />}
         {!READY_TABS.has(tab) && <ComingSoonNote tab={tab} />}
-        {organizer ? <PageOrganizer key={doc.id} doc={doc} /> : <Viewer key={doc.id} doc={doc} />}
+        {organizer ? (
+          <PageOrganizer key={doc.id} doc={doc} />
+        ) : (
+          <div className="workspace__viewers">
+            <Viewer key={doc.id} doc={doc} />
+            {split && <ComparePane primary={doc} />}
+          </div>
+        )}
       </main>
       {panelOpen && <PropertiesPanel doc={doc} />}
       {presenting && <Presentation doc={doc} />}

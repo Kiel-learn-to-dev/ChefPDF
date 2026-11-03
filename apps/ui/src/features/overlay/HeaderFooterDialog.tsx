@@ -122,6 +122,11 @@ export function HeaderFooterDialog() {
       sideWidth={400}
       runLabel={t('overlay.apply')}
       onRun={() => void run()}
+      workflowStep={{
+        op: 'overlay.headerFooter',
+        params: headerFooterParams(form, current, pageCount) as unknown as Record<string, unknown>,
+        label: t('overlay.hf.title'),
+      }}
       canRun={!problem && marginsOk && !blocked && !!doc}
       warnings={warnings}
       preview={

@@ -259,6 +259,36 @@
   display: flex;
   flex-direction: column;
 }
+.workspace__viewers {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.compare-pane {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  border-left: 1px solid var(--c-border);
+}
+.compare-pane__controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  background: var(--c-surface);
+}
+.compare-pane__controls select {
+  flex: 1;
+  min-width: 0;
+}
+.compare-pane__controls input {
+  width: 5em;
+}
+.compare-pane__viewer {
+  flex: 1;
+}
 .soon-note {
   position: absolute;
   z-index: 40;

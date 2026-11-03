@@ -34,9 +34,11 @@ export function DropZone() {
     };
     const drop = (e: DragEvent) => {
       if (!hasFiles(e)) return;
+      const handled = e.defaultPrevented;
       e.preventDefault();
       depth.current = 0;
       setActive(false);
+      if (handled) return;
       const files = [...(e.dataTransfer?.files ?? [])];
       const pdfs = files.filter(
         (f) => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf',

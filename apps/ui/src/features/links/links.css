@@ -1,0 +1,72 @@
+/* Liên kết (D11): drawing layer and the link dialog. */
+.link-draw {
+  position: absolute;
+  inset: 0;
+  z-index: 21;
+  cursor: crosshair;
+  touch-action: none;
+}
+.link-draw__hint {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface-2, #1f2937);
+  color: var(--text-on-dark, #f9fafb);
+  font-size: 12px;
+  pointer-events: none;
+}
+.link-draw__band {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px dashed #2563eb;
+  background: color-mix(in srgb, #2563eb 12%, transparent);
+  pointer-events: none;
+}
+.ln-empty {
+  color: #64748b;
+}
+.ln-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+.ln-page__title {
+  font-size: 12px;
+  color: #64748b;
+}
+.ln-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.ln-row__target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ln-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ln-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.ln-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.ln-err {
+  color: #991b1b;
+  font-size: 13px;
+}

@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { chef } from '../lib/bridge';
 import { call } from '../lib/rpc';
-import { readRecoverable, sortRecoverable } from '../features/recovery/recoveryModel';
+import {
+  createRetryableRecoveryCheck,
+  readRecoverable,
+  sortRecoverable,
+} from '../features/recovery/recoveryModel';
 import { isJobEvent, useJobStore } from '../features/jobs/jobStore';
 import { setLanguage } from '../i18n';
 import { closeDoc, openFiles } from './actions';
@@ -14,14 +18,12 @@ import { useThemeSync } from './theme';
 let allowClose = false;
 
 /** Crash recovery (A9): offers the sessions the core kept, then drops old recovery files once. */
-async function checkRecovery() {
-  try {
+function makeRecoveryCheck() {
+  return createRetryableRecoveryCheck(async () => {
     const list = sortRecoverable(readRecoverable(await call('recovery.list', {})));
     if (list.length > 0) useUi.getState().openDialog('recovery', list);
     await call('recovery.cleanup', {}).catch(() => undefined);
-  } catch {
-    // The core is not up yet: no prompt this time.
-  }
+  });
 }
 
 /** Load settings, wire bridge events, open files passed at launch, guard unsaved changes. */
@@ -33,6 +35,12 @@ export function useBootstrap() {
   useEffect(() => setLanguage(language), [language]);
 
   useEffect(() => {
+    let startupReady = false;
+    let coreCrashed = false;
+    const checkRecovery = makeRecoveryCheck();
+    const tryRecovery = (retryIfInFlight = false) => {
+      if (startupReady) void checkRecovery(retryIfInFlight).catch(() => undefined);
+    };
     const off = chef().onEvent((ev) => {
       switch (ev.type) {
         case 'rpc':
@@ -48,10 +56,13 @@ export function useBootstrap() {
           void openFiles(ev.paths);
           break;
         case 'core-status': {
-          const prev = useUi.getState().coreStatus;
           useUi.getState().set({ coreStatus: ev.status });
-          if (ev.status === 'ready' && (prev === 'crashed' || prev === 'restarting')) {
-            useCoreRecovery.setState({ needsReopen: true });
+          if (ev.status === 'crashed' || ev.status === 'restarting') coreCrashed = true;
+          if (ev.status === 'ready') tryRecovery(true);
+          if (ev.status === 'ready' && coreCrashed) {
+            coreCrashed = false;
+            const pendingIds = useDocs.getState().docs.map((doc) => doc.id);
+            useCoreRecovery.setState({ needsReopen: pendingIds.length > 0, pendingIds });
           }
           break;
         }
@@ -63,7 +74,8 @@ export function useBootstrap() {
         .app.initialFiles()
         .catch(() => []);
       if (initial.length) await openFiles(initial);
-      await checkRecovery();
+      startupReady = true;
+      tryRecovery();
     })();
     return off;
   }, []);

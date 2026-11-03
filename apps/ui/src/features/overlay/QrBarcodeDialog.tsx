@@ -155,6 +155,19 @@ export function QrBarcodeDialog() {
       sideWidth={380}
       runLabel={t('overlay.apply')}
       onRun={() => void run()}
+      workflowStep={
+        isQr
+          ? {
+              op: 'overlay.qrCode',
+              params: qrParams(qr, current, pageCount) as unknown as Record<string, unknown>,
+              label: t('overlay.code.qr'),
+            }
+          : {
+              op: 'overlay.barcode',
+              params: barcodeParams(bc, current, pageCount) as unknown as Record<string, unknown>,
+              label: t('overlay.code.barcode'),
+            }
+      }
       canRun={canRun}
       warnings={warnings}
       preview={

@@ -1,0 +1,121 @@
+/* Ghi chú (G1-G4): drawing layer, the draft editor and the annotation list. */
+.annot-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.annot-layer--live {
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+.annot-layer__ink,
+.annot-layer__band {
+  position: absolute;
+  pointer-events: none;
+}
+.annot-layer__ink {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.annot-layer__band {
+  box-sizing: border-box;
+  border: 1px dashed #2563eb;
+  background: color-mix(in srgb, #2563eb 10%, transparent);
+}
+.annot-draft {
+  position: absolute;
+  z-index: 3;
+  pointer-events: auto;
+  width: 220px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--surface-1, #ffffff);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.annot-draft textarea {
+  box-sizing: border-box;
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  font-size: 13px;
+}
+.annot-draft__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+.annot-palette {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.annot-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.annot-swatch[aria-pressed='true'] {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+.an-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+}
+.an-filters input {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+.an-page__title {
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  color: #64748b;
+}
+.an-item {
+  margin: 4px 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgb(0 0 0 / 0.08);
+  font-size: 12px;
+}
+.an-item__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+}
+.an-item__kind {
+  font-weight: 600;
+}
+.an-item__quote {
+  margin: 4px 0;
+  padding-left: 6px;
+  border-left: 3px solid var(--an-c, #facc15);
+  color: #374151;
+}
+.an-item__reply {
+  margin: 2px 0 2px 12px;
+  color: #4b5563;
+}
+.an-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.an-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid rgb(0 0 0 / 0.08);
+}

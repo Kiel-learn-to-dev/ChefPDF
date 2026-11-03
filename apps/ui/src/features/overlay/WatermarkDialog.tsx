@@ -210,6 +210,11 @@ export function WatermarkDialog() {
       }}
       runLabel={t('overlay.apply')}
       onRun={() => void run()}
+      workflowStep={{
+        op: 'overlay.watermark',
+        params: watermarkParams(form, current, pageCount) as unknown as Record<string, unknown>,
+        label: t('overlay.watermark.title'),
+      }}
       canRun={check.ok && !blocked}
       warnings={warnings}
       preview={doc ? <WatermarkPreview doc={doc} form={form} page={current} /> : undefined}

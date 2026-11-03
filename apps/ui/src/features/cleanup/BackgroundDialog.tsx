@@ -145,6 +145,15 @@ export function BackgroundDialog() {
       description={t('cleanup.background.description', { name: doc.name })}
       runLabel={t('cleanup.background.run')}
       onRun={() => void run()}
+      workflowStep={
+        params
+          ? {
+              op: 'background.remove',
+              params: { ...params },
+              label: t('cleanup.background.title'),
+            }
+          : undefined
+      }
       canRun={!!params && pagesOk && colorOk && found > 0 && !busy && !running && !signed}
       running={running}
       warnings={[...(signed ? [t('pageTools.signedBlocked')] : []), ...(error ? [error] : [])]}

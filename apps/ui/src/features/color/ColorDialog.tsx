@@ -75,6 +75,11 @@ export function ColorDialog() {
       canRun={issues.length === 0 && !signed && !running}
       running={running}
       warnings={warnings}
+      workflowStep={{
+        op: 'color.convert',
+        params: colorParams(form, pageCount) as unknown as Record<string, unknown>,
+        label: t('colour.title'),
+      }}
       advanced={
         <>
           <Checkbox

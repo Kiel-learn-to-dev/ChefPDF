@@ -1,0 +1,114 @@
+.layout-review__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.layout-review__comparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  max-height: 60vh;
+  overflow: auto;
+}
+.layout-review__comparison img {
+  width: 100%;
+  height: auto;
+  background: white;
+}
+.layout-review__page {
+  position: relative;
+}
+.layout-review__outline {
+  position: absolute;
+  border: 2px solid #2563eb;
+  background: rgb(37 99 235 / 0.15);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.layout-review__locate {
+  margin-inline-end: 0.5rem;
+}
+.layout-review__block {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+.layout-review__block p {
+  margin: 0.35rem 0;
+  white-space: pre-wrap;
+}
+.layout-review__block textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.35rem;
+  resize: vertical;
+}
+.layout-review__result h3,
+.layout-review__comparison h3,
+.layout-review__blocks h3 {
+  margin: 0 0 0.5rem;
+}
+.layout-review__preview-note {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted, #666);
+  font-size: 0.85em;
+}
+.layout-review__paper {
+  min-height: 16rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border, #ddd);
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  overflow: auto;
+}
+.layout-review__preview-block {
+  display: block;
+  width: 100%;
+  padding: 0.15rem 0.25rem;
+  border: 0;
+  border-inline-start: 3px solid transparent;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.layout-review__preview-block:hover,
+.layout-review__preview-block.is-selected {
+  border-inline-start-color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--accent, #2563eb) 9%, transparent);
+}
+.layout-review__preview-block p,
+.layout-review__preview-block h1,
+.layout-review__preview-block h2,
+.layout-review__preview-block h3,
+.layout-review__preview-block h4,
+.layout-review__preview-block h5,
+.layout-review__preview-block h6 {
+  margin: 0.45rem 0;
+  white-space: pre-wrap;
+}
+.layout-review__preview-block h1,
+.layout-review__preview-block h2 {
+  text-align: center;
+}
+.layout-review__preview-placeholder {
+  padding: 0.5rem;
+  border: 1px dashed var(--border, #aaa);
+  color: var(--text-muted, #666);
+  text-align: center;
+}
+.layout-review__columns {
+  display: grid;
+  gap: 0;
+}
+.layout-review__blocks {
+  margin-top: 1rem;
+  max-height: 30vh;
+  overflow: auto;
+}
+@media (max-width: 760px) {
+  .layout-review__comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

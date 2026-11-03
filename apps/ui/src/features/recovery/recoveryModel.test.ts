@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { readRecoverable, recoveryName, sortRecoverable } from './recoveryModel';
+import {
+  createRetryableRecoveryCheck,
+  readRecoverable,
+  recoveryName,
+  sortRecoverable,
+} from './recoveryModel';
 
 const base = {
   sourcePath: 'D:\\Hồ sơ\\hop-dong.pdf',
@@ -52,5 +57,62 @@ describe('recoveryName', () => {
   it('uses the file name of the source path, or null when untitled', () => {
     expect(recoveryName({ ...base, sessionId: 'a' })).toBe('hop-dong.pdf');
     expect(recoveryName({ ...base, sessionId: 'a', sourcePath: null })).toBeNull();
+  });
+});
+
+describe('createRetryableRecoveryCheck', () => {
+  it('retries after the core is unavailable, then runs only once after success', async () => {
+    let attempts = 0;
+    const check = createRetryableRecoveryCheck(async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('core is starting');
+    });
+
+    await expect(check()).rejects.toThrow('core is starting');
+    await check();
+    await check();
+
+    expect(attempts).toBe(2);
+  });
+
+  it('shares an in-flight check when readiness and startup race', async () => {
+    let attempts = 0;
+    let finish!: () => void;
+    const check = createRetryableRecoveryCheck(() => {
+      attempts += 1;
+      return new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    });
+    const first = check();
+    const second = check();
+    expect(attempts).toBe(1);
+    finish();
+    await Promise.all([first, second]);
+    await check();
+
+    expect(attempts).toBe(1);
+  });
+
+  it('retries once when readiness arrives during a scan that later fails', async () => {
+    let attempts = 0;
+    let rejectFirst!: (error: Error) => void;
+    const check = createRetryableRecoveryCheck(() => {
+      attempts += 1;
+      if (attempts === 1) {
+        return new Promise<void>((_resolve, reject) => {
+          rejectFirst = reject;
+        });
+      }
+      return Promise.reject(new Error('core still unavailable'));
+    });
+
+    const startupCheck = check();
+    const readinessCheck = check(true);
+    expect(readinessCheck).toBe(startupCheck);
+    rejectFirst(new Error('core was starting'));
+    await expect(startupCheck).rejects.toThrow('core still unavailable');
+
+    expect(attempts).toBe(2);
   });
 });

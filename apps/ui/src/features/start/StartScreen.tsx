@@ -28,6 +28,7 @@ import { formatRelative } from '../../lib/format';
 import { dirname } from '../../lib/path';
 import { Logo } from '../../app/Logo';
 import { openScanFlow } from '../scan/ScanDialog';
+import { StartWorkflows } from './StartWorkflows';
 import './StartScreen.css';
 
 interface Tile {
@@ -177,6 +178,8 @@ export function StartScreen() {
             })}
           </ul>
         </section>
+
+        <StartWorkflows />
 
         <section aria-labelledby="start-recent" className="start__recent">
           <h2 id="start-recent" className="start__section-title">

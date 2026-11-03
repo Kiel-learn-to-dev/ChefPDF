@@ -58,6 +58,16 @@ import {
   MousePointer2,
   Library,
   Landmark,
+  Replace,
+  Link2,
+  Highlighter,
+  Underline,
+  Strikethrough,
+  Waves,
+  StickyNote,
+  Shapes,
+  MessageSquareText,
+  Pilcrow,
   Droplets,
   FileImage,
   Hash,
@@ -74,6 +84,8 @@ import {
   PaintBucket,
   MousePointerClick,
   EyeOff,
+  Smartphone,
+  Workflow,
 } from 'lucide-react';
 import { closeDoc, openWithDialog, redo, saveDoc, undo } from './actions';
 import { useDocs, type DocTab } from './state/documents';
@@ -96,6 +108,9 @@ import { openScanFlow } from '../features/scan/ScanDialog';
 import { usePlacementStore } from '../features/sign/placementStore';
 import { useObjectEdit } from '../features/objects/objectState';
 import { useEraseState } from '../features/erase/eraseState';
+import { useTextEdit } from '../features/textedit/textEditState';
+import { useAnnotUi, type AnnotTool } from '../features/annots/annotState';
+import { markupFromSelection } from '../features/annots/annotSelection';
 
 export type CommandGroup = 'file' | 'edit' | 'view' | 'pages' | 'tools' | 'app' | 'soon';
 
@@ -812,6 +827,139 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       run: () => ui.openDialog(c.dialog),
     })),
     {
+      id: 'edit.textEdit',
+      title: t('textEdit.cmd'),
+      short: t('textEdit.cmd'),
+      keywords: ['sua chu', 'sua dong', 'doi chu', 'sua van ban', 'font', 'text', 'edit text'],
+      group: 'edit',
+      icon: <Type size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => {
+        const text = useTextEdit.getState();
+        useObjectEdit.getState().setActive(false);
+        useEraseState.getState().setActive(false);
+        text.setActive(!text.active);
+      },
+    },
+    {
+      id: 'forms.open',
+      title: t('forms.title'),
+      short: t('forms.title'),
+      keywords: ['form', 'field', 'fillable', 'dien mau', 'truong bieu mau'],
+      group: 'tools',
+      icon: <FileText size={I} />,
+      enabled: has,
+      run: () => ui.openDialog('forms'),
+    },
+    {
+      id: 'edit.textParagraph',
+      title: t('textEdit.cmdParagraph'),
+      short: t('textEdit.cmdParagraph'),
+      keywords: ['doan', 'paragraph', 'sua doan', 'xuong dong'],
+      group: 'edit',
+      icon: <Pilcrow size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => {
+        const text = useTextEdit.getState();
+        if (!text.active) {
+          useObjectEdit.getState().setActive(false);
+          useEraseState.getState().setActive(false);
+          text.setActive(true);
+        }
+        text.setParagraphMode(!text.paragraphMode);
+      },
+    },
+    {
+      id: 'edit.insertToc',
+      title: t('toc.title'),
+      short: t('toc.title'),
+      keywords: ['muc luc', 'heading', 'table of contents', 'toc'],
+      group: 'edit',
+      icon: <ListTree size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => ui.openDialog('toc'),
+    },
+    {
+      id: 'edit.findReplace',
+      title: t('findReplace.cmd'),
+      short: t('findReplace.cmd'),
+      keywords: ['tim', 'thay the', 'thay chu', 'replace', 'find', 'tim va thay the'],
+      group: 'edit',
+      icon: <Replace size={I} />,
+      shortcut: 'Mod+H',
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => ui.openDialog('findReplace'),
+    },
+    {
+      id: 'edit.links',
+      title: t('links.cmd'),
+      short: t('links.cmd'),
+      keywords: ['lien ket', 'link', 'url', 'trang', 'hyperlink', 'duong dan'],
+      group: 'edit',
+      icon: <Link2 size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => ui.openDialog('linkDialog'),
+    },
+    ...(
+      [
+        ['annot.highlight', 'highlight', 'Mod+Shift+H', <Highlighter key="i" size={I} />],
+        ['annot.underline', 'underline', 'Mod+Shift+U', <Underline key="i" size={I} />],
+        ['annot.strike', 'strike', 'Mod+Shift+X', <Strikethrough key="i" size={I} />],
+        ['annot.squiggly', 'squiggly', 'Mod+Shift+Y', <Waves key="i" size={I} />],
+      ] as const
+    ).map(([id, kind, shortcut, icon]) => ({
+      id,
+      title: t(`annots.cmd.${kind}`),
+      short: t(`annots.cmd.${kind}`),
+      keywords: ['to sang', 'danh dau', 'highlight', 'gach chan', 'gach ngang', kind],
+      group: 'edit' as const,
+      icon,
+      shortcut,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => {
+        if (doc) void markupFromSelection(doc.id, kind);
+      },
+    })),
+    ...(
+      [
+        ['annot.note', 'note', <StickyNote key="i" size={I} />],
+        ['annot.freeText', 'freeText', <Type key="i" size={I} />],
+        ['annot.ink', 'ink', <PenLine key="i" size={I} />],
+        ['annot.shape', 'shape', <Shapes key="i" size={I} />],
+      ] as const
+    ).map(([id, tool, icon]) => ({
+      id,
+      title: t(`annots.cmd.${tool}`),
+      short: t(`annots.cmd.${tool}`),
+      keywords: ['ghi chu', 've', 'but', 'hinh', 'mui ten', 'note', tool],
+      group: 'edit' as const,
+      icon,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => {
+        const ann = useAnnotUi.getState();
+        const next =
+          ann.tool === tool.toLowerCase() ? 'none' : tool === 'freeText' ? 'freetext' : tool;
+        ann.setTool(next as AnnotTool);
+      },
+    })),
+    {
+      id: 'annot.list',
+      title: t('annots.cmd.list'),
+      short: t('annots.cmd.list'),
+      keywords: ['ghi chu', 'danh sach', 'xuat ghi chu', 'lam phang', 'notes', 'comments'],
+      group: 'edit',
+      icon: <MessageSquareText size={I} />,
+      enabled: has,
+      run: () => ui.set({ sidebarOpen: true, sidebarTab: 'notes' }),
+    },
+    {
       id: 'edit.objects',
       title: t('objects.cmd.toggle'),
       short: t('objects.cmd.toggle'),
@@ -986,6 +1134,78 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       run: () => ui.openDialog('compress'),
     },
     {
+      id: 'pages.batchCrop',
+      title: t('batchCrop.title'),
+      short: t('batchCrop.short'),
+      keywords: ['crop', 'tu dong cat', 'hang loat', 'do vien'],
+      group: 'pages',
+      icon: <ScanSearch size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => ui.openDialog('batchCrop'),
+    },
+    {
+      id: 'pages.cropImage',
+      title: t('cropReview.title'),
+      short: t('cropReview.short'),
+      keywords: ['crop', 'cat anh', 'bon goc', 'phoi canh'],
+      group: 'pages',
+      icon: <Crop size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => ui.openDialog('cropReview'),
+    },
+    {
+      id: 'tools.renameBatch',
+      title: t('rename.title'),
+      short: t('rename.short'),
+      keywords: ['doi ten', 'rename', 'hang loat', 'ten tep'],
+      group: 'tools',
+      icon: <FileText size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('rename'),
+    },
+    {
+      id: 'tools.layoutReview',
+      title: t('layoutReview.title'),
+      short: t('layoutReview.short'),
+      keywords: ['bo cuc', 'review', 'layout', 'ra tai lieu'],
+      group: 'tools',
+      icon: <ScanText size={I} />,
+      enabled: has,
+      run: () => ui.openDialog('layoutReview'),
+    },
+    {
+      id: 'tools.batchExport',
+      title: t('documentExport.batchTitle'),
+      short: t('documentExport.batchShort'),
+      keywords: ['batch', 'hang loat', 'word', 'xuat tai lieu'],
+      group: 'tools',
+      icon: <FileStack size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('batchExport'),
+    },
+    {
+      id: 'tools.documentExport',
+      title: t('documentExport.title'),
+      short: t('documentExport.short'),
+      keywords: [
+        'word',
+        'docx',
+        'markdown',
+        'html',
+        'epub',
+        'odt',
+        'xlsx',
+        'export',
+        'xuat tai lieu',
+      ],
+      group: 'tools',
+      icon: <FileOutput size={I} />,
+      enabled: has,
+      run: () => ui.openDialog('documentExport'),
+    },
+    {
       id: 'tools.pdfToImages',
       title: t('convert.cmdPdfToImages'),
       short: t('convert.shortPdfToImages'),
@@ -1004,6 +1224,16 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       icon: <Globe size={I} />,
       enabled: true,
       run: () => ui.openDialog('web2pdf'),
+    },
+    {
+      id: 'tools.capture',
+      title: t('capture.cmd'),
+      short: t('capture.short'),
+      keywords: ['chup', 'chụp', 'dien thoai', 'điện thoại', 'phone', 'qr', 'camera', 'scan'],
+      group: 'tools',
+      icon: <Smartphone size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('capture', { purpose: 'book' }),
     },
     {
       id: 'tools.imagesToPdf',
@@ -1084,6 +1314,37 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       icon: <Scissors size={I} />,
       enabled: true,
       run: () => ui.openDialog('smartSplit'),
+    },
+    {
+      id: 'tools.dewarp',
+      title: t('pageimg.dewarp.cmd'),
+      short: t('pageimg.dewarp.short'),
+      keywords: ['dewarp', 'curve', 'book', 'lam phang', 'cong trang'],
+      group: 'tools',
+      icon: <ScanSearch size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('pageTools.signedBlocked') : undefined,
+      run: () => ui.openDialog('dewarp'),
+    },
+    {
+      id: 'tools.workflow',
+      title: t('workflow.title'),
+      short: t('workflow.title'),
+      keywords: ['workflow', 'quy trình', 'quy trinh', 'batch', 'tự động'],
+      group: 'tools',
+      icon: <Workflow size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('workflow'),
+    },
+    {
+      id: 'tools.watch',
+      title: t('watch.title'),
+      short: t('watch.title'),
+      keywords: ['watch', 'folder', 'monitor', 'theo doi thu muc', 'tu dong'],
+      group: 'tools',
+      icon: <FolderOpen size={I} />,
+      enabled: true,
+      run: () => ui.openDialog('watch'),
     },
     soon('editText', t('soon.editText'), <FileText size={I} />, ['edit', 'sua chu']),
     soon('export', t('soon.export'), <FileOutput size={I} />, ['export', 'word', 'docx']),

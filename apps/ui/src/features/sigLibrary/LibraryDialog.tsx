@@ -61,7 +61,11 @@ export function LibraryDialog() {
   const close = useUi((s) => s.closeDialog);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [status, setStatus] = useState<LibraryStatus | null>(null);
-  const [view, setView] = useState<View>('list');
+  // A photo taken with the phone (capture dialog) opens the image flow with that photo.
+  const [seedImage] = useState<string | null>(
+    () => (useUi.getState().dialogData as { seedImage?: string } | undefined)?.seedImage ?? null,
+  );
+  const [view, setView] = useState<View>(seedImage ? 'image' : 'list');
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [separating, setSeparating] = useState<LibraryItem | null>(null);
@@ -150,11 +154,13 @@ export function LibraryDialog() {
               <Button size="sm" icon={<Type size={15} />} onClick={() => setView('type')}>
                 {t('lib.type')}
               </Button>
-              <span title={t('lib.phoneSoon')} className="lib__soon">
-                <Button size="sm" disabled icon={<Smartphone size={15} />}>
-                  {t('lib.phone')}
-                </Button>
-              </span>
+              <Button
+                size="sm"
+                icon={<Smartphone size={15} />}
+                onClick={() => useUi.getState().openDialog('capture', { purpose: 'signature' })}
+              >
+                {t('lib.phone')}
+              </Button>
             </div>
 
             {items.length === 0 ? (
@@ -235,7 +241,7 @@ export function LibraryDialog() {
           </>
         )}
 
-        {view === 'image' && <ImageFlow {...flowProps} />}
+        {view === 'image' && <ImageFlow {...flowProps} initialInput={seedImage} />}
         {view === 'draw' && <DrawFlow {...flowProps} />}
         {view === 'type' && <TypeFlow {...flowProps} />}
         {view === 'separate' && separating && <SeparateFlow item={separating} {...flowProps} />}

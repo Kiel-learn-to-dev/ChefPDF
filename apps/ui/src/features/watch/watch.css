@@ -1,0 +1,139 @@
+.watch-dialog .dlg__body {
+  padding: 1rem;
+}
+.watch-layout {
+  display: grid;
+  gap: 0.8rem;
+}
+.watch-config {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.8fr);
+  gap: 0.8rem;
+}
+.watch-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.watch-panel h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+.watch-workflow-name {
+  margin: -0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.watch-path {
+  display: flex;
+  gap: 0.35rem;
+}
+.watch-path .input {
+  min-width: 0;
+  flex: 1;
+}
+.watch-numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+.watch-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.watch-actions > button {
+  flex: 1;
+}
+.watch-notice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-warning, #8a5b00);
+  background: var(--surface-subtle);
+}
+.watch-validation {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+.watch-validation p,
+.watch-error {
+  margin: 0;
+  color: var(--text-danger, #b42318);
+}
+.watch-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.83rem;
+}
+.watch-current,
+.watch-empty {
+  margin: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+.watch-results {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 18rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.watch-results li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--border-default);
+  font-size: 0.8rem;
+}
+.watch-result-status {
+  font-weight: 650;
+}
+.watch-result-status--done {
+  color: var(--text-success, #18794e);
+}
+.watch-result-status--failed {
+  color: var(--text-danger, #b42318);
+}
+.watch-result-status--skipped {
+  color: var(--text-muted);
+}
+.watch-result-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.watch-results small {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.watch-footnote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+@media (max-width: 720px) {
+  .watch-config {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

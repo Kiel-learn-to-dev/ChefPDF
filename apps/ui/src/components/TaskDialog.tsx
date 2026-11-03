@@ -7,6 +7,7 @@ import { Dialog, DialogSpacer } from './Dialog';
 import { Collapsible, Field, RadioGroup, Select, type SelectOption } from './Form';
 import { ProgressBar } from './Misc';
 import { basename } from '../lib/path';
+import { useUi } from '../app/state/ui';
 import './TaskDialog.css';
 
 export type ApplyTo = 'this' | 'multiple';
@@ -48,6 +49,8 @@ export interface TaskDialogProps {
   applyTo?: TaskApplyTo;
   runLabel?: string;
   onRun(): void;
+  /** A ready-to-save operation step for the workflow builder. */
+  workflowStep?: { op: string; params: Record<string, unknown>; label?: string };
   canRun?: boolean;
   running?: boolean;
   /** 0..1 or null (indeterminate), shown while running. */
@@ -77,6 +80,7 @@ export function TaskDialog({
   applyTo,
   runLabel,
   onRun,
+  workflowStep,
   canRun = true,
   running,
   progress,
@@ -85,6 +89,7 @@ export function TaskDialog({
   sideWidth,
 }: TaskDialogProps) {
   const { t } = useTranslation();
+  const openDialog = useUi((state) => state.openDialog);
   const hasSide = preview !== undefined || estimate !== undefined;
   const splitStyle =
     sideWidth !== undefined ? { gridTemplateColumns: `minmax(0, 1fr) ${sideWidth}px` } : undefined;
@@ -122,8 +127,8 @@ export function TaskDialog({
           <Button
             variant="ghost"
             icon={<Workflow size={15} />}
-            disabled
-            title={t('common.comingSoon')}
+            disabled={!workflowStep || running}
+            onClick={() => workflowStep && openDialog('workflow', { workflowStep })}
             className="task__save-step"
           >
             {t('task.saveAsStep')}

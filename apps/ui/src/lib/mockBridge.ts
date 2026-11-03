@@ -29,6 +29,7 @@ import { parsePageRanges } from './pageRange';
 import { renderName } from '../features/split/nameTemplate';
 import { applyMockOverlay, mockBates, mockPages, type MockOverlay } from './mockOverlay';
 import { seamPlan } from '../features/stamps/seamModel';
+import { applyMockTextLinksOp, MOCK_TEXT_LINK_OPS } from './mockTextLinks';
 
 /** DEV: the bookmark tree of each mock session (bookmarks.get / set / fromPages / clear). */
 const mockBookmarks = new WeakMap<object, unknown[]>();
@@ -190,6 +191,9 @@ const OP_IDS: string[] = [
   'background.remove',
   'redact.find',
   'redact.apply',
+  'workflow.validate',
+  'workflow.run',
+  'workflow.samples',
 ];
 
 /** Same data as core/chef_core/ops/scan_presets.py (scan.presets). */
@@ -482,6 +486,9 @@ const MOCK_DIAG_STEPS = [
 ];
 
 const MOCK_WORK_DIR = '/mock/cache/sigwork';
+/** 1x1 PNG used as the sample "photo" of the mock phone capture. */
+const MOCK_PHOTO_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 const MOCK_VERIFY_ITEM = {
   fieldName: 'Signature1',
@@ -558,6 +565,8 @@ export function createMockBridge(): ChefBridge {
   const sessions = new Map<string, MockSession>();
   const listeners = new Set<(e: ChefEvent) => void>();
   let counter = 0;
+  let captureActive = false;
+  let captureSessionId: string | null = null;
 
   const emit = (e: ChefEvent) => listeners.forEach((l) => l(e));
 
@@ -1649,14 +1658,111 @@ export function createMockBridge(): ChefBridge {
         };
         break;
       }
-      default:
-        throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
+      default: {
+        if (!MOCK_TEXT_LINK_OPS.has(opId)) {
+          throw new MockRpcError('OP_NOT_FOUND', `Unknown op ${opId}`, -32601);
+        }
+        const out = applyMockTextLinksOp(
+          s,
+          opId,
+          params as Record<string, unknown>,
+          doc.getPageCount(),
+        );
+        modified = out.changed;
+        r = { ...result(out.changedPages), data: out.data };
+        break;
+      }
     }
     if (modified) pushRevision(s, await doc.save());
     return { state: stateOf(s), ...r };
   }
 
   async function runStandalone(opId: OpId, params: unknown): Promise<OpResult> {
+    if (opId === 'workflow.samples') {
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [],
+        warnings: [],
+        data: {
+          samples: [
+            {
+              id: 'mock-cleanup',
+              name: 'Làm sạch tài liệu',
+              description: 'Xoay trang rồi nén PDF.',
+              workflow: {
+                id: 'mock-cleanup',
+                name: 'Làm sạch tài liệu',
+                version: 1,
+                steps: [
+                  { op: 'page.rotate', params: { pages: [0], angle: 90 } },
+                  { op: 'compress.pdf', params: {} },
+                ],
+              },
+            },
+          ],
+        },
+      };
+    }
+    if (opId === 'workflow.validate') {
+      const workflow = (params as OpParams['workflow.validate']).workflow as {
+        id?: string;
+        steps?: { op?: string }[];
+      };
+      const errors = workflow.steps?.length
+        ? []
+        : [
+            {
+              kind: 'EMPTY',
+              message: 'Quy trình cần có ít nhất một bước.',
+              step: null,
+              field: 'steps',
+            },
+          ];
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [],
+        warnings: [],
+        data: {
+          valid: errors.length === 0,
+          errors,
+          warnings: [],
+          steps: [],
+          requiredSecrets: [],
+          requiredVariables: [],
+          workflowId: workflow.id ?? '',
+          descriptions: [],
+        },
+      };
+    }
+    if (opId === 'workflow.run') {
+      const p = params as OpParams['workflow.run'];
+      const results = p.files.map((file) => ({
+        path: file.path,
+        outputPath: null,
+        outputs: [],
+        plannedOutputs: [],
+        status: 'done' as const,
+        failedStep: null,
+        errorKind: null,
+        message: null,
+        warnings: [],
+        stepResults: [],
+        durationMs: 12,
+      }));
+      return {
+        state: null as unknown as SessionState,
+        changedPages: [],
+        outputs: [],
+        warnings: [],
+        data: {
+          results,
+          summary: { total: results.length, done: results.length, failed: 0, skipped: 0 },
+          dryRun: false,
+        },
+      };
+    }
     if (opId === 'file.splitSmart') {
       // Mock: two halves of the document, written as files in the output folder.
       const p = params as OpParams['file.splitSmart'];
@@ -2262,6 +2368,48 @@ export function createMockBridge(): ChefBridge {
       },
       async workDir() {
         return MOCK_WORK_DIR;
+      },
+    },
+    // Phone capture (L5): a fake session that "receives" two sample photos (dev / screenshots).
+    capture: {
+      async start(input) {
+        if (captureActive) throw new Error('capture already running');
+        captureActive = true;
+        captureSessionId = `mock-capture-${Date.now()}-${Math.random()}`;
+        const expiresAt = Date.now() + 10 * 60_000;
+        emit({ type: 'capture-status', state: 'active', count: 0, expiresAt });
+        [0, 1].forEach((index) => {
+          setTimeout(
+            () => {
+              if (!captureActive) return;
+              const path = `/mock/cache/capture/mock/${String(index + 1).padStart(3, '0')}.png`;
+              putFile(
+                path,
+                Uint8Array.from(atob(MOCK_PHOTO_PNG), (c) => c.charCodeAt(0)),
+              );
+              emit({ type: 'capture-image', index, path });
+            },
+            300 + index * 400,
+          );
+        });
+        return {
+          sessionId: captureSessionId,
+          url: 'http://192.168.1.20:5000/c/mock',
+          qrSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29"><rect width="29" height="29" fill="#fff"/><rect x="3" y="3" width="8" height="8" fill="#000"/><rect x="18" y="3" width="8" height="8" fill="#000"/><rect x="3" y="18" width="8" height="8" fill="#000"/><text x="2" y="28" font-size="2">${input.purpose}</text></svg>`,
+          expiresAt,
+          interfaces: [{ name: 'Wi-Fi', address: '192.168.1.20' }],
+        };
+      },
+      async stop(sessionId) {
+        if (!captureActive || (sessionId !== undefined && sessionId !== captureSessionId)) return;
+        captureActive = false;
+        captureSessionId = null;
+        emit({ type: 'capture-status', state: 'stopped', count: 2, expiresAt: 0 });
+      },
+      async status() {
+        return captureActive
+          ? { state: 'active' as const, count: 2, expiresAt: Date.now() + 600_000 }
+          : { state: 'idle' as const, count: 0 };
       },
     },
     convert: {

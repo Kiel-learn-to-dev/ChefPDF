@@ -5,6 +5,37 @@
 import type { RecoverableSession } from '@chef/contracts';
 import { basename } from '../../lib/path';
 
+/** Retry a recovery scan after startup races; coalesce concurrent readiness notifications. */
+export function createRetryableRecoveryCheck(
+  check: () => Promise<void>,
+): (retryIfInFlight?: boolean) => Promise<void> {
+  let completed = false;
+  let inFlight: Promise<void> | null = null;
+  let retryAfterFailure = false;
+  return (retryIfInFlight = false) => {
+    if (completed) return Promise.resolve();
+    if (inFlight) {
+      if (retryIfInFlight) retryAfterFailure = true;
+      return inFlight;
+    }
+    inFlight = (async () => {
+      try {
+        await check();
+        completed = true;
+      } catch (error) {
+        if (!retryAfterFailure) throw error;
+        retryAfterFailure = false;
+        await check();
+        completed = true;
+      }
+    })().finally(() => {
+      inFlight = null;
+      retryAfterFailure = false;
+    });
+    return inFlight;
+  };
+}
+
 function isSession(v: unknown): v is RecoverableSession {
   if (!v || typeof v !== 'object') return false;
   const o = v as Record<string, unknown>;

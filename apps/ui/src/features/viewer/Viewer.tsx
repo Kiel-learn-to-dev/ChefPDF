@@ -32,6 +32,10 @@ import { OverlayPlacementLayer } from '../overlay/OverlayPlacementLayer';
 import { HighlightLayer } from '../redact/HighlightLayer';
 import { ObjectLayer } from '../objects/ObjectLayer';
 import { EraseLayer } from '../erase/EraseLayer';
+import { TextEditLayer } from '../textedit/TextEditLayer';
+import { LinkDrawLayer } from '../links/LinkDrawLayer';
+import { FormDrawLayer } from '../forms/FormDrawLayer';
+import { AnnotLayer } from '../annots/AnnotLayer';
 import { FindBar } from './FindBar';
 import './Viewer.css';
 
@@ -75,6 +79,7 @@ export function Viewer({ doc }: { doc: DocTab }) {
   const { pdf, error } = usePdfDocument(doc);
   const tool = useUi((s) => s.tool);
   const findOpen = useUi((s) => s.findOpen);
+  const night = useViewStore((s) => s.views[doc.id]?.night ?? false);
   const [ready, setReady] = useState(false);
   const docId = doc.id;
 
@@ -296,7 +301,7 @@ export function Viewer({ doc }: { doc: DocTab }) {
   ];
 
   return (
-    <div className="viewer" data-tool={tool}>
+    <div className="viewer" data-tool={tool} data-night={night}>
       {doc.busy > 0 && (
         <div className="viewer__busy">
           <ProgressBar value={null} label={t('jobs.running')} />
@@ -321,6 +326,10 @@ export function Viewer({ doc }: { doc: DocTab }) {
       <HighlightLayer doc={doc} getContainer={() => containerRef.current} />
       <ObjectLayer doc={doc} getContainer={() => containerRef.current} />
       <EraseLayer doc={doc} getContainer={() => containerRef.current} />
+      <TextEditLayer doc={doc} getContainer={() => containerRef.current} />
+      <LinkDrawLayer doc={doc} getContainer={() => containerRef.current} />
+      <FormDrawLayer doc={doc} getContainer={() => containerRef.current} />
+      <AnnotLayer doc={doc} getContainer={() => containerRef.current} />
       {!ready && !error && (
         <div className="viewer__center">
           <Spinner size={22} label={t('viewer.loading')} />
