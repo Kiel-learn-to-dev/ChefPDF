@@ -171,7 +171,7 @@ export function WatchDialog() {
               />
             </Field>
             {workflow && <p className="watch-workflow-name">{workflow.name}</p>}
-            <Button size="sm" variant="secondary" onClick={() => void openWorkflow()}>
+            <Button variant="secondary" onClick={() => void openWorkflow()}>
               {t('watch.loadWorkflow')}
             </Button>
             <Field label={t('watch.source')}>
@@ -182,7 +182,6 @@ export function WatchDialog() {
                   placeholder="/path/to/inbox"
                 />
                 <Button
-                  size="sm"
                   variant="secondary"
                   icon={<FolderOpen size={14} />}
                   onClick={() => void chooseFolder(setSource)}
@@ -198,7 +197,6 @@ export function WatchDialog() {
                   placeholder="/path/to/output"
                 />
                 <Button
-                  size="sm"
                   variant="secondary"
                   icon={<FolderOpen size={14} />}
                   onClick={() => void chooseFolder(setOutput)}

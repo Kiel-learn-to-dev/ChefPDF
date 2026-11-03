@@ -145,17 +145,16 @@ export function LibraryDialog() {
         {view === 'list' && (
           <>
             <div className="lib__add" role="group" aria-label={t('lib.add')}>
-              <Button size="sm" icon={<FileImage size={15} />} onClick={() => setView('image')}>
+              <Button icon={<FileImage size={15} />} onClick={() => setView('image')}>
                 {t('lib.fromImage')}
               </Button>
-              <Button size="sm" icon={<PenLine size={15} />} onClick={() => setView('draw')}>
+              <Button icon={<PenLine size={15} />} onClick={() => setView('draw')}>
                 {t('lib.draw')}
               </Button>
-              <Button size="sm" icon={<Type size={15} />} onClick={() => setView('type')}>
+              <Button icon={<Type size={15} />} onClick={() => setView('type')}>
                 {t('lib.type')}
               </Button>
               <Button
-                size="sm"
                 icon={<Smartphone size={15} />}
                 onClick={() => useUi.getState().openDialog('capture', { purpose: 'signature' })}
               >
@@ -177,7 +176,6 @@ export function LibraryDialog() {
                     {renaming?.id === item.id ? (
                       <div className="lib-card__rename">
                         <TextInput
-                          size="sm"
                           aria-label={t('lib.rename')}
                           value={renaming.value}
                           maxLength={NAME_MAX}
@@ -189,13 +187,11 @@ export function LibraryDialog() {
                           }}
                         />
                         <IconButton
-                          size="sm"
                           label={t('lib.saveName')}
                           icon={<Check size={14} />}
                           onClick={() => void rename()}
                         />
                         <IconButton
-                          size="sm"
                           label={t('common.cancel')}
                           icon={<X size={14} />}
                           onClick={() => setRenaming(null)}
@@ -212,13 +208,11 @@ export function LibraryDialog() {
                     {renaming?.id !== item.id && (
                       <div className="lib-card__actions">
                         <IconButton
-                          size="sm"
                           label={t('lib.rename')}
                           icon={<Pencil size={14} />}
                           onClick={() => setRenaming({ id: item.id, value: item.name })}
                         />
                         <IconButton
-                          size="sm"
                           label={t('colorSep.open')}
                           icon={<Palette size={14} />}
                           onClick={() => {
@@ -227,7 +221,6 @@ export function LibraryDialog() {
                           }}
                         />
                         <IconButton
-                          size="sm"
                           label={t('lib.delete')}
                           icon={<Trash2 size={14} />}
                           onClick={() => void remove(item)}

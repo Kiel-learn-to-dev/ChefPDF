@@ -92,13 +92,12 @@ export function TrustDialog() {
       <div className="trust">
         <div className="trust__add">
           <Select<TrustGroup>
-            size="sm"
             aria-label={t('sig.trust.group.label')}
             value={group}
             onChange={setGroup}
             options={TRUST_GROUPS.map((g) => ({ value: g, label: t(groupLabelKey(g)) }))}
           />
-          <Button size="sm" icon={<FolderOpen size={15} />} onClick={() => void add()}>
+          <Button icon={<FolderOpen size={15} />} onClick={() => void add()}>
             {t('sig.trust.add')}
           </Button>
         </div>
@@ -146,7 +145,6 @@ export function TrustDialog() {
                     <td>
                       {canRemove(e) && (
                         <IconButton
-                          size="sm"
                           label={t('sig.trust.remove')}
                           icon={<Trash2 size={15} />}
                           onClick={() => void remove(e)}

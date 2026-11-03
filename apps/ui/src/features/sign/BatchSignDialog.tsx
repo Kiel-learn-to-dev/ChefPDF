@@ -332,7 +332,7 @@ function BatchInner({ onClose }: { onClose(): void }) {
             {t('signBatch.addFolder')}
           </Button>
           {rows.length > 0 && (
-            <Button size="sm" variant="ghost" onClick={() => setRows([])} disabled={running}>
+            <Button variant="ghost" onClick={() => setRows([])} disabled={running}>
               {t('signBatch.clear')}
             </Button>
           )}
@@ -360,7 +360,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
                   </span>
                   {r.password && <Badge>{t('signBatch.hasPassword')}</Badge>}
                   <IconButton
-                    size="sm"
                     label={t('signBatch.remove')}
                     icon={<Trash2 size={14} />}
                     disabled={running}
@@ -503,7 +502,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
             </Field>
             <Field label={t('sign.anchor.widthMm')}>
               <TextInput
-                size="sm"
                 type="number"
                 value={anchorForm.widthMm}
                 onChange={(e) => setAnchorForm({ ...anchorForm, widthMm: Number(e.target.value) })}
@@ -511,7 +509,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
             </Field>
             <Field label={t('sign.anchor.heightMm')}>
               <TextInput
-                size="sm"
                 type="number"
                 value={anchorForm.heightMm}
                 onChange={(e) => setAnchorForm({ ...anchorForm, heightMm: Number(e.target.value) })}
@@ -549,7 +546,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
             </Field>
             <Field label={t('sign.anchor.widthMm')}>
               <TextInput
-                size="sm"
                 type="number"
                 value={fixedForm.widthMm}
                 onChange={(e) => setFixedForm({ ...fixedForm, widthMm: Number(e.target.value) })}
@@ -557,7 +553,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
             </Field>
             <Field label={t('sign.anchor.heightMm')}>
               <TextInput
-                size="sm"
                 type="number"
                 value={fixedForm.heightMm}
                 onChange={(e) => setFixedForm({ ...fixedForm, heightMm: Number(e.target.value) })}
@@ -565,7 +560,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
             </Field>
             <Field label={t('sign.fixed.margin')}>
               <TextInput
-                size="sm"
                 type="number"
                 value={fixedForm.marginPt}
                 onChange={(e) => setFixedForm({ ...fixedForm, marginPt: Number(e.target.value) })}
@@ -577,7 +571,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
           <div className="sign-grid">
             <Field label={t('signBatch.rect.page')}>
               <TextInput
-                size="sm"
                 type="number"
                 min={1}
                 value={rect.page}
@@ -587,7 +580,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
             {(['x1', 'y1', 'x2', 'y2'] as const).map((k) => (
               <Field key={k} label={t(`signBatch.rect.${k}`)}>
                 <TextInput
-                  size="sm"
                   type="number"
                   value={rect[k]}
                   onChange={(e) => setRect({ ...rect, [k]: Number(e.target.value) })}
@@ -616,7 +608,7 @@ function BatchInner({ onClose }: { onClose(): void }) {
         {outputMode === 'suffix' && (
           <div className="sign-row">
             <Field label={t('signBatch.out.suffixLabel')}>
-              <TextInput size="sm" value={suffix} onChange={(e) => setSuffix(e.target.value)} />
+              <TextInput value={suffix} onChange={(e) => setSuffix(e.target.value)} />
             </Field>
             {rows[0] && (
               <span className="sign-note">
@@ -685,7 +677,6 @@ function BatchInner({ onClose }: { onClose(): void }) {
           {openFolder && (
             <div className="sign-row">
               <Button
-                size="sm"
                 icon={<FolderOpen size={14} />}
                 onClick={() => void chef().files.showInFolder(openFolder)}
               >
@@ -763,11 +754,7 @@ function ResultRow({ item }: { item: BatchItem }) {
       </td>
       <td>
         {item.status === 'signed' && item.outputPath && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => void chef().files.showInFolder(item.outputPath!)}
-          >
+          <Button variant="ghost" onClick={() => void chef().files.showInFolder(item.outputPath!)}>
             {t('signBatch.showFile')}
           </Button>
         )}

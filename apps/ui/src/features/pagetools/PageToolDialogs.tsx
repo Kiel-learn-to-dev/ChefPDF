@@ -723,7 +723,7 @@ export function SmartSplitDialog() {
             ))}
           </ul>
           {first && (
-            <Button size="sm" variant="ghost" onClick={() => void chef().files.showInFolder(first)}>
+            <Button variant="ghost" onClick={() => void chef().files.showInFolder(first)}>
               {t('pageTools.smart.openFolder')}
             </Button>
           )}

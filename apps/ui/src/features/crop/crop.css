@@ -38,7 +38,7 @@
 .crop-review__handle--edge {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .crop-review__magnifier {
   position: absolute;
@@ -74,9 +74,9 @@
 .crop-review__dimensions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-5);
   align-items: end;
-  margin-top: 12px;
+  margin-top: var(--space-5);
 }
 .crop-review__dimensions select {
   min-height: 36px;

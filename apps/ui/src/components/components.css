@@ -139,7 +139,7 @@
 .kbd {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   padding: 0 var(--space-2);
   min-width: 18px;
   height: 18px;
@@ -213,7 +213,7 @@
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
-  padding-top: 2px;
+  padding-top: var(--space-1);
 }
 .dlg__desc {
   margin-top: var(--space-2);
@@ -232,6 +232,8 @@
 .dlg__footer {
   display: flex;
   align-items: center;
+  /* nút hành động nằm sát mép phải như mọi hộp thoại; DialogSpacer vẫn đẩy nhóm trái sang trái */
+  justify-content: flex-end;
   gap: var(--space-4);
   padding: var(--space-6) var(--space-8);
   border-top: 1px solid var(--c-divider);
@@ -318,6 +320,19 @@
 .field + .field {
   margin-top: var(--space-6);
 }
+/* Ô xếp ngang trong hàng hoặc lưới không cộng khoảng cách dọc: các điều khiển phải thẳng hàng */
+:is(
+    .field__row,
+    [class*='__row'],
+    [class*='-grid'],
+    [class*='__grid'],
+    [class*='__passwords'],
+    [class*='-meta']
+  )
+  > .field
+  + .field {
+  margin-top: 0;
+}
 .field__label {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -334,7 +349,15 @@
 .field__row {
   display: flex;
   gap: var(--space-4);
-  align-items: center;
+  /* căn đầu: điều khiển luôn bắt đầu cùng một hàng, kể cả khi một ô có nhãn và ô khác thì không */
+  align-items: flex-start;
+}
+/* Ô không có nhãn trong hàng chừa đúng chiều cao nhãn, để điều khiển thẳng hàng với ô có nhãn */
+:is(.field__row, [class*='__grid'], [class*='__passwords'], [class*='-meta'])
+  > .field:not(:has(> .field__label))::before {
+  content: '';
+  display: block;
+  height: calc(var(--text-sm) * 1.5);
 }
 .input {
   height: var(--control-h);
@@ -385,6 +408,8 @@
   border: 1px solid var(--c-border-strong);
   background: var(--c-surface);
   font-size: var(--text-md);
+  /* nhãn một dòng: không để chữ xuống dòng làm ô chọn cao lệch */
+  white-space: nowrap;
   text-align: left;
 }
 .select-trigger:hover {
@@ -453,7 +478,7 @@
   padding: 0;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-1);
   border-radius: var(--radius-xs);
   border: 1px solid var(--c-border-strong);
   background: var(--c-surface);
@@ -478,7 +503,7 @@
   place-items: center;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-1);
   border-radius: 50%;
   border: 1px solid var(--c-border-strong);
   background: var(--c-surface);
@@ -534,8 +559,8 @@
 /* ---------- Segmented (toggle group) ---------- */
 .segmented {
   display: inline-flex;
-  padding: 2px;
-  gap: 2px;
+  padding: var(--space-1);
+  gap: var(--space-1);
   border-radius: var(--radius-md);
   background: var(--c-surface-sunken);
   border: 1px solid var(--c-border);
@@ -573,7 +598,7 @@
 }
 .scroll-area__bar {
   display: flex;
-  padding: 2px;
+  padding: var(--space-1);
   user-select: none;
   touch-action: none;
 }
@@ -701,7 +726,7 @@
 }
 .toast__icon {
   flex: none;
-  margin-top: 1px;
+  margin-top: var(--space-1);
 }
 .toast--success .toast__icon {
   color: var(--c-success);
@@ -738,7 +763,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-2) var(--space-2) 0;
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2) 0 0;
   border: none;
   background: none;
   color: var(--c-text-2);

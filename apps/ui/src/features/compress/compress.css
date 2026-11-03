@@ -1,10 +1,10 @@
 .compress__result {
   display: grid;
   gap: var(--space-2, 8px);
-  border-radius: 8px;
-  background: var(--color-surface-2, #f6f8fa);
+  border-radius: var(--radius-md);
+  background: var(--c-surface-2);
   padding: var(--space-3, 10px);
-  font-size: 0.9rem;
+  font-size: var(--text-lg);
 }
 
 .compress__result p,
@@ -13,9 +13,9 @@
 }
 
 .compress__result ul {
-  padding-left: 18px;
+  padding-left: var(--space-7);
 }
 
 .compress__warn {
-  color: var(--color-warning, #b9770e);
+  color: var(--c-warning);
 }

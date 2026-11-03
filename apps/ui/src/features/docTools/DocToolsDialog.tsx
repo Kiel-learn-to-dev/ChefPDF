@@ -146,7 +146,6 @@ function MetadataSection({ doc }: { doc: DocTab }) {
         {STANDARD_KEYS.map((k) => (
           <Field key={k} label={t(`docTools.meta.keys.${k}`)}>
             <TextInput
-              size="sm"
               value={form[k]}
               placeholder={DATE_KEYS.includes(k) ? '2024-03-01T09:30:00+07:00' : undefined}
               onChange={(e) => setStd(k, e.target.value)}
@@ -158,19 +157,16 @@ function MetadataSection({ doc }: { doc: DocTab }) {
       {form.custom.map((c, i) => (
         <div key={i} className="docTools__row">
           <TextInput
-            size="sm"
             aria-label={t('docTools.meta.customKey')}
             value={c.key}
             onChange={(e) => setCustom(i, { key: e.target.value })}
           />
           <TextInput
-            size="sm"
             aria-label={t('docTools.meta.customValue')}
             value={c.value}
             onChange={(e) => setCustom(i, { value: e.target.value })}
           />
           <IconButton
-            size="sm"
             label={t('docTools.meta.removeCustom')}
             icon={<Trash2 size={14} />}
             onClick={() => setForm((f) => ({ ...f, custom: f.custom.filter((_, j) => j !== i) }))}
@@ -179,7 +175,6 @@ function MetadataSection({ doc }: { doc: DocTab }) {
       ))}
       <div className="docTools__row">
         <Button
-          size="sm"
           onClick={() => setForm((f) => ({ ...f, custom: [...f.custom, { key: '', value: '' }] }))}
         >
           {t('docTools.meta.addCustom')}
@@ -406,14 +401,13 @@ function ImagesSection({ doc }: { doc: DocTab }) {
       <div className="docTools__grid">
         <Field label={t('docTools.images.pages')} hint={t('docTools.images.pagesHint')}>
           <TextInput
-            size="sm"
             value={pages}
             placeholder={t('docTools.images.pagesPlaceholder')}
             onChange={(e) => setPages(e.target.value)}
           />
         </Field>
         <Field label={t('docTools.images.template')} hint={t('docTools.images.templateHint')}>
-          <TextInput size="sm" value={template} onChange={(e) => setTemplate(e.target.value)} />
+          <TextInput value={template} onChange={(e) => setTemplate(e.target.value)} />
         </Field>
       </div>
       {!pageField.ok && (

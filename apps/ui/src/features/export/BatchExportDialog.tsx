@@ -186,10 +186,7 @@ export function BatchExportDialog() {
                   <>
                     {' '}
                     → {row.outputPath}{' '}
-                    <Button
-                      size="sm"
-                      onClick={() => void chef().files.showInFolder(row.outputPath!)}
-                    >
+                    <Button onClick={() => void chef().files.showInFolder(row.outputPath!)}>
                       {t('outputs.showInFolder')}
                     </Button>
                   </>

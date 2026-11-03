@@ -11,11 +11,11 @@
   left: 50%;
   top: 12px;
   transform: translateX(-50%);
-  padding: 4px 12px;
+  padding: var(--space-2) var(--space-5);
   border-radius: 999px;
-  background: var(--surface-2, #1f2937);
-  color: var(--text-on-dark, #f9fafb);
-  font-size: 12px;
+  background: var(--c-surface-2);
+  color: var(--c-inverse-text);
+  font-size: var(--text-sm);
   pointer-events: none;
 }
 .link-draw__band {
@@ -31,20 +31,20 @@
 .ln-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   max-height: 360px;
   overflow: auto;
 }
 .ln-page__title {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: #64748b;
 }
 .ln-row {
   display: grid;
   grid-template-columns: 56px 1fr auto auto auto;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: var(--space-3);
+  font-size: var(--text-md);
 }
 .ln-row__target {
   overflow: hidden;
@@ -54,12 +54,12 @@
 .ln-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
 }
 .ln-form__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-5);
   align-items: flex-end;
 }
 .ln-form__actions {
@@ -68,5 +68,5 @@
 }
 .ln-err {
   color: #991b1b;
-  font-size: 13px;
+  font-size: var(--text-md);
 }

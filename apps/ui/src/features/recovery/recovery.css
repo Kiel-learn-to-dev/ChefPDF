@@ -3,22 +3,22 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .recovery-list__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #d0d4dc);
-  border-radius: 8px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
 }
 
 .recovery-list__info {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -29,6 +29,6 @@
 
 .recovery-list__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }

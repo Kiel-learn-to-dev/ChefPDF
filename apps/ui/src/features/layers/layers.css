@@ -2,21 +2,24 @@
 .layers {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px;
+  gap: var(--space-5);
+  padding: var(--space-5);
 }
 .layers__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .layers__chip {
-  padding: 3px 9px;
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-h-sm);
+  padding: 0 var(--space-4);
   border-radius: 999px;
   border: 1px solid currentColor;
   background: transparent;
   color: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
   cursor: pointer;
   opacity: 0.7;
 }
@@ -40,7 +43,7 @@
 .layers__summary,
 .layers__loading {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
   opacity: 0.8;
 }
 .layers__list {
@@ -49,14 +52,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .layers__row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 6px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
 }
 .layers__row:hover {
   background: color-mix(in srgb, currentColor 6%, transparent);
@@ -73,7 +76,7 @@
   white-space: nowrap;
 }
 .layers__meta {
-  font-size: 11px;
+  font-size: var(--text-xs);
   opacity: 0.7;
 }
 .layers__lock {

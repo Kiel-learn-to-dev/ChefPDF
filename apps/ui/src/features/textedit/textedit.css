@@ -31,11 +31,11 @@
   position: absolute;
   left: 12px;
   bottom: 12px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: var(--surface-2, #1f2937);
-  color: var(--text-on-dark, #f9fafb);
-  font-size: 12px;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface-2);
+  color: var(--c-inverse-text);
+  font-size: var(--text-sm);
   pointer-events: none;
 }
 .tedit-editor {
@@ -44,18 +44,18 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 8px;
-  background: var(--surface-1, #ffffff);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
 }
 .tedit-editor__input {
   box-sizing: border-box;
   width: 100%;
-  padding: 2px 6px;
+  padding: var(--space-1) var(--space-3);
   border: 1px solid #2563eb;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-family: 'Be Vietnam Pro', system-ui, sans-serif;
   line-height: 1.2;
   background: #fff;
@@ -65,11 +65,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
 }
 .tedit-chip {
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -90,12 +90,12 @@
 }
 .tedit-editor__error {
   color: #991b1b;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .tedit-editor__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /* Sửa đoạn (D9): the paragraph editor and its style bar. */
@@ -105,29 +105,29 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 8px;
-  background: var(--surface-1, #ffffff);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
 }
 .tedit-para__text {
   box-sizing: border-box;
   width: 100%;
   resize: vertical;
-  padding: 4px 6px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid #2563eb;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-family: 'Be Vietnam Pro', system-ui, sans-serif;
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.35;
 }
 .tedit-para__style {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
   align-items: center;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .tedit-para__style input[type='number'] {
   width: 74px;
@@ -137,41 +137,41 @@
 .fr-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
 }
 .fr-options,
 .fr-scope {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
 }
 .fr-error {
   color: #991b1b;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .fr-results {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   max-height: 320px;
   overflow: auto;
-  padding-right: 4px;
+  padding-right: var(--space-2);
 }
 .fr-results__head {
   font-weight: 600;
 }
 .fr-page__title {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
   color: #64748b;
 }
 .fr-match {
   display: block;
   width: 100%;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   text-align: left;
@@ -188,11 +188,11 @@
   color: #166534;
 }
 .fr-match__font {
-  margin-left: 8px;
-  font-size: 11px;
+  margin-left: var(--space-4);
+  font-size: var(--text-xs);
   color: #92400e;
 }
 .fr-skipped__row {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: #64748b;
 }

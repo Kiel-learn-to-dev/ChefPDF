@@ -241,7 +241,7 @@ export function PageNumbersDialog() {
           {t('overlay.numbers.nd30Button')}
         </Button>
         {nd30 ? (
-          <Button size="sm" variant="ghost" onClick={() => set({ preset: 'custom' })}>
+          <Button variant="ghost" onClick={() => set({ preset: 'custom' })}>
             {t('overlay.numbers.custom')}
           </Button>
         ) : null}

@@ -114,7 +114,6 @@ function Row({
         </span>
       </div>
       <TextInput
-        size="sm"
         className="merge__range"
         value={item.range}
         placeholder={t('merge.allPages')}
@@ -125,25 +124,18 @@ function Row({
       />
       <div className="merge__row-actions">
         <IconButton
-          size="sm"
           label={t('common.moveUp')}
           icon={<ArrowUp size={14} />}
           disabled={index === 0}
           onClick={() => onMove(-1)}
         />
         <IconButton
-          size="sm"
           label={t('common.moveDown')}
           icon={<ArrowDown size={14} />}
           disabled={index === total - 1}
           onClick={() => onMove(1)}
         />
-        <IconButton
-          size="sm"
-          label={t('common.remove')}
-          icon={<X size={14} />}
-          onClick={onRemove}
-        />
+        <IconButton label={t('common.remove')} icon={<X size={14} />} onClick={onRemove} />
       </div>
     </li>
   );
@@ -256,7 +248,7 @@ export function MergeDialog() {
       <Dialog
         open
         onOpenChange={(o) => !o && close()}
-        size="sm"
+
         icon={<CircleCheck size={18} />}
         title={t('merge.doneTitle')}
         description={t('merge.doneText', { name: basename(result) })}
@@ -332,7 +324,7 @@ export function MergeDialog() {
     >
       <div className="merge__head">
         <span className="field__label">{t('merge.files', { count: items.length })}</span>
-        <Button size="sm" icon={<FilePlus size={14} />} onClick={() => void pick()}>
+        <Button icon={<FilePlus size={14} />} onClick={() => void pick()}>
           {t('merge.addFiles')}
         </Button>
       </div>

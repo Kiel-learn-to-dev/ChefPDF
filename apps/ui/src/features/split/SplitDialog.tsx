@@ -184,7 +184,7 @@ export function SplitDialog() {
           {outputs.map((o) => (
             <li key={o}>
               <span title={o}>{basename(o)}</span>
-              <Button size="sm" variant="ghost" onClick={() => void chef().files.showInFolder(o)}>
+              <Button variant="ghost" onClick={() => void chef().files.showInFolder(o)}>
                 {t('outputs.reveal')}
               </Button>
             </li>

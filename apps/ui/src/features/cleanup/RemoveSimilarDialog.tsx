@@ -151,7 +151,7 @@ export function RemoveSimilarDialog() {
       warnings={[...(signed ? [t('pageTools.signedBlocked')] : []), ...(error ? [error] : [])]}
     >
       <div className="rd-row">
-        <Button size="sm" onClick={pick} disabled={busy || running || signed}>
+        <Button onClick={pick} disabled={busy || running || signed}>
           {t('cleanup.similar.pick')}
         </Button>
         {picked && (
@@ -186,7 +186,6 @@ export function RemoveSimilarDialog() {
       </Field>
       <div className="rd-row">
         <Button
-          size="sm"
           variant="secondary"
           onClick={() => picked && void runPreview(picked)}
           disabled={!picked || busy || running}

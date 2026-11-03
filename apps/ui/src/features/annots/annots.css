@@ -31,9 +31,9 @@
   z-index: 3;
   pointer-events: auto;
   width: 220px;
-  padding: 6px;
-  border-radius: 8px;
-  background: var(--surface-1, #ffffff);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
 }
 .annot-draft textarea {
@@ -41,17 +41,17 @@
   width: 100%;
   resize: vertical;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .annot-draft__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
 }
 .annot-palette {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
   align-items: center;
 }
 /* Vùng bấm 26px (cỡ điều khiển nhỏ của thang), chấm màu 16px ở giữa */
@@ -79,54 +79,54 @@
 .an-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 .an-filters input {
   flex: 1 1 120px;
   min-width: 0;
 }
 .an-page__title {
-  padding: 6px 8px 2px;
-  font-size: 11px;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  font-size: var(--text-xs);
   color: #64748b;
 }
 .an-item {
-  margin: 4px 6px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  margin: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
   border: 1px solid rgb(0 0 0 / 0.08);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .an-item__head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 .an-item__kind {
   font-weight: 600;
 }
 .an-item__quote {
-  margin: 4px 0;
-  padding-left: 6px;
+  margin: var(--space-2) 0;
+  padding-left: var(--space-3);
   border-left: 3px solid var(--an-c, #facc15);
   color: #374151;
 }
 .an-item__reply {
-  margin: 2px 0 2px 12px;
+  margin: var(--space-1) 0 var(--space-1) var(--space-5);
   color: #4b5563;
 }
 .an-item__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 .an-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   border-top: 1px solid rgb(0 0 0 / 0.08);
 }

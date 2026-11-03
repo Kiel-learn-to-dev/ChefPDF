@@ -119,8 +119,8 @@ export function RepairDialog() {
       </Field>
       <Field label={t('repair.output')}>
         <div className="docTools__row">
-          <TextInput size="sm" readOnly value={output ?? ''} placeholder={t('repair.noOutput')} />
-          <Button size="sm" disabled={!input || busy} onClick={() => void pickOutput()}>
+          <TextInput readOnly value={output ?? ''} placeholder={t('repair.noOutput')} />
+          <Button disabled={!input || busy} onClick={() => void pickOutput()}>
             {t('repair.chooseOutput')}
           </Button>
         </div>

@@ -374,7 +374,7 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
           {LEVELS.map((lv) => (
             <Button
               key={lv}
-              size="sm"
+
               variant={draft.level === lv ? 'primary' : 'secondary'}
               aria-pressed={draft.level === lv}
               onClick={() => patch({ level: lv })}
@@ -447,7 +447,7 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
           {MODES.map((m) => (
             <Button
               key={m}
-              size="sm"
+
               variant={draft.placementMode === m ? 'primary' : 'secondary'}
               aria-pressed={draft.placementMode === m}
               onClick={() => setMode(m)}
@@ -484,7 +484,6 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
                 {fields.map((f) => (
                   <li key={f.fieldName}>
                     <Button
-                      size="sm"
                       variant={boxNow?.fieldName === f.fieldName ? 'primary' : 'secondary'}
                       aria-pressed={boxNow?.fieldName === f.fieldName}
                       onClick={() => chooseField(docId, f)}
@@ -496,9 +495,7 @@ function SignDocInner({ doc, onClose }: { doc: DocTab; onClose(): void }) {
               </ul>
             )}
             <div className="sign-row">
-              <Button size="sm" onClick={drawOnPage}>
-                {t('sign.place.addEmptyDraw')}
-              </Button>
+              <Button onClick={drawOnPage}>{t('sign.place.addEmptyDraw')}</Button>
             </div>
           </>
         )}
@@ -607,7 +604,6 @@ function NumberInput({
   return (
     <Field label={label}>
       <TextInput
-        size="sm"
         type="number"
         min={min}
         max={max}
@@ -728,7 +724,7 @@ function AnchorFields({
         <div className="sign-row">
           <span className="sign-note">{t('sign.anchor.recent')}</span>
           {recent.map((r) => (
-            <Button key={r} size="sm" onClick={() => set({ text: r })}>
+            <Button key={r} onClick={() => set({ text: r })}>
               {r}
             </Button>
           ))}
@@ -745,7 +741,7 @@ function AnchorFields({
         </label>
         <Button
           variant="primary"
-          size="sm"
+
           loading={busy}
           disabled={!form.text.trim()}
           onClick={onPreview}

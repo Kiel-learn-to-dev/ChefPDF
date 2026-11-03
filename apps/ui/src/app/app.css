@@ -174,7 +174,7 @@
   right: var(--space-5);
   bottom: -1px;
   height: 2px;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   background: var(--c-accent);
 }
 .ftab:focus-visible {
@@ -197,7 +197,7 @@
   gap: var(--space-2);
 }
 .toolbar__btn .icon-btn__label {
-  margin-left: 2px;
+  margin-left: var(--space-1);
 }
 .toolbar__spacer {
   flex: 1;
@@ -230,7 +230,7 @@
   align-items: center;
   gap: var(--space-1);
   height: var(--control-h);
-  padding: 0 3px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-md);
   background: var(--c-surface-sunken);
   margin-right: var(--space-2);
@@ -340,8 +340,8 @@
 }
 .sidenav__tablist {
   display: flex;
-  gap: 1px;
-  padding: 2px;
+  gap: var(--space-1);
+  padding: var(--space-1);
   border-radius: var(--radius-md);
   background: var(--c-surface-sunken);
 }
@@ -439,7 +439,7 @@
 .outline__row {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   border-radius: var(--radius-sm);
 }
 .outline__row:hover {

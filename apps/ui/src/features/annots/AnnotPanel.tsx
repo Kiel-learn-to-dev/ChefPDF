@@ -84,7 +84,6 @@ export function AnnotPanel({ doc }: { doc: DocTab }) {
           value={String(opacity)}
           onChange={(v) => useAnnotUi.getState().set({ opacity: Number(v) })}
           options={OPACITIES.map((o) => ({ value: String(o), label: `${Math.round(o * 100)}%` }))}
-          size="sm"
         />
       </div>
       <div className="an-filters">
@@ -96,14 +95,12 @@ export function AnnotPanel({ doc }: { doc: DocTab }) {
             { value: '', label: t('annots.filter.allKinds') },
             ...kinds.map((k) => ({ value: k, label: t(SUBTYPE_KEYS[k] ?? 'annots.kind.other') })),
           ]}
-          size="sm"
         />
         <Select<Status>
           aria-label={t('annots.filter.status')}
           value={filter.status}
           onChange={(v) => set({ status: v })}
           options={STATUSES.map((s) => ({ value: s, label: t(`annots.status.${s}`) }))}
-          size="sm"
         />
         <TextInput
           aria-label={t('annots.filter.author')}
@@ -275,7 +272,6 @@ function AnnotRow({
                 value: s,
                 label: t(`annots.status.${s}`),
               }))}
-              size="sm"
             />
             <Button
               variant="ghost"

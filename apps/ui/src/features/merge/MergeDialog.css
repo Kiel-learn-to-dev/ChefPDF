@@ -79,7 +79,7 @@
 }
 .merge__row-actions {
   display: flex;
-  gap: 1px;
+  gap: var(--space-2);
 }
 .merge__empty {
   border: 1px dashed var(--c-border-strong);

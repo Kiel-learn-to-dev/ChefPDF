@@ -253,7 +253,6 @@ export function RedactDialog() {
               label={t('redact.custom.ignoreDiacritics')}
             />
             <Button
-              size="sm"
               variant="ghost"
               onClick={() => patchForm({ custom: d.form.custom.filter((r) => r.id !== row.id) })}
             >
@@ -266,7 +265,6 @@ export function RedactDialog() {
         ))}
         <div className="rd-row">
           <Button
-            size="sm"
             onClick={() => patchForm({ custom: [...d.form.custom, newCustomRow(newId('row'))] })}
           >
             {t('redact.custom.add')}
@@ -331,7 +329,6 @@ export function RedactDialog() {
           <div key={a.id} className="rd-row">
             <span>{t('redact.areas.drawn', { index: i + 1, page: a.pageIndex + 1 })}</span>
             <Button
-              size="sm"
               variant="ghost"
               onClick={() => patch({ areas: d.areas.filter((x) => x.id !== a.id) })}
             >
@@ -341,7 +338,6 @@ export function RedactDialog() {
         ))}
         <div className="rd-row">
           <Button
-            size="sm"
             onClick={() =>
               useOverlayState.getState().start({ docId: doc.id, mode: 'box', returnTo: 'redact' })
             }

@@ -172,7 +172,6 @@ export function PreflightDialog() {
                   </div>
                   {item.status !== 'ok' && hasFix && (
                     <Button
-                      size="sm"
                       onClick={() => void fix(item)}
                       disabled={busy || fixing !== null || doc.state.signed}
                       loading={fixing === item.id}

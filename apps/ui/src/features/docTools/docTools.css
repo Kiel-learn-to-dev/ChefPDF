@@ -2,38 +2,38 @@
 .docTools {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-6);
 }
 
 .docTools__section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-5);
 }
 
 .docTools__title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
 .docTools__subtitle {
-  margin: 8px 0 0;
-  font-size: 13px;
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
 .docTools__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px 14px;
+  gap: var(--space-5) var(--space-6);
 }
 
 .docTools__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .docTools__end {
@@ -45,19 +45,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 
 .docTools__note {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: var(--space-3);
+  font-size: var(--text-md);
 }
 
 .docTools__note--warn {
-  color: var(--color-warning, #b45309);
+  color: var(--c-warning);
 }
 
 .docTools__list {
@@ -66,12 +66,12 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .docTools__list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }

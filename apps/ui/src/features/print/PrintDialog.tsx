@@ -76,7 +76,7 @@ export function PrintDialog() {
           close();
         }
       }}
-      size="sm"
+
       icon={<Printer size={18} />}
       title={t('print.title')}
       description={t('print.description', { name: doc.name })}

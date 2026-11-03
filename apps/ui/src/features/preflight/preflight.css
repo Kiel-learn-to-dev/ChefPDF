@@ -13,7 +13,7 @@
 
 .preflight__summary {
   font-variant-numeric: tabular-nums;
-  color: var(--color-muted, #57606a);
+  color: var(--c-text-3);
 }
 
 .preflight__empty {
@@ -35,26 +35,26 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: start;
   gap: var(--space-3, 10px);
-  border: 1px solid var(--color-border, #d0d7de);
-  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
   padding: var(--space-2, 8px) var(--space-3, 10px);
 }
 
 .preflight__icon {
   display: inline-flex;
-  padding-top: 2px;
+  padding-top: var(--space-1);
 }
 
 .preflight__item--ok .preflight__icon {
-  color: var(--color-success, #1e8449);
+  color: var(--c-success);
 }
 
 .preflight__item--warn .preflight__icon {
-  color: var(--color-warning, #b9770e);
+  color: var(--c-warning);
 }
 
 .preflight__item--fail .preflight__icon {
-  color: var(--color-danger, #c0392b);
+  color: var(--c-danger);
 }
 
 .preflight__title {
@@ -63,8 +63,8 @@
 
 .preflight__detail,
 .preflight__hint {
-  margin-top: 2px;
-  font-size: 0.875rem;
-  color: var(--color-muted, #57606a);
+  margin-top: var(--space-1);
+  font-size: var(--text-md);
+  color: var(--c-text-3);
   overflow-wrap: anywhere;
 }

@@ -294,21 +294,18 @@ export function ImagesToPdfDialog() {
                   {i + 1}. {p.split(/[\\/]/).pop()}
                 </span>
                 <IconButton
-                  size="sm"
                   label={t('common.moveUp')}
                   icon={<ArrowUp size={14} />}
                   disabled={i === 0}
                   onClick={() => setImages((l) => moveItem(l, i, i - 1))}
                 />
                 <IconButton
-                  size="sm"
                   label={t('common.moveDown')}
                   icon={<ArrowDown size={14} />}
                   disabled={i === images.length - 1}
                   onClick={() => setImages((l) => moveItem(l, i, i + 1))}
                 />
                 <IconButton
-                  size="sm"
                   label={t('common.remove')}
                   icon={<Trash2 size={14} />}
                   onClick={() => setImages((l) => l.filter((x) => x !== p))}

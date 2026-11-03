@@ -172,21 +172,18 @@ export function BatesDialog() {
                 {basename(f)}
               </span>
               <IconButton
-                size="sm"
                 label={t('common.moveUp')}
                 icon={<ArrowUp size={14} />}
                 disabled={i === 0}
                 onClick={() => move(i, -1)}
               />
               <IconButton
-                size="sm"
                 label={t('common.moveDown')}
                 icon={<ArrowDown size={14} />}
                 disabled={i === form.files.length - 1}
                 onClick={() => move(i, 1)}
               />
               <IconButton
-                size="sm"
                 label={t('common.remove')}
                 icon={<X size={14} />}
                 onClick={() => set({ files: form.files.filter((x) => x !== f) })}
@@ -194,7 +191,7 @@ export function BatesDialog() {
             </li>
           ))}
         </ol>
-        <Button size="sm" icon={<FilePlus size={14} />} onClick={() => void addFiles()}>
+        <Button icon={<FilePlus size={14} />} onClick={() => void addFiles()}>
           {t('overlay.bates.addFiles')}
         </Button>
       </div>

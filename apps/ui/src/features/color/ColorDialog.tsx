@@ -205,7 +205,7 @@ export function ColorDialog() {
               ))}
             </ul>
           )}
-          <Button size="sm" variant="ghost" onClick={close}>
+          <Button variant="ghost" onClick={close}>
             {t('common.close')}
           </Button>
         </section>

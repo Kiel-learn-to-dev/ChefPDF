@@ -78,6 +78,9 @@
   --c-text-on-accent: #ffffff;
 
   --c-accent: #2f6be4;
+  /* nền và chữ đảo (nhãn tooltip, chữ trên nền tối): tương phản với giao diện hiện tại */
+  --c-inverse-bg: #22262f;
+  --c-inverse-text: #f1f3f6;
   --c-accent-hover: #255bd0;
   --c-accent-active: #1f4fb6;
   --c-accent-soft: #e8effd;
@@ -127,6 +130,8 @@
   --c-text-on-accent: #ffffff;
 
   --c-accent: #5288f0;
+  --c-inverse-bg: #e7e9ee;
+  --c-inverse-text: #1d2027;
   --c-accent-hover: #6597f3;
   --c-accent-active: #7aa6f5;
   --c-accent-soft: rgba(82, 136, 240, 0.16);

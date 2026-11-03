@@ -184,7 +184,6 @@ export function SeparateFlow({ item, onSaved, onCancel }: SeparateFlowProps) {
             <li key={i} className="colorsep__layer">
               <Field label={t('colorSep.layerName')}>
                 <TextInput
-                  size="sm"
                   value={l.name}
                   maxLength={MAX_LAYER_NAME}
                   onChange={(e) =>
@@ -210,7 +209,6 @@ export function SeparateFlow({ item, onSaved, onCancel }: SeparateFlowProps) {
                 }
               />
               <IconButton
-                size="sm"
                 label={t('colorSep.removeLayer')}
                 icon={<Trash2 size={14} />}
                 disabled={layers.length <= 1}
@@ -220,7 +218,6 @@ export function SeparateFlow({ item, onSaved, onCancel }: SeparateFlowProps) {
           ))}
           <li>
             <Button
-              size="sm"
               icon={<Plus size={14} />}
               disabled={layers.length >= MAX_LAYERS}
               onClick={() =>

@@ -330,7 +330,7 @@
 }
 .diag-step__icon {
   display: flex;
-  padding-top: 2px;
+  padding-top: var(--space-1);
 }
 .diag-step--ok .diag-step__icon {
   color: var(--c-success);

@@ -216,7 +216,6 @@ export function OverlayManagerDialog() {
       )}
       <div className="ov-manager__actions">
         <Button
-          size="sm"
           icon={<Eye size={14} />}
           disabled={!current || current.pages.length === 0}
           onClick={() => current && goFirst(current)}
@@ -224,7 +223,6 @@ export function OverlayManagerDialog() {
           {t('overlay.manager.view')}
         </Button>
         <Button
-          size="sm"
           variant="danger"
           icon={<Trash2 size={14} />}
           disabled={!current || signed || busy}

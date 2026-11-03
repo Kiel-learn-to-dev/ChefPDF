@@ -69,7 +69,6 @@ function SaveBar({
     <div className="lib-save">
       <Field label={t('lib.kindLabel')}>
         <Select<LibraryKind>
-          size="sm"
           aria-label={t('lib.kindLabel')}
           value={kind}
           onChange={onKind}
@@ -77,12 +76,7 @@ function SaveBar({
         />
       </Field>
       <Field label={t('lib.nameLabel')}>
-        <TextInput
-          size="sm"
-          value={name}
-          maxLength={NAME_MAX}
-          onChange={(e) => onName(e.target.value)}
-        />
+        <TextInput value={name} maxLength={NAME_MAX} onChange={(e) => onName(e.target.value)} />
       </Field>
       <div className="lib-save__buttons">
         <Button variant="secondary" onClick={onCancel}>
@@ -300,7 +294,6 @@ export function ImageFlow({
             />
             <Field label={t('lib.resize')}>
               <Select<string>
-                size="sm"
                 aria-label={t('lib.resize')}
                 value={String(cl.maxSide)}
                 onChange={(v) => setCl({ ...cl, maxSide: Number(v) })}
@@ -578,7 +571,7 @@ export function TypeFlow({ onSaved, onCancel }: FlowProps) {
           <Field label={t('lib.typeText')} htmlFor="lib-type-text">
             <TextInput
               id="lib-type-text"
-              size="sm"
+
               value={opts.text}
               maxLength={NAME_MAX}
               placeholder={t('lib.typePlaceholder')}
@@ -587,7 +580,6 @@ export function TypeFlow({ onSaved, onCancel }: FlowProps) {
           </Field>
           <Field label={t('lib.font')}>
             <Select<string>
-              size="sm"
               aria-label={t('lib.font')}
               value={opts.font.kind === 'bundled' ? 'bundled' : 'file'}
               onChange={(v) =>

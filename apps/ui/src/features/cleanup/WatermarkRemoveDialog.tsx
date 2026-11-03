@@ -189,7 +189,7 @@ export function WatermarkRemoveDialog() {
                     ].join(' · ')}
                   />
                   {page !== null && (
-                    <Button size="sm" variant="ghost" onClick={() => focus(c)}>
+                    <Button variant="ghost" onClick={() => focus(c)}>
                       {t('cleanup.wm.sample', { page: page + 1 })}
                     </Button>
                   )}
@@ -235,7 +235,6 @@ export function WatermarkRemoveDialog() {
       {!busy && (
         <div className="rd-row">
           <Button
-            size="sm"
             onClick={() => {
               setBusy(true);
               void scan(doc.id);

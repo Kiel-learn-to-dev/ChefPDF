@@ -48,7 +48,7 @@
   margin: -4px;
   background: #fff;
   border: 1.5px solid var(--c-accent, #2563eb);
-  border-radius: 1px;
+  border-radius: 0;
 }
 .obj-handle--nw {
   left: 0;
@@ -94,11 +94,11 @@
   left: 50%;
   bottom: 12px;
   transform: translateX(-50%);
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-sm);
   background: rgb(0 0 0 / 0.72);
   color: #fff;
-  font-size: 12px;
+  font-size: var(--text-sm);
   pointer-events: none;
   white-space: nowrap;
 }

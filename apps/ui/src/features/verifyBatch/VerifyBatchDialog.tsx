@@ -202,12 +202,7 @@ function VerifyInner({ onClose }: { onClose(): void }) {
                 {t('verifyBatch.addFiles')}
               </Button>
               {form.files.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={running}
-                  onClick={() => patch({ files: [] })}
-                >
+                <Button variant="ghost" disabled={running} onClick={() => patch({ files: [] })}>
                   {t('verifyBatch.clear')}
                 </Button>
               )}
@@ -221,7 +216,6 @@ function VerifyInner({ onClose }: { onClose(): void }) {
                       {path.split(/[\\/]/).pop()}
                     </span>
                     <IconButton
-                      size="sm"
                       label={t('verifyBatch.remove')}
                       icon={<Trash2 size={14} />}
                       disabled={running}
@@ -273,16 +267,11 @@ function VerifyInner({ onClose }: { onClose(): void }) {
         </div>
         <p className="sign-note">{t('verifyBatch.trustDefaults')}</p>
         <div className="sign-row">
-          <Button size="sm" disabled={running} onClick={() => void pickTrustRoots()}>
+          <Button disabled={running} onClick={() => void pickTrustRoots()}>
             {t('verifyBatch.addTrust')}
           </Button>
           {form.trustRoots.length > 0 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={running}
-              onClick={() => patch({ trustRoots: [] })}
-            >
+            <Button variant="ghost" disabled={running} onClick={() => patch({ trustRoots: [] })}>
               {t('verifyBatch.clearTrust')}
             </Button>
           )}
@@ -307,7 +296,6 @@ function VerifyInner({ onClose }: { onClose(): void }) {
           </Field>
           <Field label={t('verifyBatch.reportPath')}>
             <TextInput
-              size="sm"
               readOnly
               value={form.reportPath ?? ''}
               placeholder={t('verifyBatch.noReport')}
@@ -315,7 +303,7 @@ function VerifyInner({ onClose }: { onClose(): void }) {
           </Field>
         </div>
         <div className="sign-row">
-          <Button size="sm" disabled={running} onClick={() => void pickReport()}>
+          <Button disabled={running} onClick={() => void pickReport()}>
             {t('verifyBatch.chooseReport')}
           </Button>
         </div>
@@ -348,7 +336,6 @@ function VerifyInner({ onClose }: { onClose(): void }) {
           </ul>
           <div className="sign-row">
             <Button
-              size="sm"
               icon={<FolderSearch size={15} />}
               onClick={() => void chef().files.showInFolder(result.reportPath)}
             >

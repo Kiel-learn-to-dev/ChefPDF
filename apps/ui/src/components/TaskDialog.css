@@ -75,7 +75,7 @@
 .task__warnings svg {
   flex: none;
   color: var(--c-warning);
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 .task__progress {
   margin-top: var(--space-6);

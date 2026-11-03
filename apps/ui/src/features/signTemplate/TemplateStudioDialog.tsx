@@ -129,7 +129,6 @@ function NumberField({
   return (
     <Field label={label}>
       <TextInput
-        size="sm"
         type="number"
         inputMode="decimal"
         min={range[0]}
@@ -459,10 +458,10 @@ export function TemplateStudioDialog() {
       size="xl"
       footer={
         <>
-          <Button size="sm" onClick={() => void importFile()} icon={<Upload size={14} />}>
+          <Button onClick={() => void importFile()} icon={<Upload size={14} />}>
             {t('tpl.import')}
           </Button>
-          <Button size="sm" onClick={() => void exportFile()} icon={<Download size={14} />}>
+          <Button onClick={() => void exportFile()} icon={<Download size={14} />}>
             {t('tpl.export')}
           </Button>
           <span className="tpl__spacer" />
@@ -486,21 +485,14 @@ export function TemplateStudioDialog() {
         {/* (1) template list */}
         <aside className="tpl__list" aria-label={t('tpl.listLabel')}>
           <div className="tpl__list-actions">
+            <IconButton label={t('tpl.new')} icon={<FilePlus2 size={15} />} onClick={newTemplate} />
             <IconButton
-              size="sm"
-              label={t('tpl.new')}
-              icon={<FilePlus2 size={15} />}
-              onClick={newTemplate}
-            />
-            <IconButton
-              size="sm"
               label={t('tpl.duplicate')}
               icon={<Copy size={15} />}
               disabled={!current}
               onClick={() => void duplicate()}
             />
             <IconButton
-              size="sm"
               label={t('tpl.delete')}
               icon={<Trash2 size={15} />}
               disabled={!current}
@@ -542,7 +534,7 @@ export function TemplateStudioDialog() {
               <Field label={t('tpl.name')} htmlFor="tpl-name">
                 <TextInput
                   id="tpl-name"
-                  size="sm"
+
                   value={draft.name ?? ''}
                   maxLength={LIMITS.nameMax}
                   onChange={(e) => patch({ name: e.target.value })}
@@ -550,7 +542,6 @@ export function TemplateStudioDialog() {
               </Field>
               <Field label={t('tpl.layout')}>
                 <Select
-                  size="sm"
                   aria-label={t('tpl.layout')}
                   value={draft.layout ?? 'text-only'}
                   onChange={(v) => patch({ layout: v })}
@@ -561,7 +552,7 @@ export function TemplateStudioDialog() {
             <Field label={t('tpl.header')} hint={t('tpl.headerHint')} htmlFor="tpl-header">
               <TextInput
                 id="tpl-header"
-                size="sm"
+
                 value={draft.header ?? ''}
                 maxLength={LIMITS.headerMax}
                 placeholder={t('tpl.noHeader')}
@@ -580,7 +571,6 @@ export function TemplateStudioDialog() {
                     label={t('tpl.lineEnabled')}
                   />
                   <Select<string>
-                    size="sm"
                     aria-label={t('tpl.lineSource')}
                     value={line.source}
                     onChange={(v) =>
@@ -593,7 +583,6 @@ export function TemplateStudioDialog() {
                     options={LINE_SOURCES.map((s) => ({ value: s, label: t(`tpl.sources.${s}`) }))}
                   />
                   <TextInput
-                    size="sm"
                     aria-label={t('tpl.lineLabel')}
                     placeholder={t('tpl.lineLabel')}
                     value={line.label ?? ''}
@@ -603,7 +592,6 @@ export function TemplateStudioDialog() {
                     }
                   />
                   <TextInput
-                    size="sm"
                     aria-label={line.source === 'custom' ? t('tpl.customText') : t('tpl.lineText')}
                     placeholder={
                       line.source === 'custom' ? t('tpl.customText') : t('tpl.lineTextHint')
@@ -615,21 +603,18 @@ export function TemplateStudioDialog() {
                     }
                   />
                   <IconButton
-                    size="sm"
                     label={t('tpl.moveUp')}
                     icon={<ChevronUp size={14} />}
                     disabled={i === 0}
                     onClick={() => moveTo(i, i - 1)}
                   />
                   <IconButton
-                    size="sm"
                     label={t('tpl.moveDown')}
                     icon={<ChevronDown size={14} />}
                     disabled={i === lines.length - 1}
                     onClick={() => moveTo(i, i + 1)}
                   />
                   <IconButton
-                    size="sm"
                     label={t('tpl.removeLine')}
                     icon={<Trash2 size={14} />}
                     onClick={() => setLines(lines.filter((_, j) => j !== i))}
@@ -639,7 +624,6 @@ export function TemplateStudioDialog() {
             </div>
             <div className="tpl__add-line">
               <Button
-                size="sm"
                 icon={<Plus size={14} />}
                 disabled={lines.length >= MAX_TEMPLATE_LINES}
                 onClick={() => setLines([...lines, newLine('signerName')])}
@@ -654,7 +638,7 @@ export function TemplateStudioDialog() {
             <Field label={t('tpl.dateFormat')} hint={t('tpl.dateFormatHint')} htmlFor="tpl-date">
               <TextInput
                 id="tpl-date"
-                size="sm"
+
                 value={draft.dateFormat ?? ''}
                 maxLength={LIMITS.dateFormatMax}
                 onChange={(e) => patch({ dateFormat: e.target.value || 'dd/MM/yyyy HH:mm:ss' })}
@@ -813,7 +797,6 @@ export function TemplateStudioDialog() {
             <div className="tpl__row">
               <Field label={t('tpl.image')}>
                 <Select
-                  size="sm"
                   aria-label={t('tpl.image')}
                   value={refs.image ?? ''}
                   onChange={(v) => {
@@ -826,7 +809,6 @@ export function TemplateStudioDialog() {
               </Field>
               <Field label={t('tpl.logo')}>
                 <Select
-                  size="sm"
                   aria-label={t('tpl.logo')}
                   value={refs.logo ?? ''}
                   onChange={(v) => {
@@ -892,7 +874,6 @@ export function TemplateStudioDialog() {
                 </ul>
               )}
               <Button
-                size="sm"
                 icon={<FolderOpen size={14} />}
                 onClick={() => void pickPfx()}
                 disabled={busy}
@@ -903,7 +884,6 @@ export function TemplateStudioDialog() {
               {pfxPath && (
                 <div className="tpl__row">
                   <TextInput
-                    size="sm"
                     type="password"
                     aria-label={t('tpl.pfxPassword')}
                     value={password}
@@ -911,7 +891,6 @@ export function TemplateStudioDialog() {
                     onChange={(e) => setPassword(e.target.value)}
                   />
                   <Button
-                    size="sm"
                     disabled={busy}
                     onClick={() => void readCert(pfxPath, password || undefined, false)}
                   >
@@ -942,7 +921,7 @@ export function TemplateStudioDialog() {
           <p className="tpl__muted">{t('tpl.previewNote')}</p>
 
           {proofOk && (
-            <Button size="sm" loading={busy} onClick={() => void proof()}>
+            <Button loading={busy} onClick={() => void proof()}>
               {t('tpl.proof')}
             </Button>
           )}

@@ -2,8 +2,8 @@
 .verify-result__counts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  margin: 8px 0;
+  gap: var(--space-4) var(--space-6);
+  margin: var(--space-4) 0;
   padding: 0;
   list-style: none;
 }
@@ -11,7 +11,7 @@
 .verify-result__count {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   font-variant-numeric: tabular-nums;
 }
 

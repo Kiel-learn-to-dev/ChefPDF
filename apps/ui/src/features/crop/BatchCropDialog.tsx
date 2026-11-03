@@ -144,7 +144,6 @@ export function BatchCropDialog() {
                     )}
                     {row.status === 'done' && (
                       <Button
-                        size="sm"
                         disabled={busy}
                         onClick={() => open('cropReview', { page: row.pageIndex + 1 })}
                       >

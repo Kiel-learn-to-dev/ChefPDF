@@ -51,14 +51,12 @@ export function TsaEditor() {
         {rows.map((url, i) => (
           <div key={i} className="settings__tsa-row">
             <TextInput
-              size="sm"
               aria-label={t('settings.tsa.item', { n: i + 1 })}
               placeholder="https://"
               value={url}
               onChange={(e) => edit(rows.map((r, j) => (j === i ? e.target.value : r)))}
             />
             <IconButton
-              size="sm"
               label={t('settings.tsa.remove')}
               icon={<Trash2 size={14} />}
               onClick={() =>
@@ -69,14 +67,13 @@ export function TsaEditor() {
         ))}
         <div className="settings__links">
           <Button
-            size="sm"
             icon={<Plus size={14} />}
             disabled={rows.length >= MAX_TSA_URLS}
             onClick={() => edit([...rows, ''])}
           >
             {t('settings.tsa.add')}
           </Button>
-          <Button size="sm" variant="primary" disabled={!dirty} onClick={() => void save()}>
+          <Button variant="primary" disabled={!dirty} onClick={() => void save()}>
             {t('settings.tsa.save')}
           </Button>
         </div>

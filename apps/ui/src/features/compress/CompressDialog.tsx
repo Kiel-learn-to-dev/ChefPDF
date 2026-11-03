@@ -260,7 +260,7 @@ export function CompressDialog() {
             })}
           </span>
         ) : (
-          <Button size="sm" onClick={() => void runEstimate()} disabled={busy !== null || signed}>
+          <Button onClick={() => void runEstimate()} disabled={busy !== null || signed}>
             {t('compress.estimateButton')}
           </Button>
         )
@@ -360,7 +360,7 @@ export function CompressDialog() {
         <div className="field__row">
           <TextInput
             id="compress-fit"
-            size="sm"
+
             inputMode="decimal"
             value={fitMb}
             invalid={targetBytesOf(Number(fitMb.replace(',', '.'))) === null}

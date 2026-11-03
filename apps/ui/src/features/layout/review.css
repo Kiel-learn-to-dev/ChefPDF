@@ -2,13 +2,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 .layout-review__comparison {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-6);
   max-height: 60vh;
   overflow: auto;
 }
@@ -31,41 +31,41 @@
   margin-inline-end: 0.5rem;
 }
 .layout-review__block {
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border, #ddd);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--c-border);
 }
 .layout-review__block p {
-  margin: 0.35rem 0;
+  margin: var(--space-3) 0;
   white-space: pre-wrap;
 }
 .layout-review__block textarea {
   box-sizing: border-box;
   width: 100%;
-  margin-top: 0.35rem;
+  margin-top: var(--space-3);
   resize: vertical;
 }
 .layout-review__result h3,
 .layout-review__comparison h3,
 .layout-review__blocks h3 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-4);
 }
 .layout-review__preview-note {
-  margin: 0 0 0.5rem;
-  color: var(--text-muted, #666);
+  margin: 0 0 var(--space-4);
+  color: var(--c-text-3);
   font-size: 0.85em;
 }
 .layout-review__paper {
   min-height: 16rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border, #ddd);
-  background: var(--surface, #fff);
-  color: var(--text, #222);
+  padding: var(--space-6) var(--space-7);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
   overflow: auto;
 }
 .layout-review__preview-block {
   display: block;
   width: 100%;
-  padding: 0.15rem 0.25rem;
+  padding: var(--space-1) var(--space-2);
   border: 0;
   border-inline-start: 3px solid transparent;
   background: transparent;
@@ -75,8 +75,8 @@
 }
 .layout-review__preview-block:hover,
 .layout-review__preview-block.is-selected {
-  border-inline-start-color: var(--accent, #2563eb);
-  background: color-mix(in srgb, var(--accent, #2563eb) 9%, transparent);
+  border-inline-start-color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 9%, transparent);
 }
 .layout-review__preview-block p,
 .layout-review__preview-block h1,
@@ -85,7 +85,7 @@
 .layout-review__preview-block h4,
 .layout-review__preview-block h5,
 .layout-review__preview-block h6 {
-  margin: 0.45rem 0;
+  margin: var(--space-4) 0;
   white-space: pre-wrap;
 }
 .layout-review__preview-block h1,
@@ -93,9 +93,9 @@
   text-align: center;
 }
 .layout-review__preview-placeholder {
-  padding: 0.5rem;
-  border: 1px dashed var(--border, #aaa);
-  color: var(--text-muted, #666);
+  padding: var(--space-4);
+  border: 1px dashed var(--c-border);
+  color: var(--c-text-3);
   text-align: center;
 }
 .layout-review__columns {
@@ -103,7 +103,7 @@
   gap: 0;
 }
 .layout-review__blocks {
-  margin-top: 1rem;
+  margin-top: var(--space-6);
   max-height: 30vh;
   overflow: auto;
 }

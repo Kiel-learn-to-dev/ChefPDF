@@ -38,7 +38,7 @@
 
 /* pdf.js overrides */
 .viewer .pdfViewer {
-  padding: 20px 0 28px;
+  padding: var(--space-7) 0 var(--space-9);
   --page-bg-color: #fff;
 }
 .viewer .pdfViewer {
@@ -53,10 +53,10 @@
   filter: invert(1) hue-rotate(180deg);
 }
 .viewer .pdfViewer .spread {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-7);
 }
 .viewer .pdfViewer .spread .page {
-  margin: 0 6px;
+  margin: 0 var(--space-3);
 }
 .viewer .textLayer .highlight {
   --highlight-bg-color: var(--c-highlight);

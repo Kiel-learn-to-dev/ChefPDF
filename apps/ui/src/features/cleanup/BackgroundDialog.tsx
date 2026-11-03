@@ -167,7 +167,7 @@ export function BackgroundDialog() {
               <div className="cl-page__title">
                 {t('pageTools.pageN', { page: p.pageIndex + 1 })} ·{' '}
                 {t('cleanup.background.coverage', { percent: Math.round(p.coverage * 100) })}
-                <Button size="sm" variant="ghost" onClick={() => show(p)}>
+                <Button variant="ghost" onClick={() => show(p)}>
                   {t('cleanup.wm.sample', { page: p.pageIndex + 1 })}
                 </Button>
               </div>

@@ -271,11 +271,10 @@ function PfxSection({ secretsAvailable }: { secretsAvailable: boolean }) {
                   </span>
                 </div>
                 {entry.remembered && <Badge tone="accent">{t('certs.rememberedBadge')}</Badge>}
-                <Button size="sm" onClick={() => void openSaved(entry)} disabled={busy}>
+                <Button onClick={() => void openSaved(entry)} disabled={busy}>
                   {t('certs.open')}
                 </Button>
                 <IconButton
-                  size="sm"
                   label={t('certs.remove')}
                   icon={<Trash size={14} />}
                   onClick={() => void removeEntry(entry)}

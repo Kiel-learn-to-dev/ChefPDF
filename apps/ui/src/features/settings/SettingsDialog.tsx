@@ -155,7 +155,7 @@ export function SettingsDialog() {
         {settings.recentFiles.length > 0 && (
           <Field label={t('settings.recent')}>
             <div>
-              <Button size="sm" onClick={() => void save({ recentFiles: [] })}>
+              <Button onClick={() => void save({ recentFiles: [] })}>
                 {t('settings.clearRecent', { count: settings.recentFiles.length })}
               </Button>
             </div>

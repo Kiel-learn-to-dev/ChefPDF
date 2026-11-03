@@ -1,4 +1,4 @@
 .web2pdf {
   display: grid;
-  gap: 12px;
+  gap: var(--space-5);
 }

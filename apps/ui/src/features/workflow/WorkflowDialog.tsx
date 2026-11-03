@@ -365,7 +365,6 @@ export function WorkflowDialog() {
       <div className="workflow-editor">
         <div className="workflow-toolbar">
           <Button
-            size="sm"
             variant="ghost"
             icon={<FilePlus2 size={15} />}
             onClick={() => {
@@ -382,19 +381,13 @@ export function WorkflowDialog() {
             {t('workflow.new')}
           </Button>
           <Button
-            size="sm"
             variant="ghost"
             icon={<FolderOpen size={15} />}
             onClick={() => void openWorkflow()}
           >
             {t('workflow.load')}
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={<Save size={15} />}
-            onClick={() => void saveWorkflow()}
-          >
+          <Button variant="ghost" icon={<Save size={15} />} onClick={() => void saveWorkflow()}>
             {t('workflow.save')}
           </Button>
           <div className="workflow-toolbar__sample">
@@ -447,7 +440,6 @@ export function WorkflowDialog() {
                       </strong>
                       <div className="workflow-step__actions">
                         <IconButton
-                          size="sm"
                           label={t('workflow.moveUp')}
                           icon={<ArrowUp size={14} />}
                           disabled={index === 0}
@@ -461,7 +453,6 @@ export function WorkflowDialog() {
                           }}
                         />
                         <IconButton
-                          size="sm"
                           label={t('workflow.moveDown')}
                           icon={<ArrowDown size={14} />}
                           disabled={index === workflow.steps.length - 1}
@@ -475,7 +466,6 @@ export function WorkflowDialog() {
                           }}
                         />
                         <IconButton
-                          size="sm"
                           label={t('workflow.remove')}
                           icon={<Trash2 size={14} />}
                           onClick={() => {
@@ -583,7 +573,7 @@ export function WorkflowDialog() {
                 placeholder={t('workflow.name')}
                 aria-label={t('workflow.name')}
               />
-              <Button size="sm" icon={<Plus size={15} />} onClick={addStep} disabled={!addOp}>
+              <Button icon={<Plus size={15} />} onClick={addStep} disabled={!addOp}>
                 {t('workflow.addStep')}
               </Button>
             </div>
@@ -593,7 +583,6 @@ export function WorkflowDialog() {
             <section className="workflow-panel">
               <h3>{t('workflow.files')}</h3>
               <Button
-                size="sm"
                 variant="secondary"
                 icon={<FilePlus2 size={14} />}
                 onClick={() => void chooseFiles()}
@@ -624,7 +613,6 @@ export function WorkflowDialog() {
                         />
                       )}
                       <IconButton
-                        size="sm"
                         label={t('workflow.moveFileUp')}
                         icon={<ArrowUp size={13} />}
                         disabled={index === 0}
@@ -639,7 +627,6 @@ export function WorkflowDialog() {
                         }
                       />
                       <IconButton
-                        size="sm"
                         label={t('workflow.moveFileDown')}
                         icon={<ArrowDown size={13} />}
                         disabled={index === files.length - 1}
@@ -654,7 +641,6 @@ export function WorkflowDialog() {
                         }
                       />
                       <IconButton
-                        size="sm"
                         label={t('common.remove')}
                         icon={<Trash2 size={13} />}
                         onClick={() => {
