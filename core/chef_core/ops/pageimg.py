@@ -25,6 +25,7 @@ enough; the page is left as it is and listed in ``needsReview``).
 from __future__ import annotations
 
 import io
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -38,6 +39,7 @@ from pydantic import Field
 from chef_core.content.engine import build_model
 from chef_core.content.model import PageObject
 from chef_core.errors import invalid_params
+from chef_core.imaging import docaligner as da
 from chef_core.imaging import pageimg as pi
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
@@ -51,6 +53,8 @@ from chef_core.ops.content_image import (
 )
 from chef_core.ops.scan import selected_pages
 from chef_core.overlay.pagecontent import inherited
+
+log = logging.getLogger(__name__)
 
 PageIndex = Annotated[int, Field(ge=0)]
 Quality = Annotated[int, Field(ge=1, le=100)]
@@ -274,6 +278,17 @@ def _selected(pages: list[int] | None, count: int) -> list[int]:
     return selected_pages(pages, count)
 
 
+def _best_quad(rgb: np.ndarray) -> pi.PageQuad:
+    """Use the better confidence from the classical detector and bundled offline model."""
+    classical = pi.detect_page_quad(rgb)
+    try:
+        learned = da.detect_page_quad(rgb)
+    except Exception:  # the model only refines the classical result; never fail the page for it
+        log.warning("DocAligner unavailable, using the classical detector", exc_info=True)
+        learned = None
+    return da.prefer_confident_quad(classical, learned)
+
+
 # -- pageimg.detectQuad (read-only) ---------------------------------------------------------
 
 
@@ -299,7 +314,7 @@ def detect_quad(ctx: OpContext, p: DetectQuadParams) -> OpOutput:
                 rows.append({"pageIndex": index, "status": "skipped", "reason": dom})
                 continue
             rgb = _pixels(dom)
-            quad = pi.detect_page_quad(rgb)
+            quad = _best_quad(rgb)
             h, w = rgb.shape[:2]
             corners = quad.corners
             cw, ch = _quad_size(corners)
@@ -317,6 +332,58 @@ def detect_quad(ctx: OpContext, p: DetectQuadParams) -> OpOutput:
                     "paperSize": paper,
                     "imageSize": [w, h],
                     "needsReview": quad.confidence < 0.6,
+                }
+            )
+    return OpOutput(changed_pages=[], data={"pages": rows})
+
+
+class QuadPreviewParams(WireModel):
+    pages: list[PageIndex] = Field(min_length=1, max_length=3)
+
+
+@operation(
+    id="pageimg.quadPreview",
+    title="Preview page corners",
+    group="pageimg",
+    params=QuadPreviewParams,
+)
+def quad_preview(ctx: OpContext, p: QuadPreviewParams) -> OpOutput:
+    """Show detected corners on the actual embedded image, without modifying the PDF."""
+    if ctx.input_path is None:
+        raise RuntimeError("pageimg.quadPreview needs a session")
+    folder = ctx.input_path.parent / "preview" / "pageimg-quad"
+    folder.mkdir(parents=True, exist_ok=True)
+    rows: list[dict[str, Any]] = []
+    with ctx.open_input() as pdf:
+        selected = _selected(p.pages, len(pdf.pages))
+        for index in ctx.steps(selected, len(selected), "Preview page corners"):
+            dom = _dominant(pdf, index)
+            if isinstance(dom, str):
+                rows.append({"pageIndex": index, "status": "skipped", "reason": dom})
+                continue
+            rgb = _pixels(dom)
+            h, w = rgb.shape[:2]
+            quad = _best_quad(rgb)
+            preview = _pil(rgb)
+            preview.thumbnail((1400, 1400), Image.Resampling.LANCZOS)
+            out = folder / f"{ctx.job_id[:8]}-p{index}.png"
+            preview.save(out)
+            rows.append(
+                {
+                    "pageIndex": index,
+                    "status": "done",
+                    "imagePath": str(out),
+                    "sourceSizePx": [w, h],
+                    "ppi": dom.ppi,
+                    "cornersFraction": [
+                        [
+                            round(float(np.clip(x / w, 0, 1)), 5),
+                            round(float(np.clip(y / h, 0, 1)), 5),
+                        ]
+                        for x, y in quad.corners
+                    ],
+                    "confidence": quad.confidence,
+                    "method": quad.method,
                 }
             )
     return OpOutput(changed_pages=[], data={"pages": rows})
@@ -341,6 +408,16 @@ class DeskewParams(WireModel):
         default=0.5, ge=0, le=1, description="mode auto: below this the page is only reported."
     )
     jpeg_quality: Quality = 80
+
+
+class DewarpParams(WireModel):
+    """Flatten gently curved text lines on scanned pages (L13)."""
+
+    pages: list[PageIndex] | None = Field(default=None, description="0-based; default all.")
+    min_confidence: float = Field(
+        default=0.35, ge=0, le=1, description="Below this confidence the page is only reported."
+    )
+    jpeg_quality: Quality = 88
 
 
 @operation(
@@ -405,6 +482,109 @@ def deskew(ctx: OpContext, p: DeskewParams) -> OpOutput:
         if changed:
             ctx.save_document(pdf)
     return OpOutput(changed_pages=changed, data={"pages": rows})
+
+
+@operation(
+    id="pageimg.dewarp",
+    title="Flatten curved page",
+    group="pageimg",
+    params=DewarpParams,
+    destructive=True,
+)
+def dewarp(ctx: OpContext, p: DewarpParams) -> OpOutput:
+    """Apply L13 only when enough long text lines support a stable curvature estimate."""
+    rows: list[dict[str, Any]] = []
+    changed: list[int] = []
+    with ctx.open_input() as pdf:
+        selected = _selected(p.pages, len(pdf.pages))
+        for index in ctx.steps(selected, len(selected), "Flatten curved pages"):
+            dom = _dominant(pdf, index)
+            if isinstance(dom, str):
+                rows.append({"pageIndex": index, "status": "skipped", "reason": dom})
+                continue
+            out, confidence, correction = pi.dewarp(_pixels(dom))
+            if confidence < p.min_confidence:
+                rows.append(
+                    {
+                        "pageIndex": index,
+                        "status": "review",
+                        "reason": "LOW_CONFIDENCE",
+                        "confidence": confidence,
+                        "correctionPx": correction,
+                    }
+                )
+                continue
+            if correction == 0.0:
+                rows.append(
+                    {
+                        "pageIndex": index,
+                        "status": "skipped",
+                        "reason": "NO_CURVATURE",
+                        "confidence": confidence,
+                        "correctionPx": correction,
+                    }
+                )
+                continue
+            _replace_in_place(pdf, index, dom, out, p.jpeg_quality)
+            changed.append(index)
+            rows.append(
+                {
+                    "pageIndex": index,
+                    "status": "done",
+                    "confidence": confidence,
+                    "correctionPx": correction,
+                }
+            )
+        if changed:
+            ctx.save_document(pdf)
+    return OpOutput(changed_pages=changed, data={"pages": rows})
+
+
+class DewarpPreviewParams(WireModel):
+    """Read-only before/after previews for up to three pages."""
+
+    pages: list[PageIndex] = Field(min_length=1, max_length=3)
+
+
+@operation(
+    id="pageimg.dewarpPreview",
+    title="Preview curved page correction",
+    group="pageimg",
+    params=DewarpPreviewParams,
+)
+def dewarp_preview(ctx: OpContext, p: DewarpPreviewParams) -> OpOutput:
+    """Write before/after PNGs without changing the current document revision."""
+    if ctx.input_path is None:
+        raise RuntimeError("pageimg.dewarpPreview needs a session")
+    rows: list[dict[str, Any]] = []
+    out_dir = ctx.input_path.parent / "preview" / "pageimg-dewarp"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with ctx.open_input() as pdf:
+        selected = _selected(p.pages, len(pdf.pages))
+        for done, index in enumerate(selected):
+            ctx.progress(done, len(selected), "Preview page flattening")
+            dom = _dominant(pdf, index)
+            if isinstance(dom, str):
+                rows.append({"pageIndex": index, "status": "skipped", "reason": dom})
+                continue
+            original = _pixels(dom)
+            result, confidence, correction = pi.dewarp(original)
+            stem = f"{ctx.job_id[:8]}-p{index}"
+            original_path = out_dir / f"{stem}-original.png"
+            result_path = out_dir / f"{stem}-result.png"
+            _pil(original).save(original_path)
+            _pil(result).save(result_path)
+            rows.append(
+                {
+                    "pageIndex": index,
+                    "status": "done",
+                    "originalPath": str(original_path),
+                    "resultPath": str(result_path),
+                    "confidence": confidence,
+                    "correctionPx": correction,
+                }
+            )
+    return OpOutput(changed_pages=[], data={"pages": rows})
 
 
 # -- pageimg.enhance ------------------------------------------------------------------------
@@ -517,6 +697,12 @@ class CropPage(WireModel):
 
     page_index: PageIndex
     corners: list[CropPoint] = Field(min_length=4, max_length=4)
+    angle: float = Field(
+        default=0,
+        ge=-15,
+        le=15,
+        description="Fine rotation in degrees counter-clockwise after cropping.",
+    )
     out_size: list[int] | None = Field(
         default=None,
         min_length=2,
@@ -533,6 +719,55 @@ class CropParams(WireModel):
         default=False, description="False: the page follows the new image at its resolution."
     )
     jpeg_quality: Quality = 80
+
+
+class CropPreviewParams(WireModel):
+    """A page and four normalized corners, in TL, TR, BR, BL order."""
+
+    page_index: PageIndex
+    corners: list[CropPoint] = Field(min_length=4, max_length=4)
+    angle: float = Field(
+        default=0,
+        ge=-15,
+        le=15,
+        description="Fine rotation in degrees counter-clockwise after cropping.",
+    )
+    out_size: list[int] | None = Field(default=None, min_length=2, max_length=2)
+
+
+@operation(
+    id="pageimg.cropPreview",
+    title="Preview crop and straighten",
+    group="pageimg",
+    params=CropPreviewParams,
+)
+def crop_preview(ctx: OpContext, p: CropPreviewParams) -> OpOutput:
+    """Create a bounded preview without writing a new document revision."""
+    if ctx.input_path is None:
+        raise RuntimeError("pageimg.cropPreview needs a session")
+    with ctx.open_input() as pdf:
+        if p.page_index >= len(pdf.pages):
+            raise invalid_params("PAGE_OUT_OF_RANGE", {"pageIndex": p.page_index})
+        dom = _dominant(pdf, p.page_index)
+        if isinstance(dom, str):
+            raise invalid_params(dom, {"pageIndex": p.page_index})
+        image = _pil(_pixels(dom))
+        image.thumbnail((1400, 1400), Image.Resampling.LANCZOS)
+        rgb = np.asarray(image)
+        height, width = rgb.shape[:2]
+        corners = _corners_px([(point.x, point.y) for point in p.corners], width, height)
+        _require_valid_quad(corners, width, height, p.page_index)
+        preview_size = _preview_crop_size(p.out_size)
+        corrected = _pil(_cut_and_rotate(rgb, corners, preview_size, p.angle))
+        corrected.thumbnail((1400, 1400), Image.Resampling.LANCZOS)
+        folder = ctx.input_path.parent / "preview" / "pageimg-crop"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{ctx.job_id}-p{p.page_index}.png"
+        corrected.save(path)
+    return OpOutput(
+        changed_pages=[],
+        data={"imagePath": str(path)},
+    )
 
 
 @operation(
@@ -559,7 +794,8 @@ def crop(ctx: OpContext, p: CropParams) -> OpOutput:
             rgb = _pixels(dom)
             h, w = rgb.shape[:2]
             corners = _corners_px([(c.x, c.y) for c in entry.corners], w, h)
-            out = _cut(rgb, corners, entry.out_size)
+            _require_valid_quad(corners, w, h, index)
+            out = _cut_and_rotate(rgb, corners, entry.out_size, entry.angle)
             _rebuild(
                 pdf, index, dom, out, p.jpeg_quality, ppi=dom.ppi, keep_page_size=p.keep_page_size
             )
@@ -573,13 +809,49 @@ def crop(ctx: OpContext, p: CropParams) -> OpOutput:
     return OpOutput(changed_pages=changed, data={"pages": rows})
 
 
+def _require_valid_quad(corners: np.ndarray, width: int, height: int, page_index: int) -> None:
+    """Reject crossed, concave or nearly empty quads before passing them to OpenCV."""
+    edges = np.roll(corners, -1, axis=0) - corners
+    following = np.roll(edges, -1, axis=0)
+    crosses = edges[:, 0] * following[:, 1] - edges[:, 1] * following[:, 0]
+    x, y = corners[:, 0], corners[:, 1]
+    area = abs(float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))) / 2
+    if area < width * height * 0.01 or not (np.all(crosses > 0) or np.all(crosses < 0)):
+        raise invalid_params("INVALID_CROP_QUAD", {"pageIndex": page_index})
+
+
+def _cut_and_rotate(
+    rgb: np.ndarray, corners: np.ndarray, out_size: list[int] | None, angle: float
+) -> np.ndarray:
+    result = _cut(rgb, corners, out_size)
+    return pi.rotate(result, angle, fill=pi.paper_colour(result)) if angle else result
+
+
 def _cut(rgb: np.ndarray, corners: np.ndarray, out_size: list[int] | None) -> np.ndarray:
+    if out_size is not None:
+        _validate_crop_size(out_size)
     if out_size is None:
         rect = pi.crop_rect(rgb, corners)
         if rect is not None:
             return rect
         return pi.warp_perspective(rgb, corners, snap_paper=False)
     return pi.warp_perspective(rgb, corners, (out_size[0], out_size[1]))
+
+
+def _validate_crop_size(out_size: list[int]) -> None:
+    width, height = out_size
+    if width < 1 or height < 1 or width > 20_000 or height > 20_000 or width * height > 50_000_000:
+        raise invalid_params("CROP_OUTPUT_TOO_LARGE", {"width": width, "height": height})
+
+
+def _preview_crop_size(out_size: list[int] | None) -> list[int] | None:
+    """Keep preview warps bounded while preserving the requested output aspect ratio."""
+    if out_size is None:
+        return None
+    _validate_crop_size(out_size)
+    width, height = out_size
+    scale = min(1.0, 1400 / max(width, height))
+    return [max(1, round(width * scale)), max(1, round(height * scale))]
 
 
 # -- pageimg.autoCrop -----------------------------------------------------------------------
@@ -620,7 +892,7 @@ def auto_crop(ctx: OpContext, p: AutoCropParams) -> OpOutput:
                 continue
             rgb = _pixels(dom)
             h, w = rgb.shape[:2]
-            quad = pi.detect_page_quad(rgb)
+            quad = _best_quad(rgb)
             if quad.confidence < p.min_confidence:
                 review.append(index)
                 rows.append(

@@ -22,6 +22,7 @@ from PIL import Image
 
 from chef_core.imaging import pageimg as pi
 from chef_core.ops import load_builtin_ops
+from chef_core.ops import pageimg as pageimg_ops
 from chef_core.ops.base import registry
 
 DPI = 150
@@ -68,6 +69,104 @@ def _page_count(path: Path) -> int:
         return len(pdf.pages)
 
 
+def test_crop_preview_returns_corrected_image_without_changing_document(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _image_pdf(tmp_path / "crop-preview.pdf", [text_page(700, 900)])
+    sid = _sid(harness, src)
+    revision = _revision(harness, sid)
+    before = revision.read_bytes()
+    points = [
+        {"x": 0.1, "y": 0.1},
+        {"x": 0.9, "y": 0.15},
+        {"x": 0.85, "y": 0.9},
+        {"x": 0.15, "y": 0.85},
+    ]
+    result = harness.op("pageimg.cropPreview", {"pageIndex": 0, "corners": points}, sid)
+    assert result["changedPages"] == []
+    path = Path(result["data"]["imagePath"])
+    with Image.open(path) as image:
+        assert image.width > 10 and image.height > 10
+        assert max(image.size) <= 1400
+    assert _revision(harness, sid) == revision
+    assert revision.read_bytes() == before
+    sized = harness.op(
+        "pageimg.cropPreview", {"pageIndex": 0, "corners": points, "outSize": [320, 480]}, sid
+    )
+    with Image.open(sized["data"]["imagePath"]) as image:
+        assert image.size == (320, 480)
+    with pytest.raises(RpcFailure):
+        harness.op(
+            "pageimg.cropPreview",
+            {"pageIndex": 0, "corners": points, "outSize": [20_000, 20_000]},
+            sid,
+        )
+    crossed = [points[0], points[2], points[1], points[3]]
+    with pytest.raises(RpcFailure):
+        harness.op("pageimg.cropPreview", {"pageIndex": 0, "corners": crossed}, sid)
+    assert _revision(harness, sid) == revision
+
+
+def test_crop_fine_rotation_changes_preview_and_output_without_changing_page_size(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _image_pdf(tmp_path / "fine-rotate.pdf", [text_page(700, 900)])
+    sid = _sid(harness, src)
+    corners = [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 1, "y": 1}, {"x": 0, "y": 1}]
+    original_revision = _revision(harness, sid)
+    base = harness.op("pageimg.cropPreview", {"pageIndex": 0, "corners": corners}, sid)
+    rotated = harness.op(
+        "pageimg.cropPreview", {"pageIndex": 0, "corners": corners, "angle": 2.5}, sid
+    )
+    a = np.asarray(Image.open(base["data"]["imagePath"]).convert("RGB"))
+    b = np.asarray(Image.open(rotated["data"]["imagePath"]).convert("RGB"))
+    assert a.shape == b.shape
+    assert np.mean(np.abs(a.astype(float) - b.astype(float))) > 1
+    assert _revision(harness, sid) == original_revision
+    harness.op("pageimg.crop", {"pages": [{"pageIndex": 0, "corners": corners, "angle": 2.5}]}, sid)
+    rotated_revision = _revision(harness, sid)
+    assert rotated_revision != original_revision
+    plain_sid = _sid(harness, src)
+    harness.op("pageimg.crop", {"pages": [{"pageIndex": 0, "corners": corners}]}, plain_sid)
+    plain_revision = _revision(harness, plain_sid)
+    assert _page_size(rotated_revision) == _page_size(plain_revision)
+    rotated_page = _rgb(rotated_revision)
+    plain_page = _rgb(plain_revision)
+    assert rotated_page.shape == plain_page.shape
+    assert np.mean(np.abs(rotated_page.astype(float) - plain_page.astype(float))) > 1
+
+
+def test_large_crop_preview_warps_only_bounded_aspect_preserving_size(
+    harness: Harness, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src = _image_pdf(tmp_path / "crop-preview-large.pdf", [text_page(700, 900)])
+    sid = _sid(harness, src)
+    points = [
+        {"x": 0.1, "y": 0.1},
+        {"x": 0.9, "y": 0.1},
+        {"x": 0.9, "y": 0.9},
+        {"x": 0.1, "y": 0.9},
+    ]
+    seen_sizes: list[list[int] | None] = []
+    original_cut = pageimg_ops._cut
+
+    def track_cut(rgb: np.ndarray, corners: np.ndarray, out_size: list[int] | None) -> np.ndarray:
+        seen_sizes.append(out_size)
+        return original_cut(rgb, corners, out_size)
+
+    monkeypatch.setattr(pageimg_ops, "_cut", track_cut)
+    result = harness.op(
+        "pageimg.cropPreview",
+        {"pageIndex": 0, "corners": points, "outSize": [5_000, 10_000]},
+        sid,
+    )
+    assert seen_sizes == [[700, 1400]]
+    assert max(seen_sizes[0] or []) <= 1400
+    assert (seen_sizes[0] or [0, 0])[0] / (seen_sizes[0] or [1, 1])[1] == 0.5
+    with Image.open(result["data"]["imagePath"]) as image:
+        assert image.size == (700, 1400)
+
+
 # -- registration -----------------------------------------------------------------------------
 
 
@@ -76,6 +175,7 @@ def test_page_image_ops_are_registered_with_the_right_flags() -> None:
     reg = registry()
     for op in (
         "pageimg.deskew",
+        "pageimg.dewarp",
         "pageimg.enhance",
         "pageimg.crop",
         "pageimg.autoCrop",
@@ -87,6 +187,72 @@ def test_page_image_ops_are_registered_with_the_right_flags() -> None:
         assert reg[op].destructive, op
     for op in ("pageimg.detectQuad", "pageimg.proposeFingerMask"):
         assert not reg[op].destructive, op
+    assert not reg["pageimg.dewarpPreview"].destructive
+
+
+def _curved_text_page() -> np.ndarray:
+    page = np.full((900, 700, 3), 248, np.uint8)
+    for row, base_y in enumerate(range(120, 790, 82)):
+        for x in range(75, 630, 12):
+            xn = (x - 350) / 350
+            y = int(base_y + 28 * xn * xn)
+            cv2.rectangle(page, (x, y + (row % 2) * 2), (x + 7, y + 5), (30, 30, 30), -1)
+    return page
+
+
+def _stroke_curve_span(rgb: np.ndarray) -> float:
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    spans = []
+    for y0 in range(110, 790, 82):
+        centers = []
+        for x0 in range(90, 610, 65):
+            roi = gray[y0 - 35 : y0 + 55, x0 : x0 + 50]
+            ys, _ = np.where(roi < 100)
+            if len(ys):
+                centers.append(float(np.median(ys)) + y0 - 35)
+        if len(centers) >= 6:
+            spans.append(max(centers) - min(centers))
+    return float(np.median(spans))
+
+
+def test_dewarp_rpc_flattens_curved_page_and_skips_blank_page(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _image_pdf(
+        tmp_path / "curved.pdf",
+        [_curved_text_page(), np.full((900, 700, 3), 250, np.uint8)],
+    )
+    sid = _sid(harness, src)
+    rows = _pages(harness.op("pageimg.dewarp", {}, sid))
+    assert rows[0]["status"] == "done"
+    assert rows[0]["confidence"] >= 0.35
+    assert rows[0]["correctionPx"] > 8
+    assert rows[1]["status"] == "review"
+    assert rows[1]["reason"] == "LOW_CONFIDENCE"
+    result = _rgb(_revision(harness, sid))
+    result_small = np.asarray(Image.fromarray(result).resize((700, 900), Image.Resampling.LANCZOS))
+    assert _stroke_curve_span(result_small) < _stroke_curve_span(_curved_text_page()) * 0.6
+
+
+def test_dewarp_preview_is_rpc_read_only_and_returns_before_after_images(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _image_pdf(tmp_path / "preview.pdf", [_curved_text_page()])
+    sid = _sid(harness, src)
+    revision_before = _revision(harness, sid)
+    result = harness.op("pageimg.dewarpPreview", {"pages": [0]}, sid)
+    row = _pages(result)[0]
+    assert result["changedPages"] == []
+    assert row["status"] == "done"
+    before = Path(row["originalPath"])
+    after = Path(row["resultPath"])
+    assert before.is_file() and after.is_file()
+    assert Image.open(before).size == Image.open(after).size
+    assert revision_before == _revision(harness, sid)
+    assert (
+        _stroke_curve_span(np.asarray(Image.open(after).convert("RGB")))
+        < _stroke_curve_span(np.asarray(Image.open(before).convert("RGB"))) * 0.6
+    )
 
 
 # -- deskew (L1) ------------------------------------------------------------------------------
@@ -188,6 +354,21 @@ def test_enhance_rejects_inverted_levels(harness: Harness, tmp_path: Path) -> No
 # -- detectQuad (read-only) and crop (L2, L15-L17) ------------------------------------------
 
 
+def test_quad_preview_returns_original_pixels_and_detected_corners_without_changing_revision(
+    harness: Harness, tmp_path: Path
+) -> None:
+    source = _image_pdf(tmp_path / "preview.pdf", [scanner_page().rgb])
+    sid = _sid(harness, source)
+    revision = _revision(harness, sid)
+    before = revision.read_bytes()
+    result = harness.op("pageimg.quadPreview", {"pages": [0]}, sid)
+    row = result["data"]["pages"][0]
+    assert row["status"] == "done"
+    assert len(row["cornersFraction"]) == 4
+    assert Path(row["imagePath"]).is_file()
+    assert _revision(harness, sid).read_bytes() == before
+
+
 def test_detect_quad_is_read_only_and_finds_the_sheet(harness: Harness, tmp_path: Path) -> None:
     scene = photo_scene(size=(1240, 1754), seed=70, background="plain", shadow=0.2)
     src = _image_pdf(tmp_path / "quad.pdf", [scene.rgb])
@@ -220,6 +401,20 @@ def test_crop_by_corners_gives_a_portrait_page_with_horizontal_text(
     assert abs(w_pt / h_pt - 210 / 297) < 0.03  # the page follows the sheet
     _, angle, _ = pi.deskew(_rgb(out))
     assert abs(angle) < 0.3
+
+
+def test_crop_refuses_a_crossed_quad_without_changing_the_document(
+    harness: Harness, tmp_path: Path
+) -> None:
+    scene = photo_scene(size=(1240, 1754), seed=73)
+    sid = _sid(harness, _image_pdf(tmp_path / "crossed.pdf", [scene.rgb]))
+    before = _revision(harness, sid)
+    points = [(0.1, 0.1), (0.9, 0.9), (0.9, 0.1), (0.1, 0.9)]
+    crossed = [{"x": x, "y": y} for x, y in points]
+    with pytest.raises(RpcFailure) as exc:
+        harness.op("pageimg.crop", {"pages": [{"pageIndex": 0, "corners": crossed}]}, sid)
+    assert exc.value.kind == "INVALID_PARAMS"
+    assert _revision(harness, sid) == before
 
 
 def test_crop_keep_page_size_fits_the_image_in_the_old_page(
@@ -282,6 +477,63 @@ def test_auto_crop_crops_confident_pages_and_flags_low_contrast(
     assert _page_count(out) == 3
     w0, h0 = _page_size(out, 0)
     assert w0 < A4_W * 0.99 or h0 < A4_H * 0.99  # the border was cut away
+
+
+def test_workflow_surfaces_low_confidence_auto_crop_review(
+    harness: Harness, tmp_path: Path
+) -> None:
+    weak = photo_scene(
+        size=(1240, 1754),
+        seed=81,
+        background="plain",
+        bg_colour=(192, 190, 182),
+        paper_colour=(199, 197, 189),
+        noise=1.0,
+    )
+    src = _image_pdf(tmp_path / "workflow-review.pdf", [weak.rgb])
+    result = harness.op(
+        "workflow.run",
+        {
+            "workflow": {
+                "id": "review-crop",
+                "name": "Review crop",
+                "steps": [{"op": "pageimg.autoCrop", "params": {"minConfidence": 0.6}}],
+            },
+            "files": [{"path": str(src)}],
+        },
+    )["data"]["results"][0]
+    warning = "Bước pageimg.autoCrop: cần duyệt thủ công trang 1."
+    assert result["status"] == "done"
+    assert result["stepResults"][0]["warnings"] == [warning]
+    assert result["warnings"] == [warning]
+
+
+@pytest.mark.parametrize(
+    ("op", "frame"),
+    [
+        ("pageimg.splitSpread", text_page(1240, 1754, seed=97)),
+        ("pageimg.dewarp", np.full((900, 700, 3), 250, np.uint8)),
+    ],
+)
+def test_workflow_surfaces_review_status_rows(
+    harness: Harness, tmp_path: Path, op: str, frame: np.ndarray
+) -> None:
+    src = _image_pdf(tmp_path / f"{op.rsplit('.', 1)[-1]}-review.pdf", [frame])
+    result = harness.op(
+        "workflow.run",
+        {
+            "workflow": {
+                "id": "review-step",
+                "name": "Review step",
+                "steps": [{"op": op}],
+            },
+            "files": [{"path": str(src)}],
+        },
+    )["data"]["results"][0]
+    warning = f"Bước {op}: cần duyệt thủ công trang 1."
+    assert result["status"] == "done"
+    assert result["stepResults"][0]["warnings"] == [warning]
+    assert result["warnings"] == [warning]
 
 
 def test_auto_crop_paper_size_sets_the_proportions(harness: Harness, tmp_path: Path) -> None:

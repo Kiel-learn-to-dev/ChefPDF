@@ -49,6 +49,58 @@ def test_deskew_blank_page_has_no_angle_and_no_confidence() -> None:
     assert confidence == 0.0
 
 
+def _curved_text_page(curvature: float = 28.0) -> np.ndarray:
+    """Synthetic page with text strokes following one shared cylindrical curve."""
+    page = np.full((900, 700, 3), 248, np.uint8)
+    for row, base_y in enumerate(range(120, 790, 82)):
+        for x in range(75, 630, 12):
+            xn = (x - 350) / 350
+            y = int(base_y + curvature * xn * xn)
+            cv2.rectangle(page, (x, y + (row % 2) * 2), (x + 7, y + 5), (30, 30, 30), -1)
+    return page
+
+
+def test_dewarp_flattens_shared_curvature_across_text_lines() -> None:
+    page = _curved_text_page()
+    flattened, confidence, correction = pi.dewarp(page)
+
+    assert flattened.shape == page.shape
+    assert confidence > 0.35
+    assert correction > 8
+    # The output should reduce the vertical drift of the line strokes across page width.
+    before = _curvature_span(page)
+    after = _curvature_span(flattened)
+    assert after < before * 0.6
+
+
+def _curvature_span(page: np.ndarray) -> float:
+    gray = _gray(page)
+    spans = []
+    for y0 in range(110, 790, 82):
+        centers = []
+        for x0 in range(90, 610, 65):
+            roi = gray[y0 - 35 : y0 + 55, x0 : x0 + 50]
+            ys, _ = np.where(roi < 100)
+            if len(ys):
+                centers.append(float(np.median(ys)) + y0 - 35)
+        if len(centers) >= 6:
+            spans.append(max(centers) - min(centers))
+    return float(np.median(spans))
+
+
+def test_dewarp_leaves_blank_and_short_text_pages_unchanged() -> None:
+    blank = np.full((600, 500, 3), 250, np.uint8)
+    result, confidence, correction = pi.dewarp(blank)
+    assert np.array_equal(result, blank)
+    assert confidence == correction == 0.0
+
+    short = np.full((600, 500, 3), 250, np.uint8)
+    cv2.putText(short, "Short", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    result, confidence, correction = pi.dewarp(short)
+    assert np.array_equal(result, short)
+    assert confidence == correction == 0.0
+
+
 def test_rotate_keeps_size_and_fills_with_paper() -> None:
     img = np.zeros((300, 400, 3), np.uint8)
     out = pi.rotate(img, 3.0, fill=(250, 250, 250))

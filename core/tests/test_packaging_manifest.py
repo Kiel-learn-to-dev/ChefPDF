@@ -46,6 +46,7 @@ def test_numeric_dependencies_are_declared_for_the_bundle() -> None:
     pyproject = (CORE / "pyproject.toml").read_text(encoding="utf-8")
     assert '"numpy' in pyproject
     assert '"opencv-python-headless' in pyproject  # cv2 is imported inside chef_core.imaging
+    assert '"onnxruntime' in pyproject  # ONNX Runtime is imported by the offline DocAligner
 
 
 def test_resource_files_the_code_names_are_in_the_repository() -> None:
@@ -66,6 +67,16 @@ def test_known_resource_paths_exist() -> None:
     ):
         assert (RESOURCES / relative).is_file(), relative
     assert (PACKAGE / "layout" / "schema.json").is_file()
+
+
+def test_offline_docaligner_and_runtime_licenses_are_package_resources() -> None:
+    model_dir = RESOURCES / "models" / "docaligner-1.1.1"
+    manifest = json.loads((model_dir / "manifest.json").read_text(encoding="utf-8-sig"))
+    model = model_dir / manifest["file"]
+    assert model.is_file() and model.stat().st_size == manifest["bytes"]
+    assert (model_dir / manifest["licenseFile"]).is_file()
+    assert (model_dir / manifest["runtime"]["licenseFile"]).is_file()
+    assert (model_dir / manifest["runtime"]["thirdPartyNoticesFile"]).is_file()
 
 
 def test_font_manifest_entries_have_their_files() -> None:

@@ -228,6 +228,111 @@ def deskew(img: np.ndarray, *, max_angle: float = MAX_SKEW) -> tuple[np.ndarray,
     return corrected, angle, round(confidence, 3)
 
 
+def dewarp(img: np.ndarray) -> tuple[np.ndarray, float, float]:
+    """Flatten gentle page curl using the shared curvature of long text lines.
+
+    Returns ``(image, confidence, correction_px)``. Long, horizontally connected ink groups are
+    treated as text lines. Their local vertical centres are detrended, combined into a smooth
+    shared displacement field, and remapped vertically. Blank pages, short lines, and pages with
+    too little line evidence are returned unchanged with zero confidence. This classical method
+    handles cylindrical curl across the page width; it is not suitable for severe folds, arbitrary
+    perspective, or pages without several long text lines.
+    """
+    cv2 = _cv2()
+    gray = to_gray(img)
+    h, w = gray.shape
+    if min(h, w) < 80:
+        return img.copy(), 0.0, 0.0
+
+    # Work at a bounded size, then scale the displacement back to the original image.
+    small, scale = _fit(img, 1000)
+    sh, sw = small.shape[:2]
+    ink = _ink_mask(to_gray(small))
+    if float(ink.mean()) / 255 < 0.002 or float(ink.mean()) / 255 > 0.35:
+        return img.copy(), 0.0, 0.0
+
+    # Join letters within a line without joining adjacent rows of text.
+    kw = max(9, sw // 24) | 1
+    joined = cv2.morphologyEx(
+        ink, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (kw, 3))
+    )
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(joined, 8)
+    curves: list[tuple[np.ndarray, np.ndarray]] = []
+    bins = max(12, min(48, sw // 24))
+    for label in range(1, count):
+        x, y, cw, ch, area = (int(v) for v in stats[label])
+        if cw < sw * 0.22 or ch < max(3, sh * 0.004) or ch > sh * 0.12 or area < sw * 0.01:
+            continue
+        yy, xx = np.nonzero(labels[y : y + ch, x : x + cw] == label)
+        if xx.size < 20:
+            continue
+        xx = xx + x
+        yy = yy + y
+        edges = np.linspace(x, x + cw, bins + 1)
+        centers: list[float] = []
+        values: list[float] = []
+        for i in range(bins):
+            use = (xx >= edges[i]) & (xx < edges[i + 1])
+            if np.count_nonzero(use) >= 4:
+                centers.append(float((edges[i] + edges[i + 1]) / 2))
+                values.append(float(np.median(yy[use])))
+        if len(values) < 7:
+            continue
+        cx = np.asarray(centers)
+        cy = np.asarray(values)
+        # Remove line tilt so only the common page curvature remains.
+        slope, intercept = np.polyfit(cx, cy, 1)
+        curves.append((cx / sw, cy - (slope * cx + intercept)))
+
+    if len(curves) < 3:
+        return img.copy(), 0.0, 0.0
+
+    grid = np.linspace(0.08, 0.92, bins)
+    residuals = np.full((len(curves), bins), np.nan, dtype=np.float32)
+    for row, (curve_x, curve_y) in enumerate(curves):
+        inside = (grid >= curve_x.min()) & (grid <= curve_x.max())
+        residuals[row, inside] = np.interp(grid[inside], curve_x, curve_y)
+    profile = np.asarray(
+        [np.median(column[np.isfinite(column)]) if np.isfinite(column).any() else np.nan
+         for column in residuals.T],
+        dtype=np.float32,
+    )
+    valid = np.isfinite(profile)
+    if valid.sum() < bins * 0.6:
+        return img.copy(), 0.0, 0.0
+    profile = np.interp(np.arange(bins), np.flatnonzero(valid), profile[valid])
+    # Smooth the profile and remove its mean: a constant vertical offset has no effect.
+    profile = cv2.GaussianBlur(profile.astype(np.float32).reshape(1, -1), (0, 0), bins / 10).ravel()
+    profile -= float(np.mean(profile))
+    amplitude = float(np.percentile(profile, 95) - np.percentile(profile, 5)) / 2
+    if amplitude < 1.5 or amplitude > sh * 0.12:
+        return img.copy(), 0.0, 0.0
+
+    x_grid = np.linspace(0, sw - 1, bins, dtype=np.float32)
+    dx = np.arange(sw, dtype=np.float32)
+    displacement = np.interp(dx, x_grid, profile).astype(np.float32)
+    # Convert the estimated small-image curve to full-resolution coordinates.
+    _sx, sy = scale
+    displacement *= float(sy)
+    map_x = np.broadcast_to(np.arange(w, dtype=np.float32), (h, w)).copy()
+    map_y = np.broadcast_to(np.arange(h, dtype=np.float32)[:, None], (h, w)).copy()
+    displacement = np.interp(np.arange(w), np.linspace(0, w - 1, sw), displacement)
+    # remap maps each output pixel to its source coordinate, hence the inverse sign.
+    map_y += displacement[None, :]
+    out = cv2.remap(
+        img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,
+        borderValue=_colour_tuple(paper_colour(img), img.ndim),
+    )
+    deviations = []
+    for column in residuals.T:
+        finite = column[np.isfinite(column)]
+        if finite.size:
+            deviations.extend(np.abs(finite - np.median(finite)).tolist())
+    residual = float(np.median(deviations)) if deviations else 5.0
+    confidence = float(np.clip((len(curves) - 2) / 5, 0.0, 1.0) * np.clip(1 - residual / 5, 0, 1))
+    return np.asarray(out), round(confidence, 3), round(amplitude * 2, 1)
+
+
 # -- illumination, denoise, tone (L3, L4, L12) ------------------------------------------------
 
 
@@ -1037,6 +1142,7 @@ __all__ = [
     "deskew",
     "detect_page_quad",
     "detect_paper_size",
+    "dewarp",
     "erase_region",
     "find_skin_regions",
     "invert",
