@@ -75,6 +75,7 @@ export function PdfToImagesDialog() {
           path: doc.state.revisionPath,
           password: doc.password,
           pages: allPages ? undefined : selected,
+          docName: doc.name,
         }),
         { title },
       );

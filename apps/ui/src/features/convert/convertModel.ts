@@ -51,9 +51,20 @@ function isIntIn(n: number, min: number, max: number): boolean {
  * Params of convert.pdfToImages. `pages` are 0-based indices (left out = all pages). The
  * jpegQuality is sent for JPEG and WebP only, so it never changes the other formats.
  */
+/**
+ * The dialog reads the current revision (rev-0000.pdf), so the core would take {name} from that
+ * file. With docName, {name} is filled in here with the document's own name. Braces in the name
+ * are replaced so the core does not read them as variables.
+ */
+function withDocName(template: string, docName: string | undefined): string {
+  if (!docName) return template;
+  const stem = docName.replace(/\.pdf$/i, '').replace(/[{}]/g, '_');
+  return template.split('{name}').join(stem);
+}
+
 export function pdfToImagesParams(
   form: PdfToImagesForm,
-  src: { path: string; password?: string; pages?: number[] },
+  src: { path: string; password?: string; pages?: number[]; docName?: string },
 ): ConvertPdfToImagesParams {
   const out: ConvertPdfToImagesParams = {
     path: src.path,
@@ -62,7 +73,7 @@ export function pdfToImagesParams(
     color: form.color,
     multiPageTiff: form.format === 'tiff' && form.multiPageTiff,
     outputDir: form.outputDir,
-    nameTemplate: form.nameTemplate.trim(),
+    nameTemplate: withDocName(form.nameTemplate.trim(), src.docName),
   };
   if (form.format === 'jpeg' || form.format === 'webp') out.jpegQuality = form.jpegQuality;
   if (src.password) out.password = src.password;

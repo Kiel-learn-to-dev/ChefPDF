@@ -43,6 +43,19 @@ describe('pdfToImagesParams', () => {
     expect('jpegQuality' in tiff).toBe(false);
   });
 
+  it('names the files after the document, not after the working copy it is read from', () => {
+    // The dialog reads rev-0000.pdf (the current revision); {name} must still be the document name.
+    const p = pdfToImagesParams(form, {
+      path: 'C:/sessions/s1/rev-0000.pdf',
+      docName: 'Hợp đồng {1}.pdf',
+    });
+    expect(p.nameTemplate).toBe('Hợp đồng _1__{page}');
+  });
+
+  it('keeps {name} for the core when no document name is given', () => {
+    expect(pdfToImagesParams(form, { path: 'x.pdf' }).nameTemplate).toBe('{name}_{page}');
+  });
+
   it('passes the password only when given and leaves the pages out when empty', () => {
     const p = pdfToImagesParams(form, { path: 'x.pdf', password: 'pw', pages: [] });
     expect(p.password).toBe('pw');
