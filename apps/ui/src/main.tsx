@@ -10,6 +10,10 @@ import { i18n } from './i18n';
 import { initBridge } from './lib/bridge';
 import { applyTheme } from './app/theme';
 import { App } from './app/App';
+import { useUi } from './app/state/ui';
+
+// Test hook for e2e (ui-audit): lets Playwright open any dialog or tab via getState()/openDialog().
+(window as unknown as { __chefUi?: typeof useUi }).__chefUi = useUi;
 
 async function main() {
   const root = createRoot(document.getElementById('root')!);
