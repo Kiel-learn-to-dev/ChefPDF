@@ -11,6 +11,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable, Iterable, Iterator
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -126,21 +127,26 @@ class OpContext:
         job_id: str,
         work_dir: Path,
         input_path: Path | None = None,
+        source_path: Path | None = None,
         result_path: Path | None = None,
         doc_name: str = "document",
         cancel_event: threading.Event | None = None,
+        cancel_check: Callable[[], None] | None = None,
         progress_sink: ProgressSink | None = None,
     ) -> None:
         self.job_id = job_id
         self.work_dir = work_dir
         self.input_path = input_path
+        self.source_path = source_path
         self.result_path = result_path
         self.doc_name = doc_name
         self.warnings: list[str] = []
         self.modified = False
+        self._cancel_cleanups: list[Callable[[], None]] = []
         # Protection of the session document (EncryptionState or None), set by the session.
         self.protection: EncryptionState | None = None
         self._cancel = cancel_event or threading.Event()
+        self._cancel_check = cancel_check
         self._sink = progress_sink
         self._last_progress = 0.0
 
@@ -153,6 +159,17 @@ class OpContext:
     def check_cancelled(self) -> None:
         if self._cancel.is_set():
             raise CancelledError()
+        if self._cancel_check is not None:
+            self._cancel_check()
+
+    def on_cancel(self, cleanup: Callable[[], None]) -> None:
+        """Register cleanup for outputs produced before a cancellation is observed."""
+        self._cancel_cleanups.append(cleanup)
+
+    def cleanup_cancelled(self) -> None:
+        for cleanup in reversed(self._cancel_cleanups):
+            with suppress(OSError):
+                cleanup()
 
     def progress(self, done: int, total: int, message: str | None = None) -> None:
         """Report progress (throttled) and check for cancellation."""

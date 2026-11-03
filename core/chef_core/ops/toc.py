@@ -10,7 +10,7 @@ Headings come from ``chef_core.layout.detect`` (font size clusters, bold lines, 
 headings at or above ``minConfidence`` and at most ``maxLevel`` deep are used; a heading that is
 filtered out does not break the nesting of the ones kept.
 
-``toc.insertPage`` (a generated contents page with links) is not implemented in this milestone.
+``toc.insertPage`` inserts a generated Vietnamese contents page at the front of the PDF.
 """
 
 from __future__ import annotations
@@ -18,9 +18,11 @@ from __future__ import annotations
 import re
 from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
+from chef_core.errors import invalid_params
 from chef_core.layout.detect import DetectOptions, HeadingRef, build_doc_model
+from chef_core.layout.toc_page import insert_contents
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
 from chef_core.ops.bookmarks import MAX_TITLE, BookmarkNode, _items
@@ -41,6 +43,29 @@ class TocParams(WireModel):
 
 class TocFromHeadingsParams(TocParams):
     mode: Literal["replace", "append"] = Field(default="replace")
+
+
+class TocInsertPageParams(TocParams):
+    title: str = Field(default="Mục lục", min_length=1, max_length=100)
+    placement: Literal["front", "back", "afterPage"] = "front"
+    after_page: int | None = Field(default=None, ge=1, description="1-based page number")
+    page_size: Literal["source", "a4"] = "source"
+    dot_leader: bool = True
+    page_number_offset: int = Field(default=0, ge=-100_000, le=100_000)
+    font_scale: float = Field(default=1.0, ge=0.5, le=2.0)
+    link_entries: bool = True
+    add_bookmark: bool = Field(
+        default=False,
+        description="Append generated heading bookmarks to the existing outline.",
+    )
+
+    @model_validator(mode="after")
+    def _placement_page(self) -> TocInsertPageParams:
+        if self.placement == "afterPage" and self.after_page is None:
+            raise ValueError("afterPage placement requires afterPage")
+        if self.placement != "afterPage" and self.after_page is not None:
+            raise ValueError("afterPage is only valid with afterPage placement")
+        return self
 
 
 def _title(text: str, include_numbering: bool) -> str:
@@ -114,4 +139,58 @@ def from_headings(ctx: OpContext, p: TocFromHeadingsParams) -> OpOutput:
     return OpOutput(changed_pages=[], data={"count": _count(tree)})
 
 
-__all__ = ["TocFromHeadingsParams", "TocParams", "from_headings", "preview"]
+@operation(
+    id="toc.insertPage",
+    title="Insert a table of contents page",
+    group="toc",
+    params=TocInsertPageParams,
+    destructive=True,
+)
+def insert_page(ctx: OpContext, p: TocInsertPageParams) -> OpOutput:
+    if ctx.input_path is None:
+        raise RuntimeError("toc.insertPage needs a session")
+    headings = _tree(_analysis(ctx), p)
+    with ctx.open_input() as pdf:
+        original_page_count = len(pdf.pages)
+        if p.placement == "front":
+            insertion_index = 0
+        elif p.placement == "back":
+            insertion_index = original_page_count
+        else:
+            assert p.after_page is not None
+            if p.after_page > original_page_count:
+                raise invalid_params(
+                    "afterPage is outside the document", {"field": "afterPage"}
+                )
+            insertion_index = p.after_page
+        count = insert_contents(
+            pdf,
+            headings,
+            title=p.title,
+            insertion_index=insertion_index,
+            page_size=p.page_size,
+            dot_leader=p.dot_leader,
+            page_number_offset=p.page_number_offset,
+            font_scale=p.font_scale,
+            link_entries=p.link_entries,
+        )
+        if p.add_bookmark:
+            node = BookmarkNode(title=p.title, page=insertion_index)
+            items = _items(pdf, [node])
+            with pdf.open_outline() as outline:
+                outline.root.extend(items)
+        ctx.save_document(pdf)
+    return OpOutput(
+        changed_pages="all",
+        data={"count": _count(headings), "insertedPages": count, "insertionIndex": insertion_index},
+    )
+
+
+__all__ = [
+    "TocFromHeadingsParams",
+    "TocInsertPageParams",
+    "TocParams",
+    "from_headings",
+    "insert_page",
+    "preview",
+]

@@ -37,7 +37,7 @@ from chef_core.export.ir import (
 )
 from chef_core.export.text import clean, merge_runs, xml_escape
 from chef_core.layout.model import Run
-from chef_core.pdf.io import atomic_write
+from chef_core.pdf.io import atomic_write_new
 
 # XML templates are clearer as whole string literals.
 # ruff: noqa: E501
@@ -379,7 +379,7 @@ def write_odt(ir: DocIR, out: Path) -> ExportResult:
     def write(tmp: Path) -> None:
         tmp.write_bytes(data)
 
-    atomic_write(out, write)
+    atomic_write_new(out, write)
     return ExportResult(
         outputs=[str(out)],
         warnings=list(ir.warnings),

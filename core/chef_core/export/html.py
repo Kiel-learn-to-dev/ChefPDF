@@ -17,7 +17,13 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from urllib.parse import quote
 
-from chef_core.export.files import assets_folder, image_name, write_bytes, write_text
+from chef_core.export.files import (
+    assets_folder,
+    create_assets_folder,
+    image_name,
+    write_bytes,
+    write_text,
+)
 from chef_core.export.fonts import css_stack
 from chef_core.export.ir import (
     CellIR,
@@ -236,7 +242,7 @@ def write_html(ir: DocIR, out: Path, *, embed: bool) -> ExportResult:
     text, files = render(ir, embed=embed, folder=folder.name)
     outputs: list[str] = []
     if files and not embed:
-        folder.mkdir(parents=True, exist_ok=True)
+        create_assets_folder(folder)
         for name, data in files:
             target = folder / name
             write_bytes(target, data)

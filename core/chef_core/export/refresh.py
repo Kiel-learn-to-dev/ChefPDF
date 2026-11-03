@@ -58,7 +58,7 @@ from chef_core.export.ir import (
 from chef_core.export.options import ExportOptions
 from chef_core.export.text import merge_runs, plain, squash
 from chef_core.layout.model import Run
-from chef_core.pdf.io import atomic_write
+from chef_core.pdf.io import atomic_write_new
 from chef_core.text.fonts import fonts_dir
 
 REG = "ChefSans"
@@ -354,7 +354,7 @@ def write_refresh(ir: DocIR, out: Path, opts: ExportOptions) -> ExportResult:
     def write(tmp: Path) -> None:
         holder["warnings"] = build_pdf(tmp, ir, opts)
 
-    atomic_write(out, write)
+    atomic_write_new(out, write)
     warnings = sorted(set(ir.warnings + holder.get("warnings", [])))
     pages = len([it for it in ir.items if isinstance(it, PageMark)])
     return ExportResult(

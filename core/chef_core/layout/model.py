@@ -66,6 +66,10 @@ class ListItem(WireModel):
     runs: list[Run] = Field(default_factory=list)
     marker: str | None = Field(default=None, description="The marker as printed (e.g. '1.', '•').")
     children: list[ListItem] = Field(default_factory=list)
+    bbox: BBox | None = Field(
+        default=None,
+        description="Detected item bounds in display points; absent in hand-edited/older models.",
+    )
 
 
 class ListBlock(_Block):

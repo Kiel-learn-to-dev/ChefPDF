@@ -3,6 +3,7 @@ names of batch jobs."""
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from conftest import Harness, RpcFailure
 from layout_support import report_pdf
 from pytest import raises
 
+from chef_core.export import markdown as export_markdown
 from chef_core.export.names import OutputRule, target_for
 from chef_core.ops import load_builtin_ops
 from chef_core.ops.base import get_op, registry
@@ -48,7 +50,7 @@ def test_export_document_writes_markdown_from_a_session(harness: Harness, tmp_pa
 def test_export_document_every_format(harness: Harness, tmp_path: Path) -> None:
     sid = _sid(harness, report_pdf(tmp_path / "r.pdf", pages=6))
     for fmt in ("md", "html", "txt", "json", "epub", "odt", "xlsx", "docx"):
-        out = tmp_path / f"r-all.{fmt}"
+        out = tmp_path / f"r-all-{fmt}.{fmt}"
         harness.op("export.document", {"format": fmt, "outputPath": str(out)}, sid)
         assert out.is_file() and out.stat().st_size > 100, fmt
 
@@ -107,6 +109,72 @@ def test_export_refresh_op_writes_a_pdf(harness: Harness, tmp_path: Path) -> Non
     with pikepdf.open(out) as pdf:
         assert abs(float(pdf.pages[0].MediaBox[2]) - 612) < 1
         assert len(pdf.pages) == data["pages"]
+
+
+def test_export_rejects_source_and_current_revision_as_destinations(
+    harness: Harness, tmp_path: Path
+) -> None:
+    source = report_pdf(tmp_path / "source.pdf", pages=2)
+    original = source.read_bytes()
+    sid = _sid(harness, source)
+    revision = Path(harness.call("session.state", {"sessionId": sid})["revisionPath"])
+    for target in (source, revision):
+        before = target.read_bytes()
+        for op, params in (
+            ("export.refresh", {"outputPath": str(target)}),
+            ("export.document", {"format": "txt", "outputPath": str(target)}),
+        ):
+            with raises(RpcFailure):
+                harness.op(op, params, sid)
+            assert target.read_bytes() == before
+    assert source.read_bytes() == original
+
+
+def test_export_rejects_hard_link_and_symlink_aliases(
+    harness: Harness, tmp_path: Path
+) -> None:
+    source = report_pdf(tmp_path / "source.pdf", pages=2)
+    sid = _sid(harness, source)
+    revision = Path(harness.call("session.state", {"sessionId": sid})["revisionPath"])
+    hard_link = tmp_path / "source-hardlink.pdf"
+    os.link(source, hard_link)
+    aliases = [hard_link]
+    symlink = tmp_path / "revision-symlink.pdf"
+    try:
+        symlink.symlink_to(revision)
+    except OSError:
+        pass  # Symlink creation is unavailable on some Windows configurations.
+    else:
+        aliases.append(symlink)
+
+    for target in aliases:
+        before = target.read_bytes()
+        with raises(RpcFailure):
+            harness.op("export.refresh", {"outputPath": str(target)}, sid)
+        assert target.read_bytes() == before
+
+
+def test_export_preserves_a_destination_created_after_validation(
+    harness: Harness, monkeypatch: Any, tmp_path: Path
+) -> None:
+    source = report_pdf(tmp_path / "source.pdf", pages=2)
+    sid = _sid(harness, source)
+    target = tmp_path / "external.md"
+    marker = b"created by another actor"
+    original_write = export_markdown.write_bytes
+
+    def write_asset_after_creating_external_target(path: Path, data: bytes) -> None:
+        if not target.exists():
+            target.write_bytes(marker)
+        original_write(path, data)
+
+    monkeypatch.setattr(export_markdown, "write_bytes", write_asset_after_creating_external_target)
+
+    with raises(RpcFailure):
+        harness.op("export.document", {"format": "md", "outputPath": str(target)}, sid)
+
+    assert target.read_bytes() == marker
+    assert not (tmp_path / "external_files").exists()
 
 
 def test_batch_exports_each_file_and_reports_per_file(harness: Harness, tmp_path: Path) -> None:

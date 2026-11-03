@@ -16,18 +16,21 @@ Scanned pages (no text layer) are reported as ``PAGE_HAS_NO_TEXT_LAYER``; OCR is
 from __future__ import annotations
 
 import hashlib
+from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field
 
+from chef_core.errors import ChefError, ErrorKind
 from chef_core.layout.detect import DetectOptions, build_doc_model
-from chef_core.layout.model import block_kinds, dump_json
+from chef_core.layout.model import DocModel, Run, block_kinds, dump_json
 from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
 from chef_core.pdf.pages import check_indices
 
 LANGUAGE_MAX = 12
+MAX_DIFF_MATCH_LENGTH = 4096
 
 
 class AnalyzeParams(WireModel):
@@ -49,6 +52,19 @@ class PageModelParams(WireModel):
         default=False,
         description="Analyse the whole document, so repeated furniture is recognised.",
     )
+
+
+class ReviewChange(WireModel):
+    page_index: int = Field(ge=0)
+    block_index: int = Field(ge=0)
+    kind: Literal["heading", "paragraph", "header", "footer", "pageNumber", "footnote", "unknown"]
+    level: int = Field(default=1, ge=1, le=6)
+    text: str | None = Field(default=None, max_length=100_000)
+
+
+class ReviewParams(WireModel):
+    model_path: str = Field(min_length=1, max_length=1024)
+    changes: list[ReviewChange] = Field(max_length=5000)
 
 
 def _options(p: AnalyzeParams) -> DetectOptions:
@@ -119,6 +135,122 @@ def page_model(ctx: OpContext, p: PageModelParams) -> OpOutput:
             "columns": analysis.columns.get(p.page_index, 1),
             "warnings": [w for w in analysis.warnings if w["page"] == p.page_index],
         },
+    )
+
+
+def _replace_run_text(runs: list[dict[str, Any]], text: str) -> list[dict[str, Any]]:
+    """Replace visible block text while keeping formatting on unchanged text spans.
+
+    Inserted text inherits the style at the edit point; a wholly new block inherits the first run.
+    """
+    old_runs = [Run.model_validate(run) for run in runs]
+    old_text = "".join(run.text for run in old_runs)
+    if old_text == text:
+        return runs
+    if not old_runs:
+        return [Run(text=text).model_dump(mode="json", by_alias=True)] if text else []
+
+    spans: list[tuple[int, int, Run]] = []
+    cursor = 0
+    for run in old_runs:
+        spans.append((cursor, cursor + len(run.text), run))
+        cursor += len(run.text)
+
+    def style_at(position: int) -> Run:
+        for start, end, run in spans:
+            if start <= position < end:
+                return run
+        for start, end, run in spans:
+            if start < position <= end:
+                return run
+        return old_runs[-1] if position >= len(old_text) else old_runs[0]
+
+    output: list[Run] = []
+
+    def append(run: Run, value: str) -> None:
+        if not value:
+            return
+        if output and output[-1].model_dump(exclude={"text"}) == run.model_dump(exclude={"text"}):
+            output[-1] = output[-1].model_copy(update={"text": output[-1].text + value})
+        else:
+            output.append(run.model_copy(update={"text": value}))
+
+    def append_range(start: int, end: int) -> None:
+        for run_start, run_end, run in spans:
+            left, right = max(run_start, start), min(run_end, end)
+            if left < right:
+                append(run, old_text[left:right])
+
+    if max(len(old_text), len(text)) > MAX_DIFF_MATCH_LENGTH:
+        # SequenceMatcher with autojunk disabled has quadratic worst cases on repeated text.
+        # For large blocks preserve the common prefix and suffix exactly and style only the
+        # replaced middle from the run at the edit point. This is linear in the input length.
+        prefix = 0
+        prefix_limit = min(len(old_text), len(text))
+        while prefix < prefix_limit and old_text[prefix] == text[prefix]:
+            prefix += 1
+        suffix = 0
+        suffix_limit = min(len(old_text) - prefix, len(text) - prefix)
+        while suffix < suffix_limit and old_text[-suffix - 1] == text[-suffix - 1]:
+            suffix += 1
+        append_range(0, prefix)
+        middle_end = len(text) - suffix
+        append(style_at(prefix), text[prefix:middle_end])
+        if suffix:
+            append_range(len(old_text) - suffix, len(old_text))
+        return [run.model_dump(mode="json", by_alias=True) for run in output]
+
+    matcher = SequenceMatcher(None, old_text, text, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            for start, end, run in spans:
+                left, right = max(start, i1), min(end, i2)
+                if left < right:
+                    append(run, old_text[left:right])
+        elif tag in ("insert", "replace"):
+            append(style_at(i1), text[j1:j2])
+    return [run.model_dump(mode="json", by_alias=True) for run in output]
+
+
+@operation(
+    id="layout.review", title="Review document structure", group="layout", params=ReviewParams
+)
+def review(ctx: OpContext, p: ReviewParams) -> OpOutput:
+    """Write a validated reviewed model alongside this session's analysis, never the PDF."""
+    if ctx.input_path is None:
+        raise RuntimeError("layout.review needs a session")
+    folder = (ctx.input_path.parent / "layout").resolve()
+    path = Path(p.model_path).resolve()
+    if path.parent != folder or not path.name.startswith("model-") or path.suffix != ".json":
+        raise ChefError(ErrorKind.INVALID_PARAMS, "Model must belong to this session")
+    try:
+        model = DocModel.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ChefError(ErrorKind.INVALID_PARAMS, "Invalid document model") from exc
+    data = model.model_dump(mode="json", by_alias=True)
+    pages = {page["index"]: page for page in data["pages"]}
+    for change in p.changes:
+        page = pages.get(change.page_index)
+        if page is None or change.block_index >= len(page["blocks"]):
+            raise ChefError(ErrorKind.INVALID_PARAMS, "Block not found")
+        block = page["blocks"][change.block_index]
+        if "runs" not in block:
+            raise ChefError(ErrorKind.INVALID_PARAMS, "Only text blocks can change type")
+        replacement = {
+            key: block[key] for key in ("bbox", "readingOrder", "sourceRefs", "confidence", "runs")
+        }
+        replacement["kind"] = change.kind
+        if change.text is not None:
+            replacement["runs"] = _replace_run_text(block["runs"], change.text)
+        if change.kind == "heading":
+            replacement["level"] = change.level
+        page["blocks"][change.block_index] = replacement
+    reviewed = DocModel.model_validate(data)
+    text = dump_json(reviewed)
+    output = _model_path(ctx, text)
+    output.write_text(text, encoding="utf-8", newline="\n")
+    return OpOutput(
+        changed_pages=[], data={"modelPath": str(output), "model": data}, outputs=[str(output)]
     )
 
 

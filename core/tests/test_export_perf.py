@@ -20,7 +20,7 @@ def test_fifty_pages_md_html_docx_each_under_the_limit(tmp_path: Path) -> None:
     model = load_model(src, None, None, "big")
     cases = [
         ("md", "big.md", ExportOptions()),
-        ("html", "big.html", ExportOptions()),
+        ("html", "big-html.html", ExportOptions()),
         ("docx", "big-editable.docx", ExportOptions(mode="editable")),
         ("docx", "big-layout.docx", ExportOptions(mode="layout")),
     ]

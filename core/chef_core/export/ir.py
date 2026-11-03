@@ -55,6 +55,7 @@ class ListNode:
     runs: list[Run]
     marker: str | None
     children: list[ListNode] = field(default_factory=list)
+    bbox: BBox | None = None
 
 
 @dataclass
@@ -189,6 +190,7 @@ def _list_nodes(items: list[m.ListItem]) -> list[ListNode]:
                 runs=runs,
                 marker=marker or None,
                 children=_list_nodes(item.children),
+                bbox=item.bbox,
             )
         )
     return out

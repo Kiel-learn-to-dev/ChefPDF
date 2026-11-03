@@ -104,8 +104,10 @@ def test_list_items_nest_by_indent_with_markers(tmp_path: Path) -> None:
     lst = lists[0]
     assert isinstance(lst, ListBlock) and lst.ordered is True
     assert [item.marker for item in lst.items] == ["1.", "2.", "3."]
+    assert all(item.bbox is not None for item in lst.items)
     nested = lst.items[1].children
     assert [item.marker for item in nested] == ["a.", "b."]
+    assert all(item.bbox is not None for item in nested)
     assert "".join(r.text for r in nested[0].runs).startswith("a. con a")
 
 

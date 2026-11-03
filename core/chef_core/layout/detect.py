@@ -744,7 +744,7 @@ def _list_block(group: list[Item], ctx: PageCtx) -> ListBlock:
     levels: list[tuple[float, ListItem, list[ListItem]]] = []
     for it in group:
         runs = _space_after_marker(runs_of(it.lines, ctx), it.marker)
-        li = ListItem(runs=runs, marker=it.marker)
+        li = ListItem(runs=runs, marker=it.marker, bbox=ctx.disp(it.box))
         x = it.box[0]
         size, _ = _dominant(it.lines)
         while levels and x < levels[-1][0] - ALIGN_TOL:

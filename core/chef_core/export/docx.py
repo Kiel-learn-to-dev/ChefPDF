@@ -8,8 +8,8 @@ footer text goes into the section header and footer (when ``includeHeadersFooter
 field for page numbers. ``pageBreaks`` starts a new page at each source page. Language vi-VN.
 
 ``layout`` ("giữ bố cục"): one section per source page, with the source page size and zero
-margins. Every block is a set of paragraphs with a ``w:framePr`` at its position (one frame per
-block; a list is one frame), tables are floating tables (``w:tblpPr``) with fixed widths, images
+margins. Every block is a set of paragraphs with a ``w:framePr`` at its position, tables are
+floating tables (``w:tblpPr``) with fixed widths, images
 are anchored pictures (``wp:anchor``) relative to the page. Fonts: the source font mapped to Times
 New Roman, Courier New or Arial (``fonts.installed_name``); Be Vietnam Pro is kept when used.
 
@@ -19,6 +19,7 @@ Vietnamese: every run gets rFonts for ascii, hAnsi, eastAsia and cs, and the Nor
 from __future__ import annotations
 
 import io
+import math
 from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
@@ -27,6 +28,11 @@ from typing import Any
 from docx import Document
 from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_BREAK, WD_LINE_SPACING
+from docx.image.exceptions import (
+    InvalidImageStreamError,
+    UnexpectedEndOfFileError,
+    UnrecognizedImageError,
+)
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
@@ -54,7 +60,7 @@ from chef_core.export.ir import (
 from chef_core.export.options import ExportOptions
 from chef_core.export.text import squash
 from chef_core.layout.model import Run
-from chef_core.pdf.io import atomic_write
+from chef_core.pdf.io import atomic_write_new
 
 PT_TO_EMU = 12700
 PT_TO_TWIPS = 20
@@ -302,7 +308,10 @@ def _picture_paragraph(doc: Any, item: ImageBlock, max_width: float) -> None:
         return
     width = min(item.width or max_width, max_width)
     paragraph = doc.add_paragraph()
-    paragraph.add_run().add_picture(io.BytesIO(item.asset.data), width=Pt(width))
+    try:
+        paragraph.add_run().add_picture(io.BytesIO(item.asset.data), width=Pt(width))
+    except (InvalidImageStreamError, UnexpectedEndOfFileError, UnrecognizedImageError):
+        paragraph.add_run("[Hình không trích được]").italic = True
 
 
 def _furniture(section: Any, ir: DocIR, font: str) -> None:
@@ -364,7 +373,7 @@ def write_editable(ir: DocIR, out: Path, opts: ExportOptions) -> ExportResult:
                 write_runs(paragraph, [Run(text=squash(item.caption), italic=True)], font, 9, False)
         elif isinstance(item, Rule):
             _bottom_border(doc.add_paragraph())
-    atomic_write(out, lambda tmp: doc.save(str(tmp)))
+    atomic_write_new(out, lambda tmp: doc.save(str(tmp)))
     return _result(ir, out)
 
 
@@ -463,9 +472,14 @@ def _anchored_picture(doc: Any, item: ImageBlock) -> None:
     width = max(1.0, x1 - x0)
     height = max(1.0, y1 - y0)
     run = host.add_run()
-    run.add_picture(
-        io.BytesIO(item.asset.data if item.asset else b""), width=Pt(width), height=Pt(height)
-    )
+    try:
+        if item.asset is None:
+            raise UnrecognizedImageError("no image data")
+        run.add_picture(io.BytesIO(item.asset.data), width=Pt(width), height=Pt(height))
+    except (InvalidImageStreamError, UnexpectedEndOfFileError, UnrecognizedImageError):
+        run.italic = True
+        run.add_text("[Hình không trích được]")
+        return
     inline = run._r.find(".//" + qn("wp:inline"))
     if inline is None:
         return
@@ -523,17 +537,45 @@ def _layout_items(doc: Any, items: list[Item], font: str, body: float) -> None:
 
 
 def _layout_list(doc: Any, block: ListBlock, font: str, body: float) -> None:
-    """A list is one frame: every item is a paragraph with its marker as text and an indent."""
+    """Position items in estimated-height slices within the detected list region.
 
-    def walk(nodes: list[ListNode], depth: int) -> None:
+    When item geometry is missing, wrapping is estimated from text length and available width.
+    That fallback is a placement heuristic, not a substitute for source geometry.
+    """
+    entries: list[tuple[ListNode, int, int]] = []
+
+    def collect(nodes: list[ListNode], depth: int) -> None:
         for number, node in enumerate(nodes, start=1):
-            paragraph = _frame_paragraph(doc, block.bbox, body)
-            paragraph.paragraph_format.left_indent = Pt(LIST_INDENT_PT * depth)
-            marker = node.marker or (f"{number}." if block.ordered else "•")
-            write_runs(paragraph, [Run(text=marker + " "), *node.runs], font, body, True)
-            walk(node.children, depth + 1)
+            entries.append((node, depth, number))
+            collect(node.children, depth + 1)
 
-    walk(block.items, 0)
+    collect(block.items, 0)
+    if not entries:
+        return
+    x0, y0, x1, y1 = block.bbox
+    height = max(1.0, y1 - y0)
+    widths = [max(1.0, x1 - x0 - LIST_INDENT_PT * depth) for _, depth, _ in entries]
+    line_counts = [
+        max(1, math.ceil(sum(len(run.text) for run in node.runs) * body * 0.5 / width))
+        for (node, _, _), width in zip(entries, widths, strict=True)
+    ]
+    total_lines = sum(line_counts)
+    cursor = y0
+    use_item_boxes = all(node.bbox is not None for node, _, _ in entries)
+    for (node, depth, number), lines in zip(entries, line_counts, strict=True):
+        if use_item_boxes:
+            assert node.bbox is not None
+            item_box = node.bbox
+        else:
+            top = cursor
+            bottom = cursor + height * lines / total_lines
+            item_box = (x0, top, x1, bottom)
+            cursor = bottom
+        paragraph = _frame_paragraph(doc, item_box, body)
+        if not use_item_boxes:
+            paragraph.paragraph_format.left_indent = Pt(LIST_INDENT_PT * depth)
+        marker = node.marker or (f"{number}." if block.ordered else "•")
+        write_runs(paragraph, [Run(text=marker + " "), *node.runs], font, body, True)
 
 
 def _page_groups(ir: DocIR) -> list[tuple[PageMark, list[Item]]]:
@@ -564,7 +606,7 @@ def write_layout(ir: DocIR, out: Path) -> ExportResult:
         _layout_items(doc, items, font, body)
     if not pages:
         doc.add_paragraph()
-    atomic_write(out, lambda tmp: doc.save(str(tmp)))
+    atomic_write_new(out, lambda tmp: doc.save(str(tmp)))
     return _result(ir, out)
 
 

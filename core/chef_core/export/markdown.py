@@ -19,7 +19,13 @@ from collections.abc import Sequence
 from pathlib import Path
 from urllib.parse import quote
 
-from chef_core.export.files import assets_folder, image_name, write_bytes, write_text
+from chef_core.export.files import (
+    assets_folder,
+    create_assets_folder,
+    image_name,
+    write_bytes,
+    write_text,
+)
 from chef_core.export.ir import (
     CellIR,
     DocIR,
@@ -166,7 +172,7 @@ def write_markdown(ir: DocIR, out: Path, include_images: bool = True) -> ExportR
     text, files, warnings = render(ir, folder.name)
     outputs: list[str] = []
     if files and include_images:
-        folder.mkdir(parents=True, exist_ok=True)
+        create_assets_folder(folder)
         for name, data in files:
             target = folder / name
             write_bytes(target, data)

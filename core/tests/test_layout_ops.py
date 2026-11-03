@@ -62,6 +62,149 @@ def test_analyze_is_repeatable(harness: Harness, tmp_path: Path) -> None:
     assert first == second
 
 
+def test_review_changes_heading_to_paragraph_without_changing_pdf(
+    harness: Harness, tmp_path: Path
+) -> None:
+    source = report_pdf(tmp_path / "review.pdf", pages=6)
+    original = source.read_bytes()
+    sid = _sid(harness, source)
+    analyzed = harness.op("layout.analyze", {"includeModel": True}, sid)["data"]
+    page = analyzed["model"]["pages"][0]
+    index = next(i for i, block in enumerate(page["blocks"]) if block["kind"] == "heading")
+    result = harness.op(
+        "layout.review",
+        {
+            "modelPath": analyzed["modelPath"],
+            "changes": [{"pageIndex": 0, "blockIndex": index, "kind": "paragraph"}],
+        },
+        sid,
+    )["data"]
+    revised = DocModel.model_validate_json(Path(result["modelPath"]).read_text(encoding="utf-8"))
+    assert revised.pages[0].blocks[index].kind == "paragraph"
+    assert revised.pages[0].blocks[index].source_refs == page["blocks"][index]["sourceRefs"]
+    assert source.read_bytes() == original
+    output = tmp_path / "review.txt"
+    harness.op(
+        "export.document",
+        {"format": "txt", "outputPath": str(output), "modelPath": result["modelPath"]},
+        sid,
+    )
+    assert output.is_file()
+
+
+def test_review_rejects_reclassifying_tables_and_images_as_unknown(
+    harness: Harness, tmp_path: Path
+) -> None:
+    sid = _sid(harness, report_pdf(tmp_path / "protected-regions.pdf", pages=6))
+    analyzed = harness.op("layout.analyze", {"includeModel": True}, sid)["data"]
+    page = next(
+        page
+        for page in analyzed["model"]["pages"]
+        if any(block["kind"] == "table" for block in page["blocks"])
+        and any(block["kind"] == "image" for block in page["blocks"])
+    )
+
+    for kind in ("table", "image"):
+        index = next(i for i, block in enumerate(page["blocks"]) if block["kind"] == kind)
+        with raises(RpcFailure):
+            harness.op(
+                "layout.review",
+                {
+                    "modelPath": analyzed["modelPath"],
+                    "changes": [
+                        {"pageIndex": page["index"], "blockIndex": index, "kind": "unknown"}
+                    ],
+                },
+                sid,
+            )
+
+
+def test_review_replaces_text_and_export_uses_the_correction(
+    harness: Harness, tmp_path: Path
+) -> None:
+    source = report_pdf(tmp_path / "text-review.pdf", pages=6)
+    sid = _sid(harness, source)
+    analyzed = harness.op("layout.analyze", {"includeModel": True}, sid)["data"]
+    page = analyzed["model"]["pages"][0]
+    index = next(i for i, block in enumerate(page["blocks"]) if block["kind"] == "heading")
+    original_text = "".join(run["text"] for run in page["blocks"][index]["runs"])
+    corrected_text = original_text.replace("Báo cáo", "BÁO CÁO")
+
+    result = harness.op(
+        "layout.review",
+        {
+            "modelPath": analyzed["modelPath"],
+            "changes": [
+                {"pageIndex": 0, "blockIndex": index, "kind": "heading", "text": corrected_text}
+            ],
+        },
+        sid,
+    )["data"]
+    revised = DocModel.model_validate_json(Path(result["modelPath"]).read_text(encoding="utf-8"))
+    assert "".join(run.text for run in revised.pages[0].blocks[index].runs) == corrected_text
+
+    output = tmp_path / "corrected.txt"
+    harness.op(
+        "export.document",
+        {"format": "txt", "outputPath": str(output), "modelPath": result["modelPath"]},
+        sid,
+    )
+    assert corrected_text in output.read_text(encoding="utf-8")
+
+
+def test_review_text_edit_preserves_unchanged_run_styles() -> None:
+    from chef_core.ops.layout import _replace_run_text
+
+    runs = [
+        {"text": "Mở ", "bold": True},
+        {"text": "bài", "italic": True},
+    ]
+    revised = _replace_run_text(runs, "Mới bài!")
+
+    assert "".join(run["text"] for run in revised) == "Mới bài!"
+    assert any(run["text"].startswith("Mới") and run["bold"] for run in revised)
+    assert any(run["text"].startswith("bài") and run["italic"] for run in revised)
+
+
+def test_review_text_edit_handles_large_repeated_text_and_preserves_styles() -> None:
+    from chef_core.ops.layout import _replace_run_text
+
+    prefix = "lặp lại " * 8_000
+    suffix = " nội dung cũ" * 8_000
+    new = prefix + "Y" + suffix
+    revised = _replace_run_text(
+        [
+            {"text": prefix, "bold": True},
+            {"text": "X", "italic": True},
+            {"text": suffix, "underline": True},
+        ],
+        new,
+    )
+
+    assert "".join(run["text"] for run in revised) == new
+    assert revised[0]["text"] == prefix and revised[0]["bold"]
+    assert any(run["text"] == "Y" and run["italic"] for run in revised)
+    assert revised[-1]["text"] == suffix and revised[-1]["underline"]
+
+
+def test_review_rejects_foreign_model_and_missing_block(harness: Harness, tmp_path: Path) -> None:
+    sid = _sid(harness, report_pdf(tmp_path / "r.pdf", pages=6))
+    analyzed = harness.op("layout.analyze", {}, sid)["data"]
+    with raises(RpcFailure):
+        harness.op(
+            "layout.review",
+            {
+                "modelPath": analyzed["modelPath"],
+                "changes": [{"pageIndex": 0, "blockIndex": 9999, "kind": "paragraph"}],
+            },
+            sid,
+        )
+    foreign = tmp_path / "foreign.json"
+    foreign.write_bytes(Path(analyzed["modelPath"]).read_bytes())
+    with raises(RpcFailure):
+        harness.op("layout.review", {"modelPath": str(foreign), "changes": []}, sid)
+
+
 def test_analyze_reports_scanned_pages(harness: Harness, tmp_path: Path) -> None:
     sid = _sid(harness, scanned_page_pdf(tmp_path / "s.pdf"))
     summary = harness.op("layout.analyze", {}, sid)["data"]["summary"]

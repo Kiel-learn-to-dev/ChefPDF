@@ -17,7 +17,7 @@ from openpyxl import load_workbook
 
 from chef_core.export.assets import Assets
 from chef_core.export.docx import write_docx
-from chef_core.export.ir import build_ir
+from chef_core.export.ir import Asset, ImageBlock, build_ir
 from chef_core.export.options import ExportOptions
 from chef_core.export.xlsx import write_xlsx
 from chef_core.layout.model import DocModel
@@ -81,12 +81,17 @@ def _model_with_dates() -> DocModel:
 # -- XLSX --------------------------------------------------------------------------------------
 
 
-def test_xlsx_one_sheet_per_table_with_merges_and_values(tmp_path: Path) -> None:
+def test_xlsx_preserves_prose_and_exports_each_table_with_merges_and_values(
+    tmp_path: Path,
+) -> None:
     out = tmp_path / "t.xlsx"
     ir = build_ir(reference_model(), None, ExportOptions())
     result = write_xlsx(ir, out, parse_numbers=True)
     wb = load_workbook(out)
-    assert wb.sheetnames == ["Bảng 1 - trang 1"]
+    assert wb.sheetnames == ["Toàn bộ", "Bảng 1 - trang 1"]
+    prose = [cell.value for cell in wb["Toàn bộ"]["A"] if cell.value]
+    assert "Chương 1: Tổng quan" in prose
+    assert any(str(value).startswith("Đây là đoạn đậm và nghiêng") for value in prose)
     ws = wb["Bảng 1 - trang 1"]
     assert "A1:A2" in [str(r) for r in ws.merged_cells.ranges]
     assert "B1:C1" in [str(r) for r in ws.merged_cells.ranges]
@@ -225,6 +230,22 @@ def test_docx_editable_images_inline(tmp_path: Path) -> None:
     assert len(doc.inline_shapes) == 1
 
 
+def test_docx_bad_image_keeps_document_text_and_table_content(tmp_path: Path) -> None:
+    for mode in ("editable", "layout"):
+        ir = build_ir(reference_model(), None, ExportOptions(mode=mode))
+        image = next(item for item in ir.items if isinstance(item, ImageBlock))
+        image.asset = Asset(b"not a jpeg", "jpg")
+        out = tmp_path / f"bad-image-{mode}.docx"
+
+        write_docx(ir, out, ExportOptions(mode=mode))
+
+        doc = docx.Document(str(out))
+        body_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "[Hình không trích được]" in body_text
+        assert len(doc.tables) == 1
+        assert doc.tables[0].cell(0, 0).text.strip() == "Tên"
+
+
 # -- DOCX: layout ------------------------------------------------------------------------------
 
 
@@ -242,6 +263,54 @@ def test_docx_layout_one_section_per_page_with_frames(tmp_path: Path) -> None:
     first = frames[0]
     assert first.get(qn("w:hAnchor")) == "page" and first.get(qn("w:vAnchor")) == "page"
     assert first.get(qn("w:x")) is not None and first.get(qn("w:y")) is not None
+
+
+def test_docx_layout_list_items_have_distinct_vertical_positions(tmp_path: Path) -> None:
+    doc = _docx(tmp_path, "list-layout.docx", mode="layout")
+    positions = {}
+    for paragraph in doc.paragraphs:
+        if any(text in paragraph.text for text in ("Mục một", "Mục con a", "Mục hai")):
+            frame = paragraph._p.find(f".//{W}framePr")
+            assert frame is not None
+            positions[paragraph.text] = int(frame.get(qn("w:y")))
+    assert len(set(positions.values())) == 3
+    assert positions["1. Mục một"] < positions["a. Mục con a"] < positions["2. Mục hai"]
+
+
+def test_docx_layout_long_list_item_gets_more_vertical_space(tmp_path: Path) -> None:
+    data = reference_dict()
+    listing = next(b for b in data["pages"][0]["blocks"] if b["kind"] == "list")
+    listing["items"][0]["runs"] = [{"text": "Mục một " + "nội dung dài " * 20}]
+    listing["items"][0]["bbox"] = [60, 160, 500, 205]
+    listing["items"][0]["children"][0]["bbox"] = [80, 205, 500, 212]
+    listing["items"][1]["bbox"] = [60, 212, 500, 220]
+    doc = _docx(
+        tmp_path,
+        "long-list-layout.docx",
+        mode="layout",
+        model=DocModel.model_validate(data),
+    )
+    entries = {}
+    for paragraph in doc.paragraphs:
+        if any(text in paragraph.text for text in ("Mục một", "Mục con a", "Mục hai")):
+            frame = paragraph._p.find(f".//{W}framePr")
+            assert frame is not None
+            ppr = paragraph._p.find(f"{W}pPr")
+            indent = ppr.find(f"{W}ind") if ppr is not None else None
+            entries[paragraph.text] = (
+                int(frame.get(qn("w:y"))),
+                int(frame.get(qn("w:h"))),
+                int(frame.get(qn("w:x"))),
+                indent,
+            )
+    long_item = next(value for text, value in entries.items() if text.startswith("1. Mục một"))
+    child = entries["a. Mục con a"]
+    second = entries["2. Mục hai"]
+    assert long_item[1] > child[1]
+    assert long_item[0] < child[0] < second[0]
+    assert long_item[:3] == (3200, 900, 1200)
+    assert child[2] == 1600  # item bbox x is used once; no second indent in w:ind
+    assert child[3] is None
 
 
 def test_docx_layout_table_is_floating_with_fixed_width(tmp_path: Path) -> None:

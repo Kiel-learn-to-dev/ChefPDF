@@ -23,7 +23,7 @@ from openpyxl.utils import get_column_letter
 
 from chef_core.export.ir import DocIR, ExportResult, Heading, ListBlock, ListNode, Para, TableBlock
 from chef_core.export.text import plain
-from chef_core.pdf.io import atomic_write
+from chef_core.pdf.io import atomic_write_new
 
 SHEET_TEXT = "Toàn bộ"
 SHEET_MAX = 31
@@ -118,16 +118,26 @@ def _text_sheet(ws: Any, ir: DocIR) -> None:
     ws.column_dimensions["A"].width = 100
 
 
+def _has_text(ir: DocIR) -> bool:
+    return any(
+        (isinstance(item, Heading | Para) and bool(plain(item.runs)))
+        or (isinstance(item, ListBlock) and bool(item.items))
+        for item in ir.items
+    )
+
+
 def build_workbook(ir: DocIR, parse_numbers: bool) -> Workbook:
     wb = Workbook()
     wb.remove(wb.active)
     tables = [it for it in ir.items if isinstance(it, TableBlock)]
+    if _has_text(ir):
+        _text_sheet(wb.create_sheet(title=SHEET_TEXT), ir)
     if tables:
         for number, block in enumerate(tables, start=1):
             title = f"Bảng {number} - trang {block.page + 1}"[:SHEET_MAX]
             ws = wb.create_sheet(title=title)
             _write_table(ws, block, parse_numbers)
-    else:
+    elif not wb.worksheets:
         _text_sheet(wb.create_sheet(title=SHEET_TEXT), ir)
     if not wb.worksheets:
         wb.create_sheet(title=SHEET_TEXT)
@@ -139,7 +149,7 @@ def build_workbook(ir: DocIR, parse_numbers: bool) -> Workbook:
 
 def write_xlsx(ir: DocIR, out: Path, parse_numbers: bool = True) -> ExportResult:
     wb = build_workbook(ir, parse_numbers)
-    atomic_write(out, lambda tmp: wb.save(tmp))
+    atomic_write_new(out, lambda tmp: wb.save(tmp))
     tables = len(ir.blocks_of(TableBlock))
     return ExportResult(
         outputs=[str(out)],

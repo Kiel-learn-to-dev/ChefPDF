@@ -493,6 +493,35 @@
     "ListItem": {
       "additionalProperties": false,
       "properties": {
+        "bbox": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Detected item bounds in display points; absent in hand-edited/older models.",
+          "title": "Bbox"
+        },
         "children": {
           "items": {
             "$ref": "#/$defs/ListItem"

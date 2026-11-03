@@ -30,7 +30,7 @@ from typing import Any
 
 import pikepdf
 
-from chef_core.errors import ChefError, ErrorKind, invalid_params
+from chef_core.errors import CancelledError, ChefError, ErrorKind, invalid_params
 from chef_core.ops.base import OpContext, OpSpec
 from chef_core.pdf.io import atomic_copy, atomic_save, open_pdf, opened_pdf, write_json_atomic
 from chef_core.session.info import document_info, has_signatures
@@ -235,12 +235,17 @@ class Session:
                 {"opId": spec.id},
             )
         ctx.input_path = self.current_path
+        ctx.source_path = self.source_path
         ctx.result_path = self.dir / f".pending-{ctx.job_id}.pdf"
         ctx.doc_name = self.doc_name
         ctx.protection = self.effective_protection()
         try:
-            output = spec.run(ctx, params)
-            ctx.check_cancelled()
+            try:
+                output = spec.run(ctx, params)
+                ctx.check_cancelled()
+            except CancelledError:
+                ctx.cleanup_cancelled()
+                raise
             if ctx.modified:
                 self._commit(ctx.result_path, spec.id, params)
                 if spec.finalizing:

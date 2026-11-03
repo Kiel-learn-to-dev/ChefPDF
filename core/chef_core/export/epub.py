@@ -27,7 +27,7 @@ from pathlib import Path
 from chef_core.export.html import ImageSource, render_items, to_xhtml
 from chef_core.export.ir import DocIR, ExportResult, Heading, ImageBlock, Item, PageMark
 from chef_core.export.text import squash, xml_escape
-from chef_core.pdf.io import atomic_write
+from chef_core.pdf.io import atomic_write_new
 
 MIMETYPE = "application/epub+zip"
 CSS = """body { font-family: 'Be Vietnam Pro', Arial, sans-serif; line-height: 1.5;
@@ -226,7 +226,7 @@ def write_epub(ir: DocIR, out: Path, chapter_mode: str, per: int) -> ExportResul
     def write(tmp: Path) -> None:
         tmp.write_bytes(data)
 
-    atomic_write(out, write)
+    atomic_write_new(out, write)
     chapters = chapters_of(ir, chapter_mode, per)
     return ExportResult(
         outputs=[str(out)],

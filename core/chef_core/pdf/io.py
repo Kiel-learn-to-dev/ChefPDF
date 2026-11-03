@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import os
 import shutil
 import tempfile
 from collections.abc import Callable, Iterator
+from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Any
 
 import pikepdf
 
 from chef_core.errors import ChefError, ErrorKind
+
+CreatedOutputFn = Callable[[Path, os.stat_result], None]
+_CREATED_OUTPUTS: ContextVar[CreatedOutputFn | None] = ContextVar(
+    "created_outputs", default=None
+)
 
 
 def _path_detail(path: Path) -> dict[str, str]:
@@ -68,10 +75,91 @@ def _temp_path_in(directory: Path, stem: str) -> Path:
     return Path(name)
 
 
+def _same_file_identity(left: os.stat_result, right: os.stat_result) -> bool:
+    return left.st_dev == right.st_dev and left.st_ino == right.st_ino
+
+
+def _unlink_if_owned(path: Path, identity: os.stat_result) -> None:
+    try:
+        if _same_file_identity(path.stat(), identity):
+            path.unlink()
+    except OSError:
+        pass
+
+
+def _fallback_create_exclusive(tmp: Path, target: Path) -> None:
+    """Copy into an exclusive destination when the filesystem cannot hardlink temp files.
+
+    The destination is visible while copying on these filesystems, so this preserves no-clobber
+    and cleanup safety but not atomic visibility.
+    """
+    try:
+        flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0)
+        fd = os.open(target, flags, 0o666)
+    except FileExistsError as exc:
+        raise ChefError(
+            ErrorKind.INVALID_PARAMS,
+            "Output already exists",
+            _path_detail(target),
+        ) from exc
+
+    identity = os.fstat(fd)
+    try:
+        stream = os.fdopen(fd, "wb")
+        fd = -1
+        with stream as destination, open(tmp, "rb") as source:
+            shutil.copyfileobj(source, destination)
+            destination.flush()
+            os.fsync(destination.fileno())
+        try:
+            current = target.stat()
+        except OSError as exc:
+            raise OSError("Output path disappeared while writing") from exc
+        if not _same_file_identity(current, identity):
+            raise OSError("Output path changed while writing")
+        record_created_output(target, identity)
+    except BaseException:
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
+        _unlink_if_owned(target, identity)
+        raise
+
+
+def _hardlink_is_unsupported(exc: OSError) -> bool:
+    unsupported = {
+        errno.EACCES,
+        errno.EPERM,
+        errno.EXDEV,
+        getattr(errno, "ENOTSUP", errno.EPERM),
+        getattr(errno, "EOPNOTSUPP", errno.EPERM),
+        getattr(errno, "ENOSYS", errno.EPERM),
+    }
+    return exc.errno in unsupported or getattr(exc, "winerror", None) in {1, 5, 50, 1314}
+
+
+@contextlib.contextmanager
+def track_created_outputs(callback: CreatedOutputFn) -> Iterator[None]:
+    """Track identity of files atomically created while the context is active."""
+    token: Token[CreatedOutputFn | None] = _CREATED_OUTPUTS.set(callback)
+    try:
+        yield
+    finally:
+        _CREATED_OUTPUTS.reset(token)
+
+
+def record_created_output(path: Path, stat: os.stat_result | None = None) -> None:
+    callback = _CREATED_OUTPUTS.get()
+    if callback is not None:
+        callback(path, stat or path.stat())
+
+
 def atomic_write(
     dest: str | Path,
     writer: Callable[[Path], None],
     before_replace: Callable[[], None] | None = None,
+    *,
+    overwrite: bool = True,
 ) -> None:
     """Write ``dest`` atomically: ``writer(tmp)`` writes a temp file in the same directory,
     which is then fsynced and renamed over ``dest``.
@@ -91,11 +179,33 @@ def atomic_write(
             os.fsync(fh.fileno())
         if before_replace is not None:
             before_replace()
-        os.replace(tmp, target)
+        if overwrite:
+            os.replace(tmp, target)
+        else:
+            try:
+                os.link(tmp, target)
+            except FileExistsError as exc:
+                raise ChefError(
+                    ErrorKind.INVALID_PARAMS,
+                    "Output already exists",
+                    _path_detail(target),
+                ) from exc
+            except OSError as exc:
+                if not _hardlink_is_unsupported(exc):
+                    raise
+                _fallback_create_exclusive(tmp, target)
+            else:
+                record_created_output(target, tmp.stat())
+            tmp.unlink()
     except BaseException:
         with contextlib.suppress(OSError):
             tmp.unlink()
         raise
+
+
+def atomic_write_new(dest: str | Path, writer: Callable[[Path], None]) -> None:
+    """Atomically create a new file, refusing to replace an existing path."""
+    atomic_write(dest, writer, overwrite=False)
 
 
 def atomic_save(
