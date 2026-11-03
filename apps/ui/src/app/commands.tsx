@@ -160,16 +160,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
   };
   const showView = () => ui.set({ functionTab: 'view' });
   const setTab = (tab: FunctionTab) => () => ui.set({ functionTab: tab });
-  const soon = (cid: string, title: string, icon: ReactNode, keywords: string[] = []): Command => ({
-    id: `soon.${cid}`,
-    title,
-    keywords,
-    group: 'soon',
-    icon,
-    enabled: false,
-    comingSoon: true,
-    run: () => undefined,
-  });
 
   return [
     // File
@@ -1047,8 +1037,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: has,
       run: () => ui.openDialog('preflight'),
     },
-    // Coming soon (later milestones) so the palette can still find them.
-    soon('sign', t('soon.sign'), <FileSignature size={I} />, ['sign', 'signature', 'chu ky']),
     {
       id: 'sign.placeField',
       title: t('sign.placeField'),
@@ -1346,8 +1334,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: true,
       run: () => ui.openDialog('watch'),
     },
-    soon('editText', t('soon.editText'), <FileText size={I} />, ['edit', 'sua chu']),
-    soon('export', t('soon.export'), <FileOutput size={I} />, ['export', 'word', 'docx']),
   ];
 }
 

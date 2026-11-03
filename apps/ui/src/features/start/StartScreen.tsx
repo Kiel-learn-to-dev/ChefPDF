@@ -40,14 +40,15 @@ interface Tile {
   onClick?(): void;
 }
 
-async function splitFlow() {
+/** Opens a document-level dialog for the active document; asks for a PDF first when none is open. */
+async function dialogFlow(dialog: 'split' | 'stamp' | 'compress') {
   const docs = useDocs.getState();
   if (!docs.activeId) {
     const [path] = await chef().files.openDialog({ multiple: false, filters: PDF_FILTERS });
     if (!path) return;
     await openFiles([path]);
   }
-  if (useDocs.getState().activeId) useUi.getState().openDialog('split');
+  if (useDocs.getState().activeId) useUi.getState().openDialog(dialog);
 }
 
 /** A1: start screen with task tiles, recent files and drag-and-drop hint. */
@@ -79,7 +80,7 @@ export function StartScreen() {
       text: t('start.splitText'),
       icon: <Split size={22} />,
       tone: 'violet',
-      onClick: () => void splitFlow(),
+      onClick: () => void dialogFlow('split'),
     },
     {
       id: 'scan',
@@ -111,6 +112,7 @@ export function StartScreen() {
       text: t('start.stampText'),
       icon: <Stamp size={22} />,
       tone: 'teal',
+      onClick: () => void dialogFlow('stamp'),
     },
     {
       id: 'compress',
@@ -118,6 +120,7 @@ export function StartScreen() {
       text: t('start.compressText'),
       icon: <Shrink size={22} />,
       tone: 'slate',
+      onClick: () => void dialogFlow('compress'),
     },
     {
       id: 'repair',
