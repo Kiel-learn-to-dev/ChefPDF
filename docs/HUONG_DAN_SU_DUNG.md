@@ -59,7 +59,7 @@ PDF scan chỉ chứa ảnh thì chưa tìm kiếm được bằng chữ; ứng 
 ## 3. Sắp xếp và chỉnh tài liệu
 
 - Tab **Trang** hiển thị các thumbnail. Chọn một hoặc nhiều trang để đổi thứ tự, xoay, xóa, nhân bản, trích xuất hoặc chèn trang. **Ghép** và **Tách** cũng có trên màn hình Start.
-- Chọn nhiều trang (Shift/Ctrl+click) rồi bấm chuột phải để mở menu của các trang đó: **Tạo PDF từ N trang đã chọn** ghi ra file mới và mở file đó ở tab mới, file gốc không đổi; ngoài ra có chọn tất cả, đảo chọn, chọn trang lẻ/chẵn, đóng dấu, nén hoặc xuất ảnh đúng các trang đã chọn. Với file đã ký, các thao tác sửa trang bị mờ; tạo PDF mới, nén và xuất ảnh vẫn dùng được.
+- Chọn nhiều trang (Shift/Ctrl+click) ở lưới tab **Trang** hoặc ở danh sách thumbnail bên trái, rồi bấm chuột phải để mở menu của các trang đó: **Tạo PDF từ N trang đã chọn** ghi ra file mới và mở file đó ở tab mới, file gốc không đổi; ngoài ra có chọn tất cả, đảo chọn, chọn trang lẻ/chẵn, đóng dấu, nén hoặc xuất ảnh đúng các trang đã chọn. Với file đã ký, các thao tác sửa trang bị mờ; tạo PDF mới, nén và xuất ảnh vẫn dùng được.
 - Các tab **Chỉnh sửa**, **Ghi chú**, **Form**, **Ký & Bảo mật**, **Xuất**, **Quy trình** gom công cụ theo nhóm. Chọn lệnh trong thanh công cụ hoặc `Ctrl+K`/`⌘K`; hộp thoại sẽ trình bày các thiết lập phù hợp với thao tác đó.
 - Dùng **Hoàn tác/Làm lại** (`Ctrl+Z`/`Ctrl+Y`, hoặc phím `⌘` trên macOS) để quay lại/thực hiện lại thao tác trang được hỗ trợ.
 - **Lưu** ghi đè file tại đường dẫn nguồn hiện tại; **Lưu thành…** để chọn file mới. Với tài liệu quan trọng, hãy dùng Lưu thành… để giữ riêng bản gốc và kiểm tra file đầu ra trước khi thay bản đang dùng.
