@@ -153,6 +153,8 @@ Chef PDF
 | C9 | Chia đôi trang | Trang A3 / trang đôi thành 2 trang A4; hoặc cắt trang thành lưới N phần | v0.5 |
 | C10 | Tách thông minh | Tách file mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách | v0.5 |
 | C11 | In ghép trang | N-up (2/4 trang trên 1 tờ), in kiểu sổ tay (booklet) | Ý tưởng |
+| C13 | Menu chuột phải trên trang | Chọn nhiều trang (Shift/Ctrl) rồi bấm chuột phải ra menu thao tác như ABBYY: mở trang, chọn tất cả/đảo chọn, **tạo PDF từ các trang đã chọn**, xoay, nhân bản, chèn, xóa, đóng dấu các trang đã chọn, nén các trang đã chọn, xuất thành ảnh. Dùng chung ở lưới thumbnail và thanh bên | v1.0 |
+| C14 | Tạo PDF từ các trang đã chọn | Mục trong menu C13: gom trang đã chọn thành một PDF mới, mở ngay ở tab mới (không đụng file gốc), có thể lưu thành file | v1.0 |
 | C12 | Trang dài | Ghép nhiều trang thành 1 trang dài và ngược lại | Ý tưởng |
 
 ---
@@ -445,11 +447,11 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.10) | 159 |
+| Bản 1.0 (v0.1–v0.10) | 161 |
 | Sau 1.0 | 5 |
 | Nâng cấp | 12 |
 | Ý tưởng | 20 |
-| **Tổng** | 196 |
+| **Tổng** | 198 |
 
 ## Thay đổi sau khi chốt
 
@@ -457,6 +459,7 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
+| 2026-11-03 | C13, C14 | Thêm **menu chuột phải khi chọn nhiều trang** (kiểu ABBYY) và **tạo PDF từ các trang đã chọn**. Menu có lối tắt tới đóng dấu (F2–F5) và nén (M1, K10) cho đúng các trang đã chọn; bản thân đóng dấu và nén đã có sẵn trong bản 1.0. Bản 1.0 thành 161 tính năng, tổng 198. Task T11.06 | Chủ dự án bổ sung |
 | 2026-11-03 | A8 | Bản 1.0 chỉ cam kết **bộ cài và kiểm thử trên Windows**; macOS và Linux (cấu hình build vẫn giữ) kiểm thử sau 1.0. Mức của A8 không đổi, số tính năng không đổi | Chủ dự án: ưu tiên phiên bản Windows (D37) |
 | 2026-11-03 | A10 | **Tự cập nhật** chuyển từ v0.9 sang **Sau 1.0**. Bản 1.0 còn 159 tính năng; T9.08 tạm dừng | Chủ dự án (trả lời CH2): phát hành bản mới sau, chưa cần tự cập nhật |
 | 2026-10-31 | L9–L14 | Thêm trình sửa ảnh trang, tẩy & tô, xóa vết màu, chỉnh mức sáng & độ phân giải, làm phẳng trang cong (cơ bản), xóa ngón tay (bán tự động). Thuộc v0.7 | Chủ dự án bổ sung (theo ABBYY OCR Editor và vFlat Scan) |

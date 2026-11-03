@@ -6,13 +6,13 @@
 ## Trạng thái hiện tại
 
 - **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
-- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 118 task: 76 xong, 36 đang làm, 5 chưa làm, 1 tạm dừng (T9.08). Test trên Windows: lõi 1638 (chạy đủ lần cuối ở 216a873, từ đó lõi không đổi; hôm nay chạy 132 test liên quan đều đạt), giao diện 738 đạt, desktop 230 đạt, typecheck, lint, ruff, mypy sạch, e2e Electron với lõi thật 104 đạt và 1 test (smoke: lõi bị dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt 2/2 lần; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
+- **Số liệu (2026-11-03):** [TASKS.md](TASKS.md) có 119 task: 76 xong, 36 đang làm, 6 chưa làm, 1 tạm dừng (T9.08). Test trên Windows: lõi 1638 (chạy đủ lần cuối ở 216a873, từ đó lõi không đổi; hôm nay chạy 132 test liên quan đều đạt), giao diện 738 đạt, desktop 230 đạt, typecheck, lint, ruff, mypy sạch, e2e Electron với lõi thật 104 đạt và 1 test (smoke: lõi bị dừng đột ngột) đỏ một lần trong lần chạy đủ, chạy lại đạt 2/2 lần; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh; E2E Linux/macOS không chặn.
 - **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
   | Mức | Số tính năng |
   |---|---|
-  | Bản 1.0 (v0.1–v0.10) | 159 |
+  | Bản 1.0 (v0.1–v0.10) | 161 |
   | Sau 1.0 | 5 |
   | Gói nâng cấp OCR/AI | 12 |
   | Ý tưởng chưa cam kết | 20 |
@@ -170,6 +170,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-03 (menu chuột phải trang):** Chủ dự án yêu cầu thêm đóng dấu và nén vào lộ trình v1, và menu chuột phải khi chọn nhiều trang kiểu ABBYY, trong đó có "Tạo PDF từ các trang đã chọn". Đóng dấu (F2–F5, T4.05–T4.06) và nén (M1, K10, T5.04, T2.07) vốn đã có trong bản 1.0 và đã xong, nên chỉ thêm lối tắt vào menu cho đúng các trang đã chọn. Thêm C13 (menu) và C14 (tạo PDF từ trang đã chọn), task T11.06; bản 1.0 thành 161 tính năng, tổng 198. Lưới thumbnail đã có menu chuột phải (trích trang, xoay, nhân bản, chèn, xóa) nhưng chưa có đóng dấu, nén, đảo chọn, và trích trang chưa mở file mới.
 
 - **2026-11-03 (đóng mốc v0.6):** Gỡ `test.fixme` của watermark lõi: không tái hiện được lỗi nêu trong chú thích. Detector `content/watermark.py` đã liệt kê watermark do ChefOverlay tạo (tier 4, độ tin cậy 100%), vì form object mang nhãn của chính Do (`content/engine.py`); test lõi `test_watermark_chef.py` đã phủ việc này. Không có lỗi để sửa, nên không đổi detector; chỉ bỏ chú thích sai và bật test. Thêm 2 spec e2e với lõi thật: `demo-v06.spec.ts` (đúng câu Demo: logo chìm trên cả 3 trang được gỡ, tẩy một vùng trang 1, che CCCD trang 2, file lưu không còn dấu ChefOverlay ở trang nào và không còn chữ bị tẩy/che) và `content-v06.spec.ts` (gỡ đối tượng giống nhau trên 3 trang; đảo màu và thay ảnh trong PDF). `redact_check.py` có chế độ `pages`. Đóng 5 task: T6.03 (tẩy vùng), T6.04 (thay và chỉnh ảnh), T6.05 (bảng lớp, xem theo loại), T6.06 (gỡ watermark, gỡ đối tượng giống nhau, gỡ nền), T6.07 (che thông tin mật; mẫu SĐT, email, STK có test lõi). Kết quả Windows: e2e đầy đủ 104 đạt, 1 đỏ: `smoke.spec.ts` 'the core is restarted after a crash' (chờ RPC `mock.crash` bị từ chối); chạy riêng đạt, chạy lại cả file 2/2 đạt, nên ghi là chập chờn, chưa tìm nguyên nhân. Lõi đầy đủ không chạy lại trong phiên này (chạy quá lâu, dừng ở 21%); chạy 132 test liên quan đều đạt, và lõi không đổi từ lần chạy đủ ở 216a873. Chưa có e2e cho đổi màu nền (E5 'đổi nền'), chỉ có test lõi; e2e gỡ nền đã có trong redact.spec.ts.
 

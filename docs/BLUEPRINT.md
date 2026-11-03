@@ -29,7 +29,7 @@
 |---|---|
 | Người dùng | **Chỉ chủ dự án tự dùng**, không phát hành, không bán (D28) |
 | Nền tảng | Windows, macOS, Linux. Kiểm thử chính trên máy của chủ dự án, hai OS còn lại kiểm bằng CI và máy ảo |
-| Phạm vi | 159 tính năng thuộc bản 1.0 trong FEATURES.md |
+| Phạm vi | 161 tính năng thuộc bản 1.0 trong FEATURES.md |
 | Đội ngũ | Chủ dự án (định hướng, review, test thực tế) và Claude (thiết kế, viết code, viết test) |
 | Nguyên tắc | Offline; gọn gàng kiểu ABBYY; tiếng Việt trước; không OCR/AI ở bản 1.0 (ngoại lệ L20) |
 

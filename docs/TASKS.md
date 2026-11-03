@@ -26,8 +26,8 @@
 | v0.8 | Ảnh scan & chụp sách | 11 | 32 |
 | v0.9 | Form & quy trình tự động | 8 | 19,5 |
 | v0.10 | Rã tài liệu | 8 | 24,5 |
-| v1.0 | Ổn định & hoàn thiện | 5 | 14 |
-| **Tổng** | | **118** | **262** |
+| v1.0 | Ổn định & hoàn thiện | 6 | 17 |
+| **Tổng** | | **119** | **265** |
 
 ---
 
@@ -263,12 +263,13 @@
 | T11.03 | Rà soát giấy phép toàn bộ thư viện, font, mô hình; tạo file NOTICE | | 1 | tất cả | ⬜ |
 | T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | 🔄 |
 | T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ⬜ |
+| T11.06 | Menu chuột phải trên các trang đã chọn (kiểu ABBYY): **tạo PDF từ các trang đã chọn** mở ở tab mới, đóng dấu và nén đúng các trang đã chọn, chọn tất cả/đảo chọn, xuất ảnh; dùng chung ở lưới thumbnail và thanh bên | C13, C14 | 3 | T1.24, T4.05, T5.04 | ⬜ |
 
 ---
 
 ## Kiểm tra độ phủ
 
-Mọi tính năng thuộc bản 1.0 trong FEATURES.md (159 mục) đều có ít nhất một task ở trên. Khi thêm hoặc đổi tính năng, chạy lại kiểm tra này:
+Mọi tính năng thuộc bản 1.0 trong FEATURES.md (161 mục) đều có ít nhất một task ở trên. Khi thêm hoặc đổi tính năng, chạy lại kiểm tra này:
 
 ```bash
 python3 scripts/check_coverage.py
