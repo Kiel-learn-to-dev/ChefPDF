@@ -739,6 +739,18 @@ def _hough_quads(gray: np.ndarray) -> list[np.ndarray]:
     return out
 
 
+def _side_on_frame(q: np.ndarray, w: int, h: int, tol: float = 2.0) -> bool:
+    """True when both ends of some side of ``q`` lie on the same frame border (within ``tol``)."""
+    for i in range(4):
+        a, b = q[i], q[(i + 1) % 4]
+        for axis, limit in ((0, w - 1), (1, h - 1)):
+            if a[axis] <= tol and b[axis] <= tol:
+                return True
+            if a[axis] >= limit - tol and b[axis] >= limit - tol:
+                return True
+    return False
+
+
 def _dark_border(gray: np.ndarray, paper: float) -> bool:
     h, w = gray.shape
     mh, mw = max(2, int(h * 0.02)), max(2, int(w * 0.02))
@@ -813,6 +825,10 @@ def detect_page_quad(img: np.ndarray) -> PageQuad:
             confidence *= 0.75
             break
     if best_contrast < 0.25:
+        confidence *= 0.6
+    if _side_on_frame(best_q, gw, gh):
+        # a side lies on the frame: the sheet is cut by the image edge, the outside of that side
+        # cannot be checked and the corners there are guesses; the page should be reviewed
         confidence *= 0.6
     corners = best_q * np.array([sx, sy])
     covers = _polygon_area(best_q) / float(gh * gw)

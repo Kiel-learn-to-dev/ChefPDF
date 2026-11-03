@@ -422,3 +422,15 @@ def test_grey_pages_are_supported_by_every_function() -> None:
     assert erased.shape == grey.shape
     stains, none = pi.remove_color_stains(grey, hue_range=(0, 60))
     assert not none.any() and stains.shape == grey.shape
+
+# -- v0.8 regressions found by Demo v0.8 (NOTES 2026-11-04) ------------------------------------
+
+
+def test_quad_cut_by_the_image_edge_is_flagged_for_review() -> None:
+    """(b) A sheet that runs past the frame has a side outside the image. The detector must not
+    report it as a confident page (it used to report 0.68 with the wrong corners)."""
+    size = (1600, 1200)
+    quad = np.array([[-180, 120], [1200, 140], [1210, 1110], [-150, 1090]], np.float64)
+    scene = photo_scene(size=size, quad=quad, background="plain", noise=1.0)
+    found = detect_page_quad(scene.rgb)
+    assert found.confidence < 0.6
