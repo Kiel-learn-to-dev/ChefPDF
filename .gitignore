@@ -17,6 +17,9 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 
+# Output of scripts/token_sign_check.py (signed sample PDFs)
+token-check-out/
+
 # Generated test corpus and artifacts
 tests/corpus/generated/
 test-results/

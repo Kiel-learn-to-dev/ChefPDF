@@ -34,7 +34,7 @@ Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫ
 
 | Bước | Việc | Task | Tiêu chí nghiệm thu |
 |---|---|---|---|
-| 1.1 | **Chủ dự án cắm token Viettel, chạy `spikes/s1_token_probe.py`**, gửi `token_probe_report.json` (hướng dẫn: `docs/spikes/S1-pkcs11.md` mục 9) | T1.08 | Biết đời token (V6/V4…), tên module PKCS#11, ký thử được một file |
+| 1.1 🔄 | **Chủ dự án cắm token Viettel, chạy `spikes/s1_token_probe.py`**, gửi `token_probe_report.json` (hướng dẫn: `docs/spikes/S1-pkcs11.md` mục 9) | T1.08 | Biết đời token (V6/V4…), tên module PKCS#11, ký thử được một file. **Đã biết (2026-11-03):** V6, `viettel-ca_v6.dll`, liệt kê và chẩn đoán đạt. **Còn lại:** ký thử với PIN bằng `scripts/token_sign_check.py` |
 | 1.2 | Chỉnh danh bạ driver và lớp PKCS#11 theo báo cáo thật | T3.01, T3.02 | App tự dò driver Viettel trên máy bạn, liệt kê chứng thư |
 | 1.3 | Màn hình chẩn đoán từng bước, cảnh báo PIN sắp khóa | T3.03 | Kịch bản: thiếu driver, sai PIN, token rút ra giữa chừng đều có hướng dẫn tiếng Việt |
 | 1.4 | Ký `.pfx`, kiểm tra chữ ký (chuỗi chứng thư, OCSP/CRL), thư viện ảnh chữ ký | T3.04, T3.08, T3.11 | E2E ký bằng pfx rồi kiểm tra ra "hợp lệ"; panel hiển thị người ký thật, không phải chữ hiển thị |

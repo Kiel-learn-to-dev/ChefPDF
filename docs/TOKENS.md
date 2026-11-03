@@ -60,10 +60,23 @@ Các CA Việt Nam phần lớn **không tự sản xuất token**. Họ mua tok
 ## 5. Việc cần làm trước khi dev phần ký số
 
 - [ ] Thu thập bộ cài driver chính thức của Viettel-CA, VNPT-CA, FPT-CA, MISA-CA, Ban Cơ yếu. Ghi lại tên file PKCS#11 trên từng OS.
-- [ ] Mượn hoặc mua ít nhất 1–2 token thật để thử (chủ dự án có token gì?).
+- [x] Token thật để thử: chủ dự án có token **Viettel-CA V6 (Hyperpki HYP2003)** trên Windows 11 (CH1, 2026-11-03).
 - [ ] Tải Root CA quốc gia (NEAC) và Root CA chuyên dùng Chính phủ (rootca.gov.vn), kèm các CA trung gian.
 - [ ] Lấy danh sách máy chủ dấu thời gian (TSA) công khai của các CA Việt Nam.
 - [ ] Kiểm tra danh sách CA công cộng còn hiệu lực trên neac.gov.vn.
+
+## Kết quả thử với token thật
+
+| Ngày | OS | CA | Đời token | Thư viện PKCS#11 | Liệt kê | Cờ PIN | Cơ chế ký | Ký | Adobe |
+|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-03 | Windows 11 x64 | Viettel-CA | V6 (HYP2003, Cryptoki 2.20) | `C:\Windows\System32\viettel-ca_v6.dll` (64-bit; bản SysWOW64 32-bit không nạp được vào Python 64-bit) | Qua: 1 slot, 2 chứng thư ký (một đã hết hạn 2026-09-12, một hiệu lực đến 2027-09-15), không có chứng thư CA trên token | Bình thường (không có cờ khóa) | `SHA256_RSA_PKCS` và `RSA_PKCS` đều có | Chưa thử (cần PIN do chủ dự án nhập: `scripts/token_sign_check.py`) | Chưa thử |
+
+Ghi chú từ lần thử:
+
+- Lõi của app (`sign.driverScan`, `sign.listTokens`, `sign.diagnoseToken`) chạy đúng trên token thật không cần PIN: tìm đúng driver V6, 7 bước chẩn đoán đạt, bước ký thử bị bỏ qua vì không có PIN.
+- `viettel-ca_v6_s.dll` (CSP) không nạp được như PKCS#11, đúng như ghi chú ở mục 3; app chỉ dùng `viettel-ca_v6.dll`.
+- Chuỗi chứng thư: người ký ← `Viettel-CA SHA2` (hết hạn 2029-04-17) ← `Vietnam National Root CA` (tự cấp, hết hạn 2039-04-15). Chứng thư người ký ghi địa chỉ lấy chứng thư cấp (`viettel-ca.vn/downloads/sub/Viettel-CA_SHA2.crt`), OCSP (`ocsp.viettel-ca.vn`) và CRL (`crl.viettel-ca.vn`). Chứng thư trung gian ghi địa chỉ lấy gốc `rootca.gov.vn/crt/vnrca256.p7b`.
+- Thư mục `core/chef_core/resources/certs` vẫn **trống**, nên chữ ký Viettel báo `CERT_UNTRUSTED` cho đến khi chủ dự án đối chiếu dấu vân tay hai chứng thư trên với trang của NEAC/rootca.gov.vn rồi đặt vào đó (xem README trong thư mục). SHA-256 lấy được ngày 2026-11-03: gốc `bac8bf60…0908e7`, trung gian `dcc79cac…f72e4`.
 
 ## Nguồn
 
