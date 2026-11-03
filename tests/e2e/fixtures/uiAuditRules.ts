@@ -83,6 +83,9 @@ export const AUDIT_CFG: AuditCfg = {
     { rule: '*', within: '[data-audit="ignore"]', reason: 'đánh dấu bỏ qua trong mã' },
     { rule: '*', within: '.capture__tools', reason: 'kế hoạch mục 2: bỏ qua' },
     { rule: '*', within: '.merge__grip', reason: 'tay kéo (drag handle), kích thước theo cử chỉ' },
+    // Nhóm zoom là một điều khiển (khung 32px): nút bên trong 26px và khe nhỏ là có chủ ý.
+    { rule: 'row-mixed-height', within: '.zoom', reason: 'nhóm zoom: nút trong 26px, khung 32px' },
+    { rule: 'controls-touching', within: '.zoom', reason: 'nhóm zoom: các nút dính nhau có chủ ý' },
     // Kích thước đã chốt trong kế hoạch mục 1.7 (thanh trạng thái, tab tài liệu, tab bên, chip).
     // Các mục khác là quyết định thẩm mỹ, ghi vào danh sách D trong UI_AUDIT.md, không đưa vào đây.
     {
@@ -317,16 +320,20 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
     // control-height: điều khiển cao 12–48px mà không thuộc thang 26/32/38.
     if (isControl) {
       controls += 1;
-      ctrls.push({
-        el,
-        r,
-        top: r.y,
-        bottom: r.y + r.h,
-        left: r.x,
-        right: r.x + r.w,
-        h: r.h,
-        cy: r.y + r.h / 2,
-      });
+      // Điều khiển định vị tuyệt đối (ví dụ nút đóng tab) nằm ngoài layout: không xét quan hệ hàng/khe.
+      const positioned = ['absolute', 'fixed'].includes(s.position);
+      if (!positioned) {
+        ctrls.push({
+          el,
+          r,
+          top: r.y,
+          bottom: r.y + r.h,
+          left: r.x,
+          right: r.x + r.w,
+          h: r.h,
+          cy: r.y + r.h / 2,
+        });
+      }
       const h = Math.round(r.h * 10) / 10;
       if (
         h >= cfg.heightMin &&
@@ -503,6 +510,87 @@ export function auditInPage(cfg: AuditCfg): AuditResult {
               'chữ nằm gọn trong vùng nội dung',
               'chữ nút tràn ra ngoài vùng nội dung',
               'rộng nút theo nội dung (không đặt width tay) hoặc rút gọn chữ',
+            );
+          }
+        }
+      }
+    }
+
+    // content-off-center: nội dung trong nút không nằm giữa khung (lỗi dấu tích checkbox).
+    // Nút icon: tâm svg so với tâm nút (svg, không đo path, vì Lucide lệch có chủ ý vài phần nghìn).
+    // Nút chữ canh giữa: tâm vùng chữ + icon so với tâm vùng nội dung (sai số 1px).
+    if (isControl && r.h <= 48) {
+      const hasText = (el.textContent ?? '').trim() !== '';
+      // Icon Lucide có aria-hidden: không dùng shown() ở đây, chỉ cần có kích thước.
+      const kids = Array.from(el.children).filter((k) => {
+        const kr = rectOf(k);
+        return kr.w > 0 && kr.h > 0 && cs(k).display !== 'none' && cs(k).visibility !== 'hidden';
+      });
+      // Select và combobox có chevron ở mép phải có chủ ý: không đo nhánh icon cho chúng.
+      const isSelect = el.matches('[role=combobox],.select-trigger,.segmented');
+      if (!hasText && kids.length === 1 && !isSelect) {
+        const child = kids[0];
+        if (child) {
+          const svgChild =
+            child.tagName.toLowerCase() === 'svg' ? child : child.querySelector(':scope > svg');
+          const inner = svgChild ?? child;
+          const ir = rectOf(inner);
+          const dx = ir.x + ir.w / 2 - (r.x + r.w / 2);
+          const dy = ir.y + ir.h / 2 - (r.y + r.h / 2);
+          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+            add(
+              'content-off-center',
+              'error',
+              el,
+              r,
+              `lệch ${r1(dx)}×${r1(dy)}px`,
+              'tâm icon trùng tâm nút (±0.5px)',
+              'icon hoặc dấu trong nút không nằm giữa',
+              'bỏ padding mặc định của button; icon là flex, svg display:block',
+            );
+          }
+        }
+      } else if (
+        hasText &&
+        s.textAlign === 'center' &&
+        // Chỉ khi nội dung được canh giữa: không flex, hoặc flex có justify-content: center.
+        (!/flex|grid/.test(s.display) || s.justifyContent === 'center') &&
+        (tag === 'button' || el.getAttribute('role') === 'button') &&
+        s.textOverflow !== 'ellipsis' &&
+        !Array.from(el.querySelectorAll('*')).some((d) => cs(d).textOverflow === 'ellipsis')
+      ) {
+        let minL = Infinity;
+        let maxR = -Infinity;
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if (!(node.textContent ?? '').trim()) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          for (const rc of Array.from(range.getClientRects())) {
+            minL = Math.min(minL, rc.left);
+            maxR = Math.max(maxR, rc.right);
+          }
+        }
+        for (const k of kids) {
+          if (k.tagName.toLowerCase() !== 'svg') continue;
+          const kr = rectOf(k);
+          minL = Math.min(minL, kr.x);
+          maxR = Math.max(maxR, kr.x + kr.w);
+        }
+        if (maxR > -Infinity) {
+          const cLeft = r.x + px(s.borderLeftWidth) + px(s.paddingLeft);
+          const cRight = r.x + r.w - px(s.borderRightWidth) - px(s.paddingRight);
+          const d = (minL + maxR) / 2 - (cLeft + cRight) / 2;
+          if (Math.abs(d) > 1 && maxR <= cRight + 1 && minL >= cLeft - 1) {
+            add(
+              'content-off-center',
+              'warn',
+              el,
+              r,
+              `lệch ${r1(d)}px [nội dung ${r1(minL)}–${r1(maxR)}, vùng ${r1(cLeft)}–${r1(cRight)}]`,
+              'chữ và icon canh giữa vùng nội dung (±1px)',
+              'nội dung nút lệch khỏi giữa',
+              'kiểm padding hai bên có bằng nhau',
             );
           }
         }

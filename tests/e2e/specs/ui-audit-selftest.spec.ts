@@ -102,6 +102,27 @@ function planted(): void {
     mk('button', 'Thang 2', 'height:32px;width:60px;', 'btn'),
   );
   wrap.append(rowA, rowB, rowC, rowD, rowE);
+  // content-off-center: đúng lỗi dấu tích checkbox (button giữ padding mặc định, svg trong span block)
+  const cb = document.createElement('button');
+  cb.className = 'btn';
+  cb.style.cssText =
+    'display:grid;place-items:center;width:16px;height:16px;border:1px solid #888;';
+  const cbSpan = document.createElement('span');
+  cbSpan.style.display = 'block';
+  const cbSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  cbSvg.setAttribute('width', '12');
+  cbSvg.setAttribute('height', '12');
+  cbSvg.setAttribute('viewBox', '0 0 24 24');
+  cbSpan.append(cbSvg);
+  cb.append(cbSpan);
+  // content-off-center (chữ): padding hai bên lệch nên chữ không nằm giữa
+  const off = mk(
+    'button',
+    'Lệch chữ',
+    'padding:0 4px 0 24px;text-align:center;height:32px;',
+    'btn',
+  );
+  wrap.append(cb, off);
   document.getElementById('root')!.append(wrap);
 }
 
@@ -194,6 +215,7 @@ test.describe('UI audit rules (selftest)', () => {
       'gap-uneven',
       'controls-touching',
       'gap-off-scale',
+      'content-off-center',
     ]) {
       expect(rules, `luật ${rule} phải bắt được lỗi cài sẵn`).toContain(rule);
     }
