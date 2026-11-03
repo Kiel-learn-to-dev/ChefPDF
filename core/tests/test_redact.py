@@ -292,7 +292,7 @@ def test_redaction_refuses_image_aliased_from_annotation_appearance_form(
 
 def test_redaction_refuses_partially_clipped_vector(harness: Harness, tmp_path: Path) -> None:
     # A clipping path hides part of a vector but leaves its original geometry in the PDF.
-    path = raw_pdf(tmp_path / "vector-secret.pdf", b"0 0 0 rg 100 500 200 80 re f")
+    path = raw_pdf(tmp_path / "vector-secret.pdf", b"0 0 0 rg 100 500 m 300 500 l 200 580 l f")
     sid = _sid(harness, path)
     before = _revision(harness, sid)
     with pytest.raises(RpcFailure) as error:
@@ -303,6 +303,28 @@ def test_redaction_refuses_partially_clipped_vector(harness: Harness, tmp_path: 
         )
     assert error.value.kind == "REDACTION_VERIFY_FAILED"
     assert _revision(harness, sid) == before
+
+
+def test_redaction_keeps_a_plain_rectangle_backdrop_and_warns(
+    harness: Harness, tmp_path: Path
+) -> None:
+    content = b"0.9 g 0 0 612 792 re f 0 g BT /F1 12 Tf 100 700 Td (SECRET 123) Tj ET"
+    sid = _sid(harness, raw_pdf(tmp_path / "backdrop.pdf", content))
+    result = harness.op(
+        "redact.apply", {"rects": [{"pageIndex": 0, "rect": [90, 80, 220, 105]}]}, sid
+    )
+    assert any("nền hình chữ nhật" in warning for warning in result["warnings"])
+    assert "SECRET" not in page_text(_revision(harness, sid))
+
+
+def test_redaction_refuses_a_rectangle_the_region_only_partly_covers(
+    harness: Harness, tmp_path: Path
+) -> None:
+    # The region crosses the rectangle's edge, so the clip would leave that edge in the file.
+    sid = _sid(harness, raw_pdf(tmp_path / "edge.pdf", b"0 0 0 rg 100 500 200 80 re f"))
+    with pytest.raises(RpcFailure) as error:
+        harness.op("redact.apply", {"rects": [{"pageIndex": 0, "rect": [80, 200, 150, 270]}]}, sid)
+    assert error.value.kind == "REDACTION_VERIFY_FAILED"
 
 
 def test_redaction_refuses_an_image_it_cannot_modify(

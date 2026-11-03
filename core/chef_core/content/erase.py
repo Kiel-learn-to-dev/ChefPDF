@@ -62,6 +62,7 @@ class CutStats:
     split: int = 0  # text runs with some glyphs removed
     images: int = 0  # image placements whose pixels were cut
     clipped: int = 0  # vector objects wrapped in an exclusion clip
+    clipped_plain: int = 0  # of those, plain rectangles that fully contain the region
     skipped: list[str] = field(default_factory=list)  # "<id>: <reason>"
 
     def add(self, other: CutStats) -> None:
@@ -69,6 +70,7 @@ class CutStats:
         self.split += other.split
         self.images += other.images
         self.clipped += other.clipped
+        self.clipped_plain += other.clipped_plain
         self.skipped.extend(other.skipped)
 
 
@@ -371,6 +373,19 @@ def _cut_image(
 # -- vectors --------------------------------------------------------------------------------
 
 
+def _is_plain_backdrop(editor: PageEditor, obj: PageObject, regions: list[Rect]) -> bool:
+    """A single axis-aligned rectangle (page or cell background) that contains every region it
+    meets. Its geometry is four numbers that say nothing about what the region covered, so
+    hiding it with a clip is as good as removing it."""
+    ctm = obj.ctm
+    if obj.kind != "path" or abs(ctm[1]) > EPS or abs(ctm[2]) > EPS:
+        return False
+    ops = [editor.model.nodes[i].op for i in range(obj.start, obj.end + 1)]
+    if ops.count("re") != 1 or any(op in _PATH_SEGMENT_OPS for op in ops):
+        return False
+    return all(_inside(r, obj.bbox) for r in regions if _overlaps(obj.bbox, r))
+
+
 def _clip_wrap(editor: PageEditor, obj: PageObject, regions: list[Rect]) -> bool:
     """Wrap the object in clips that exclude each region (even-odd, page box minus region)."""
     nodes = editor.model.nodes
@@ -397,6 +412,8 @@ def _clip_wrap(editor: PageEditor, obj: PageObject, regions: list[Rect]) -> bool
 
 
 # -- the page --------------------------------------------------------------------------------
+
+_PATH_SEGMENT_OPS = frozenset({"m", "l", "c", "v", "y", "h"})
 
 
 def _wanted(obj: PageObject, opts: CutOptions) -> bool:
@@ -458,6 +475,8 @@ def cut_page(
                 stats.skipped.append(f"{obj.id}: image not readable")
         elif _clip_wrap(editor, obj, regions):
             stats.clipped += 1
+            if _is_plain_backdrop(editor, obj, regions):
+                stats.clipped_plain += 1
         else:
             stats.skipped.append(f"{obj.id}: clipped vector object not cut")
     return editor, stats

@@ -233,9 +233,10 @@ def redact_apply(ctx: OpContext, p: RedactApplyParams) -> OpOutput:
                 image_fill="color", colour=fill8, partial=True, secure_image_sources=True
             )
             editor, stats = cut_page(pdf, page, index, rects, opts, flatten=True)
-            if stats.skipped or stats.clipped:
-                # Clipping hides vector geometry without removing it; skipped objects may
-                # retain image pixels or text. Neither is a secure redaction.
+            if stats.skipped or stats.clipped > stats.clipped_plain:
+                # Clipping hides vector geometry without removing it (plain rectangle backdrops
+                # carry nothing worth hiding and only warn); skipped objects may retain image
+                # pixels or text. Neither is a secure redaction.
                 raise ChefError(
                     ErrorKind.REDACTION_VERIFY_FAILED,
                     "Không thể xóa an toàn một số nội dung trong vùng che.",
@@ -255,6 +256,11 @@ def redact_apply(ctx: OpContext, p: RedactApplyParams) -> OpOutput:
             totals["splitObjects"] += stats.split
             totals["modifiedImages"] += stats.images
             totals["clippedObjects"] += stats.clipped
+            if stats.clipped_plain:
+                ctx.warn(
+                    f"Trang {index + 1}: nền hình chữ nhật dưới vùng che chỉ bị cắt hiển thị, "
+                    "không chứa thông tin của vùng che."
+                )
             paint_rects(editor, rects, fill_f)
             editor.write()
             if p.remove_from_annotations:
