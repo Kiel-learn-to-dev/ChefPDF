@@ -1109,6 +1109,28 @@ def erase_region(
     return _fill_mask(img, mask, fill)
 
 
+def _sheet_hull(img: np.ndarray) -> np.ndarray:
+    """A mask (uint8 0/255) of the convex hull of the light region that is the sheet: the
+    largest component brighter than 80 % of the 95th-percentile grey. A finger on the sheet's
+    edge cuts a notch into that region, the hull closes the notch, and the desk outside the
+    sheet stays out. Failure mode: a white desk is light too, so the hull is the whole frame and
+    nothing is kept outside (the same as before this mask existed)."""
+    cv2 = _cv2()
+    gray = to_gray(img)
+    light = (gray >= 0.8 * float(np.percentile(gray, 95))).astype(np.uint8)
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(light, connectivity=8)
+    if n <= 1:
+        return np.full(gray.shape, 255, np.uint8)
+    big = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    contours, _ = cv2.findContours(
+        (labels == big).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    hull = cv2.convexHull(np.vstack(contours))
+    out = np.zeros(gray.shape, np.uint8)
+    cv2.fillConvexPoly(out, hull.reshape(-1, 2), 255)
+    return out
+
+
 def remove_fingers(
     img: np.ndarray,
     mask: np.ndarray | None = None,
@@ -1117,13 +1139,37 @@ def remove_fingers(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Erase finger regions. Without ``mask`` the proposal of ``find_skin_regions`` is used.
     Returns (image, mask used): the mask is always returned so the caller can show and edit it.
-    Failure mode: whatever is under the finger is lost; see ``find_skin_regions``."""
+    With the paper colour the fill stays on the sheet: a part of the mask outside the sheet
+    (the finger on the desk past the edge) is left as it is, otherwise a white bulge appears
+    outside the page. Failure mode: whatever is under the finger is lost; see
+    ``find_skin_regions``."""
     used = find_skin_regions(img) if mask is None else (np.asarray(mask) > 0).astype(np.uint8) * 255
     if used.shape != img.shape[:2]:
         raise ValueError("mask size does not match the image")
     if not used.any():
         return img.copy(), used
+    if fill == "paper" and img.ndim == 3:
+        inside = np.where(_sheet_hull(img) > 0, used, 0).astype(np.uint8)
+        outside = (used > 0) & (inside == 0)
+        out = _fill_mask(img, inside, fill) if inside.any() else img.copy()
+        if outside.any():
+            # the part of a finger past the sheet's edge gets the desk colour, never the paper's
+            out = _fill_mask(out, outside.astype(np.uint8) * 255, _desk_colour(img, outside))
+        return out, used
     return _fill_mask(img, used, fill), used
+
+
+def _desk_colour(img: np.ndarray, mask: np.ndarray) -> tuple[int, int, int]:
+    """The colour of the dark side of a ring around ``mask``: the desk, when the mask lies past
+    the edge of a sheet. Median of the darker half of the ring."""
+    ring = _ring(mask.astype(np.uint8), max(4, int(0.02 * min(img.shape[:2]))))
+    if not ring.any():
+        return (92, 104, 118)
+    gray = to_gray(img)
+    vals = gray[ring]
+    dark = ring & (gray <= np.percentile(vals, 50))
+    med = np.median(img[dark].reshape(-1, img.shape[2]), axis=0)
+    return (int(med[0]), int(med[1]), int(med[2]))
 
 
 def remove_color_stains(

@@ -434,3 +434,42 @@ def test_quad_cut_by_the_image_edge_is_flagged_for_review() -> None:
     scene = photo_scene(size=size, quad=quad, background="plain", noise=1.0)
     found = detect_page_quad(scene.rgb)
     assert found.confidence < 0.6
+
+_SHEET = np.array([[300, 120], [1300, 110], [1310, 1000], [290, 1010]], np.float64)
+_SKIN = (224, 172, 140)
+
+
+def _finger_over_the_bottom_edge(quad: np.ndarray, size: tuple[int, int]) -> np.ndarray:
+    """A plain desk photo with a finger that starts on the sheet and runs past its bottom edge
+    to the frame's bottom border (so it touches the border and is proposed)."""
+    scene = photo_scene(size=size, quad=quad, background="plain", noise=0.0)
+    img = scene.rgb.copy()
+    cv2.ellipse(img, (800, 1000), (90, 220), 0, 0, 360, _SKIN, -1)
+    return img
+
+
+def _page_mask(quad: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    page = np.zeros(shape, np.uint8)
+    cv2.fillConvexPoly(page, np.round(quad).astype(np.int32), 255)
+    return page > 0
+
+
+def test_finger_fill_stays_on_the_sheet_and_leaves_the_desk_alone() -> None:
+    """(a) The paper colour used for a finger must not be painted on the desk outside the sheet,
+    which made a white bulge outside the page."""
+    img = _finger_over_the_bottom_edge(_SHEET, (1600, 1200))
+    out, used = pi.remove_fingers(img, None, fill="paper")
+    # the desk part of the finger may take the desk colour, but never the paper's; a 2 px band at
+    # the nominal edge is the sheet's anti-aliased rim and is not judged
+    page = _page_mask(_SHEET, used.shape)
+    dist_outside = cv2.distanceTransform((~page).astype(np.uint8), cv2.DIST_L2, 3)
+    desk = (used > 0) & ~page & (dist_outside > 2.0)
+    assert desk.sum() > 500
+    desk_px = out[desk].astype(np.float64)
+    assert (np.abs(desk_px - np.array([238.0, 236.0, 228.0])).sum(axis=1) > 100).all()
+    inside = (used > 0) & _page_mask(_SHEET, used.shape)
+    assert inside.sum() > 500  # the finger on the sheet is still removed
+    paper = np.array([238.0, 236.0, 228.0])
+    assert np.abs(out[inside].astype(float).mean(axis=0) - paper).sum() < 60
+
+
