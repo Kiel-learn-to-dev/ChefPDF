@@ -119,10 +119,19 @@ Tránh dương tính giả: lọc phần tử ẩn, tắt hoạt ảnh, chờ fo
 |---|---|
 | A1–A2 | ✅ (A1 hook `__chefUi`; A2 `scripts/css-audit.mjs`) |
 | A3 | ✅ khung spec: 81 màn hình (start, 8 tab, 5 sidebar, 3 lớp phủ, 64 hộp thoại; đã kiểm: 64 tiêu đề khác nhau, không trống); chạy 51 giây: 80 ok, 1 `settle-timeout` (`tokenWizard`, đang dò USB token: đúng dự kiến, không bấm gì). Báo cáo `tests/e2e/ui-audit-out/report.json` + 81 ảnh chụp |
-| A4–A7 | ⬜ |
+| A4 | ✅ luật theo phần tử (`fixtures/uiAuditRules.ts`): control-height, radius-off-scale, font-off-scale, text-overflow/truncated, label-overflow, control-clipped, unexpected-hscroll, outside-dialog/offscreen. Đối chứng dương `ui-audit-selftest.spec.ts`: 9 luật + outside-dialog đều bắt được lỗi cài sẵn. Kết quả lượt đầu: 408 phát hiện (control-height 276, radius 69, font 63), 35 màn hình sạch. Chưa có ALLOW ngoài các vùng bỏ qua (A7 mới thêm sau khi xem ảnh) |
+| A5–A7 | ⬜ |
 | B1–B9 | ⬜ |
 | C (từng file) | ⬜ |
 | D (danh sách quyết định) | ⬜ |
+
+### Lệch khỏi kế hoạch (ghi lại, không tự quyết thẩm mỹ)
+
+- **`input[type=color]` đưa vào điều khiển** (mục 2 ghi loại trừ). Lý do: hai ô `.tpl__color` và `.ov-color__swatch` đều là `input[type=color]`, và mục 4 (A4) yêu cầu bắt được cả hai. Không loại trừ thì bộ đo không thấy chúng.
+- **Phạm vi đo có thêm `.palette`** (bảng lệnh là portal ngoài `#root`; nếu không thì màn hình này chỉ quét được 1 phần tử).
+- **`text-overflow` không áp cho điều khiển:** nút tràn chữ đã do `label-overflow` đo, không báo trùng.
+- **Chưa tới được trạng thái:** `.outline-edit__icon` (nút trong chế độ "Sửa mục lục" của sidebar Mục lục, cần bấm và tài liệu có bookmark). Bộ đo không bấm nút nào nên không thấy. Đưa vào A7 cùng danh sách bấm biến thể an toàn (ví dụ "Nâng cao", "Sửa mục lục"), không bấm nút có tác dụng.
+- Số đo chạy trên Windows, DPR 1, lõi thật. Đây là lần chạy đầu: chưa xem hết ảnh chụp của từng màn hình, nên chưa có ALLOW nào ngoài danh sách bỏ qua.
 
 ### Kết quả A2: `node scripts/css-audit.mjs` (2026-11-04)
 

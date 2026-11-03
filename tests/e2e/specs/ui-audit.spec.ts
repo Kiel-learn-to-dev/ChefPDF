@@ -33,6 +33,7 @@ import {
   type Screen,
   type ScreenResult,
 } from '../fixtures/uiAudit';
+import { AUDIT_CFG, auditInPage } from '../fixtures/uiAuditRules';
 
 const coreDir = path.join(repoRoot, 'core');
 const realCoreCmd = `uv run --project "${coreDir}" python -m chef_core`;
@@ -99,6 +100,7 @@ async function auditStart(): Promise<ScreenResult> {
   const diag = new Diagnostics();
   diag.attach(startApp.page);
   r.settled = await prepare(startApp.page);
+  Object.assign(r, await audit(startApp.page));
   r.shot = await shoot(startApp.page, 'start');
   Object.assign(r, diag.since({ c: 0, p: 0 }));
   return r;
@@ -116,7 +118,15 @@ function blank(s: Pick<Screen, 'name' | 'kind'>): ScreenResult {
     pageErrors: [],
     ms: 0,
     findings: [],
+    scanned: 0,
+    controls: 0,
   };
+}
+
+/** Chạy luật đo trong trang (A4). */
+async function audit(page: Page): Promise<Pick<ScreenResult, 'findings' | 'scanned' | 'controls'>> {
+  const res = await page.evaluate(auditInPage, AUDIT_CFG);
+  return { findings: res.groups, scanned: res.scanned, controls: res.controls };
 }
 
 async function shoot(page: Page, name: string): Promise<string> {
@@ -148,6 +158,7 @@ async function auditDocScreen(screen: Screen): Promise<ScreenResult> {
     }
     r.settled = await prepare(l.page);
     if (!r.settled) r.status = 'settle-timeout';
+    Object.assign(r, await audit(l.page));
     r.shot = await shoot(l.page, screen.name);
   } catch (e) {
     r.status = 'error';
@@ -214,6 +225,12 @@ test.describe('UI audit (report only)', () => {
       console.log(
         `UI_AUDIT: ${JSON.stringify(report.summary)} -> ${path.join(repoRoot, 'tests', 'e2e', 'ui-audit-out', 'report.json')}`,
       );
+    }
+    for (const s of results) {
+      const counts = new Map<string, number>();
+      for (const g of s.findings) counts.set(g.rule, (counts.get(g.rule) ?? 0) + g.count);
+      const list = [...counts].map(([k, v]) => `${k}=${v}`).join(' ') || '(sạch)';
+      console.log(`UI_AUDIT ${s.name} [quét ${s.scanned}, điều khiển ${s.controls}]: ${list}`);
     }
   });
 

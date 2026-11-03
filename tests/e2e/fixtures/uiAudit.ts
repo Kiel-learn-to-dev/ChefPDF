@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { repoRoot } from './app';
+import type { AuditGroup } from './uiAuditRules';
 
 export const UI_DIR = path.join(repoRoot, 'apps', 'ui');
 export const SRC_DIR = path.join(UI_DIR, 'src');
@@ -281,8 +282,11 @@ export interface ScreenResult {
   pageErrors: string[];
   error?: string;
   ms: number;
-  /** Luật đo (A4 trở đi) ghi vào đây; A3 để trống. */
-  findings: unknown[];
+  /** Nhóm phát hiện theo luật (uiAuditRules.ts). */
+  findings: AuditGroup[];
+  /** Số phần tử đã đo và số điều khiển trong đó: để thấy bộ đo có quét thật không. */
+  scanned: number;
+  controls: number;
 }
 
 export interface AuditReport {
