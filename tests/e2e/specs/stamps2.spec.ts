@@ -177,9 +177,10 @@ async function openDoc(file: string): Promise<Launched> {
   return l;
 }
 
-/** Runs a command from the palette (Ctrl+K): its title typed, the first match picked. */
+/** Runs a command from the palette: its title typed, the first match picked. */
 async function runCommand(l: Launched, title: string): Promise<void> {
-  await l.page.keyboard.press('Control+k');
+  // The button works from the start screen too, where the shortcut may not be bound yet.
+  await l.page.getByRole('button', { name: /Tìm lệnh/ }).click();
   await l.page.locator('.palette__input').fill(title);
   await l.page.locator('[role="option"]').first().click();
 }

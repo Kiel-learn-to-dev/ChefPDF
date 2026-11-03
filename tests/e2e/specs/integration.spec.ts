@@ -89,6 +89,7 @@ test('real core: core is ready and lists the v0.1 and scan operations', async ()
 
 test('opens a Vietnamese PDF from the command line and searches without diacritics', async () => {
   const l = await open('vietnamese_text.pdf');
+  await expect(l.page.getByRole('tab', { name: 'Form', exact: true })).toHaveCount(1);
   await l.page.waitForSelector('.pdfViewer .page canvas', { timeout: 30_000 });
   await l.page.screenshot({ path: path.join(shotsDir, 'viewer.png') });
   await l.page.keyboard.press('Control+f');
@@ -96,6 +97,54 @@ test('opens a Vietnamese PDF from the command line and searches without diacriti
   await l.page.waitForSelector('.textLayer .highlight', { timeout: 15_000 });
   await expect(l.page.locator('.findbar__count')).toContainText('/');
   await l.page.screenshot({ path: path.join(shotsDir, 'search.png') });
+  await l.page.getByRole('tab', { name: 'Quy trình', exact: true }).click();
+  await expect(l.page.getByRole('button', { name: 'Tạo quy trình' })).toBeVisible();
+  await expect(l.page.getByRole('button', { name: 'Thư mục tự động' })).toBeVisible();
+  await expect(l.page.locator('.soon-note')).toHaveCount(0);
+});
+
+test('night reading changes the page display without modifying the PDF', async () => {
+  const l = await open('vietnamese_text.pdf');
+  const source = path.join(corpus, 'vietnamese_text.pdf');
+  const original = fs.readFileSync(source);
+  const page = l.page.locator('.pdfViewer .page').first();
+  await page.locator('canvas').waitFor({ timeout: 30_000 });
+  const toggle = l.page.getByRole('button', { name: 'Chế độ đọc ban đêm' });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page).toHaveCSS('filter', 'none');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveCSS('filter', 'invert(1) hue-rotate(180deg)');
+  await toggle.click();
+  await expect(page).toHaveCSS('filter', 'none');
+  expect(fs.readFileSync(source)).toEqual(original);
+});
+
+test('side-by-side view navigates independently within the same document', async () => {
+  const l = await open('outline_10p.pdf');
+  await l.page.locator('.pdfViewer .page canvas').first().waitFor({ timeout: 30_000 });
+  await l.page.getByRole('button', { name: 'Xem song song' }).click();
+  const pane = l.page.locator('.compare-pane');
+  await pane.locator('.pdfViewer .page canvas').first().waitFor({ timeout: 30_000 });
+  const secondPage = pane.getByRole('spinbutton', { name: 'Trang bên phải' });
+  await expect(secondPage).toHaveValue('1');
+  await secondPage.fill('3');
+  await expect(secondPage).toHaveValue('3');
+  await expect(l.page.locator('.status__page-input')).toHaveValue('1');
+  await l.app.evaluate(
+    ({ dialog }, file) => {
+      dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [file] })) as never;
+    },
+    path.join(corpus, 'vietnamese_text.pdf'),
+  );
+  await l.page.keyboard.press('Control+o');
+  await expect(l.page.locator('.doctab')).toHaveCount(2);
+  const select = pane.getByRole('combobox', { name: 'Tài liệu bên phải' });
+  await expect(select.locator('option')).toHaveCount(2);
+  await select.selectOption({ label: 'outline_10p.pdf' });
+  await expect(pane.locator('.pdfViewer .page')).toHaveCount(10);
+  await l.page.getByRole('button', { name: 'Xem song song' }).click();
+  await expect(pane).toHaveCount(0);
 });
 
 test('page organizer: delete, undo, duplicate and save through the real core', async () => {

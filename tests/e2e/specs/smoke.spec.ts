@@ -45,6 +45,7 @@ test('launches securely and exposes the full window.chef bridge', async () => {
   }));
   expect(info.keys).toEqual([
     'app',
+    'capture',
     'clipboard',
     'convert',
     'files',
@@ -132,9 +133,10 @@ test('ops.run progress and result arrive as rpc events', async () => {
       (await events<{ name?: string }>(page)).some((e) => e.name === 'job.finished'),
     )
     .toBe(true);
+  // The Start screen loads the workflow samples through its own job; only ours is checked.
   const rpcEvents = (
     await events<{ type: string; name: string; payload: { jobId: string } }>(page)
-  ).filter((e) => e.type === 'rpc');
+  ).filter((e) => e.type === 'rpc' && e.payload.jobId === jobId);
   expect(rpcEvents.map((e) => e.name)).toEqual([
     'job.progress',
     'job.progress',
@@ -200,6 +202,10 @@ test('a second instance forwards its files as an open-files event and exits', as
   launched = await launchApp();
   const { page, userDataDir } = launched;
   await recordEvents(page);
+  // Files are only forwarded as events once the window finished loading (did-finish-load);
+  // an earlier second instance lands in the initial-files queue instead.
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(1500);
   const doc = path.join(makeUserDataDir(), 'second.pdf');
   writePdf(doc);
   const second = spawn(electronBin, [desktopDir, ...sandboxArgs, doc], {
