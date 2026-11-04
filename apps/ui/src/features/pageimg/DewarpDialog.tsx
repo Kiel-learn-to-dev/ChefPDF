@@ -11,7 +11,7 @@ import { chef } from '../../lib/bridge';
 import { runOp, cancelJob } from '../../lib/rpc';
 import { toast } from '../../components/Toast';
 import { jobProgress, useJobStore } from '../jobs/jobStore';
-import { applyParams, previewParams, readPreviewData, reviewPages } from './dewarpModel';
+import { applyParams, DEWARP_MIN_CONFIDENCE, previewParams, readPreviewData, reviewPages } from './dewarpModel';
 import type { DewarpPreviewData } from './dewarpModel';
 import './dewarp.css';
 
@@ -188,6 +188,7 @@ export function DewarpDialog() {
       onRun={() => void apply()}
       canRun={!signed && !busy && !!aParams && previewIsCurrent && visibleRows.length > 0}
       runLabel={t('pageimg.dewarp.apply')}
+      workflowStep={{ op: 'pageimg.dewarp', params: { minConfidence: DEWARP_MIN_CONFIDENCE }, label: t('pageimg.dewarp.title') }}
       size="xl"
     >
       <Field

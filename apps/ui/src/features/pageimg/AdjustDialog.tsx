@@ -53,6 +53,11 @@ export function AdjustDialog() {
     [state, pagesText, pageCount],
   );
   const canRun = !!aParams && !signed && !busy;
+  // A workflow step runs on every file, so it carries the settings without the page list.
+  const stepSettings = useMemo(() => {
+    const settings = applyParams(state, '', pageCount);
+    return settings && !pagesText.trim() ? (settings as Record<string, unknown>) : null;
+  }, [state, pagesText, pageCount]);
 
   if (!doc) return null;
 
@@ -190,6 +195,7 @@ export function AdjustDialog() {
       onRun={() => void apply()}
       canRun={canRun}
       runLabel={t('pageimg.adjust.apply')}
+      workflowStep={stepSettings ? { op: 'pageimg.enhance', params: stepSettings, label: t('pageimg.adjust.title') } : undefined}
       size="xl"
     >
       <div className="adjust-grid">
