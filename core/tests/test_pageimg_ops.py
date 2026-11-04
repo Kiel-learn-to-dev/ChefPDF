@@ -783,3 +783,19 @@ def test_spine_preview_skips_pages_out_of_range(harness: Harness, tmp_path: Path
         "status": "skipped",
         "reason": "PAGE_OUT_OF_RANGE",
     }
+
+
+# -- pagePreview (T8.03) ----------------------------------------------------------------------
+
+
+def test_page_preview_is_a_png_at_most_900_px_wide_and_read_only(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _image_pdf(tmp_path / "page_preview.pdf", [text_page(1240, 1754, seed=110)])
+    sid = _sid(harness, src)
+    before = Path(_revision(harness, sid)).read_bytes()
+    row = harness.op("pageimg.pagePreview", {"pageIndex": 0}, sid)["data"]
+    assert row["status"] == "done" and row["pixelSize"] == [1240, 1754]
+    with Image.open(row["previewPath"]) as img:
+        assert img.width == 900
+    assert Path(_revision(harness, sid)).read_bytes() == before

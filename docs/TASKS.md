@@ -206,7 +206,7 @@
 |---|---|---|---|---|---|
 | T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | 🔄 (chưa có trình sửa ảnh canvas trên giao diện; lõi có lịch sử/hoàn tác) |
 | T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | 🔄 (chưa có hộp thoại Levels/Curves, khử nhiễu, đổi DPI; nghiêng và làm trắng đã có e2e) |
-| T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | 🔄 (chưa có giao diện tẩy vùng và xóa vết màu; lõi và test có) |
+| T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | ✅ (tẩy vùng bằng khung kéo, tô giấy hoặc trắng, xóa mực xanh/dạ quang/dấu đỏ; e2e `erase.spec.ts`) |
 | T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | ✅ |
 | T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ✅ |
 | T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | ✅ |

@@ -1096,6 +1096,55 @@ def spine_preview(ctx: OpContext, p: SpinePreviewParams) -> OpOutput:
     return OpOutput(changed_pages=[], data={"pages": rows})
 
 
+# -- pageimg.pagePreview (read-only) -------------------------------------------------------
+
+
+class PagePreviewParams(WireModel):
+    """Read-only picture of one page image, for the editors that draw on it (T8.03)."""
+
+    page_index: PageIndex
+
+
+@operation(
+    id="pageimg.pagePreview",
+    title="Preview page image",
+    group="pageimg",
+    params=PagePreviewParams,
+)
+def page_preview(ctx: OpContext, p: PagePreviewParams) -> OpOutput:
+    """Write the page image as a PNG at most 900 px wide; the document does not change."""
+    if ctx.input_path is None:
+        raise RuntimeError("pageimg.pagePreview needs a session")
+    with ctx.open_input() as pdf:
+        if p.page_index >= len(pdf.pages):
+            raise invalid_params("PAGE_OUT_OF_RANGE", {"pageIndex": p.page_index})
+        dom = _dominant(pdf, p.page_index)
+        if isinstance(dom, str):
+            return OpOutput(
+                changed_pages=[],
+                data={"pageIndex": p.page_index, "status": "skipped", "reason": dom},
+            )
+        rgb = _pixels(dom)
+    h, w = rgb.shape[:2]
+    image = _pil(rgb)
+    scale = min(1.0, 900 / w)
+    if scale < 1.0:
+        image = image.resize((round(w * scale), round(h * scale)))
+    out_dir = ctx.input_path.parent / "preview" / "pageimg-page"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{ctx.job_id[:8]}-p{p.page_index}.png"
+    image.save(path, format="PNG")
+    return OpOutput(
+        changed_pages=[],
+        data={
+            "pageIndex": p.page_index,
+            "status": "done",
+            "previewPath": str(path),
+            "pixelSize": [w, h],
+        },
+    )
+
+
 # -- pageimg.proposeFingerMask (read-only) and pageimg.removeFingers ------------------------
 
 

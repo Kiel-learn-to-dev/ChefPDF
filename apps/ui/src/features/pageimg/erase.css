@@ -1,0 +1,58 @@
+.erase-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.erase-preview__actions,
+.erase-preview__list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.erase-preview__frame {
+  position: relative;
+  max-height: 420px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface-2);
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.erase-preview__frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.erase-preview__rect {
+  position: absolute;
+  border: 2px solid var(--c-accent);
+  background: rgba(40, 110, 220, 0.18);
+  pointer-events: none;
+}
+
+.erase-preview__rect--draft {
+  border-style: dashed;
+}
+
+.erase-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-2) 0;
+}
+
+.erase-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}

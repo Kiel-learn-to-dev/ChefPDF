@@ -39,6 +39,7 @@ import { CaptureDialog } from '../features/capture/CaptureDialog';
 import { DewarpDialog } from '../features/pageimg/DewarpDialog';
 import { SpineDialog } from '../features/pageimg/SpineDialog';
 import { FingerDialog } from '../features/pageimg/FingerDialog';
+import { EraseDialog } from '../features/pageimg/EraseDialog';
 import { DocumentExportDialog } from '../features/export/DocumentExportDialog';
 import { BatchExportDialog } from '../features/export/BatchExportDialog';
 import { TocDialog } from '../features/toc/TocDialog';
@@ -205,6 +206,8 @@ export function DialogHost() {
       return <SpineDialog />;
     case 'finger':
       return <FingerDialog />;
+    case 'erase':
+      return <EraseDialog />;
     case 'verifyBatch':
       return <VerifyBatchDialog />;
     case 'docTools':

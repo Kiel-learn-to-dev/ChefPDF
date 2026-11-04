@@ -1338,6 +1338,17 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       run: () => ui.openDialog('finger'),
     },
     {
+      id: 'tools.erase',
+      title: t('pageimg.erase.cmd'),
+      short: t('pageimg.erase.short'),
+      keywords: ['tay vung', 'erase', 'xoa', 'vet mau', 'mau', 'stain', 'tay'],
+      group: 'tools',
+      icon: <Eraser size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('pageTools.signedBlocked') : undefined,
+      run: () => ui.openDialog('erase'),
+    },
+    {
       id: 'tools.workflow',
       title: t('workflow.title'),
       short: t('workflow.title'),

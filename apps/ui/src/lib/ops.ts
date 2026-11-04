@@ -26,6 +26,9 @@ import type {
   PageimgSplitSpreadParams,
   PageimgProposeFingerMaskParams,
   PageimgRemoveFingersParams,
+  PageimgEraseParams,
+  PageimgPagePreviewParams,
+  PageimgRemoveStainsParams,
   ImageCleanupParams,
   ImageFromStrokesParams,
   ImageRemoveBackgroundParams,
@@ -192,6 +195,9 @@ export interface OpParams {
   'pageimg.splitSpread': PageimgSplitSpreadParams;
   'pageimg.proposeFingerMask': PageimgProposeFingerMaskParams;
   'pageimg.removeFingers': PageimgRemoveFingersParams;
+  'pageimg.erase': PageimgEraseParams;
+  'pageimg.pagePreview': PageimgPagePreviewParams;
+  'pageimg.removeStains': PageimgRemoveStainsParams;
   'export.document': ExportDocumentParams;
   'export.refresh': ExportRefreshParams;
   'page.rotate': { pages: number[]; angle: RotateAngle };

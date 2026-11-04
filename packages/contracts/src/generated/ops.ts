@@ -2957,6 +2957,11 @@ export interface PageimgEraseParams {
   jpegQuality?: number;
 }
 
+/** Read-only picture of one page image, for the editors that draw on it (T8.03). */
+export interface PageimgPagePreviewParams {
+  pageIndex: number;
+}
+
 /** Propose the finger regions of a page as a mask image (no change to the document). */
 export interface PageimgProposeFingerMaskParams {
   pageIndex: number;
@@ -4239,6 +4244,7 @@ export interface OpParams {
   'pageimg.dewarpPreview': PageimgDewarpPreviewParams;
   'pageimg.enhance': PageimgEnhanceParams;
   'pageimg.erase': PageimgEraseParams;
+  'pageimg.pagePreview': PageimgPagePreviewParams;
   'pageimg.proposeFingerMask': PageimgProposeFingerMaskParams;
   'pageimg.quadPreview': PageimgQuadPreviewParams;
   'pageimg.removeFingers': PageimgRemoveFingersParams;
@@ -4430,6 +4436,7 @@ export const OP_IDS = [
   'pageimg.dewarpPreview',
   'pageimg.enhance',
   'pageimg.erase',
+  'pageimg.pagePreview',
   'pageimg.proposeFingerMask',
   'pageimg.quadPreview',
   'pageimg.removeFingers',
