@@ -799,3 +799,56 @@ def test_page_preview_is_a_png_at_most_900_px_wide_and_read_only(
     with Image.open(row["previewPath"]) as img:
         assert img.width == 900
     assert Path(_revision(harness, sid)).read_bytes() == before
+
+
+def test_enhance_tone_curve_maps_levels_through_the_points(
+    harness: Harness, tmp_path: Path
+) -> None:
+    """Curve (0,0)-(128,255)-(255,255) lifts midtones: a grey of 64 comes out near 128."""
+    frame = np.full((1754, 1240, 3), 64, np.uint8)
+    src = _image_pdf(tmp_path / "curve.pdf", [frame])
+    sid = _sid(harness, src)
+    harness.op(
+        "pageimg.enhance",
+        {
+            "curve": [
+                {"input": 0, "output": 0},
+                {"input": 128, "output": 255},
+                {"input": 255, "output": 255},
+            ]
+        },
+        sid,
+    )
+    out = _rgb(_revision(harness, sid))
+    assert 120 <= int(out[800, 600].mean()) <= 136
+
+
+def test_enhance_rejects_a_curve_that_is_not_increasing(harness: Harness, tmp_path: Path) -> None:
+    src = _image_pdf(tmp_path / "curve_bad.pdf", [text_page(1240, 1754, seed=112)])
+    sid = _sid(harness, src)
+    with pytest.raises(Exception):  # noqa: B017 - the harness raises the RPC error
+        harness.op(
+            "pageimg.enhance",
+            {"curve": [{"input": 200, "output": 0}, {"input": 100, "output": 255}]},
+            sid,
+        )
+    assert _page_count(_revision(harness, sid)) == 1
+
+
+def test_enhance_preview_shows_the_result_and_leaves_the_document(
+    harness: Harness, tmp_path: Path
+) -> None:
+    frame = np.full((1754, 1240, 3), 64, np.uint8)
+    src = _image_pdf(tmp_path / "enh_prev.pdf", [frame])
+    sid = _sid(harness, src)
+    before = Path(_revision(harness, sid)).read_bytes()
+    row = harness.op(
+        "pageimg.enhancePreview",
+        {"pageIndex": 0, "invert": True},
+        sid,
+    )["data"]
+    assert row["status"] == "done"
+    with Image.open(row["previewPath"]) as img:
+        assert img.width == 900
+        assert int(np.asarray(img.convert("RGB"))[400, 400].mean()) > 150  # 64 inverted
+    assert Path(_revision(harness, sid)).read_bytes() == before

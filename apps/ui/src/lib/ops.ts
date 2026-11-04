@@ -29,6 +29,8 @@ import type {
   PageimgEraseParams,
   PageimgPagePreviewParams,
   PageimgRemoveStainsParams,
+  PageimgEnhanceParams,
+  PageimgEnhancePreviewParams,
   ImageCleanupParams,
   ImageFromStrokesParams,
   ImageRemoveBackgroundParams,
@@ -198,6 +200,8 @@ export interface OpParams {
   'pageimg.erase': PageimgEraseParams;
   'pageimg.pagePreview': PageimgPagePreviewParams;
   'pageimg.removeStains': PageimgRemoveStainsParams;
+  'pageimg.enhance': PageimgEnhanceParams;
+  'pageimg.enhancePreview': PageimgEnhancePreviewParams;
   'export.document': ExportDocumentParams;
   'export.refresh': ExportRefreshParams;
   'page.rotate': { pages: number[]; angle: RotateAngle };

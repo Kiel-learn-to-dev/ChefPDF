@@ -40,6 +40,7 @@ import { DewarpDialog } from '../features/pageimg/DewarpDialog';
 import { SpineDialog } from '../features/pageimg/SpineDialog';
 import { FingerDialog } from '../features/pageimg/FingerDialog';
 import { EraseDialog } from '../features/pageimg/EraseDialog';
+import { AdjustDialog } from '../features/pageimg/AdjustDialog';
 import { DocumentExportDialog } from '../features/export/DocumentExportDialog';
 import { BatchExportDialog } from '../features/export/BatchExportDialog';
 import { TocDialog } from '../features/toc/TocDialog';
@@ -208,6 +209,8 @@ export function DialogHost() {
       return <FingerDialog />;
     case 'erase':
       return <EraseDialog />;
+    case 'adjust':
+      return <AdjustDialog />;
     case 'verifyBatch':
       return <VerifyBatchDialog />;
     case 'docTools':

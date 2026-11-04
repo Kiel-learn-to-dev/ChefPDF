@@ -183,6 +183,12 @@ export interface CropPoint {
   y: number;
 }
 
+/** One control point of the tone curve: input and output level, 0..255. */
+export interface CurvePoint {
+  input: number;
+  output: number;
+}
+
 /** Options shared by the exporters. Defaults give a plain, complete export of the body. */
 export interface ExportOptions {
   /**
@@ -2926,6 +2932,8 @@ export interface PageimgEnhanceParams {
   /** @default 0.5 */
   denoiseStrength?: number;
   levels?: Levels;
+  /** Tone curve after levels: points sorted by input, inputs unique. */
+  curve?: CurvePoint[];
   /** @default false */
   invert?: boolean;
   /** @default false */
@@ -2943,6 +2951,41 @@ export interface PageimgEnhanceParams {
   resizePage?: boolean;
   /** @default 80 */
   jpegQuality?: number;
+}
+
+/** The enhance settings applied to one page, written as a PNG and not saved (T8.02). */
+export interface PageimgEnhancePreviewParams {
+  /** 0-based; default all. */
+  pages?: number[];
+  /** @default false */
+  whiten?: boolean;
+  /** @default 0.8 */
+  whitenStrength?: number;
+  /** @default false */
+  denoise?: boolean;
+  /** @default 0.5 */
+  denoiseStrength?: number;
+  levels?: Levels;
+  /** Tone curve after levels: points sorted by input, inputs unique. */
+  curve?: CurvePoint[];
+  /** @default false */
+  invert?: boolean;
+  /** @default false */
+  grayscale?: boolean;
+  /** @default 0 */
+  contrast?: number;
+  /** @default 0 */
+  brightness?: number;
+  /** Resolution in dpi. Resamples the pixels (page keeps its size) unless resizePage is set. */
+  dpi?: number;
+  /**
+   * With dpi: keep the pixels and change the page size so that the image has dpi.
+   * @default false
+   */
+  resizePage?: boolean;
+  /** @default 80 */
+  jpegQuality?: number;
+  pageIndex: number;
 }
 
 /** Erase rectangles or a mask on one page image and fill them with paper (L10). */
@@ -4243,6 +4286,7 @@ export interface OpParams {
   'pageimg.dewarp': PageimgDewarpParams;
   'pageimg.dewarpPreview': PageimgDewarpPreviewParams;
   'pageimg.enhance': PageimgEnhanceParams;
+  'pageimg.enhancePreview': PageimgEnhancePreviewParams;
   'pageimg.erase': PageimgEraseParams;
   'pageimg.pagePreview': PageimgPagePreviewParams;
   'pageimg.proposeFingerMask': PageimgProposeFingerMaskParams;
@@ -4435,6 +4479,7 @@ export const OP_IDS = [
   'pageimg.dewarp',
   'pageimg.dewarpPreview',
   'pageimg.enhance',
+  'pageimg.enhancePreview',
   'pageimg.erase',
   'pageimg.pagePreview',
   'pageimg.proposeFingerMask',

@@ -90,6 +90,7 @@ export type DialogId =
   | 'spine'
   | 'finger'
   | 'erase'
+  | 'adjust'
   | 'watch'
   | 'shortcuts'
   | 'workflow';

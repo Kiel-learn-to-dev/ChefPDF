@@ -27,6 +27,7 @@ from __future__ import annotations
 import base64
 import binascii
 import io
+import itertools
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -598,6 +599,13 @@ class Levels(WireModel):
     gamma: float = Field(default=1.0, gt=0.1, le=10)
 
 
+class CurvePoint(WireModel):
+    """One control point of the tone curve: input and output level, 0..255."""
+
+    input: int = Field(ge=0, le=255)
+    output: int = Field(ge=0, le=255)
+
+
 class EnhanceParams(WireModel):
     """Clean up scanned pages: background, specks, levels, colour, resolution (L3, L4, L12)."""
 
@@ -607,6 +615,12 @@ class EnhanceParams(WireModel):
     denoise: bool = False
     denoise_strength: float = Field(default=0.5, ge=0, le=1)
     levels: Levels | None = None
+    curve: list[CurvePoint] | None = Field(
+        default=None,
+        min_length=2,
+        max_length=16,
+        description="Tone curve after levels: points sorted by input, inputs unique.",
+    )
     invert: bool = False
     grayscale: bool = False
     contrast: float = Field(default=0, ge=-100, le=100)
@@ -625,6 +639,15 @@ class EnhanceParams(WireModel):
     jpeg_quality: Quality = 80
 
 
+def _apply_curve(pixels: np.ndarray, points: list[CurvePoint]) -> np.ndarray:
+    """Map every level through the curve (linear between the points, flat beyond the ends)."""
+    xs = np.array([pt.input for pt in points], dtype=np.float64)
+    ys = np.array([pt.output for pt in points], dtype=np.float64)
+    lut = np.clip(np.round(np.interp(np.arange(256), xs, ys)), 0, 255).astype(np.uint8)
+    mapped: np.ndarray = lut[pixels]
+    return mapped
+
+
 def _enhance_pixels(rgb: np.ndarray, p: EnhanceParams) -> np.ndarray:
     out = rgb
     if p.whiten:
@@ -633,6 +656,8 @@ def _enhance_pixels(rgb: np.ndarray, p: EnhanceParams) -> np.ndarray:
         out = pi.denoise(out, p.denoise_strength)
     if p.levels is not None:
         out = pi.adjust_levels(out, p.levels.black, p.levels.white, p.levels.gamma)
+    if p.curve is not None:
+        out = _apply_curve(out, p.curve)
     if p.contrast or p.brightness:
         out = pi.tone(out, brightness=p.brightness, contrast=p.contrast)
     if p.grayscale and out.ndim == 3:
@@ -652,6 +677,10 @@ def _enhance_pixels(rgb: np.ndarray, p: EnhanceParams) -> np.ndarray:
 def enhance(ctx: OpContext, p: EnhanceParams) -> OpOutput:
     if p.levels is not None and p.levels.white <= p.levels.black:
         raise invalid_params("INVALID_LEVELS", {"black": p.levels.black, "white": p.levels.white})
+    if p.curve is not None:
+        inputs = [pt.input for pt in p.curve]
+        if any(b <= a for a, b in itertools.pairwise(inputs)):
+            raise invalid_params("CURVE_NOT_INCREASING", {"inputs": inputs})
     rows: list[dict[str, Any]] = []
     changed: list[int] = []
     with ctx.open_input() as pdf:
@@ -684,6 +713,50 @@ def enhance(ctx: OpContext, p: EnhanceParams) -> OpOutput:
         if changed:
             ctx.save_document(pdf)
     return OpOutput(changed_pages=changed, data={"pages": rows})
+
+
+class EnhancePreviewParams(EnhanceParams):
+    """The enhance settings applied to one page, written as a PNG and not saved (T8.02)."""
+
+    page_index: PageIndex
+
+
+@operation(
+    id="pageimg.enhancePreview",
+    title="Preview enhanced page",
+    group="pageimg",
+    params=EnhancePreviewParams,
+)
+def enhance_preview(ctx: OpContext, p: EnhancePreviewParams) -> OpOutput:
+    """Write the adjusted page as a PNG (at most 900 px wide); the document does not change."""
+    if ctx.input_path is None:
+        raise RuntimeError("pageimg.enhancePreview needs a session")
+    if p.levels is not None and p.levels.white <= p.levels.black:
+        raise invalid_params("INVALID_LEVELS", {"black": p.levels.black, "white": p.levels.white})
+    with ctx.open_input() as pdf:
+        if p.page_index >= len(pdf.pages):
+            raise invalid_params("PAGE_OUT_OF_RANGE", {"pageIndex": p.page_index})
+        dom = _dominant(pdf, p.page_index)
+        if isinstance(dom, str):
+            return OpOutput(
+                changed_pages=[],
+                data={"pageIndex": p.page_index, "status": "skipped", "reason": dom},
+            )
+        rgb = _pixels(dom)
+    out = _enhance_pixels(rgb, p)
+    image = _pil(out)
+    h, w = out.shape[:2]
+    scale = min(1.0, 900 / w)
+    if scale < 1.0:
+        image = image.resize((round(w * scale), round(h * scale)))
+    out_dir = ctx.input_path.parent / "preview" / "pageimg-enhance"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{ctx.job_id[:8]}-p{p.page_index}.png"
+    image.save(path, format="PNG")
+    return OpOutput(
+        changed_pages=[],
+        data={"pageIndex": p.page_index, "status": "done", "previewPath": str(path)},
+    )
 
 
 # -- pageimg.crop ---------------------------------------------------------------------------
