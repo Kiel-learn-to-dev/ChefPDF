@@ -417,7 +417,8 @@ def _layout(
     marker = re.match(LIST_MARKER, body)
     hang = _width(writer, marker.group(0), size) if marker is not None else 0.0
     base = para.indent if opts.indent is None else opts.indent
-    if base + hang > box_w - MIN_FIRST_ROW_EMS * size:
+    asked = opts.indent is not None and opts.indent > 0
+    if asked and base + hang > box_w - MIN_FIRST_ROW_EMS * size:
         raise invalid_params(
             "INVALID_VALUE",
             {

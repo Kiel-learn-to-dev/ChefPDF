@@ -266,6 +266,20 @@ def test_one_paragraph_takes_under_two_seconds(harness: Harness, tmp_path: Path)
     assert time.perf_counter() - started < 2.0
 
 
+def test_bold_on_a_short_heading_still_works_without_an_indent(
+    harness: Harness, tmp_path: Path
+) -> None:
+    # A one-word heading is narrower than four em: a style change must not ask for an indent room.
+    src = _rows(tmp_path / "heading.pdf", [(60, 700, 10, "Điều 2", False)])
+    sid = _sid(harness, src)
+    para = _paragraph_of(_page(harness, sid), "Điều 2")
+    result = _edit(harness, sid, para["id"], None, bold=True)
+    assert result["data"]["action"] == "reflow"
+    # The box keeps its width, so the bolder text may wrap; every line is bold and all words stay.
+    lines = [ln for ln in _page(harness, sid)["lines"] if ln["text"] in ("Điều", "2")]
+    assert [ln["bold"] for ln in lines] == [True, True]
+
+
 def test_indent_moves_only_the_first_line(harness: Harness, tmp_path: Path) -> None:
     src = two_column_pdf(tmp_path / "two.pdf")
     sid = _sid(harness, src)
