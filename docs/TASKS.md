@@ -262,7 +262,7 @@
 | T11.02 | Hiệu năng: file 1000 trang, file 300MB, RAM, thời gian khởi động | | 3 | tất cả | ✅ (trong app: file 1000 trang hiện trang đầu 4,1 s, 20 lần PageDown 0,9 s; file 305 MB hiện trang đầu 5,1 s, 20 lần PageDown 52 ms; RAM đỉnh lõi 444 MB; `perf-large.spec.ts`) |
 | T11.03 | Rà soát giấy phép toàn bộ thư viện, font, mô hình; tạo file NOTICE | | 1 | tất cả | ⬜ |
 | T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | 🔄 |
-| T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ⬜ |
+| T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ✅ (phím tắt và điều hướng bàn phím, e2e `keyboard.spec.ts`; đánh bóng giao diện theo D41 và ui-audit; dọn token CSS B1–B9 để sau 1.0) |
 | T11.06 | Menu chuột phải trên các trang đã chọn (kiểu ABBYY): **tạo PDF từ các trang đã chọn** mở ở tab mới, đóng dấu và nén đúng các trang đã chọn, chọn tất cả/đảo chọn, xuất ảnh; dùng chung ở lưới thumbnail và thanh bên (chọn nhiều và menu ở thanh bên xong), xem NOTES 2026-11-03 | C13, C14 | 3 | T1.24, T4.05, T5.04 | ✅ |
 
 ---

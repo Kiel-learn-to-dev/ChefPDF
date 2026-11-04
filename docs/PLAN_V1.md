@@ -86,6 +86,7 @@ Demo: rã một báo cáo 2 cột có bảng thành Word "giữ bố cục" và 
 - **E2E Linux:** spec `integration › side-by-side` hỏng trên CI do mở file hai lần với Ctrl+O. Đã sửa ở menu (`registerAccelerator: false`) nhưng chưa có kết quả CI xác nhận; còn các lỗi khác chưa biết vì log chỉ đọc được khi cả lượt CI kết thúc.
 - **E2E macOS:** lượt CI xếp hàng rất lâu; lỗi cũ từ v0.1: tìm kiếm không dấu (`page.fill` hết hạn) và khởi động lại lõi sau crash. Python đã giới hạn `<3.15` vì onnxruntime chưa có wheel cho 3.15.
 - **Bộ cài và ký trên macOS/Linux:** driver token, PKCS#11 và đường dẫn khác nhau; cần máy hoặc CI thật.
+- **Dọn token CSS (UI_AUDIT B1–B9, B2–B3 cần `--fix` cho `css-audit.mjs`):** không đổi giao diện người dùng, chỉ làm gọn mã.
 - **Tự cập nhật (T9.08, A10).**
 - Xuất Markdown/HTML có ảnh vào tên đã có thư mục ảnh đi kèm vẫn bị từ chối.
 - Tách bớt `commands.tsx` và `mockBridge.ts` khi chạm vào.
