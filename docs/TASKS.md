@@ -211,7 +211,7 @@
 | T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ✅ |
 | T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | ✅ |
 | T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | 🔄 (duyệt nhanh và kính lúp cho hàng loạt chưa xong) |
-| T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | 🔄 (tách tự động đã có e2e; chỉnh tay chưa có giao diện) |
+| T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | ✅ (tự dò và chỉnh tay có giao diện, xem trước khe gáy, e2e `spine.spec.ts`) |
 | T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | ✅ (chưa thử trên ảnh sách thật) |
 | T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | 🔄 (chưa có giao diện đề xuất, chỉnh cọ, tô nền; lõi và Demo v0.8 có) |
 | T8.11 | Chụp bằng điện thoại qua QR: máy chủ LAN tạm có token, trang web chụp, nhận ảnh, dò viền ngay. Dùng cho cả chụp chữ ký (I19) | L5, (I19) | 4 | T8.04 | ✅ (chưa thử trên điện thoại thật; server và trang chụp qua HTTP) |

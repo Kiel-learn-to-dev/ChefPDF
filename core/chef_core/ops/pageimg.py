@@ -1031,6 +1031,69 @@ def split_spread(ctx: OpContext, p: SplitParams) -> OpOutput:
     return OpOutput(changed_pages=changed, data={"pages": rows})
 
 
+# -- pageimg.spinePreview (read-only) -------------------------------------------------------
+
+
+class SpinePreviewParams(WireModel):
+    """Read-only preview of the automatic spine position for up to three spreads (L2, T8.08)."""
+
+    pages: list[PageIndex] = Field(min_length=1, max_length=3)
+
+
+@operation(
+    id="pageimg.spinePreview",
+    title="Preview spine position",
+    group="pageimg",
+    params=SpinePreviewParams,
+)
+def spine_preview(ctx: OpContext, p: SpinePreviewParams) -> OpOutput:
+    """Write a PNG per spread with the automatic split drawn as a line; no change to the document.
+
+    ``autoX`` is the automatic split as a fraction of the width, so the dialog can start from it and
+    send the user's adjusted value to ``pageimg.splitSpread`` with ``mode: "x"``."""
+    if ctx.input_path is None:
+        raise RuntimeError("pageimg.spinePreview needs a session")
+    rows: list[dict[str, Any]] = []
+    out_dir = ctx.input_path.parent / "preview" / "pageimg-spine"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with ctx.open_input() as pdf:
+        for index in p.pages:
+            if index >= len(pdf.pages):
+                rows.append(
+                    {"pageIndex": index, "status": "skipped", "reason": "PAGE_OUT_OF_RANGE"}
+                )
+                continue
+            dom = _dominant(pdf, index)
+            if isinstance(dom, str):
+                rows.append({"pageIndex": index, "status": "skipped", "reason": dom})
+                continue
+            rgb = _pixels(dom)
+            result = pi.split_spread(rgb)
+            h, w = rgb.shape[:2]
+            image = _pil(rgb)
+            # The preview is scaled to 900 px wide; the line is drawn at the scaled position.
+            scale = min(1.0, 900 / w)
+            if scale < 1.0:
+                image = image.resize((round(w * scale), round(h * scale)))
+            from PIL import ImageDraw
+
+            draw = ImageDraw.Draw(image)
+            x_line = round(result["split_x"] * scale)
+            draw.line([(x_line, 0), (x_line, image.height)], fill=(220, 30, 30), width=3)
+            path = out_dir / f"{ctx.job_id[:8]}-p{index}-spine.png"
+            image.save(path)
+            rows.append(
+                {
+                    "pageIndex": index,
+                    "status": "done",
+                    "previewPath": str(path),
+                    "autoX": round(result["split_x"] / w, 4),
+                    "confidence": result["confidence"],
+                }
+            )
+    return OpOutput(changed_pages=[], data={"pages": rows})
+
+
 # -- pageimg.proposeFingerMask (read-only) and pageimg.removeFingers ------------------------
 
 

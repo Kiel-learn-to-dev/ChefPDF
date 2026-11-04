@@ -22,6 +22,8 @@ import type {
   ExportRefreshParams,
   PageimgDewarpParams,
   PageimgDewarpPreviewParams,
+  PageimgSpinePreviewParams,
+  PageimgSplitSpreadParams,
   ImageCleanupParams,
   ImageFromStrokesParams,
   ImageRemoveBackgroundParams,
@@ -184,6 +186,8 @@ export interface OpParams {
   'export.batch': ExportBatchParams;
   'pageimg.dewarp': PageimgDewarpParams;
   'pageimg.dewarpPreview': PageimgDewarpPreviewParams;
+  'pageimg.spinePreview': PageimgSpinePreviewParams;
+  'pageimg.splitSpread': PageimgSplitSpreadParams;
   'export.document': ExportDocumentParams;
   'export.refresh': ExportRefreshParams;
   'page.rotate': { pages: number[]; angle: RotateAngle };

@@ -2996,6 +2996,11 @@ export interface PageimgRemoveStainsParams {
   jpegQuality?: number;
 }
 
+/** Read-only preview of the automatic spine position for up to three spreads (L2, T8.08). */
+export interface PageimgSpinePreviewParams {
+  pages: number[];
+}
+
 /** Split each page image (a two-page spread) into two pages (L6). */
 export interface PageimgSplitSpreadParams {
   /** 0-based; default all. */
@@ -4236,6 +4241,7 @@ export interface OpParams {
   'pageimg.quadPreview': PageimgQuadPreviewParams;
   'pageimg.removeFingers': PageimgRemoveFingersParams;
   'pageimg.removeStains': PageimgRemoveStainsParams;
+  'pageimg.spinePreview': PageimgSpinePreviewParams;
   'pageimg.splitSpread': PageimgSplitSpreadParams;
   'preflight.check': PreflightCheckParams;
   'redact.apply': RedactApplyParams;
@@ -4426,6 +4432,7 @@ export const OP_IDS = [
   'pageimg.quadPreview',
   'pageimg.removeFingers',
   'pageimg.removeStains',
+  'pageimg.spinePreview',
   'pageimg.splitSpread',
   'preflight.check',
   'redact.apply',

@@ -717,3 +717,37 @@ def test_output_file_size_stays_sane(harness: Harness, tmp_path: Path) -> None:
     sid = _sid(harness, src)
     harness.op("pageimg.enhance", {"whiten": True, "denoise": True}, sid)
     assert _revision(harness, sid).stat().st_size < src.stat().st_size * 2 + 100_000
+
+
+# -- spinePreview (T8.08) ---------------------------------------------------------------------
+
+
+def test_spine_preview_reports_the_automatic_gutter_and_leaves_the_document(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = _image_pdf(tmp_path / "spine_preview.pdf", [_spread_frame(98, shadow=True)])
+    sid = _sid(harness, src)
+    before = _revision(harness, sid)
+    res = harness.op("pageimg.spinePreview", {"pages": [0]}, sid)
+    row = _pages(res)[0]
+    assert row["status"] == "done"
+    assert (
+        abs(row["autoX"] - 0.5) <= 0.02
+    )  # the shadow gutter of an 1800 px spread is in the middle
+    assert row["confidence"] > 0.4
+    preview = Path(row["previewPath"])
+    assert preview.exists() and preview.stat().st_size > 0
+    # The preview is read only: the page count and the current revision are unchanged.
+    assert _page_count(_revision(harness, sid)) == 1
+    assert Path(_revision(harness, sid)).read_bytes() == Path(before).read_bytes()
+
+
+def test_spine_preview_skips_pages_out_of_range(harness: Harness, tmp_path: Path) -> None:
+    src = _image_pdf(tmp_path / "spine_range.pdf", [_spread_frame(100, shadow=True)])
+    sid = _sid(harness, src)
+    res = harness.op("pageimg.spinePreview", {"pages": [5]}, sid)
+    assert _pages(res)[5] == {
+        "pageIndex": 5,
+        "status": "skipped",
+        "reason": "PAGE_OUT_OF_RANGE",
+    }

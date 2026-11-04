@@ -87,6 +87,7 @@ export type DialogId =
   | 'linkDialog'
   | 'capture'
   | 'dewarp'
+  | 'spine'
   | 'watch'
   | 'shortcuts'
   | 'workflow';

@@ -267,7 +267,11 @@
     "progress": "Đang xuất tài liệu",
     "results": "Kết quả từng file",
     "badResult": "Không đọc được kết quả xuất.",
-    "status": { "done": "Đã xuất", "failed": "Lỗi", "skipped": "Đã bỏ qua" },
+    "status": {
+      "done": "Đã xuất",
+      "failed": "Lỗi",
+      "skipped": "Đã bỏ qua"
+    },
     "short": "Xuất tài liệu",
     "description": "Phân tích nội dung PDF và xuất sang định dạng khác. Hãy chọn tên file chưa tồn tại; bố cục phức tạp có thể cần chỉnh lại sau khi xuất.",
     "format": "Định dạng",
@@ -2681,6 +2685,30 @@
       "skippedWarning": "{{pages}} không có ảnh trang phù hợp để xem trước.",
       "applyReview": "Trang {{pages}} không đủ tin cậy nên được giữ nguyên.",
       "job": "Làm phẳng trang cong — {{name}}"
+    },
+    "spine": {
+      "cmd": "Chỉnh khe gáy (tách trang đôi)…",
+      "short": "Chỉnh khe gáy",
+      "title": "Chỉnh khe gáy",
+      "description": "Xem vị trí khe gáy tự dò trên trang đôi. Có thể chỉnh tay rồi tách trang theo vị trí đó.",
+      "pages": "Trang đôi cần xử lý",
+      "pagesPlaceholder": "Ví dụ: 1-4, 7",
+      "pagesHint": "Để trống để chọn tất cả. Xem trước tối đa 3 trang đầu tiên trong phạm vi.",
+      "invalidPages": "Khoảng trang không hợp lệ.",
+      "mode": "Cách xác định khe gáy",
+      "modeAuto": "Tự dò (đề xuất)",
+      "modeManual": "Chỉnh tay",
+      "position": "Vị trí khe gáy: {{value}}% chiều ngang (áp cho mọi trang đã chọn)",
+      "preview": "Xem trước",
+      "previewEmpty": "Chọn trang rồi bấm Xem trước để thấy khe gáy.",
+      "previewAlt": "Trang {{page}} có khe gáy",
+      "auto": "Khe gáy tự dò: {{value}}% chiều ngang",
+      "confidence": "Độ tin cậy: {{value}}%",
+      "skippedWarning": "Bỏ qua trang {{pages}}: không đọc được ảnh trang.",
+      "lowConfidence": "Trang {{pages}} có khe gáy yếu. Nên chỉnh tay.",
+      "apply": "Tách trang đôi",
+      "job": "Tách trang đôi: {{name}}",
+      "applyReview": "Trang {{pages}} cần xem lại: khe gáy không rõ, chưa tách."
     }
   },
   "compress": {

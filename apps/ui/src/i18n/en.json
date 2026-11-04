@@ -267,7 +267,11 @@
     "progress": "Exporting documents",
     "results": "Results by file",
     "badResult": "Could not read export results.",
-    "status": { "done": "Exported", "failed": "Failed", "skipped": "Skipped" },
+    "status": {
+      "done": "Exported",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
     "short": "Export document",
     "description": "Analyze the PDF and export it to another format. Choose a new filename; complex layouts may need adjustment after export.",
     "format": "Format",
@@ -2701,6 +2705,30 @@
       "skippedWarning": "{{pages}} do not have a suitable page image to preview.",
       "applyReview": "Pages {{pages}} did not meet the confidence threshold and were left unchanged.",
       "job": "Flatten curved pages — {{name}}"
+    },
+    "spine": {
+      "cmd": "Adjust spine (split spreads)…",
+      "short": "Adjust spine",
+      "title": "Adjust spine",
+      "description": "See the automatic spine position on a two-page spread. You can move it by hand and split at that position.",
+      "pages": "Spreads to process",
+      "pagesPlaceholder": "For example: 1-4, 7",
+      "pagesHint": "Leave empty to select all pages. Previews show at most the first 3 pages in the range.",
+      "invalidPages": "Invalid page range.",
+      "mode": "How the spine is found",
+      "modeAuto": "Automatic (recommended)",
+      "modeManual": "Adjust by hand",
+      "position": "Spine position: {{value}}% of the width (applied to every selected page)",
+      "preview": "Preview",
+      "previewEmpty": "Choose pages and press Preview to see the spine.",
+      "previewAlt": "Page {{page}} with its spine",
+      "auto": "Automatic spine: {{value}}% of the width",
+      "confidence": "Confidence: {{value}}%",
+      "skippedWarning": "Skipped pages {{pages}}: the page image could not be read.",
+      "lowConfidence": "Pages {{pages}} have a weak spine. Adjust by hand.",
+      "apply": "Split spreads",
+      "job": "Split spreads: {{name}}",
+      "applyReview": "Pages {{pages}} need review: the spine is unclear, not split."
     }
   },
   "compress": {

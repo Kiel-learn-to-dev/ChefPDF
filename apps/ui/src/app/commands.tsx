@@ -1315,6 +1315,17 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       run: () => ui.openDialog('dewarp'),
     },
     {
+      id: 'tools.spine',
+      title: t('pageimg.spine.cmd'),
+      short: t('pageimg.spine.short'),
+      keywords: ['khe gay', 'gay sach', 'spine', 'tach trang doi', 'split', 'sach'],
+      group: 'tools',
+      icon: <BookOpen size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('pageTools.signedBlocked') : undefined,
+      run: () => ui.openDialog('spine'),
+    },
+    {
       id: 'tools.workflow',
       title: t('workflow.title'),
       short: t('workflow.title'),

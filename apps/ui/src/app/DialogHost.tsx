@@ -37,6 +37,7 @@ import { ImagesToPdfDialog, PdfToImagesDialog } from '../features/convert/Conver
 import { Web2PdfDialog } from '../features/web2pdf/Web2PdfDialog';
 import { CaptureDialog } from '../features/capture/CaptureDialog';
 import { DewarpDialog } from '../features/pageimg/DewarpDialog';
+import { SpineDialog } from '../features/pageimg/SpineDialog';
 import { DocumentExportDialog } from '../features/export/DocumentExportDialog';
 import { BatchExportDialog } from '../features/export/BatchExportDialog';
 import { TocDialog } from '../features/toc/TocDialog';
@@ -199,6 +200,8 @@ export function DialogHost() {
       return <CaptureDialog />;
     case 'dewarp':
       return <DewarpDialog />;
+    case 'spine':
+      return <SpineDialog />;
     case 'verifyBatch':
       return <VerifyBatchDialog />;
     case 'docTools':
