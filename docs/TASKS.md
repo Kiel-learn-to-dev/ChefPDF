@@ -113,13 +113,13 @@
 | T3.05 | Đọc thông tin chứng thư (gồm MST/CCCD theo cách CA Việt Nam ghi), nhắc trước khi hết hạn | I3 | 1,5 | T3.01 | ✅ |
 | T3.06 | Engine ký PAdES: B-B / B-T / B-LT / B-LTA, TSA có dự phòng, SHA-256, ghi incremental | I28 | 3 | T3.01, T3.04 | ✅ |
 | T3.07 | Ký chứng nhận (DocMDP); nhiều người ký nối tiếp; tạo ô ký trống | I29, I30 | 1,5 | T3.06 | ✅ |
-| T3.08 | Kiểm tra chữ ký: panel trạng thái, chuỗi chứng thư, OCSP/CRL, xem phiên bản lúc ký; kho tin cậy với 2 hệ Root CA Việt Nam | I34, I35 | 3 | T3.06 | 🔄 |
+| T3.08 | Kiểm tra chữ ký: panel trạng thái, chuỗi chứng thư, OCSP/CRL, xem phiên bản lúc ký; kho tin cậy với 2 hệ Root CA Việt Nam | I34, I35 | 3 | T3.06 | ⏸ (hoãn: chủ dự án đối chiếu vân tay Root CA và kiểm sau khi có kết quả) |
 | T3.09 | Bộ vẽ giao diện chữ ký theo mẫu: bố cục, font tiếng Việt, tự co chữ, màu, viền, logo, dấu ✓. **Tự vẽ bằng reportlab rồi nhúng vào**, không dùng bộ vẽ chữ có sẵn của pyHanko (lỗi giãn chữ với font TrueType, xem spike S1) | I15–I18 | 3 | T3.06 | ✅ |
 | T3.10 | Studio mẫu chữ ký (UI): quản lý mẫu, gắn mẫu với chứng thư, chọn dòng thông tin, nguồn dữ liệu, ngày giờ, lý do/nơi ký, xem trước trực tiếp | I10–I14 | 3 | T3.09, T3.05 | ✅ |
 | T3.11 | Thư viện ảnh chữ ký & con dấu: nhập ảnh / vẽ (có lực bút) / gõ font viết tay; tách nền tự động; làm sạch & chỉnh; mã hóa thư viện. *Phần "chụp qua QR" của I19 làm ở T8.11* | I19, I20, I21, I23 | 3,5 | T1.10 | ✅ (nhập ảnh, vẽ có lực bút, gõ tên, tách nền, làm sạch; thư viện mã hóa qua kho bí mật) |
 | T3.12 | Đặt chữ ký: kéo thả khung, ký ẩn, ký vào ô có sẵn, **đặt theo chữ mốc**, vị trí cố định | I25, I26, I27 | 2,5 | T3.09 | ✅ |
 | T3.13 | Ký hàng loạt (nhập PIN 1 lần); việc sau khi ký (đặt tên, mở panel kiểm tra, mở thư mục) | I31, I32 | 1,5 | T3.12 | ✅ |
-| T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 1,5 | T3.13, T3.08 | 🔄 |
+| T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 1,5 | T3.13, T3.08 | ⏸ (hoãn: chủ dự án kiểm Adobe Reader/Foxit và token thật sau khi dùng v1) |
 
 ---
 
@@ -231,7 +231,7 @@
 | T9.05 | Thư mục tự động (theo dõi thư mục, hàng đợi, chống chạy trùng) | O3 | 1,5 | T9.04 | ✅ |
 | T9.06 | Quy tắc đặt tên đầu ra; đổi tên file hàng loạt | O4, O6 | 1,5 | T9.04 | ✅ (quy tắc đặt tên đầu ra và đổi tên hàng loạt; e2e `rename.spec.ts`) |
 | T9.07 | Quy trình mẫu (Nộp hồ sơ online, Phát hành văn bản, Chụp sách); kéo thả file lên quy trình ở Start | O7, O8 | 1,5 | T9.03 | ✅ (quy trình mẫu, kéo thả file lên quy trình ở Start; e2e `start-workflows.spec.ts`) |
-| T9.08 | Tự cập nhật (Windows/Linux tự động, macOS báo bản mới). **Làm sau 1.0** (D36) | A10 | 2 | T1.06 | ⏸ |
+| T9.08 | Tự cập nhật (Windows/Linux tự động, macOS báo bản mới). **Làm sau 1.0** (D36) | A10 | 2 | T1.06 | ⏸ (hoãn sau 1.0, D36) |
 
 ---
 
