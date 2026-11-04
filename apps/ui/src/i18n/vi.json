@@ -540,6 +540,9 @@
     "tipKeys": "Alt+← / Alt+→ để dời trang bằng bàn phím."
   },
   "status": {
+    "mode": {
+      "edit": "Chế độ Chỉnh sửa"
+    },
     "text": {
       "all": "Có chữ",
       "none": "Bản scan, không có chữ",
