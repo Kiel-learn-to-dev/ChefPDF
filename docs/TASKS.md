@@ -278,10 +278,10 @@
 | T12.02 | **B2:** kịch bản "cửa sổ khác ở trên" chưa chạy; cần chủ dự án cho phép rõ ràng | B2 | 1 | | ⬜ (chờ chủ dự án cho phép chạy kịch bản cửa sổ khác ở trên) |
 | T12.03 | Lõi: tham số `indent` (pt hoặc keep) cho `text.editParagraph` và `text.styleParagraph`, test lõi, cập nhật contracts | D53–D56 | 1 | T9.03 | ✅ |
 | T12.04 | Một chế độ **Chỉnh sửa** thay hai lệnh dòng và đoạn; khung là khối từ lõi; ô nhập nội dung đoạn mở từ hàng định dạng (giữ), có cảnh báo tràn và chồng khối | B11 | 3 | T12.03 | ✅ (một chế độ, D53; có nhãn trên thanh trạng thái) |
-| T12.05 | **Hàng định dạng cố định** dưới hàng công cụ: font, cỡ (tăng/giảm), đậm, nghiêng, căn, thụt lề, khoảng cách, màu; áp dụng ngay, giữ id đoạn sau mỗi revision | D14 | 4 | T12.04 | ✅ (hàng định dạng, D14; e2e format-row, demo-v11) |
+| T12.05 | **Hàng định dạng cố định** dưới hàng công cụ: font, cỡ (tăng/giảm), đậm, nghiêng, căn, thụt lề, khoảng cách, màu; áp dụng ngay, giữ id đoạn sau mỗi revision | D14 | 4 | T12.04 | ✅ (hàng định dạng gồm font, cỡ, đậm, nghiêng, căn, thụt lề, khoảng dòng, màu, D14; e2e format-row, demo-v11) |
 | T12.06 | Chỉ báo lớp chữ trên thanh dưới: có chữ, không có chữ (bản scan), hỗn hợp | B12 | 1 | | ✅ (text.layer và nhãn trên thanh trạng thái; core test_text_layer) |
 | T12.07 | Bảng thuộc tính đối tượng (chữ, ảnh, ghi chú, chữ ký) ở panel phải | D13 | 2,5 | T12.04 | ⬜ |
-| T12.08 | Demo v1.1: `demo-v11.spec.ts` theo §5.7, lõi đóng gói; ui-audit cập nhật baseline có chủ ý (D41) | | 2 | T12.01–T12.06 | 🔄 (demo-v11 xanh trên dev; bản đóng gói chưa chạy) |
+| T12.08 | Demo v1.1: `demo-v11.spec.ts` theo §5.7, lõi đóng gói; ui-audit cập nhật baseline có chủ ý (D41) | | 2 | T12.01–T12.06 | 🔄 (format-row, demo-v11 và b1-in-session đạt trên bản đóng gói ngày 2026-11-05; đường exe giả làm spec lỗi đúng. Còn thiếu: §5.7 bước 5, ui-audit phủ hàng định dạng, nên giữ 🔄) |
 
 ---
 
