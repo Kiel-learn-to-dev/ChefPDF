@@ -103,3 +103,30 @@ export async function recordEvents(page: Page): Promise<void> {
 export async function events<T = Record<string, unknown>>(page: Page): Promise<T[]> {
   return page.evaluate(() => (window.__chefEvents ?? []) as never);
 }
+
+/**
+ * Launches the app for a flow that must run on the packaged build too. With CHEF_E2E_EXE set, the
+ * packaged exe runs with its own bundled core; otherwise the dev app runs with the given core
+ * command (the caller passes CHEF_CORE_CMD in `env`).
+ */
+export async function launchUnderTest(o: LaunchOptions = {}): Promise<Launched> {
+  const exe = process.env.CHEF_E2E_EXE ?? '';
+  if (!exe) return launchApp(o);
+  const userDataDir = o.userDataDir ?? makeUserDataDir();
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
+  for (const k of ['ELECTRON_RUN_AS_NODE', 'CHEF_DEV_SERVER_URL', 'CHEF_CORE_CMD', 'CHEF_E2E']) {
+    delete env[k];
+  }
+  const extra: Record<string, string> = { ...(o.env ?? {}) };
+  delete extra.CHEF_CORE_CMD; // the packaged exe runs its own bundled core
+  const app = await _electron.launch({
+    executablePath: exe,
+    args: o.args ?? [],
+    env: { ...env, ...extra, CHEF_USER_DATA_DIR: userDataDir },
+    cwd: path.dirname(exe),
+  });
+  const page = await app.firstWindow();
+  await page.waitForFunction(() => typeof window.chef === 'object');
+  return { app, page, userDataDir };
+}
