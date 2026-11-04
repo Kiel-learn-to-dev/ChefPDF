@@ -3570,7 +3570,6 @@
     "apply": "Apply",
     "noGlyphs": "Some characters of this line are not in the original font.",
     "listing": "Reading the page text",
-    "cmdParagraph": "Edit paragraph",
     "fmt": {
       "label": "Text format",
       "addText": "Add text",

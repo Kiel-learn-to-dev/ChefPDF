@@ -52,8 +52,6 @@ interface TextEditState {
   fitWidth: FitWidth;
   fontStrategy: FontStrategy;
   fontName: string | null;
-  /** Paragraph mode (D9): a click selects a paragraph and a double click opens its editor. */
-  paragraphMode: boolean;
   selectedParagraphId: string | null;
   /** Blocks of the loaded pages (for the overlap warnings), by page index. */
   blocks: Record<number, TextBlock[]>;
@@ -63,7 +61,6 @@ interface TextEditState {
   formatBusy: boolean;
   paraEditor: ParaEditor | null;
   setActive(active: boolean): void;
-  setParagraphMode(on: boolean): void;
   setSelectedParagraph(id: string | null): void;
   resetFor(key: string): void;
   setPage(
@@ -95,7 +92,6 @@ export const useTextEdit = create<TextEditState>((set, get) => ({
   fitWidth: 'none',
   fontStrategy: 'auto',
   fontName: null,
-  paragraphMode: false,
   selectedParagraphId: null,
   blocks: {},
   paragraphs: {},
@@ -114,9 +110,6 @@ export const useTextEdit = create<TextEditState>((set, get) => ({
             selectedParagraphId: null,
           },
     );
-  },
-  setParagraphMode(on) {
-    set({ paragraphMode: on, selectedParagraphId: null, paraEditor: null });
   },
   setSelectedParagraph(id) {
     set({ selectedParagraphId: id });

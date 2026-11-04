@@ -274,7 +274,6 @@ const EDIT_OVERFLOW = [
   'edit.insertToc',
   'edit.findReplace',
   'edit.links',
-  'edit.textParagraph',
   'tools.bates',
   'edit.stamp',
   'edit.seam',
@@ -339,7 +338,6 @@ export function Toolbar() {
   const objectActive = useObjectEdit((s) => s.active);
   const eraseActive = useEraseState((s) => s.active);
   const textActive = useTextEdit((s) => s.active);
-  const textParagraph = useTextEdit((s) => s.paragraphMode);
   const annotTool = useAnnotUi((s) => s.tool);
   const selection = useSelection(doc?.id);
   const thumbWidth = usePageStore((s) => s.thumbWidth);
@@ -385,7 +383,6 @@ export function Toolbar() {
     'view.find': findOpen,
     'edit.objects': objectActive,
     'edit.textEdit': textActive,
-    'edit.textParagraph': textParagraph,
     'annot.note': annotTool === 'note',
     'annot.freeText': annotTool === 'freetext',
     'annot.ink': annotTool === 'ink',

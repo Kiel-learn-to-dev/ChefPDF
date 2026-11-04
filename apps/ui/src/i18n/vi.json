@@ -3550,7 +3550,6 @@
     "apply": "Áp dụng",
     "noGlyphs": "Một số ký tự của dòng này không có trong font gốc.",
     "listing": "Đọc chữ của trang",
-    "cmdParagraph": "Sửa đoạn",
     "fmt": {
       "label": "Định dạng chữ",
       "addText": "Thêm văn bản",

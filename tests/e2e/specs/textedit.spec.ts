@@ -163,9 +163,11 @@ test('paragraph edit: replace Vietnamese text and save the result', async () => 
   await box.waitFor({ timeout: 30_000 });
   const bounds = await box.boundingBox();
   if (!bounds) throw new Error('Text line has no bounding box');
-  await l.page.keyboard.down('Alt');
-  await l.page.mouse.dblclick(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await l.page.keyboard.up('Alt');
+  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await l.page
+    .getByRole('toolbar', { name: 'Định dạng chữ' })
+    .getByRole('button', { name: 'Sửa nội dung đoạn' })
+    .click();
   const dialog = l.page.getByRole('dialog', { name: 'Sửa đoạn' });
   const input = dialog.getByLabel('Nội dung đoạn');
   await expect(input).toBeVisible();

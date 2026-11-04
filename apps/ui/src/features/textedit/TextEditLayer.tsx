@@ -48,7 +48,7 @@ import {
 } from './textEditActions';
 import { findLine, useTextEdit } from './textEditState';
 import { ParagraphEditor } from './ParagraphEditor';
-import { paragraphBox, paragraphText } from './textParagraphModel';
+import { paragraphBox } from './textParagraphModel';
 import './textedit.css';
 
 const CHECK_DELAY_MS = 250;
@@ -291,7 +291,7 @@ export function TextEditLayer({
     if (paraEditor) return;
     const hit = hitAt(e);
     const st = useTextEdit.getState();
-    // A click selects the line and its paragraph: the frame covers the paragraph (D53).
+    // A click selects the line and its paragraph: the frame covers the whole paragraph.
     st.setSelectedParagraph(hit?.paragraphId ?? null);
     st.setSelected(hit?.id ?? null);
   };
@@ -304,30 +304,7 @@ export function TextEditLayer({
     const pt = pagePt(page, { x: e.clientX - r.left, y: e.clientY - r.top });
     const hit = hitLine(useTextEdit.getState().lines[page.index] ?? [], pt.x, pt.y);
     if (!hit) return;
-    if (useTextEdit.getState().paragraphMode || e.altKey) {
-      if (hit.paragraphId) openParagraph(hit);
-      return;
-    }
     openEditor(hit);
-  };
-
-  /** Opens the paragraph editor on the paragraph of a line (D9). */
-  const openParagraph = (line: TextLine) => {
-    if (!line.paragraphId) return;
-    if (blocked) {
-      toast.warning(t('textEdit.title'), t('overlay.signedBlocked'));
-      return;
-    }
-    const pid = line.paragraphId;
-    const text = paragraphText(useTextEdit.getState().lines[line.pageIndex] ?? [], pid);
-    useTextEdit.getState().setSelectedParagraph(pid);
-    useTextEdit.getState().openParagraph({
-      pageIndex: line.pageIndex,
-      paragraphId: pid,
-      original: text,
-      text,
-    });
-    void loadFonts(doc.id).catch(() => undefined);
   };
 
   const onInputChange = (text: string) => {

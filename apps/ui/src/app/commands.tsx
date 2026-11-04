@@ -69,7 +69,6 @@ import {
   StickyNote,
   Shapes,
   MessageSquareText,
-  Pilcrow,
   Droplets,
   FileImage,
   Hash,
@@ -822,7 +821,19 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       id: 'edit.textEdit',
       title: t('textEdit.cmd'),
       short: t('textEdit.cmd'),
-      keywords: ['sua chu', 'sua dong', 'doi chu', 'sua van ban', 'font', 'text', 'edit text'],
+      keywords: [
+        'sua chu',
+        'sua dong',
+        'doi chu',
+        'sua van ban',
+        'font',
+        'text',
+        'edit text',
+        'doan',
+        'paragraph',
+        'sua doan',
+        'xuong dong',
+      ],
       group: 'edit',
       icon: <Type size={I} />,
       enabled: canRewrite,
@@ -843,25 +854,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       icon: <FileText size={I} />,
       enabled: has,
       run: () => ui.openDialog('forms'),
-    },
-    {
-      id: 'edit.textParagraph',
-      title: t('textEdit.cmdParagraph'),
-      short: t('textEdit.cmdParagraph'),
-      keywords: ['doan', 'paragraph', 'sua doan', 'xuong dong'],
-      group: 'edit',
-      icon: <Pilcrow size={I} />,
-      enabled: canRewrite,
-      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
-      run: () => {
-        const text = useTextEdit.getState();
-        if (!text.active) {
-          useObjectEdit.getState().setActive(false);
-          useEraseState.getState().setActive(false);
-          text.setActive(true);
-        }
-        text.setParagraphMode(!text.paragraphMode);
-      },
     },
     {
       id: 'edit.insertToc',
