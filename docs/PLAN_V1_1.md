@@ -149,10 +149,10 @@ Các mục chỉ dùng được ở Linux/macOS (PLAN_V1 "Sau 1.0") vẫn để 
 
 ### 5.4 Quyết định chờ chủ dự án
 
-- **Q-b. Một chế độ hay hai lệnh?** Đề xuất: một chế độ Chỉnh sửa; khung là khối từ lõi. Dòng đơn vẫn sửa được trong ô nhập của khung.
-- **Q-c. Tay nắm khung.** Blueprint không nói tay nắm làm gì. Trợ giúp ABBYY cài trên máy chỉ có danh mục chủ đề (`help.fineReader.xml`); nội dung chủ đề là bản trực tuyến, nên không đọc được offline. **Đề xuất: không làm tay nắm trong 1.1** (không làm trang trí). Chủ dự án thử ABBYY một lần: kéo tay nắm thì đổi cái gì (chiều rộng khung, cỡ chữ, hay vị trí)? Báo lại để đặc tả.
-- **Q-d. Áp dụng định dạng ngay hay khi bấm Áp dụng?** Đề xuất: nút định dạng **áp dụng ngay**, mỗi lần đổi là một revision, hoàn tác bằng Ctrl+Z (D32). Nội dung chữ vẫn ghi bằng Enter hoặc Áp dụng như hiện nay. Lý do: blueprint §5.3 nói "chỉnh nội dung và định dạng tại chỗ".
-- **Q-e. Thụt lề trong 1.1?** Đề xuất: có (5.3).
+- **Q-b. Một chế độ hay hai lệnh?** Đề xuất: một chế độ Chỉnh sửa; khung là khối từ lõi. Dòng đơn vẫn sửa được trong ô nhập của khung. **Đã chọn theo đề xuất (D53); chủ dự án có thể đổi.**
+- **Q-c. Tay nắm khung.** Blueprint không nói tay nắm làm gì. Trợ giúp ABBYY cài trên máy chỉ có danh mục chủ đề (`help.fineReader.xml`); nội dung chủ đề là bản trực tuyến, nên không đọc được offline. **Đề xuất: không làm tay nắm trong 1.1** (không làm trang trí). **Đã chọn theo đề xuất (D54).** Chủ dự án thử ABBYY một lần: kéo tay nắm thì đổi cái gì (chiều rộng khung, cỡ chữ, hay vị trí)? Báo lại để đặc tả.
+- **Q-d. Áp dụng định dạng ngay hay khi bấm Áp dụng?** Đề xuất: nút định dạng **áp dụng ngay**, mỗi lần đổi là một revision, hoàn tác bằng Ctrl+Z (D32). Nội dung chữ vẫn ghi bằng Enter hoặc Áp dụng như hiện nay. Lý do: blueprint §5.3 nói "chỉnh nội dung và định dạng tại chỗ". **Đã chọn theo đề xuất (D55); chủ dự án có thể đổi.**
+- **Q-e. Thụt lề trong 1.1?** Đề xuất: có (5.3). **Đã chọn theo đề xuất (D56); chủ dự án có thể đổi.**
 
 ### 5.5 Giữ nguyên, đã có
 
@@ -194,5 +194,5 @@ Giữ định nghĩa xong của PLAN_V1 (mục 3): (a) test lõi hoặc giao di�
 1. **B1, các bước chính xác:** bạn bấm gì để chuyển (mặc định hay chọn trang, bấm Ctrl+S hay nút Lưu), đóng bằng cách nào, mở lại bằng cách nào (Explorer, danh sách gần đây, hay lần mở tiếp theo của app), và chữ "còn" ở đâu: tìm được bằng Ctrl+F, copy được, hay chỉ thấy trên hình?
 2. **B2, trạng thái cửa sổ lúc lỗi:** cửa sổ Chef đang ở trên hay đang ở dưới app khác? Bạn có cho phép tôi chạy thử kịch bản "cửa sổ khác đang ở trên" không? Lần chạy này sẽ đưa Notepad lên và di chuyển chuột, nên cần bạn cho phép rõ ràng và tốt nhất là đang ngồi trước máy.
 3. **Q-c (tay nắm):** bạn thử ABBYY một lần và cho biết kéo tay nắm khung làm gì.
-4. **Q-b, Q-d, Q-e:** đồng ý với đề xuất ở 5.4 không?
+4. **Q-b, Q-d, Q-e:** đã chọn theo đề xuất ở 5.4 (D53, D55, D56). Chủ dự án có thể đổi.
 5. **U3, U7, U8, U11:** có đưa vào 1.1 không? Mặc định: không, làm sau mục 5.
