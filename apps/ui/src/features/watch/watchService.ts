@@ -132,44 +132,71 @@ export function createWatchController(api: WatchApi, onState: (patch: WatchState
           leftovers = [];
           break;
         }
-        for (let index = 0; index < scanned.ready.length; index += 1) {
-          const file = scanned.ready[index]!;
-          onState({ currentFile: file.path, queued: scanned.ready.length - index });
-          let row: WatchFileResult;
+        // Merge workflows (for example "Nộp hồ sơ online") run once on the whole ready batch, so they
+        // need at least two PDFs. A lone file goes back to the queue and waits for the next scan.
+        const merge = config.workflow.inputs?.mode === 'merge';
+        if (merge && scanned.ready.length < 2) {
+          if (leftovers.length) await api.release({ ledgerPath, paths: leftovers });
+          leftovers = [];
+        }
+        const batches = merge
+          ? scanned.ready.length >= 2
+            ? [scanned.ready]
+            : []
+          : scanned.ready.map((f) => [f]);
+        for (let index = 0; index < batches.length; index += 1) {
+          const batch = batches[index]!;
+          const remaining = batches.slice(index).reduce((sum, b) => sum + b.length, 0);
+          onState({ currentFile: batch[0]!.path, queued: remaining });
+          let outcome: {
+            status: WatchFileResult['status'];
+            outputPath: string | null;
+            message: string | null;
+          };
           try {
             const report = await api.run({
               workflow: config.workflow,
-              files: [{ path: file.path }],
+              files: batch.map((file) => ({ path: file.path })),
               variables,
               secrets,
               output: workflowOutput(config),
             });
+            // A merged batch gives one result for all its files; a file run gives one per file.
             const result = report.results[0];
-            row = resultRow(
-              file.path,
-              result?.status ?? 'failed',
-              result?.outputPath ?? null,
-              result?.message ?? null,
-            );
+            outcome = {
+              status: result?.status ?? 'failed',
+              outputPath: result?.outputPath ?? null,
+              message: result?.message ?? null,
+            };
           } catch (error) {
-            row = resultRow(
-              file.path,
-              'failed',
-              null,
-              error instanceof Error ? error.message : String(error),
-            );
+            outcome = {
+              status: 'failed',
+              outputPath: null,
+              message: error instanceof Error ? error.message : String(error),
+            };
           }
+          const row = resultRow(
+            batch[0]!.path,
+            outcome.status,
+            outcome.outputPath,
+            outcome.message,
+          );
 
-          leftovers = scanned.ready.slice(index + 1).map((remaining) => remaining.path);
-          await api.markDone({
-            ledgerPath,
-            path: file.path,
-            ...(row.outputPath ? { outputPath: row.outputPath } : {}),
-            status: row.status,
-          });
+          leftovers = batches
+            .slice(index + 1)
+            .flat()
+            .map((file) => file.path);
+          for (const file of batch) {
+            await api.markDone({
+              ledgerPath,
+              path: file.path,
+              ...(outcome.outputPath ? { outputPath: outcome.outputPath } : {}),
+              status: outcome.status,
+            });
+          }
           onState((current) => ({
             recent: [row, ...current.recent].slice(0, RESULT_LIMIT),
-            queued: Math.max(0, scanned.ready.length - index - 1),
+            queued: Math.max(0, remaining - batch.length),
           }));
           if (stopRequested) break;
         }

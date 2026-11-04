@@ -155,4 +155,101 @@ describe('watch controller', () => {
     });
     expect(snapshot.recent[0]?.message).toBe('bad PDF');
   });
+
+  it('runs a merge workflow once on the whole ready batch and marks every file', async () => {
+    const files = [
+      { path: '/in/1.pdf', size: 1, mtimeNs: 1 },
+      { path: '/in/2.pdf', size: 1, mtimeNs: 1 },
+      { path: '/in/3.pdf', size: 1, mtimeNs: 1 },
+    ];
+    const api: WatchApi = {
+      scan: vi.fn().mockResolvedValueOnce({ ready: files, pending: 0 }).mockResolvedValue({
+        ready: [],
+        pending: 0,
+      }),
+      run: vi.fn().mockResolvedValue({
+        results: [
+          {
+            path: '/in/1.pdf',
+            status: 'done',
+            outputPath: '/out/ho-so.pdf',
+            message: 'ghép 3',
+            outputs: [],
+            warnings: [],
+          },
+        ],
+        summary: { total: 1, done: 1, failed: 0, skipped: 0 },
+      } as unknown as WorkflowRunResult),
+      markDone: vi.fn().mockResolvedValue(undefined),
+      release: vi.fn().mockResolvedValue(undefined),
+    };
+    const mergeConfig = {
+      ...config,
+      workflow: { ...config.workflow, inputs: { mode: 'merge', accept: ['pdf'] } },
+    } as unknown as WatchConfig;
+    let snapshot: WatchSnapshot = {
+      status: 'stopped',
+      pending: 0,
+      queued: 0,
+      currentFile: null,
+      recent: [],
+      error: null,
+    };
+    const controller = createWatchController(api, (update) => {
+      snapshot = { ...snapshot, ...(typeof update === 'function' ? update(snapshot) : update) };
+    });
+    controller.start(mergeConfig, {}, {}, '/out/.ledger');
+    await vi.waitFor(() => expect(api.markDone).toHaveBeenCalledTimes(3));
+    controller.stop();
+    await vi.waitFor(() => expect(snapshot.status).toBe('stopped'));
+    expect(api.run).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(api.run).mock.calls[0]?.[0].files).toEqual([
+      { path: '/in/1.pdf' },
+      { path: '/in/2.pdf' },
+      { path: '/in/3.pdf' },
+    ]);
+    expect(vi.mocked(api.markDone).mock.calls.map((call) => call[0].path)).toEqual([
+      '/in/1.pdf',
+      '/in/2.pdf',
+      '/in/3.pdf',
+    ]);
+    expect(vi.mocked(api.markDone).mock.calls[2]?.[0]).toMatchObject({
+      outputPath: '/out/ho-so.pdf',
+      status: 'done',
+    });
+    expect(snapshot.recent).toHaveLength(1);
+  });
+
+  it('keeps a lone file in the queue when the workflow merges PDFs', async () => {
+    const api: WatchApi = {
+      scan: vi
+        .fn()
+        .mockResolvedValue({ ready: [{ path: '/in/only.pdf', size: 1, mtimeNs: 1 }], pending: 0 }),
+      run: vi.fn(),
+      markDone: vi.fn().mockResolvedValue(undefined),
+      release: vi.fn().mockResolvedValue(undefined),
+    };
+    const mergeConfig = {
+      ...config,
+      workflow: { ...config.workflow, inputs: { mode: 'merge', accept: ['pdf'] } },
+    } as unknown as WatchConfig;
+    let status: WatchSnapshot['status'] = 'stopped';
+    const controller = createWatchController(api, (update) => {
+      const patch =
+        typeof update === 'function'
+          ? update({ status, pending: 0, queued: 0, currentFile: null, recent: [], error: null })
+          : update;
+      status = patch.status ?? status;
+    });
+    controller.start(mergeConfig, {}, {}, '/out/.ledger');
+    await vi.waitFor(() => expect(api.release).toHaveBeenCalled());
+    controller.stop();
+    await vi.waitFor(() => expect(status).toBe('stopped'));
+    expect(api.run).not.toHaveBeenCalled();
+    expect(api.markDone).not.toHaveBeenCalled();
+    expect(api.release).toHaveBeenCalledWith({
+      ledgerPath: '/out/.ledger',
+      paths: ['/in/only.pdf'],
+    });
+  });
 });
