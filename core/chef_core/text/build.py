@@ -166,7 +166,8 @@ def _segments(chars: list[TextChar]) -> list[list[TextChar]]:
         cur = [row[0]]
         for c in row[1:]:
             prev = cur[-1]
-            if c.x0 - prev.x1 > GUTTER * max(c.size, prev.size):
+            # The smaller glyph sets the gutter: a bigger font must not bridge two columns.
+            if c.x0 - prev.x1 > GUTTER * min(c.size, prev.size):
                 segments.append(cur)
                 cur = [c]
             else:
@@ -269,6 +270,32 @@ def _is_list_item(line: TextLine) -> bool:
     return re.match(LIST_MARKER, line.text) is not None
 
 
+def _justified(group: list[TextLine]) -> bool:
+    """Lines that all start at one edge (a justified or left-aligned run of two lines or more)."""
+    if len(group) < 2:
+        return False
+    x0s = [ln.bbox[0] for ln in group]
+    return max(x0s) - min(x0s) <= 0.5 * max(ln.font_size for ln in group)
+
+
+def _in_run(group: list[TextLine], ln: TextLine) -> bool:
+    """A line that continues a centred or right-aligned run is the same paragraph, not a new one.
+
+    Both runs have ragged left edges: lines that share their left edge (a list, a justified run)
+    are not one. Centred: the centre of the line matches the line before it. Right-aligned: the
+    right edge matches, unless the group is a justified run.
+    """
+    if _is_list_item(group[0]):
+        return False
+    prev = group[-1]
+    size = max(ln.font_size, prev.font_size)
+    if abs(ln.bbox[0] - prev.bbox[0]) <= 0.5 * size:
+        return False
+    if abs((ln.bbox[0] + ln.bbox[2]) / 2 - (prev.bbox[0] + prev.bbox[2]) / 2) <= 0.25 * size:
+        return True
+    return abs(ln.bbox[2] - prev.bbox[2]) <= 0.5 * size and not _justified(group)
+
+
 def _paragraphs(block: list[TextLine]) -> list[list[TextLine]]:
     if not block:
         return []
@@ -279,7 +306,7 @@ def _paragraphs(block: list[TextLine]) -> list[list[TextLine]]:
     for prev, ln in itertools.pairwise(block):
         pitch = prev.baseline - ln.baseline
         tall = lead is not None and pitch > 1.35 * lead
-        indented = ln.bbox[0] - left > 0.8 * ln.font_size
+        indented = ln.bbox[0] - left > 0.8 * ln.font_size and not _in_run(groups[-1], ln)
         changed = abs(ln.font_size - prev.font_size) > 0.5 or ln.bold != prev.bold
         if indented or tall or changed or _is_list_item(ln):
             groups.append([ln])

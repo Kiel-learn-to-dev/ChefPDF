@@ -324,3 +324,65 @@ def test_indent_leaving_no_room_in_the_first_row_is_refused(
     assert "indent" in str(exc.value.error)
     # The refusal changes nothing: the paragraph is still there, unchanged.
     assert _paragraph_of(_page(harness, sid), "Hợp đồng này")["id"] == para["id"]
+
+
+def _paragraph_text(data: dict, prefix: str) -> str:
+    """Text of the paragraph that starts with prefix, its lines joined in reading order."""
+    para = _paragraph_of(data, prefix)
+    return " ".join(ln["text"] for ln in para["lines"])
+
+
+@pytest.mark.parametrize(
+    "style",
+    [
+        {"align": "left"},
+        {"align": "center"},
+        {"align": "right"},
+        {"align": "justify"},
+        {"indent": 24},
+        {"bold": True},
+        {"fontSize": 13},
+    ],
+    ids=["left", "center", "right", "justify", "indent", "bold", "size"],
+)
+def test_a_style_change_keeps_the_paragraph_whole(
+    harness: Harness, tmp_path: Path, style: dict
+) -> None:
+    # After a style change the page must have the same paragraphs, and the edited paragraph must
+    # still hold all of its lines: a centred or right-aligned second line is not a new paragraph.
+    src = two_column_pdf(tmp_path / "two.pdf")
+    sid = _sid(harness, src)
+    before = _page(harness, sid)
+    para = _paragraph_of(before, "Hợp đồng này")
+    assert len(para["lines"]) >= 2
+    text_before = _paragraph_text(before, "Hợp đồng này")
+    count_before = len(before["paragraphs"])
+    _edit(harness, sid, para["id"], None, **style)
+    after = _page(harness, sid)
+    assert len(after["paragraphs"]) == count_before
+    assert _paragraph_text(after, "Hợp đồng này") == text_before
+
+
+def test_an_indented_paragraph_after_a_justified_run_stays_separate(
+    harness: Harness, tmp_path: Path
+) -> None:
+    # Two lines that start at one edge are a justified run; an indented line after them starts a
+    # new paragraph even when its right edge matches the run (no right-aligned run here).
+    src = _rows(
+        tmp_path / "justified.pdf",
+        [
+            (60, 700, 10, "Điều một quy định về việc thanh toán", False),
+            (60, 686, 10, "thanh toán theo hợp đồng này và các phụ lục", False),
+            (84, 672, 10, "Điều hai quy định về trách nhiệm các bên", False),
+        ],
+    )
+    sid = _sid(harness, src)
+    page_lines = _page(harness, sid)["lines"]
+
+    def para_of(prefix: str) -> str:
+        (ln,) = [ln for ln in page_lines if ln["text"].startswith(prefix)]
+        return ln["paragraphId"]
+
+    first = para_of("Điều một")
+    assert para_of("thanh toán theo") == first
+    assert para_of("Điều hai") != first
