@@ -43,6 +43,8 @@ export interface LaunchOptions {
   userDataDir?: string;
   args?: string[];
   env?: Record<string, string>;
+  /** Show the main window on screen and let it take focus (default: off screen, no focus). */
+  visible?: boolean;
 }
 
 export interface Launched {
@@ -54,6 +56,7 @@ export interface Launched {
 export function appEnv(
   userDataDir: string,
   extra: Record<string, string> = {},
+  visible = false,
 ): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
@@ -63,6 +66,9 @@ export function appEnv(
     ...env,
     CHEF_CORE_CMD: mockCoreCmd(),
     CHEF_USER_DATA_DIR: userDataDir,
+    // Test windows stay off screen and do not take focus (apps/desktop window.ts), unless visible.
+    CHEF_E2E: '1',
+    ...(visible ? { CHEF_E2E_SHOW: '1' } : {}),
     ...extra,
   };
 }
@@ -72,7 +78,7 @@ export async function launchApp(o: LaunchOptions = {}): Promise<Launched> {
   const app = await _electron.launch({
     executablePath: electronBin,
     args: [desktopDir, ...sandboxArgs, ...(o.args ?? [])],
-    env: appEnv(userDataDir, o.env),
+    env: appEnv(userDataDir, o.env, o.visible === true),
     cwd: repoRoot,
   });
   const page = await app.firstWindow();

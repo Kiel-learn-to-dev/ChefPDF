@@ -30,6 +30,11 @@ export interface CreateWindowOptions {
   devServerUrl?: string | undefined;
   title: string;
   log(message: string): void;
+  /**
+   * E2E runs only: show the window off screen and without focus, so tests do not take over the
+   * desktop. Specs that depend on a real visible window (wheel scrolling) set CHEF_E2E_SHOW=1.
+   */
+  offscreen?: boolean | undefined;
 }
 
 export function trustedOrigins(devServerUrl?: string): Set<string> {
@@ -75,6 +80,13 @@ export function createMainWindow(o: CreateWindowOptions): BrowserWindow {
 
   win.once('ready-to-show', () => {
     o.log(`startup: window ready-to-show at ${Math.round(process.uptime() * 1000)} ms`);
+    if (o.offscreen) {
+      // Tests drive the page through the debugging protocol; the window itself stays out of sight.
+      win.setSkipTaskbar(true);
+      win.setPosition(-32000, -32000);
+      win.showInactive();
+      return;
+    }
     if (state.isMaximized) win.maximize();
     win.show();
   });
