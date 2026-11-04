@@ -221,7 +221,9 @@ test('a watermark is listed by the overlay manager and "Xóa" removes it from th
   await saveInPlace(l);
   expect(hasMarker(file)).toBe(true);
 
-  await l.page.click('.toolbar__btn:has-text("Đã thêm vào tài liệu")');
+  // Mục này nằm trong menu "⋯" của tab Chỉnh sửa (thanh công cụ vừa 1280px)
+  await l.page.click('.toolbar__btn[aria-label="Thêm"]');
+  await l.page.getByRole('menuitem', { name: 'Đã thêm vào tài liệu' }).click();
   await expect(l.page.locator('.dlg__title')).toHaveText('Đã thêm vào tài liệu');
   const row = l.page.locator('[data-testid="overlay-list"] [data-kind="watermark"]');
   await expect(row).toHaveCount(1);
@@ -239,15 +241,7 @@ test('a watermark is listed by the overlay manager and "Xóa" removes it from th
 test('a signed document disables the edit buttons and says why', async () => {
   const l = await open(path.join(corpus, 'fake_signed.pdf'));
   await openEditTab(l);
-  const labels = [
-    'Thêm chữ',
-    'Thêm ảnh',
-    'Watermark',
-    'Header/Footer',
-    'Số trang',
-    'Giấy tiêu đề',
-    'Mã QR/vạch',
-  ];
+  const labels = ['Thêm chữ', 'Thêm ảnh', 'Watermark', 'Header/Footer', 'Số trang', 'Mã QR/vạch'];
   for (const label of labels) {
     const hint = l.page.locator('.toolbar__hint', {
       has: l.page.locator(`button:has-text("${label}")`),
@@ -255,6 +249,10 @@ test('a signed document disables the edit buttons and says why', async () => {
     await expect(hint).toHaveAttribute('title', /ký số/);
     await expect(hint.locator('button')).toBeDisabled();
   }
+  // "Giấy tiêu đề" nằm trong menu "⋯" (thanh công cụ vừa 1280px): vẫn bị khóa
+  await l.page.click('.toolbar__btn[aria-label="Thêm"]');
+  await expect(l.page.getByRole('menuitem', { name: 'Giấy tiêu đề' })).toBeDisabled();
+  await l.page.keyboard.press('Escape');
 });
 
 test('Bates numbering from the start screen numbers two files and writes the results', async () => {
