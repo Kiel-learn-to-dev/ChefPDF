@@ -175,6 +175,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-11-04 (kiểm thử sau đánh bóng giao diện):** e2e đủ: 195 đạt, 2 lỗi. Cả hai đã sửa và chạy lại đạt: `overlay.spec` (hai lệnh chuyển vào menu ⋯ nên test mở menu), `workflow-qr-code-step` (lỗi EPERM khi xóa thư mục tạm trên Windows, flake, đạt khi chạy lại). Pytest lõi: 1642 đạt, 3 bỏ qua. Bộ UI: 755 đạt. Lint sạch. Còn lại: v1 chưa xong, xem danh sách 🔄 và ⬜ trong TASKS.md.
+
 - **2026-11-04 (đo giao diện, lượt A3–A7 và sửa checkbox):** Bộ đo giao diện đã đủ: `tests/e2e/specs/ui-audit.spec.ts` đi qua 97 màn hình (start, 8 tab, 5 tab bên, 3 lớp phủ, 64 hộp thoại, cộng biến thể cho tab và mục "Nâng cao"). Luật đo nằm ở `fixtures/uiAuditRules.ts` (hai nhóm: theo phần tử và theo quan hệ), đối chứng dương ở `ui-audit-selftest.spec.ts` (mọi luật đều bắt được lỗi cài sẵn). Baseline số lượng ở `tests/e2e/ui-audit-baseline.json`, snapshot pixel ở `tests/e2e/ui-audit-snapshots/` (gitignore). Lệch khỏi kế hoạch: đưa `input[type=color]` vào điều khiển, vì acceptance A4 yêu cầu bắt `.tpl__color` và `.ov-color__swatch` (đều là color input). Sửa lỗi thật do chủ dự án báo: **dấu tích checkbox lệch** (`apps/ui/src/components/components.css`): nút mặc định có padding 6px làm dấu tích lệch 5px ngang, và icon inline bị đẩy lên; đã đo lại, tâm trùng nhau. Danh sách 11 mục quyết định thẩm mỹ chờ chủ dự án nằm ở [UI_AUDIT.md](UI_AUDIT.md) mục "Danh sách D". **Chưa làm:** B1–B9 (token, alias màu, `--fix` của `css-audit.mjs`) và C; cần quyết định D trước.
 - **2026-11-04 (đo giao diện, lượt A1):** Thêm hook test `window.__chefUi` (quyết định D40, `main.tsx`). Kế hoạch đo và chỉnh giao diện ở [UI_AUDIT.md](UI_AUDIT.md).
 
