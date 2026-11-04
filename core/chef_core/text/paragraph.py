@@ -54,6 +54,7 @@ STRATEGIES = ("auto", "keep", "replace")
 ALIGNS = ("keep", "left", "right", "center", "justify")
 MARGIN_BOTTOM = 18.0  # points kept free at the bottom of the page
 FIT_TOLERANCE = 0.5  # points
+MIN_FIRST_ROW_EMS = 4.0  # the first row keeps at least this many em after an indent
 EPS = 1e-6
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 FillState = tuple[str, str | None, tuple[float, ...]]  # as colour_ins takes it
@@ -72,6 +73,7 @@ class ParagraphOptions:
     bold: bool | None = None
     italic: bool | None = None
     box_width: float | None = None  # None: up to the block's right edge
+    indent: float | None = None  # None: keep the indent of the first line (points, >= 0)
 
     def validate(self) -> None:
         if self.font_strategy not in STRATEGIES:
@@ -87,6 +89,8 @@ class ParagraphOptions:
         ):
             if value is not None and not value > 0:
                 raise invalid_params("INVALID_VALUE", {"name": name, "value": value})
+        if self.indent is not None and not self.indent >= 0:
+            raise invalid_params("INVALID_VALUE", {"name": "indent", "value": self.indent})
 
 
 @dataclass
@@ -412,8 +416,18 @@ def _layout(
         box_w = max(size, 1.0)
     marker = re.match(LIST_MARKER, body)
     hang = _width(writer, marker.group(0), size) if marker is not None else 0.0
-    first_off = para.indent
-    cont_off = para.indent + hang if marker is not None else 0.0
+    base = para.indent if opts.indent is None else opts.indent
+    if base + hang > box_w - MIN_FIRST_ROW_EMS * size:
+        raise invalid_params(
+            "INVALID_VALUE",
+            {
+                "name": "indent",
+                "value": base,
+                "maxIndent": round(box_w - MIN_FIRST_ROW_EMS * size, 3),
+            },
+        )
+    first_off = base
+    cont_off = base + hang if marker is not None else 0.0
 
     def avail(k: int) -> float:
         return box_w - (first_off if k == 0 else cont_off)

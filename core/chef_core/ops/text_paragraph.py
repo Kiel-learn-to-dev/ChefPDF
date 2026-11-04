@@ -18,6 +18,8 @@ Style fields (both ops):
 - color: "keep" or "#rrggbb".
 - bold / italic: "keep" or true/false.
 - boxWidth: "keep" (the right edge of the text block) or points.
+- indent: "keep" (the indent of the first line) or points, >= 0. A hanging list marker keeps its
+  place after the indent.
 
 Result: action (reflow | delete), fontFrom, fontTo, fontSize, lineCount, pitch, boxWidth, height,
 overflow (points the text reaches past the next block or the page bottom), overlapsBlockIds,
@@ -73,6 +75,9 @@ class _StyleFields(WireModel):
     box_width: Literal["keep"] | float = Field(
         default="keep", description="keep: up to the right edge of the text block; or points."
     )
+    indent: Literal["keep"] | float = Field(
+        default="keep", description="keep: the indent of the first line; or points, >= 0."
+    )
 
 
 def _options(p: _StyleFields) -> ParagraphOptions:
@@ -94,6 +99,7 @@ def _options(p: _StyleFields) -> ParagraphOptions:
         bold=flag(p.bold),
         italic=flag(p.italic),
         box_width=num(p.box_width),
+        indent=num(p.indent),
     )
     opts.validate()
     return opts

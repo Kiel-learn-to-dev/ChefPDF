@@ -3946,6 +3946,11 @@ export interface TextEditParagraphParams {
    * @default "keep"
    */
   boxWidth?: 'keep' | number;
+  /**
+   * keep: the indent of the first line; or points, >= 0.
+   * @default "keep"
+   */
+  indent?: 'keep' | number;
   /** 0-based page. */
   pageIndex: number;
   /** Paragraph id from text.getLines. */
@@ -4050,6 +4055,11 @@ export interface TextStyleParagraphParams {
    * @default "keep"
    */
   boxWidth?: 'keep' | number;
+  /**
+   * keep: the indent of the first line; or points, >= 0.
+   * @default "keep"
+   */
+  indent?: 'keep' | number;
   /** 0-based page. */
   pageIndex: number;
   /** Paragraph id from text.getLines. */

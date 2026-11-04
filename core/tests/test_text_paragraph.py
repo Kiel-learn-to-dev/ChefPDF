@@ -264,3 +264,49 @@ def test_one_paragraph_takes_under_two_seconds(harness: Harness, tmp_path: Path)
     started = time.perf_counter()
     _edit(harness, sid, para["id"], NEW_PARAGRAPH)
     assert time.perf_counter() - started < 2.0
+
+
+def test_indent_moves_only_the_first_line(harness: Harness, tmp_path: Path) -> None:
+    src = two_column_pdf(tmp_path / "two.pdf")
+    sid = _sid(harness, src)
+    para = _paragraph_of(_page(harness, sid), "Hợp đồng này")
+    left = min(ln["bbox"][0] for ln in para["lines"])
+    _edit(harness, sid, para["id"], NEW_PARAGRAPH, indent=24)
+    lines = _paragraph_of(_page(harness, sid), "Hợp đồng này")["lines"]
+    assert len(lines) >= 3
+    assert abs(lines[0]["bbox"][0] - left - 24) <= 1.0
+    for ln in lines[1:]:
+        assert abs(ln["bbox"][0] - left) <= 1.0
+
+
+def test_indent_zero_puts_the_first_line_at_the_edge(harness: Harness, tmp_path: Path) -> None:
+    src = two_column_pdf(tmp_path / "two.pdf")
+    sid = _sid(harness, src)
+    para = _paragraph_of(_page(harness, sid), "Hợp đồng này")
+    left = min(ln["bbox"][0] for ln in para["lines"])
+    _edit(harness, sid, para["id"], NEW_PARAGRAPH, indent=0)
+    lines = _paragraph_of(_page(harness, sid), "Hợp đồng này")["lines"]
+    assert abs(lines[0]["bbox"][0] - left) <= 1.0
+
+
+def test_negative_indent_is_refused(harness: Harness, tmp_path: Path) -> None:
+    src = two_column_pdf(tmp_path / "two.pdf")
+    sid = _sid(harness, src)
+    para = _paragraph_of(_page(harness, sid), "Hợp đồng này")
+    with pytest.raises(RpcFailure) as exc:
+        _edit(harness, sid, para["id"], NEW_PARAGRAPH, indent=-4)
+    assert exc.value.kind == "INVALID_PARAMS"
+    assert "indent" in str(exc.value.error)
+
+
+def test_indent_leaving_no_room_in_the_first_row_is_refused(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = two_column_pdf(tmp_path / "two.pdf")
+    sid = _sid(harness, src)
+    para = _paragraph_of(_page(harness, sid), "Hợp đồng này")
+    with pytest.raises(RpcFailure) as exc:
+        _edit(harness, sid, para["id"], NEW_PARAGRAPH, indent=900)
+    assert "indent" in str(exc.value.error)
+    # The refusal changes nothing: the paragraph is still there, unchanged.
+    assert _paragraph_of(_page(harness, sid), "Hợp đồng này")["id"] == para["id"]
