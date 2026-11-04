@@ -123,6 +123,7 @@ LOOSE_MARKER = re.compile(
     r"^\s*((?:[-•·▪●◦*–]|\d{1,3}[.)]|[a-zA-Z][.)]|[ivxIVX]{1,4}[.)]))(?=[^\W\d_]|\s)"
 )
 FOOTNOTE = re.compile(r"^\s*(?:\d{1,3}|[*†‡¹²³⁴⁵⁶⁷⁸⁹⁰]+)[.)]?\s+\S")
+PAGE_MARK = re.compile(r"\b(?:trang|page)\b|\bp\.\s*#|#\s*(?:/|of|trên)\s*#", re.IGNORECASE)
 PAGE_NUMBER = re.compile(
     r"^[-–(\[]?\s*(?:trang|page|p\.)?\s*#+(?:\s*(?:/|of|trên|-|–)\s*#+)?\s*[-–)\]]?$",
     re.IGNORECASE,
@@ -429,23 +430,37 @@ def _zone(ctx: PageCtx, box: Rect) -> str | None:
 
 
 def _repeated_furniture(texts: list[Item], ctxs: dict[int, PageCtx], pages: int) -> None:
-    """Sets header/footer/pageNumber on units that repeat across pages or are page numbers."""
+    """Sets header/footer/pageNumber on units that repeat across pages or are page numbers.
+
+    A unit repeats when its exact text repeats. Digits are ignored only for a line that carries a
+    page marker ("Trang 3", "3 / 10"): otherwise "Điều 1" and "Điều 2" at the top of pages would
+    count as one running header and vanish from the body."""
     zones: dict[int, str | None] = {}
-    seen: dict[tuple[str, str], set[int]] = {}
+    exact: dict[tuple[str, str], set[int]] = {}
+    marked: dict[tuple[str, str], set[int]] = {}
     for it in texts:
         zone = _zone(ctxs[it.page], it.box)
         zones[id(it)] = zone
-        if zone is not None:
-            seen.setdefault((zone, _norm_key(it.text)), set()).add(it.page)
+        if zone is None:
+            continue
+        exact.setdefault((zone, _norm(it.text).lower()), set()).add(it.page)
+        if PAGE_MARK.search(it.text):
+            marked.setdefault((zone, _norm_key(it.text)), set()).add(it.page)
     threshold = max(2, math.ceil(REPEAT_SHARE * pages)) if pages >= 2 else None
     for it in texts:
         zone = zones[id(it)]
         if zone is None:
             continue
-        key = _norm_key(it.text)
-        if PAGE_NUMBER.match(key):
+        if PAGE_NUMBER.match(_norm_key(it.text)):
             it.kind = "pageNumber"
-        elif threshold is not None and len(seen[(zone, key)]) >= threshold:
+            continue
+        if threshold is None:
+            continue
+        repeats = len(exact[(zone, _norm(it.text).lower())]) >= threshold or (
+            bool(PAGE_MARK.search(it.text))
+            and len(marked.get((zone, _norm_key(it.text)), ())) >= threshold
+        )
+        if repeats:
             it.kind = "header" if zone == "top" else "footer"
 
 
