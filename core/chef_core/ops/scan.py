@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import math
 import os
+import sys
 from collections import deque
 from collections.abc import Generator
 from concurrent.futures import Future, ProcessPoolExecutor
@@ -48,6 +49,10 @@ EffectPresetName = Literal["none", "light", "photocopy", "old-paper"]
 MAX_WORKER_PROCESSES = 4
 MAX_WORKERS = min(os.cpu_count() or 1, MAX_WORKER_PROCESSES)
 POOL_MIN_PAGES = 8  # below this, rendering inline is cheaper than starting workers
+# The worker pool never starts its workers inside the packaged core (PyInstaller, Windows): the job
+# waits forever on a 40-page merge (NOTES 2026-11-04). The packaged app renders inline, which took
+# 1.0 s for 40 pages at 200 dpi here; the pool stays on in dev, where it works.
+POOL_ENABLED = not getattr(sys, "frozen", False)
 # Largest rendered page accepted (about 200 MB as RGBA). A4 is about 720 dpi at this limit.
 MAX_PAGE_PIXELS = 50_000_000
 # Memory guard: the bitmaps of all workers together should fit in this budget.
@@ -194,6 +199,8 @@ def ram_budget_bytes() -> int:
 
 def worker_count(per_page_bytes: int, cpus: int, budget_bytes: int) -> int:
     """min(cpus, 4, max(1, budget // per_page)): never zero, never more than the budget allows."""
+    if not POOL_ENABLED:
+        return 1
     fitting = max(1, budget_bytes // max(1, per_page_bytes))
     return max(1, min(cpus, MAX_WORKER_PROCESSES, fitting))
 

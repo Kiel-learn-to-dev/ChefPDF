@@ -237,3 +237,29 @@ def test_stray_stdout_writes_go_to_stderr() -> None:
     )
     assert proc.stdout == b'{"jsonrpc":"2.0"}\n'
     assert b"stray print" in proc.stderr and b"native write" in proc.stderr
+
+
+def test_rasterize_with_worker_processes_finishes_while_stdin_is_open(
+    core: CoreProcess, numbered: Callable[[int], Path]
+) -> None:
+    """Regression: the rasterize pool workers used to inherit the RPC stdin pipe and never started,
+    so a rasterize of POOL_MIN_PAGES or more pages hung while the client kept stdin open (the app
+    always does). The core now gives the workers the null device on stdin
+    (__main__._claim_stdin)."""
+    from chef_core.ops.scan import POOL_MIN_PAGES
+
+    count = POOL_MIN_PAGES + 4
+    sid = core.call("session.open", {"path": str(numbered(count))})["result"]["state"]["sessionId"]
+    req = core.request(
+        "ops.run",
+        {"sessionId": sid, "opId": "scan.rasterize", "params": {"dpi": 72, "color": "gray"}},
+    )
+    job_id = core.wait(lambda m: m.get("id") == req)["result"]["jobId"]
+    final = core.wait(
+        lambda m: (
+            m.get("method") in ("job.finished", "job.failed") and m["params"]["jobId"] == job_id
+        )
+    )
+    assert final["method"] == "job.finished", final
+    assert final["params"]["result"]["changedPages"] == list(range(count))
+    assert "result" in core.call("session.close", {"sessionId": sid})
