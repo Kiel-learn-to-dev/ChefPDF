@@ -1,0 +1,78 @@
+Chef PDF — third-party notices (NOTICE)
+========================================
+
+Bản rà soát ngày 2026-11-04 cho bản 1.0 (Windows). Chef PDF là app dùng cá nhân (D28), không phát hành.
+
+Phạm vi rà soát
+- Phụ thuộc Python của lõi (`core/pyproject.toml` và phụ thuộc của chúng), đo trong môi trường `uv` với `--no-dev --extra token`: 45 gói chạy được, xem bảng dưới. Công cụ dev (pytest, ruff, mypy và phụ thuộc của chúng) không cần để chạy app.
+- Phụ thuộc npm sản xuất của Electron và giao diện: 79 gói (MIT 74, Apache-2.0 2, OFL-1.1 1, ISC 1, 0BSD 1), theo `pnpm -r licenses list --prod`.
+- Font và mô hình đi kèm: Be Vietnam Pro, mô hình DocAligner LCNet100 (L20).
+- Không có thư viện AGPL, GPL, Ghostscript, iText hay PyMuPDF/MuPDF trong danh sách trên (D7).
+
+Ghi chú về giấy phép đáng chú ý
+- img2pdf 0.6.3 — LGPL-3.0 (theo metadata của gói). Thư viện Python thuần, dùng nguyên bản không sửa. App dùng cá nhân nên chưa có nghĩa vụ phát hành mã; nếu phát hành sau này, phải kèm mã nguồn của img2pdf hoặc cách thay thế.
+- opencv-python-headless 5.0.0.93 — Apache-2.0; gói wheel mang theo FFmpeg (LGPL-2.1), nạp động, dùng nguyên bản. Cần ghi rõ nếu phát hành.
+- pikepdf — MPL-2.0 (copyleft theo từng file, dùng nguyên bản). pathspec và certifi cũng MPL-2.0.
+- pypdfium2 — Apache-2.0/BSD-3-Clause; PDFium bên trong là BSD-3-Clause.
+- Mô hình DocAligner LCNet100 (`core/chef_core/resources/models/docaligner-1.1.1`) — trọng số ghi Apache-2.0 trong manifest và LICENSE đi kèm; nguồn: https://github.com/DocsaidLab/DocAligner. Giấy phép của mã DocAligner chưa được đối chiếu; xem mục "Việc còn mở".
+- Be Vietnam Pro — SIL Open Font License 1.1, kèm `OFL.txt` (phông trong lõi và qua @fontsource trong giao diện).
+- Electron 45 — MIT; Chromium và các thư viện kèm theo: LICENSES.chromium.html trong bản cài.
+
+Thư viện Python (phụ thuộc chạy được)
+- aiohappyeyeballs 2.7.1 — PSF-2.0
+- aiohttp 3.14.5 — Apache-2.0 AND MIT
+- aiosignal 1.4.0 — Apache 2.0
+- annotated-types 0.8.0 — MIT
+- asn1crypto 1.5.1 — MIT
+- attrs 26.1.0 — MIT
+- certifi 2026.10.23 — MPL-2.0
+- cffi 2.1.1 — MIT-0
+- charset-normalizer 3.5.2 — MIT
+- colorama 0.4.6 — BSD License
+- cryptography 50.0.2 — Apache-2.0 OR BSD-3-Clause
+- et_xmlfile 2.0.0 — MIT
+- flatbuffers 25.12.19 — Apache 2.0
+- fonttools 4.68.0 — MIT
+- frozenlist 1.8.0 — Apache-2.0
+- idna 3.20 — BSD-3-Clause
+- img2pdf 0.6.3 — GNU Lesser General Public License v3 (LGPLv3)
+- lxml 6.1.3 — BSD-3-Clause
+- multidict 7.2.1 — Apache-2.0
+- numpy 2.5.4 — BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
+- onnxruntime 1.31.1 — MIT License
+- opencv-python-headless 5.0.0.93 — Apache 2.0
+- openpyxl 3.1.5 — MIT
+- oscrypto 1.3.0 — MIT
+- pikepdf 10.17.0 — MPL-2.0
+- pillow 13.0.0 — MIT-CMU
+- propcache 0.5.4 — Apache-2.0
+- protobuf 7.36.2 — 3-Clause BSD License
+- pycparser 3.12 — BSD-3-Clause
+- pydantic 2.14.2 — MIT
+- pydantic_core 2.50.2 — MIT
+- pyHanko 0.38.0 — MIT
+- pyhanko-certvalidator 0.33.0 — MIT
+- pypdfium2 5.14.0 — BSD-3-Clause, Apache-2.0, dependency licenses
+- python-barcode 0.16.1 — MIT
+- python-docx 1.2.0 — MIT
+- python-pkcs11 0.9.5 — MIT
+- reportlab 5.1.0 — BSD license (see license.txt for details), Copyright (c) 2000-2025, ReportLab In
+- segno 1.6.6 — BSD License
+- typing_extensions 4.16.0 — PSF-2.0
+- typing-inspection 0.4.4 — MIT
+- tzdata 2026.6 — Apache-2.0
+- tzlocal 5.4.5 — MIT
+- uritools 6.1.3 — MIT
+- yarl 1.25.1 — Apache-2.0
+
+Thư viện npm sản xuất đáng chú ý
+- pdfjs-dist 6.4.299 — Apache-2.0
+- @fontsource/be-vietnam-pro 5.3.0 — OFL-1.1
+- lucide-react 1.66.0 — ISC
+- tslib 2.9.1 — 0BSD
+- 74 gói npm MIT còn lại: xem đầy đủ bằng `pnpm -r licenses list --prod`.
+
+Việc còn mở
+- `mypy` nằm trong thư mục `_internal` của bản đóng gói (PyInstaller kéo vào qua hook). Không cần cho app; loại bằng `--exclude-module mypy` trong `packaging/build-core.mjs` rồi đo lại dung lượng.
+- Đối chiếu giấy phép mã DocAligner và trọng số với bản phát hành chính thức trước khi phát hành. Lõi đã kiểm SHA-256 của trọng số khi nạp mô hình (`core/chef_core/imaging/docaligner.py`), nên file bị đổi sẽ bị từ chối.
+- Khi có bộ cài để phát hành: đưa file này vào bản cài và kèm mã nguồn của img2pdf (LGPL).

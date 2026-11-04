@@ -227,8 +227,8 @@
 | T9.01 | Form: điền, tạo trường (chữ, checkbox, radio, dropdown, ô ký), làm phẳng | H1, H2, H3 | 5 | T6.01 | 🔄 |
 | T9.02 | Workflow engine: chuỗi operation, kiểm tra tham số, **kiểm tra thứ tự an toàn** | O1, O5 | 3 | T1.04 | 🔄 |
 | T9.03 | UI trình tạo quy trình; "Lưu thành bước quy trình" từ task dialog | O1 | 3 | T9.02 | 🔄 |
-| T9.04 | Chạy hàng loạt: tiến độ, báo lỗi từng file, chạy tiếp khi có file lỗi | O2 | 2 | T9.02 | 🔄 |
-| T9.05 | Thư mục tự động (theo dõi thư mục, hàng đợi, chống chạy trùng) | O3 | 1,5 | T9.04 | 🔄 |
+| T9.04 | Chạy hàng loạt: tiến độ, báo lỗi từng file, chạy tiếp khi có file lỗi | O2 | 2 | T9.02 | ✅ |
+| T9.05 | Thư mục tự động (theo dõi thư mục, hàng đợi, chống chạy trùng) | O3 | 1,5 | T9.04 | ✅ |
 | T9.06 | Quy tắc đặt tên đầu ra; đổi tên file hàng loạt | O4, O6 | 1,5 | T9.04 | 🔄 |
 | T9.07 | Quy trình mẫu (Nộp hồ sơ online, Phát hành văn bản, Chụp sách); kéo thả file lên quy trình ở Start | O7, O8 | 1,5 | T9.03 | 🔄 |
 | T9.08 | Tự cập nhật (Windows/Linux tự động, macOS báo bản mới). **Làm sau 1.0** (D36) | A10 | 2 | T1.06 | ⏸ |
