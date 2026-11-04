@@ -18,7 +18,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo (Windows):** (1) bản 1.0 đã đóng trên code (116 ✅, 3 ⏸, không còn 🔄); còn cổng 5.5 (bộ cài trên máy sạch) và 5.6 (dùng một tuần, chủ dự án làm); (2) bản 1.1: Phase 0 (B1, B2), rồi sửa chữ theo mục 5 của [PLAN_V1_1.md](PLAN_V1_1.md); (3) việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit (T3.14), kiểm tay panel chữ ký (T3.08), đối chiếu dấu vân tay Root CA.
+- **Việc tiếp theo (Windows):** (1) bản 1.0 đã đóng trên code (116 ✅, 3 ⏸); còn cổng 5.5 (bộ cài trên máy sạch) và 5.6 (dùng một tuần, chủ dự án làm); (2) bản 1.1: B1 chờ chủ dự án trả lời PLAN_V1_1 mục 7 câu 1; B2 chờ cho phép; sửa chữ (mục 5) đã có chế độ, hàng định dạng, thụt lề, nhãn chế độ và chỉ báo lớp chữ; còn: chạy demo-v11 và format-row trên bản đóng gói, bảng thuộc tính (D13); (3) việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit (T3.14), kiểm tay panel chữ ký (T3.08), đối chiếu dấu vân tay Root CA.
 - **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
@@ -97,6 +97,10 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D55 | **Nút định dạng áp dụng ngay**, mỗi lần đổi là một revision, hoàn tác bằng Ctrl+Z (Q-d). Nội dung chữ vẫn ghi bằng Enter hoặc Áp dụng | Blueprint §5.3 "chỉnh nội dung và định dạng tại chỗ" |
 | D56 | **Thụt lề dòng đầu (`indent`) có trong 1.1** qua `text.styleParagraph` và `text.editParagraph` (Q-e) | Lõi đã có `para.indent` nội bộ; chỉ thiếu tham số |
 | D57 | **Mốc 1.1 dùng mã task `T12.xx`** trong TASKS.md, gồm B1, B2, B11, B12, D13, D14 và thụt lề | Tách khỏi mốc 1.0 (T11.xx) |
+| D58 | **Đoạn một dòng không có căn lề đọc được:** hàng định dạng hiện "Căn lề" (chưa biết) thay vì "Trái". Căn lề chỉ suy ra từ hình học của dòng; một dòng không cho biết căn giữa hay trái | Hình học không đủ; không đoán nhãn (advisor, 2026-11-05). Ghi trong PLAN_V1_1 §5.6 mục 8 |
+| D59 | **Nhóm đoạn giữ dòng căn giữa và căn phải:** một dòng thụt vào tiếp tục đoạn khi trùng tâm với dòng trước (dung sai 0,25 cỡ) hoặc trùng mép phải (0,5 cỡ, nhóm không phải đoạn đều hai bên), và cả hai cần mép trái lệch nhau. Khe ngắt theo cỡ chữ nhỏ hơn | Lỗi 1.0 tìm được khi làm 1.1: căn giữa một đoạn làm nó tách thành hai đoạn; đổi cỡ gộp hai cột. Test: `test_text_paragraph.py`, `test_layout_*` |
+| D60 | **Hàng định dạng áp dụng từng thay đổi, xếp hàng từng cái một:** cỡ và thụt lề áp khi nhấn Enter hoặc rời ô; màu áp khi rời ô (không theo từng bước kéo); mỗi thay đổi là một revision; đoạn được chọn lại theo vị trí sau khi đọc lại trang (kể cả sau hoàn tác) | Ctrl+Z là một bước; tránh STALE_OBJECT_IDS và hàng trăm revision khi kéo màu |
+| D61 | **Chỉ báo lớp chữ (B12) bằng `text.layer` (chỉ đọc)** đếm trang có ký tự; thanh trạng thái hiện "Có chữ", "Bản scan" hoặc "Hỗn hợp n/m trang". Thanh trạng thái cũng hiện "Chế độ Chỉnh sửa" khi bật chế độ | Cần để kiểm B1 và để thấy chữ có sửa được không |
 
 
 ## Kiến trúc dự kiến
@@ -191,6 +195,18 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-05 (bản 1.1: B1, gộp chế độ, hàng định dạng, nhóm đoạn, chỉ báo lớp chữ):**
+  - **Đồng bộ tài liệu** (`e17772e`): các dòng cũ đã sửa; thêm mốc 1.1 vào TASKS; D53–D57.
+  - **B1 không tái hiện** trên cả bốn đường đã thử: spec `b1-in-session` (bản sao đã ký → scan → lưu → mở lại) xanh trên dev và trên bản đóng gói build lại; file thật của chủ dự án (`repro-local`, không commit) trên bản đóng gói: 11.509 → 0 ký tự. Đã kiểm rằng spec thật sự dùng `chef-pdf.exe` (đường dẫn giả làm spec lỗi). Harness được commit (`007dfc9`). T12.01 ⏸, chờ PLAN_V1_1 §7 câu 1. B2 không chạy lại (cần cho phép).
+  - **Indent** trong lõi (`c5bb166`). Kiểm tra "4 em" lúc đầu làm mọi lần đổi kiểu đoạn ngắt (đổi đậm tiêu đề một từ bị từ chối); sửa trong `8f98c64`: kiểm tra chỉ chạy khi có thụt lề dương.
+  - **Lỗi 1.0 tìm được:** căn giữa hoặc căn phải một đoạn làm dòng thứ hai bị tách thành đoạn mới (dòng thụt vào bị coi là đoạn mới), và đổi cỡ làm hai cột gộp thành một dòng (khe ngắt theo cỡ lớn hơn). Sửa trong `build.py` (`dd0db86`), có điều kiện mép trái lệch để không gộp danh sách và đoạn đều hai bên. Test: đoạn một dòng đổi kiểu không bị tách; đoạn thụt vào sau đoạn đều hai bên vẫn tách. **Chưa có test cho đoạn căn phải hai dòng** (luật căn phải cần ba dòng để chắc chắn); ghi làm sau.
+  - **Hàng định dạng** (`91b1374`): font, cỡ (− và +), đậm, nghiêng, căn lề, thụt lề, màu, thêm văn bản, sửa nội dung đoạn. Mỗi thay đổi xếp hàng, đoạn được chọn lúc chạy. Test: `format-row`, `textedit` (đổi cỡ qua hàng), `demo-v07` (không đổi spec, vẫn xanh).
+  - **Gộp chế độ** (`bdff7e2`): bỏ lệnh "Sửa đoạn" và Alt+nhấp đúp; click chọn đoạn; nhấp đúp hoặc Enter mở ô sửa dòng như cũ; nội dung đoạn mở từ hàng định dạng.
+  - **Nhãn chế độ và chỉ báo lớp chữ** (`2e413a3`, `d7a8412`): `text.layer` chỉ đọc; `demo-v11` (`d7a8412`) chạy đủ §5.7 trên dev với lõi thật.
+  - **Kiểm thử:** lõi `pytest tests`: 1665 đạt, 3 bỏ qua, 2 lỗi ở `test_sign_store_cng.py` (fixture tạo chứng thư tự ký bằng PowerShell trả về rỗng; không có thay đổi nào ở mã ký; là lỗi môi trường, chưa đối chiếu với bản gốc). Giao diện: textedit, i18n, app đạt (50). e2e: `textedit`, `format-row`, `demo-v07`, `demo-v10`, `layout-review`, `keyboard`, `demo-v11`, `ui-audit` xanh; ui-audit strict không tăng phát hiện.
+  - **Chưa làm:** bảng thuộc tính (D13, T12.07); chạy demo-v11 và format-row trên bản đóng gói; B2; ui-audit chưa đo màn hình chế độ chỉnh sửa (hàng định dạng không có trong baseline; ghi làm sau); căn lề đoạn một dòng (D58).
+  - **Thứ tự làm khác kế hoạch:** làm hàng định dạng trước khi gộp chế độ (advisor cho phép gộp trước; gộp trước sẽ mất đường vào "Sửa đoạn" trong khi hàng định dạng chưa có). Commit vẫn tách theo mảng.
 
 - **2026-11-04 (bắt đầu 1.1: đồng bộ tài liệu, quyết định D53–D57):** Chủ dự án chọn làm lỗi B1, B2 và sửa chữ theo mục 5. Chốt theo đề xuất mục 5.4 (D53–D56) theo lời advisor, ghi lại để đổi được. Đồng bộ các dòng cũ: NOTES "Việc tiếp theo", PLAN_V1 mục 1.4–1.7, giai đoạn 3 (v0.8 đã đóng đủ 11 task), rủi ro "54 task 🔄" (không còn 🔄). Thêm mốc 1.1 vào TASKS (T12.xx). Chưa đổi FEATURES mức 1.0; mã mới đã có ở mức v1.1 từ trước.
 
