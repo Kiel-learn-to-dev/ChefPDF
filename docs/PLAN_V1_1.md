@@ -44,7 +44,17 @@ Bản đóng gói được xác nhận chạy đúng (`process.execPath` là `wi
 | B2, **chuột thật của Windows** (`mouse_event`), cửa sổ có focus | `long.pdf`, `scan_long.pdf`, lần mở thứ hai | Cuộn cả ba |
 | B2, chuột thật, **cửa sổ khác đang ở trên** | — | **Chưa chạy.** Lệnh bị bộ phân loại an toàn chặn vì sẽ đưa cửa sổ khác lên và dừng tiến trình Notepad của người dùng. Xem mục 7, câu 2 |
 
-Kết luận: **chưa tái hiện được B1 và B2.** Bước tiếp theo phụ thuộc vào các bước chính xác của chủ dự án.
+Kết quả ngày 2026-11-05 (bản đóng gói build lại sau commit 1.0 mới nhất, `chef-pdf.exe`):
+
+| Thử | Kết quả |
+|---|---|
+| B1, dev: spec `b1-in-session` (bản sao đã ký → scan → lưu → mở lại) | 0 ký tự, đạt |
+| B1, bản đóng gói: cùng spec, `CHEF_E2E_EXE` (đã kiểm: đường dẫn exe giả làm spec lỗi) | 0 ký tự, đạt |
+| B1, bản đóng gói: `repro-local` với file thật của chủ dự án (không commit) | 11.509 → 0 ký tự, đạt |
+| B1, dev: bản sao đã ký theo đường lệnh | chưa chạy, vì các đường trên đã đủ |
+| B2 | không chạy lại (cửa sổ khác ở trên cần chủ dự án cho phép) |
+
+Kết luận: **B1 không tái hiện trên cả dev lẫn bản đóng gói, qua cả đường bản sao đã ký lẫn file gốc.** Không đoán nguyên nhân; chờ chủ dự án trả lời câu 1 (các bước chính xác) để dựng lại đúng.
 
 ### 2.3 Quan sát về file của chủ dự án (không phải nguyên nhân đã xác nhận)
 
@@ -159,6 +169,7 @@ Kiểm trên bản sao PDF của chủ dự án, không sửa file gốc:
 5. Hoàn tác có hoàn tác được nội dung, định dạng và di chuyển không?
 6. Lưu đè và lưu bản sao có giữ tìm kiếm, copy, bookmark, tag, comment không?
 7. **Bản sao từ "Tạo bản sao để sửa" còn các widget chữ ký (mục 2.3) không? Khung chữ ký có hiện trên app không?**
+8. **Đoạn một dòng không có căn lề đọc được** (D58): hàng định dạng hiện "Căn lề" chưa biết, không hiện "Trái". Cần cách lưu căn lề thật nếu muốn hiện lại.
 
 ### 5.7 Demo v1.1 (sửa chữ)
 

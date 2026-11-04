@@ -274,14 +274,14 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T12.01 | **B1:** tái hiện trên bản đóng gói (harness `b1-in-session`), test đỏ, sửa, test xanh. Chờ chủ dự án xác nhận bước của mình (PLAN_V1_1 mục 7, câu 1) | B1 | 2 | | 🔄 |
-| T12.02 | **B2:** kịch bản "cửa sổ khác ở trên" chưa chạy; cần chủ dự án cho phép rõ ràng | B2 | 1 | | ⬜ |
-| T12.03 | Lõi: tham số `indent` (pt hoặc keep) cho `text.editParagraph` và `text.styleParagraph`, test lõi, cập nhật contracts | D53–D56 | 1 | T9.03 | ⬜ |
-| T12.04 | Một chế độ **Chỉnh sửa** thay hai lệnh dòng và đoạn; khung là khối từ lõi; hộp đoạn nổi bỏ, giữ cảnh báo tràn và chồng khối | B11 | 3 | T12.03 | ⬜ |
-| T12.05 | **Hàng định dạng cố định** dưới hàng công cụ: font, cỡ (tăng/giảm), đậm, nghiêng, căn, thụt lề, khoảng cách, màu; áp dụng ngay, giữ id đoạn sau mỗi revision | D14 | 4 | T12.04 | ⬜ |
-| T12.06 | Chỉ báo lớp chữ trên thanh dưới: có chữ, không có chữ (bản scan), hỗn hợp | B12 | 1 | | ⬜ |
+| T12.01 | **B1:** tái hiện trên bản đóng gói (harness `b1-in-session`), test đỏ, sửa, test xanh. Chờ chủ dự án xác nhận bước của mình (PLAN_V1_1 mục 7, câu 1) | B1 | 2 | | ⏸ (chờ chủ dự án, PLAN_V1_1 §7 câu 1: không tái hiện trên dev hay bản đóng gói) |
+| T12.02 | **B2:** kịch bản "cửa sổ khác ở trên" chưa chạy; cần chủ dự án cho phép rõ ràng | B2 | 1 | | ⬜ (chờ chủ dự án cho phép chạy kịch bản cửa sổ khác ở trên) |
+| T12.03 | Lõi: tham số `indent` (pt hoặc keep) cho `text.editParagraph` và `text.styleParagraph`, test lõi, cập nhật contracts | D53–D56 | 1 | T9.03 | ✅ |
+| T12.04 | Một chế độ **Chỉnh sửa** thay hai lệnh dòng và đoạn; khung là khối từ lõi; hộp đoạn nổi bỏ, giữ cảnh báo tràn và chồng khối | B11 | 3 | T12.03 | ✅ (một chế độ, D53; có nhãn trên thanh trạng thái) |
+| T12.05 | **Hàng định dạng cố định** dưới hàng công cụ: font, cỡ (tăng/giảm), đậm, nghiêng, căn, thụt lề, khoảng cách, màu; áp dụng ngay, giữ id đoạn sau mỗi revision | D14 | 4 | T12.04 | ✅ (hàng định dạng, D14; e2e format-row, demo-v11) |
+| T12.06 | Chỉ báo lớp chữ trên thanh dưới: có chữ, không có chữ (bản scan), hỗn hợp | B12 | 1 | | ✅ (text.layer và nhãn trên thanh trạng thái; core test_text_layer) |
 | T12.07 | Bảng thuộc tính đối tượng (chữ, ảnh, ghi chú, chữ ký) ở panel phải | D13 | 2,5 | T12.04 | ⬜ |
-| T12.08 | Demo v1.1: `demo-v11.spec.ts` theo §5.7, lõi đóng gói; ui-audit cập nhật baseline có chủ ý (D41) | | 2 | T12.01–T12.06 | ⬜ |
+| T12.08 | Demo v1.1: `demo-v11.spec.ts` theo §5.7, lõi đóng gói; ui-audit cập nhật baseline có chủ ý (D41) | | 2 | T12.01–T12.06 | 🔄 (demo-v11 xanh trên dev; bản đóng gói chưa chạy) |
 
 ---
 
