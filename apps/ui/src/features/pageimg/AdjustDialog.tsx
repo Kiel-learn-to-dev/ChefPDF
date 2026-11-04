@@ -195,7 +195,11 @@ export function AdjustDialog() {
       onRun={() => void apply()}
       canRun={canRun}
       runLabel={t('pageimg.adjust.apply')}
-      workflowStep={stepSettings ? { op: 'pageimg.enhance', params: stepSettings, label: t('pageimg.adjust.title') } : undefined}
+      workflowStep={
+        stepSettings
+          ? { op: 'pageimg.enhance', params: stepSettings, label: t('pageimg.adjust.title') }
+          : undefined
+      }
       size="xl"
     >
       <div className="adjust-grid">

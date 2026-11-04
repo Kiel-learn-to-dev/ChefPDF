@@ -174,7 +174,11 @@ export function SpineDialog() {
       onRun={() => void apply()}
       canRun={!signed && !busy && !!aParams && previewIsCurrent && visibleRows.length > 0}
       runLabel={t('pageimg.spine.apply')}
-      workflowStep={mode === 'auto' ? { op: 'pageimg.splitSpread', params: { order: 'ltr' }, label: t('pageimg.spine.title') } : undefined}
+      workflowStep={
+        mode === 'auto'
+          ? { op: 'pageimg.splitSpread', params: { order: 'ltr' }, label: t('pageimg.spine.title') }
+          : undefined
+      }
       size="xl"
     >
       <Field
