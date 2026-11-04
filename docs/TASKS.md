@@ -3,7 +3,7 @@
 > **Phiên bản 1.0 (2026-10-31).** Đi kèm [BLUEPRINT.md](BLUEPRINT.md) (kiến trúc, quy ước) và [FEATURES.md](FEATURES.md) (mã tính năng).
 > **Cập nhật cột "Trạng thái" mỗi khi xong một task.** ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ tạm dừng · ❌ bỏ
 > **Điểm:** 1 điểm ≈ 1 ngày làm của một lập trình viên có kinh nghiệm (xem BLUEPRINT mục 14).
-> **Mã task:** `T<mốc>.<số>`, ví dụ `T3.06` là task 6 của mốc v0.3. Mốc v0.10 dùng `T10.xx`, mốc v1.0 dùng `T11.xx`.
+> **Mã task:** `T<mốc>.<số>`, ví dụ `T3.06` là task 6 của mốc v0.3. Mốc v0.10 dùng `T10.xx`, mốc v1.0 dùng `T11.xx`, mốc v1.1 dùng `T12.xx` (PLAN_V1_1).
 
 ## Câu hỏi cần chủ dự án trả lời
 
@@ -264,6 +264,24 @@
 | T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | ✅ (hướng dẫn viết lại cho bản Windows, khớp tên lệnh trong app) |
 | T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ✅ (phím tắt và điều hướng bàn phím, e2e `keyboard.spec.ts`; đánh bóng giao diện theo D41 và ui-audit; dọn token CSS B1–B9 để sau 1.0) |
 | T11.06 | Menu chuột phải trên các trang đã chọn (kiểu ABBYY): **tạo PDF từ các trang đã chọn** mở ở tab mới, đóng dấu và nén đúng các trang đã chọn, chọn tất cả/đảo chọn, xuất ảnh; dùng chung ở lưới thumbnail và thanh bên (chọn nhiều và menu ở thanh bên xong), xem NOTES 2026-11-03 | C13, C14 | 3 | T1.24, T4.05, T5.04 | ✅ |
+
+---
+
+## v1.1: Sửa lỗi báo cáo & sửa chữ PDF
+
+**Mục tiêu:** sửa B1, B2 báo cáo ở 1.0; đưa sửa chữ PDF khớp blueprint ABBYY (PLAN_V1_1 mục 5, quyết định D53–D57).
+**Demo:** `demo-v11` theo PLAN_V1_1 mục 5.7, chạy với lõi đóng gói; B1 và B2 có test hồi quy trên bản đóng gói.
+
+| Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
+|---|---|---|---|---|---|
+| T12.01 | **B1:** tái hiện trên bản đóng gói (harness `b1-in-session`), test đỏ, sửa, test xanh. Chờ chủ dự án xác nhận bước của mình (PLAN_V1_1 mục 7, câu 1) | B1 | 2 | | 🔄 |
+| T12.02 | **B2:** kịch bản "cửa sổ khác ở trên" chưa chạy; cần chủ dự án cho phép rõ ràng | B2 | 1 | | ⬜ |
+| T12.03 | Lõi: tham số `indent` (pt hoặc keep) cho `text.editParagraph` và `text.styleParagraph`, test lõi, cập nhật contracts | D53–D56 | 1 | T9.03 | ⬜ |
+| T12.04 | Một chế độ **Chỉnh sửa** thay hai lệnh dòng và đoạn; khung là khối từ lõi; hộp đoạn nổi bỏ, giữ cảnh báo tràn và chồng khối | B11 | 3 | T12.03 | ⬜ |
+| T12.05 | **Hàng định dạng cố định** dưới hàng công cụ: font, cỡ (tăng/giảm), đậm, nghiêng, căn, thụt lề, khoảng cách, màu; áp dụng ngay, giữ id đoạn sau mỗi revision | D14 | 4 | T12.04 | ⬜ |
+| T12.06 | Chỉ báo lớp chữ trên thanh dưới: có chữ, không có chữ (bản scan), hỗn hợp | B12 | 1 | | ⬜ |
+| T12.07 | Bảng thuộc tính đối tượng (chữ, ảnh, ghi chú, chữ ký) ở panel phải | D13 | 2,5 | T12.04 | ⬜ |
+| T12.08 | Demo v1.1: `demo-v11.spec.ts` theo §5.7, lõi đóng gói; ui-audit cập nhật baseline có chủ ý (D41) | | 2 | T12.01–T12.06 | ⬜ |
 
 ---
 

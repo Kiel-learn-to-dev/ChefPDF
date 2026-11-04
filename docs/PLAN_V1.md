@@ -7,7 +7,7 @@
 - 119 task: 116 ✅, 3 ⏸ (T3.08, T3.14, T9.08 tự cập nhật, làm sau 1.0; số liệu cũ "26 🔄" đã sửa). Bản 1.0 có **161** tính năng.
 - Test trên Windows (2026-11-04): typecheck, lint, ruff, mypy (lõi) sạch; pytest `test_pageimg_core` và `test_pageimg_ops` 84 đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); e2e Electron + lõi thật 15 đạt (`demo-v08`, `capture`, `crop-review`, `dewarp`, `smoke`). Bộ e2e đủ (109) và pytest lõi đủ (1638) lần cuối ở 2026-11-03; không còn `test.fixme`.
 - CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
-- Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 🔄).
+- Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 ⏸).
 - Trạng thái 🔄 nghĩa là code đã có nhưng chưa qua cổng nghiệm thu của mốc. Mỗi mốc có một **Demo** trong TASKS.md; đó là tiêu chí nghiệm thu thật.
 
 ## Nguyên tắc làm
@@ -37,10 +37,10 @@ Tiêu chí mốc (Demo v0.3): cắm token thật, chẩn đoán xanh, tạo mẫ
 | 1.1 ✅ | Dò token thật: driver `viettel-ca_v6.dll`, 2 chứng thư, cờ PIN bình thường | T1.08, T3.01, T3.02 | Đạt; ghi ở TOKENS.md |
 | 1.2 ✅ | Chẩn đoán từng bước trên token thật | T3.03 | Đạt 7/7 bước (bước ký thử cần PIN) |
 | 1.3 ✅ | Ký thật bằng token qua lõi, kiểm tra lại | T3.06 | Đạt; sửa 2 lỗi kiểm tra (khóa 1024 bit, CRL dạng PEM) |
-| 1.4 🔄 | Chủ dự án xem kết quả ký và chấp nhận (2026-11-03). **Còn lại, làm sau:** ảnh chụp Adobe Reader/Foxit; đối chiếu dấu vân tay Root CA rồi đưa vào kho đi kèm (`core/chef_core/resources/certs`) | T3.14, I35 | Không chặn các mốc sau |
-| 1.5 ⬜ | Ký từ giao diện app (không qua script): chọn token, nhập PIN, mẫu chữ ký, ký hàng loạt 10 file theo chữ mốc | T3.04–T3.13 | Cần token lần nữa |
-| 1.6 ⬜ | Ký bằng kho chứng thư Windows (CNG) khi không dùng PKCS#11 | T4.11 (phần Windows) | |
-| 1.7 ⬜ | Kiểm tra chữ ký: panel trạng thái, thư viện ảnh chữ ký (đóng T3.08, T3.11) | T3.08, T3.11 | |
+| 1.4 ⏸ | Chủ dự án xem kết quả ký và chấp nhận (2026-11-03). **Còn lại, làm sau 1.1 (D49):** ảnh chụp Adobe Reader/Foxit (T3.14); đối chiếu dấu vân tay Root CA rồi đưa vào kho đi kèm (`core/chef_core/resources/certs`) | T3.14, I35 | Không chặn các mốc sau |
+| 1.5 ⬜ | Ký từ giao diện app (không qua script): chọn token, nhập PIN, mẫu chữ ký, ký hàng loạt 10 file theo chữ mốc. Task T3.04–T3.13 đã ✅ trong TASKS, nhưng chưa có bằng chứng ký thật từ giao diện được ghi lại | T3.04–T3.13 | Cần token lần nữa, gom một lần |
+| 1.6 ✅ | Ký bằng kho chứng thư Windows (CNG), chọn theo thumbprint. Test lõi `test_sign_store_cng.py` đạt; chủ dự án kiểm tay | T4.11 (phần Windows) | |
+| 1.7 ⏸ | Kiểm tra chữ ký: panel trạng thái, thư viện ảnh chữ ký (đóng T3.08, T3.11). T3.08 hoãn sau 1.1 (D49) | T3.08, T3.11 | Chủ dự án kiểm tay |
 
 **Rủi ro:** driver Viettel V6 tự hiện hộp PIN riêng nếu dùng CSP (TOKENS.md); PIN sai nhiều lần làm khóa token. Cách giảm: chỉ dùng PKCS#11, đọc cờ PIN trước mỗi lần hỏi, không thử PIN tự động quá một lần. **Khóa 1024 bit** của chứng thư Viettel nay được chấp nhận với cảnh báo; nếu Adobe Reader từ chối thì ghi vào TOKENS.md.
 
@@ -60,10 +60,10 @@ Mỗi mốc: (1) viết một e2e theo đúng câu Demo bằng lõi thật; (2) 
 
 | Mốc | Demo | Task cần đóng | Việc cần người thật |
 |---|---|---|---|
-| v0.8 | Chụp 20 trang sách bằng điện thoại qua QR, tự dò viền, tách trang đôi, làm phẳng, xóa ngón tay, ra PDF đẹp | **Demo đã đạt** (`demo-v08.spec.ts`, 2026-11-04). Đã đóng T8.04, T8.06, T8.09, T8.11. Còn mở: T8.01, T8.02, T8.03, T8.07, T8.08, T8.10 (thiếu giao diện: trình sửa ảnh, Levels/Curves, tẩy và xóa vết màu, duyệt hàng loạt, chỉnh tay khe gáy, đề xuất và tô ngón tay) | **Thử trang chụp trên điện thoại thật** (chưa từng thử); 20 trang sách thật để chỉnh ngưỡng |
+| v0.8 | Chụp 20 trang sách bằng điện thoại qua QR, tự dò viền, tách trang đôi, làm phẳng, xóa ngón tay, ra PDF đẹp | **Demo đã đạt** (`demo-v08.spec.ts`, 2026-11-04). Đã đóng đủ 11 task v0.8 (T8.01–T8.11). Giao diện chỉnh ảnh, tẩy, khe gáy, cắt hàng loạt và xóa ngón tay đã có (2026-11-04) | **Thử trang chụp trên điện thoại thật** (chưa từng thử); 20 trang sách thật để chỉnh ngưỡng |
 | v0.9 | Tạo quy trình "Nộp hồ sơ online", thả 20 file vào thư mục tự động, lấy kết quả đã ký | T9.01–T9.07 (T9.08 hoãn) | Cần giai đoạn 1 xong để có bước ký thật |
 
-Việc còn mở đã biết: nối "Lưu thành bước quy trình" cho các hộp thoại còn lại (T9.03), hoàn thiện cắt hàng loạt (T8.07). Lỗi lộ ra ở Demo v0.8, chưa sửa: xóa ngón tay tô màu giấy lên cả phần bàn khi ngón tay chồng mép giấy; dò viền khi mép giấy nằm ngoài khung ảnh cho khung sai mà vẫn đạt ngưỡng 0,6 (ghi trong NOTES, nhật ký 2026-11-04).
+Việc còn mở đã biết: không có. Các hộp thoại theo vùng chưa có "Lưu thành bước" là chủ ý (D44). Lỗi lộ ra ở Demo v0.8, chưa sửa: xóa ngón tay tô màu giấy lên cả phần bàn khi ngón tay chồng mép giấy; dò viền khi mép giấy nằm ngoài khung ảnh cho khung sai mà vẫn đạt ngưỡng 0,6 (ghi trong NOTES, nhật ký 2026-11-04).
 
 ## Giai đoạn 4: Mốc v0.10, rã tài liệu
 
@@ -96,7 +96,7 @@ Demo: rã một báo cáo 2 cột có bảng thành Word "giữ bố cục" và 
 | Rủi ro | Mức | Cách giảm |
 |---|---|---|
 | Adobe Reader/Foxit không tin chữ ký khóa 1024 bit của Viettel | Trung bình | Bước 1.4; ghi kết quả vào TOKENS.md; hướng dẫn thêm Root CA vào Adobe trong tài liệu |
-| 54 task 🔄 không có tiêu chí riêng | Trung bình | Dùng Demo từng mốc làm cổng, ghi lý do cho task chưa đạt |
+| Một số task ✅ còn ghi chú chưa có e2e (T4.11 giao diện, T5.05 chụp màn hình, vẽ của T7.06) | Thấp | Ghi rõ trong TASKS; bổ e2e khi chạm lại. Không còn task 🔄 |
 | E2E không ổn định khi chạy cả bộ | Thấp | Đã đạt 86/86; giữ nguyên tắc chờ tường minh thay vì `waitForTimeout` |
 | Chỉ có một máy Windows để thử | Trung bình | CI Windows là bản đối chứng; thử bộ cài trên máy sạch trước khi dùng hằng ngày |
 

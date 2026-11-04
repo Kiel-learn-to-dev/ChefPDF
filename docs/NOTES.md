@@ -5,7 +5,7 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md). **Bản 1.1** đã duyệt phạm vi (2026-11-04), xem [PLAN_V1_1.md](PLAN_V1_1.md): sửa hai lỗi báo cáo trước, rồi sửa chữ PDF khớp blueprint ABBYY.
+- **Giai đoạn:** bản 1.0 đã đóng trên code (Windows, D37); đang làm **bản 1.1** (sửa B1, B2 và sửa chữ PDF theo blueprint ABBYY). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md). **Bản 1.1** đã duyệt phạm vi (2026-11-04), xem [PLAN_V1_1.md](PLAN_V1_1.md): sửa hai lỗi báo cáo trước, rồi sửa chữ PDF khớp blueprint ABBYY.
 - **Số liệu (2026-11-04):** [TASKS.md](TASKS.md) có 119 task: 116 xong, 3 tạm dừng (T3.08, T3.14, T9.08), không còn 🔄 hay ⬜ (đã sửa số liệu cũ "26 🔄"). Hôm nay chạy: typecheck, lint, ruff, mypy (lõi) sạch; pytest hai file pageimg 84 đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); e2e 15 đạt (demo-v08, capture, crop-review, dewarp, smoke). Bộ e2e đủ và pytest lõi đủ (1638) chưa chạy lại từ 2026-11-03; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh (lượt trước); E2E Linux/macOS không chặn.
 - **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
@@ -18,7 +18,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo (Windows):** (1) mốc v0.8: Demo đã có và đạt (`demo-v08.spec.ts`), còn 6 task 🔄 cần giao diện (T8.01, T8.02, T8.03, T8.07, T8.08, T8.10), rồi v0.9, v0.10; (2) cuối v0.9: một lần dùng token để ký từ giao diện và ký hàng loạt; (3) cổng 1.0: hiệu năng, giấy phép, đánh bóng, hướng dẫn, dùng một tuần. Việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit, đối chiếu dấu vân tay Root CA.
+- **Việc tiếp theo (Windows):** (1) bản 1.0 đã đóng trên code (116 ✅, 3 ⏸, không còn 🔄); còn cổng 5.5 (bộ cài trên máy sạch) và 5.6 (dùng một tuần, chủ dự án làm); (2) bản 1.1: Phase 0 (B1, B2), rồi sửa chữ theo mục 5 của [PLAN_V1_1.md](PLAN_V1_1.md); (3) việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit (T3.14), kiểm tay panel chữ ký (T3.08), đối chiếu dấu vân tay Root CA.
 - **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
@@ -92,6 +92,11 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D50 | **Chấp nhận giấy phép LGPL** của img2pdf (LGPL-3.0) và FFmpeg trong opencv (LGPL-2.1), ghi trong NOTICE. Vẫn không dùng AGPL (D7) | Chủ dự án, 2026-11-04 (câu 9) |
 | D51 | **Cửa sổ E2E ngoài màn hình là mặc định.** Spec cần cửa sổ hiển thị dùng `LaunchOptions.visible` (biến `CHEF_E2E_SHOW=1`). Hai spec cuộn chuột dùng cửa sổ hiển thị. Commit `6c97168` | Chủ dự án, 2026-11-04 (câu 2) |
 | D52 | **Mã tính năng mới cho 1.1: B11, B12, D13, D14** (FEATURES, mức v1.1). Tay nắm khung (Q-c) và các mục U3, U7, U8, U11 chờ quyết định, chưa vào FEATURES | Chủ dự án, 2026-11-04 (câu 11, mục 7 PLAN_V1_1) |
+| D53 | **Sửa chữ 1.1: một chế độ Chỉnh sửa** (R1, B11) thay hai lệnh dòng và đoạn. Khung chọn là một khối từ lõi; dòng đơn vẫn sửa được trong ô nhập của khung. Đề xuất mục 5.4 (Q-b) | Chủ dự án chọn làm sửa chữ 1.1 (2026-11-04); chọn theo đề xuất, ghi lại để đổi được |
+| D54 | **Không làm tay nắm khung trong 1.1** (Q-c). Viền giữ như hiện tại. Đặc tả tay nắm chờ chủ dự án thử ABBYY | Blueprint không có định nghĩa offline; tránh làm trang trí (mục 5.4) |
+| D55 | **Nút định dạng áp dụng ngay**, mỗi lần đổi là một revision, hoàn tác bằng Ctrl+Z (Q-d). Nội dung chữ vẫn ghi bằng Enter hoặc Áp dụng | Blueprint §5.3 "chỉnh nội dung và định dạng tại chỗ" |
+| D56 | **Thụt lề dòng đầu (`indent`) có trong 1.1** qua `text.styleParagraph` và `text.editParagraph` (Q-e) | Lõi đã có `para.indent` nội bộ; chỉ thiếu tham số |
+| D57 | **Mốc 1.1 dùng mã task `T12.xx`** trong TASKS.md, gồm B1, B2, B11, B12, D13, D14 và thụt lề | Tách khỏi mốc 1.0 (T11.xx) |
 
 
 ## Kiến trúc dự kiến
@@ -186,6 +191,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-04 (bắt đầu 1.1: đồng bộ tài liệu, quyết định D53–D57):** Chủ dự án chọn làm lỗi B1, B2 và sửa chữ theo mục 5. Chốt theo đề xuất mục 5.4 (D53–D56) theo lời advisor, ghi lại để đổi được. Đồng bộ các dòng cũ: NOTES "Việc tiếp theo", PLAN_V1 mục 1.4–1.7, giai đoạn 3 (v0.8 đã đóng đủ 11 task), rủi ro "54 task 🔄" (không còn 🔄). Thêm mốc 1.1 vào TASKS (T12.xx). Chưa đổi FEATURES mức 1.0; mã mới đã có ở mức v1.1 từ trước.
 
 - **2026-11-04 (duyệt kế hoạch 1.1, thử bản đóng gói):**
   - **Harness E2E (commit `6c97168`):** cửa sổ test vẫn ngoài màn hình; hai spec cuộn chuột dùng cửa sổ hiển thị (D51). Đã kiểm: wheel và wheel-second-instance 3/3 (hiển thị); keyboard, smoke, integration, page-menu, capture, tools5-pages 26/26 (ngoài màn hình); typecheck, eslint, prettier sạch.
