@@ -104,6 +104,11 @@ export function DocumentExportDialog() {
       canRun={selected.length > 0 && !busy}
       running={busy}
       runLabel={t('documentExport.run')}
+      workflowStep={{
+        op: 'export.document',
+        params: { format, options: { mode, includeImages } } as unknown as Record<string, unknown>,
+        label: t('documentExport.title'),
+      }}
     >
       <Field label={t('documentExport.format')} htmlFor="document-export-format">
         <Select<ExportFormat>

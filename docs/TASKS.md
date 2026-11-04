@@ -243,11 +243,11 @@
 |---|---|---|---|---|---|
 | T10.01 | Mô hình tài liệu JSON + dò bố cục bằng quy tắc (dòng, đoạn, tiêu đề, danh sách, nhiều cột, thứ tự đọc, bỏ header/footer lặp) | N1 | 6 | T7.01 | ✅ |
 | T10.02 | Nhận bảng có đường kẻ | N2 | 3 | T10.01 | ✅ |
-| T10.03 | Màn hình kiểm tra & sửa (gốc/kết quả song song, đổi loại vùng) | N3 | 4 | T10.01 | 🔄 |
+| T10.03 | Màn hình kiểm tra & sửa (gốc/kết quả song song, đổi loại vùng) | N3 | 4 | T10.01 | ✅ (màn hình kiểm tra: đổi loại vùng và xuất theo mô hình đã duyệt; e2e `layout-review.spec.ts`) |
 | T10.04 | Bộ xuất Markdown, HTML, TXT, JSON, EPUB, ODT, XLSX | N4 | 3 | T10.01 | ✅ |
 | T10.05 | Xuất DOCX hai chế độ: dễ chỉnh sửa / giữ bố cục | N5 | 4 | T10.01 | ✅ |
-| T10.06 | Làm mới tài liệu (dàn trang lại thành PDF sạch) | N6 | 2,5 | T10.01 | 🔄 |
-| T10.07 | Rã hàng loạt; làm thành một bước quy trình | N7 | 1 | T10.04, T9.02 | 🔄 |
+| T10.06 | Làm mới tài liệu (dàn trang lại thành PDF sạch) | N6 | 2,5 | T10.01 | ✅ (làm mới tài liệu thành PDF sạch; lõi `test_export_refresh.py` và giao diện xuất) |
+| T10.07 | Rã hàng loạt; làm thành một bước quy trình | N7 | 1 | T10.04, T9.02 | ✅ (rã hàng loạt qua quy trình mẫu và thư mục tự động; "Lưu thành bước" từ hộp thoại xuất; e2e `demo-v09` cho đợt từng file) |
 | T10.08 | Tự tạo mục lục từ tiêu đề đã dò | D12 | 1 | T10.01 | ✅ |
 
 ---
