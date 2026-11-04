@@ -542,6 +542,12 @@
     "tipKeys": "Alt+← / Alt+→ moves pages with the keyboard."
   },
   "status": {
+    "text": {
+      "all": "Text layer",
+      "none": "Scan, no text",
+      "mixed": "Mixed: {{text}}/{{pages}} pages with text",
+      "checking": "Reading the text layer"
+    },
     "label": "Status bar",
     "page": "Page",
     "pageOf": "Page {{page}}/{{count}}",

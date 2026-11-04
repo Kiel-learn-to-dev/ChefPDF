@@ -540,6 +540,12 @@
     "tipKeys": "Alt+← / Alt+→ để dời trang bằng bàn phím."
   },
   "status": {
+    "text": {
+      "all": "Có chữ",
+      "none": "Bản scan, không có chữ",
+      "mixed": "Hỗn hợp: {{text}}/{{pages}} trang có chữ",
+      "checking": "Đọc lớp chữ"
+    },
     "label": "Thanh trạng thái",
     "page": "Trang",
     "pageOf": "Trang {{page}}/{{count}}",

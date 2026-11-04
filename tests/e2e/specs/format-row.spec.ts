@@ -77,6 +77,8 @@ test('format bar: bold, centre and size in a row keep the paragraph; one Ctrl+Z 
   const l = launched;
   await l.page.setViewportSize({ width: 1280, height: 800 });
   await l.page.waitForSelector('.pdfViewer .page canvas', { timeout: 30_000 });
+  // B12: the status bar tells that the pages have a text layer.
+  await expect(l.page.locator('.status')).toContainText('Có chữ', { timeout: 30_000 });
 
   await l.page.click('.ftab >> text=Chỉnh sửa');
   await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();

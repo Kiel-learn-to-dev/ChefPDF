@@ -6,6 +6,7 @@ replace. See ``chef_core.text`` for the model and the planner.
 - ``text.checkText`` (read-only) {lineId, newText, keepStyle?}: supported?, missing characters,
   and the font the edit would use. No change.
 - ``text.listFonts`` (read-only): the replacement fonts of the registry.
+- ``text.layer`` (read-only): how many pages have a text layer (B12: a scan has none).
 - ``text.editLine`` (destructive) {pageIndex, lineId, newText, fontStrategy, fontName?, keepStyle,
   fitWidth}: one line. Empty text deletes the line.
 - ``text.findReplace`` (destructive) {find, replace, caseSensitive, ignoreDiacritics, wholeWord,
@@ -21,6 +22,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+import pypdfium2 as pdfium
 from pydantic import Field
 
 from chef_core.content.editor import PageEditor
@@ -439,15 +441,45 @@ def find_replace(ctx: OpContext, p: TextFindReplaceParams) -> OpOutput:
     )
 
 
+class TextLayerParams(WireModel):
+    """How many pages have a text layer (no parameters)."""
+
+
+@operation(
+    id="text.layer", title="Text layer of the document", group="text", params=TextLayerParams
+)
+def text_layer(ctx: OpContext, p: TextLayerParams) -> OpOutput:
+    """A page has a text layer when the renderer finds characters on it (a scan has none)."""
+    del p
+    if ctx.input_path is None:
+        raise RuntimeError("text.layer needs a session")
+    doc = pdfium.PdfDocument(str(ctx.input_path))
+    try:
+        with_text = 0
+        for index in range(len(doc)):
+            page = doc[index]
+            textpage = page.get_textpage()
+            if textpage.count_chars() > 0:
+                with_text += 1
+            textpage.close()
+            page.close()
+        pages = len(doc)
+    finally:
+        doc.close()
+    return OpOutput(changed_pages=[], data={"pages": pages, "textPages": with_text})
+
+
 __all__ = [
     "TextCheckTextParams",
     "TextEditLineParams",
     "TextFindReplaceParams",
     "TextGetLinesParams",
+    "TextLayerParams",
     "TextListFontsParams",
     "check_text",
     "edit_line",
     "find_replace",
     "get_lines",
     "list_fonts",
+    "text_layer",
 ]

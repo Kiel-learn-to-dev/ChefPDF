@@ -4002,6 +4002,10 @@ export interface TextGetLinesParams {
   includeArtifacts?: boolean;
 }
 
+/** How many pages have a text layer (no parameters). */
+export interface TextLayerParams {
+}
+
 /** The replacement fonts of the registry (no parameters). */
 export interface TextListFontsParams {
 }
@@ -4383,6 +4387,7 @@ export interface OpParams {
   'text.editParagraph': TextEditParagraphParams;
   'text.findReplace': TextFindReplaceParams;
   'text.getLines': TextGetLinesParams;
+  'text.layer': TextLayerParams;
   'text.listFonts': TextListFontsParams;
   'text.styleParagraph': TextStyleParagraphParams;
   'toc.fromHeadings': TocFromHeadingsParams;
@@ -4578,6 +4583,7 @@ export const OP_IDS = [
   'text.editParagraph',
   'text.findReplace',
   'text.getLines',
+  'text.layer',
   'text.listFonts',
   'text.styleParagraph',
   'toc.fromHeadings',

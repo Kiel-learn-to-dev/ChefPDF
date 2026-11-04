@@ -136,6 +136,7 @@ import type {
   TextEditParagraphParams,
   TextFindReplaceParams,
   TextGetLinesParams,
+  TextLayerParams,
   TextListFontsParams,
   TextStyleParagraphParams,
   LinksAddParams,
@@ -334,6 +335,7 @@ export interface OpParams {
   'redact.apply': RedactApplyParams;
   'text.getLines': TextGetLinesParams;
   'text.listFonts': TextListFontsParams;
+  'text.layer': TextLayerParams;
   'text.checkText': TextCheckTextParams;
   'text.editLine': TextEditLineParams;
   'text.editParagraph': TextEditParagraphParams;

@@ -12,6 +12,7 @@ import { useSelection } from '../features/pages/pageStore';
 import { isMockBridge } from '../lib/bridge';
 import { chipSummary } from '../features/signatures/verifyModel';
 import { useVerifyStore, verifyEntry } from '../features/signatures/verifyStore';
+import { textLayerLabel, useTextLayer } from '../features/textedit/textLayer';
 import { KeyRound, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
 
 function PageInput({ docId, page, count }: { docId: string; page: number; count: number }) {
@@ -56,6 +57,7 @@ export function StatusBar() {
   const count = doc?.info.pageCount ?? 0;
   const verify = useVerifyStore((s) => (doc ? s.byDoc[doc.id] : undefined)) ?? verifyEntry(doc?.id);
   const chip = chipSummary(verify.items);
+  const layerLabel = textLayerLabel(useTextLayer(doc));
 
   return (
     <footer className="status" aria-label={t('status.label')}>
@@ -99,6 +101,7 @@ export function StatusBar() {
             </span>
           )}
           {tab !== 'pages' && <span className="status__item">{Math.round(view.scale * 100)}%</span>}
+          {layerLabel && <span className="status__item">{layerLabel}</span>}
           {doc.state.dirty && (
             <span className="status__item status__dirty">{t('status.unsaved')}</span>
           )}
