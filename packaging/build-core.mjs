@@ -46,6 +46,13 @@ const args = [
   // Ops are registered from submodules that may be imported dynamically.
   '--collect-submodules',
   'chef_core',
+  // Developer tools that PyInstaller pulls in through hooks; the app never imports them.
+  '--exclude-module',
+  'mypy',
+  '--exclude-module',
+  'pytest',
+  '--exclude-module',
+  'ruff',
   // Package data: the bundled signature fonts (core/chef_core/resources/fonts).
   '--collect-data',
   'chef_core',

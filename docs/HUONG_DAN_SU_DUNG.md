@@ -1,96 +1,104 @@
-# Chef PDF: Hướng dẫn sử dụng
+# Chef PDF: Hướng dẫn sử dụng (bản 1.0, Windows)
 
-> Tài liệu này mô tả ứng dụng theo mã nguồn hiện có. Hình thức cảnh báo cài đặt thay đổi theo phiên bản hệ điều hành và chính sách của máy; các bước bên dưới không đồng nghĩa với việc Chef PDF đã được kiểm thử thủ công trên mọi máy.
+> Hướng dẫn này khớp với bản 1.0 chạy trên **Windows**. macOS và Linux để sau bản 1.0 (D37).
+> Tên lệnh và nút trong hướng dẫn là đúng như hiển thị trong ứng dụng.
 
-## 1. Cài đặt
+## 1. Cài đặt trên Windows
 
-> **Bản 1.0 chỉ được kiểm thử trên Windows.** Các phần macOS và Linux dưới đây chỉ là hướng dẫn tham khảo, chưa kiểm thử.
+Bộ cài là file `chef-pdf-<phiên bản>-setup-x64.exe`. Chỉ cài từ file bạn đã tự build hoặc nhận từ người bạn tin cậy.
 
-Chỉ mở bộ cài lấy từ nguồn mà bạn tin cậy. Cấu hình phát hành hiện tạo bộ cài Windows `.exe`, macOS `.dmg` cho Intel và Apple Silicon, cùng Linux `.AppImage`, `.deb`, `.rpm`. Quy trình build nằm trong [release workflow](../.github/workflows/release.yml); khi CI phát hành, hãy dùng đúng gói cho hệ điều hành và kiến trúc máy.
+1. Chạy file `setup-x64.exe`, chọn thư mục cài nếu được hỏi, rồi mở **Chef PDF** từ Start hoặc shortcut trên Desktop.
+2. Ứng dụng **chưa được ký mã** (chỉ dùng cá nhân), nên Windows SmartScreen có thể chặn lần đầu. Chọn **Thêm thông tin → Vẫn chạy** để tiếp tục.
+3. Nếu Windows hoặc phần mềm bảo mật cách ly file, kiểm tra nguồn file trước khi khôi phục. Không tắt chế độ bảo vệ của Windows để cài.
 
-Ứng dụng chưa được ký bằng chứng thư nhà phát triển. macOS dùng chữ ký ad-hoc để chạy trên Apple Silicon, nhưng không notarize. Vì vậy Windows hoặc macOS có thể hiện cảnh báo. Hãy kiểm tra nguồn file trước khi cho phép mở; không tắt SmartScreen, Gatekeeper hay phần mềm bảo vệ toàn hệ thống.
+Cập nhật: cài bản mới đè lên bản cũ. Tự cập nhật chưa có trong bản 1.0.
 
-### Windows
+Dữ liệu (phiên làm việc, nhật ký, cài đặt) nằm trong thư mục dữ liệu của người dùng Windows, không gửi đi đâu. Nhật ký lõi nằm trong thư mục `logs` của dữ liệu ứng dụng; cần hỗ trợ thì gửi file đó.
 
-1. Mở file cài `.exe` từ nguồn tin cậy, chọn thư mục cài nếu được hỏi, rồi mở Chef PDF từ Start hoặc shortcut.
-2. Windows có thể hiện cảnh báo SmartScreen vì ứng dụng chưa có danh tiếng/chứng thư nhà phát hành. Nếu Windows hiện tùy chọn cho phép chạy, chỉ tiếp tục khi bạn đã xác minh đúng nguồn file. Một số chế độ bảo vệ hoặc chính sách của cơ quan có thể chặn ứng dụng không ký và không có lựa chọn bỏ qua; không tắt chế độ bảo vệ để cài. Xem [giải thích Smart App Control của Microsoft](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions).
-3. Nếu file bị Windows hoặc phần mềm bảo mật xóa/cách ly, kiểm tra nguồn và lịch sử bảo vệ trước; không khôi phục file khi chưa xác minh.
+## 2. Làm quen
 
-### macOS
+- **Màn hình Start**: các ô nhiệm vụ (Mở PDF, Ghép, Tách, Quét…), file gần đây và quy trình đã lưu. Kéo file PDF vào cửa sổ để mở.
+- **Ctrl+K**: bảng lệnh. Gõ tên lệnh, có thể gõ không dấu (ví dụ `chinh khe gay`).
+- **Tab tài liệu**: mỗi file mở trong một tab. Nút **Lưu** ghi đè file gốc; **Lưu thành…** ghi ra file mới. Tab có dấu chấm là còn thay đổi chưa lưu.
+- **Hoàn tác / Làm lại**: Ctrl+Z / Ctrl+Y, theo phiên làm việc. Hoàn tác không sửa file gốc cho tới khi bạn Lưu.
+- Thanh công cụ thay đổi theo ngữ cảnh: Xem, Trang, Chỉnh sửa, Ghi chú, Form, Ký & Bảo mật, Xuất, Quy trình.
 
-1. Mở `.dmg`, kéo **Chef PDF.app** vào **Applications**, eject ảnh đĩa, rồi mở ứng dụng.
-2. Nếu Gatekeeper chặn lần đầu, mở **System Settings → Privacy & Security**, tìm thông báo chặn ứng dụng, chọn **Open Anyway**, rồi xác nhận mở ứng dụng ở hộp thoại tiếp theo. Tên/vị trí mục có thể khác theo phiên bản macOS; máy do cơ quan quản lý có thể không cho phép ngoại lệ. Hướng dẫn hiện hành của [Apple](https://support.apple.com/en-gb/102445).
-3. Chỉ khi bạn tin cậy bộ cài và cách mở ở trên không khả dụng, có thể gỡ thuộc tính quarantine cho riêng ứng dụng đã cài bằng Terminal:
+Mọi xử lý diễn ra trên máy bạn. Ứng dụng không tải file lên mạng.
 
-   ```bash
-   xattr -dr com.apple.quarantine "/Applications/Chef PDF.app"
-   ```
+## 3. Xem và tìm
 
-   Lệnh này không ký hoặc notarize ứng dụng. Không chạy lệnh với đường dẫn bạn không nhận diện.
+- Chọn chế độ xem một trang, liên tục, hai trang, sách, hoặc trình chiếu.
+- **Ctrl+F**: tìm chữ có tô sáng; tìm không dấu được (ví dụ `nghi dinh` tìm `nghị định`).
+- Chọn và copy chữ như trong trình đọc thông thường. **Chụp một vùng thành ảnh** cho ảnh một vùng trang.
+- Thanh bên có thumbnail và mục lục.
 
-### Linux
+## 4. Trang
 
-- **AppImage:** đặt file ở thư mục bạn muốn, cấp quyền thực thi rồi chạy:
+Tab **Trang** hiển thị lưới thumbnail:
 
-  Ví dụ với tên gói hiện tại:
+- Kéo thả để đổi thứ tự; chọn nhiều trang bằng Shift/Ctrl+click.
+- Xoay, xóa, nhân bản, trích, chèn trang trắng, chèn từ file hoặc ảnh.
+- Chuột phải trên các trang đã chọn: **Tạo PDF từ N trang đã chọn** ghi ra file mới và mở ở tab mới (file gốc không đổi); đóng dấu, nén hoặc xuất ảnh đúng các trang đó.
+- **Ghép** file (có tạo mục lục theo tên file) và **Tách** file (theo khoảng, mỗi N trang, dung lượng, chẵn/lẻ) có trên Start.
+- Lệnh **Làm phẳng trang cong…**: nắn trang sách bị cong; xem trước trước khi áp dụng.
 
-  ```bash
-  chmod +x ./chef-pdf-0.1.0-linux-x64.AppImage
-  ./chef-pdf-0.1.0-linux-x64.AppImage
-  ```
+## 5. Chụp sách và ảnh scan
 
-  Nếu tên file tải xuống khác, thay tên trong hai lệnh bằng đúng tên file đó.
+- **Chụp bằng điện thoại** (lệnh cùng tên): ứng dụng tạo mã QR và địa chỉ LAN. Mở địa chỉ trên điện thoại cùng mạng Wi-Fi rồi chụp từng trang; ảnh về máy được cắt, tách trang đôi, nắn và làm trắng theo cài đặt. Chỉ hoạt động khi điện thoại và máy tính cùng mạng.
+- **Chỉnh khe gáy (tách trang đôi)…**: xem khe gáy tự dò trên trang đôi; có thể kéo đường khe bằng tay rồi tách theo vị trí đó.
+- **Xóa ngón tay…**: chọn trang, bấm **Đề xuất vùng ngón tay** để thấy các vùng đỏ; dùng cọ **Tô thêm vùng** hoặc **Bỏ tô** để chỉnh, rồi **Xóa ngón tay**. Vùng xóa được tô bằng màu giấy.
+- **Tẩy vùng và xóa vết màu…**: kéo khung trên trang để tẩy vùng (tô giấy hoặc trắng); hoặc chọn mực cần xóa (bút xanh, bút dạ quang vàng, con dấu đỏ).
+- **Chỉnh ảnh trang (mức, đường cong, DPI)…**: làm trắng nền, khử nhiễu, mức đen/trắng và gamma, đường cong 5 điểm, tương phản, độ sáng, đảo màu, thang xám, đổi DPI. Bấm **Xem trước** để so sánh trước và sau trên một trang.
+- **Cắt lề / đổi khổ** và **cắt hàng loạt**: kéo 4 góc hoặc khung chữ nhật, nắn phối cảnh; trong cắt hàng loạt có **Duyệt lần lượt** các trang chưa đạt, có kính lúp khi chỉnh góc.
 
-  Cách chạy này theo [AppImage Quickstart](https://docs.appimage.org/introduction/quickstart.html). Nếu báo thiếu FUSE, cài gói FUSE phù hợp với bản phân phối Linux của bạn; hướng dẫn phụ thuộc distro trong [AppImage troubleshooting](https://docs.appimage.org/user-guide/troubleshooting/fuse.html).
-- **Debian/Ubuntu:** mở file `.deb` bằng trình cài gói của hệ thống hoặc cài bằng trình quản lý gói để hệ thống xử lý phụ thuộc.
-- **Fedora/RHEL và distro tương thích:** mở `.rpm` bằng trình cài gói hoặc dùng trình quản lý gói của distro.
+Các thao tác này không sửa file gốc cho tới khi bạn Lưu. Trang đã ký không chỉnh được.
 
-Build Linux hiện nhắm `x64`; file macOS được build riêng cho `x64` và `arm64`; Windows build `x64`. Máy dùng kiến trúc khác không được bảo đảm chạy.
+## 6. Nội dung, ghi chú, form
 
-## 2. Mở và xem PDF
+- **Sửa chữ**: chọn dòng hoặc đoạn, sửa chữ; nếu font trong file không có ký tự tiếng Việt, ứng dụng cảnh báo và thay font gần giống.
+- **Tìm và thay thế** cả tài liệu; **Liên kết** thêm, sửa, xóa.
+- **Gỡ logo chìm / watermark**: dò ứng viên, xem trước, tích chọn trang trước khi xóa.
+- **Che thông tin mật**: tìm CCCD, số điện thoại, email, số tài khoản; xóa thật nội dung bên dưới (kiểm tra bằng cách copy chữ sau khi che).
+- **Ghi chú**: tô sáng, gạch chân, gạch ngang, ghi chú dán, vẽ. Danh sách ghi chú để lọc, trả lời, xuất CSV, làm phẳng.
+- **Form**: điền form có sẵn; tạo trường chữ, checkbox, radio, dropdown, ô ký; làm phẳng để khóa.
+- **Đánh số trang** theo Nghị định 30/2020/NĐ-CP, header/footer có biến, đóng dấu, chữ ký nháy, giáp lai, watermark, mã QR/vạch, giấy tiêu đề.
 
-1. Ở màn hình **Start**, chọn **Mở PDF**; hoặc kéo file PDF vào cửa sổ ứng dụng. Có thể mở nhiều tài liệu thành các tab riêng.
-2. PDF có mật khẩu sẽ hỏi mật khẩu khi mở. File hỏng có thể được chuyển sang công cụ sửa file nếu ứng dụng nhận diện được khả năng khôi phục.
-3. Dùng `Ctrl+F` (Windows/Linux) hoặc `⌘F` (macOS) để tìm chữ; dùng chế độ xem/zoom trên thanh công cụ để đổi kiểu hiển thị. Tìm không dấu hỗ trợ các truy vấn như `nghi dinh` cho `nghị định` khi PDF có lớp chữ.
-4. Mở `Ctrl+K` (Windows/Linux) hoặc `⌘K` (macOS) để tìm lệnh theo tên; có thể gõ không dấu.
+## 7. Ký số
 
-PDF scan chỉ chứa ảnh thì chưa tìm kiếm được bằng chữ; ứng dụng không có OCR trong phạm vi hiện tại.
+Các lệnh ký nằm trong tab **Ký & Bảo mật**:
 
-## 3. Sắp xếp và chỉnh tài liệu
+- Ký bằng **USB token** của CA Việt Nam (Viettel-CA đã thử thành công trên Windows) hoặc file `.pfx`/`.p12`.
+- Mở **Chẩn đoán token** nếu token không được nhận; ứng dụng hướng dẫn từng bước và cảnh báo khi PIN sắp khóa.
+- Mẫu chữ ký (**Studio mẫu chữ ký**) và thư viện ảnh chữ ký/con dấu: nhập ảnh, vẽ, hoặc gõ chữ viết tay; nền được tách tự động.
+- Ký hàng loạt nhập PIN một lần.
+- **Kiểm tra chữ ký** cho biết trạng thái, chuỗi chứng thư và thời điểm ký.
 
-- Tab **Trang** hiển thị các thumbnail. Chọn một hoặc nhiều trang để đổi thứ tự, xoay, xóa, nhân bản, trích xuất hoặc chèn trang. **Ghép** và **Tách** cũng có trên màn hình Start.
-- Chọn nhiều trang (Shift/Ctrl+click) ở lưới tab **Trang** hoặc ở danh sách thumbnail bên trái, rồi bấm chuột phải để mở menu của các trang đó: **Tạo PDF từ N trang đã chọn** ghi ra file mới và mở file đó ở tab mới, file gốc không đổi; ngoài ra có chọn tất cả, đảo chọn, chọn trang lẻ/chẵn, đóng dấu, nén hoặc xuất ảnh đúng các trang đã chọn. Với file đã ký, các thao tác sửa trang bị mờ; tạo PDF mới, nén và xuất ảnh vẫn dùng được.
-- Các tab **Chỉnh sửa**, **Ghi chú**, **Form**, **Ký & Bảo mật**, **Xuất**, **Quy trình** gom công cụ theo nhóm. Chọn lệnh trong thanh công cụ hoặc `Ctrl+K`/`⌘K`; hộp thoại sẽ trình bày các thiết lập phù hợp với thao tác đó.
-- Dùng **Hoàn tác/Làm lại** (`Ctrl+Z`/`Ctrl+Y`, hoặc phím `⌘` trên macOS) để quay lại/thực hiện lại thao tác trang được hỗ trợ.
-- **Lưu** ghi đè file tại đường dẫn nguồn hiện tại; **Lưu thành…** để chọn file mới. Với tài liệu quan trọng, hãy dùng Lưu thành… để giữ riêng bản gốc và kiểm tra file đầu ra trước khi thay bản đang dùng.
-- Khi thao tác có cảnh báo mất nội dung, chữ ký hoặc cấu trúc PDF, đọc cảnh báo trong hộp thoại trước khi áp dụng. Chuyển PDF thành bản scan raster hóa nội dung: chữ, liên kết, biểu mẫu tương tác và chữ ký không còn giữ nguyên như PDF gốc; kết quả không tự có OCR.
-- Một số chức năng có thể bị giới hạn bởi loại PDF, mã hóa, chữ ký, hoặc nội dung mà thư viện PDF đọc được. Nếu nút bị mờ hay gắn nhãn **Sắp có**, chức năng đó chưa dùng được trong bản đang chạy.
+Chữ ký hợp lệ với Adobe Reader phụ thuộc chuỗi tin cậy (xem `docs/TOKENS.md`). Đừng coi một file là hợp lệ chỉ vì ứng dụng tạo được chữ ký; hãy mở lại bằng Adobe Reader hoặc Foxit.
 
-## 4. Lưu, đóng và khôi phục phiên
+## 8. Quy trình, thư mục tự động, rã tài liệu
 
-- Khi đóng một tab còn thay đổi chưa lưu, ứng dụng hỏi lưu, bỏ thay đổi hoặc hủy đóng.
-- Nếu ứng dụng/core dừng đột ngột, lần mở sau có thể hiện danh sách phiên để **Khôi phục** hoặc **Bỏ**. Chọn Khôi phục để mở bản sửa gần nhất còn đọc được; nếu revision cuối hỏng, ứng dụng có thể lùi về revision trước và báo cảnh báo.
-- Mật khẩu và cài đặt mã hóa không được lưu trong journal khôi phục. Khi khôi phục phiên có mã hóa, ứng dụng cảnh báo rằng lưu ra file sẽ không giữ mã hóa cũ; hãy đặt bảo vệ lại trước khi lưu nếu cần bảo vệ file.
-- Đóng ứng dụng bình thường sẽ đóng sạch các phiên. Khôi phục dành cho lần dừng bất thường, không thay cho việc lưu bản sao lưu.
+- **Tạo quy trình**: ghép các bước từ các hộp thoại. Nút **Lưu thành bước quy trình** trong các hộp thoại có tham số chung thêm bước vào quy trình. Quy trình lưu thành file JSON, dùng lại được. Quy trình mẫu: **Nộp hồ sơ online** (ghép, raster 200 dpi xám, nén tối đa 4 MB, ký), **Rã tài liệu ra Word**, **Phát hành văn bản**, **Chụp sách**.
+- **Thư mục tự động** (lệnh cùng tên): chọn quy trình, thư mục nguồn và thư mục đầu ra. Thả file vào thư mục nguồn, ứng dụng chạy quy trình. Quy trình **ghép** chạy một lần trên cả đợt file đã sẵn sàng (cần ít nhất 2 PDF); quy trình từng file chạy riêng từng file, file lỗi không dừng đợt. Dùng thư mục đầu ra khác thư mục nguồn.
+- **Rã tài liệu**: PDF có chữ được phân tích bố cục (cột, tiêu đề, bảng kẻ, header/footer), rồi xuất ra **DOCX** chế độ *giữ bố cục* hoặc *dễ chỉnh sửa*, Markdown, HTML, TXT, JSON, EPUB, ODT, XLSX. Mở **Kiểm tra bố cục** để đổi loại vùng trước khi xuất. PDF scan chỉ có ảnh không rã được chữ (không có OCR trong bản 1.0).
 
-## 5. Ký số và bảo mật
+## 9. Xuất, nén, bảo mật
 
-Các màn hình chứng thư, thư viện chữ ký, ký PDF, kiểm tra chữ ký và bảo mật được mở từ tab **Ký & Bảo mật** hoặc lệnh tương ứng. Driver USB token phải được cài từ nhà cung cấp CA. Khả năng tương thích thực tế phụ thuộc token, driver và hệ điều hành.
+- **Nén PDF** theo preset hoặc đến dung lượng mục tiêu (ví dụ ≤ 2 MB).
+- **Chuyển thành bản scan**: 200 dpi, xám hoặc đen trắng, có hiệu ứng scan; cảnh báo mất chữ, liên kết, form và chữ ký.
+- **Đặt mật khẩu**, giới hạn quyền, AES-256; **Gỡ dữ liệu ẩn**; **Soi file**; **Kiểm tra trước khi gửi** (danh sách việc cần sửa).
+- Chuyển đổi: PDF ↔ ảnh, ảnh/clipboard/màn hình → PDF, Web/HTML → PDF.
 
-Trong trạng thái dự án hiện tại, chưa có kết quả kiểm tra bằng USB token thật và chưa có chứng thư Root CA Việt Nam đi kèm lõi. Chữ ký có thể cần được kiểm tra bằng ứng dụng đọc PDF và chuỗi chứng thư của CA; không coi trạng thái tin cậy là đã xác nhận chỉ vì Chef PDF tạo được chữ ký. Không sửa/xử lý nội dung trên PDF đã ký nếu ứng dụng báo thao tác bị chặn.
+## 10. Phiên làm việc và khôi phục
 
-## 6. Cài đặt và dữ liệu
+- Đóng tab còn thay đổi: ứng dụng hỏi lưu, bỏ, hay hủy.
+- Nếu máy hoặc ứng dụng dừng đột ngột, lần mở sau hỏi có khôi phục phiên không. Khôi phục đưa về bản sửa gần nhất còn đọc được.
+- Mật khẩu không được lưu trong phiên khôi phục; khôi phục file mã hóa cần đặt lại mật khẩu trước khi lưu.
 
-Mở **Cài đặt** để đổi ngôn ngữ Việt/Anh, giao diện sáng/tối, thư mục lưu mặc định, danh sách file gần đây, cấu hình TSA và tên người dùng dùng trong mẫu dấu. Trong menu hệ điều hành **Trợ giúp**, chọn **Mở thư mục nhật ký** hoặc **Mở thư mục dữ liệu** để xem các thư mục này khi cần hỗ trợ.
+## 11. Giới hạn đã biết (bản 1.0)
 
-Tab **Quy trình** cho phép kiểm tra/chạy quy trình và xử lý nhiều file. Tính năng theo dõi thư mục dừng khi đóng app; theo dõi hiện không thể hỏi mật khẩu cho PDF được mã hóa. Nên chọn thư mục đầu ra riêng, không trùng với thư mục nguồn, để tránh xử lý lặp file đầu ra.
-
-Tài liệu được xử lý cục bộ. Những tính năng được người dùng bật như TSA, kiểm tra OCSP/CRL hoặc chụp tài liệu qua Wi-Fi có thể tạo kết nối mạng tương ứng; luồng chụp điện thoại dùng mạng LAN.
-
-## 7. Giới hạn đã biết
-
-- Bản hiện tại không có OCR, vì vậy không biến ảnh scan thành PDF tìm kiếm được.
-- Tự cập nhật chưa được cấu hình. Hãy cài bản mới từ nguồn phát hành được cung cấp; không dựa vào thông báo cập nhật trong ứng dụng.
-- Mã nguồn có cấu hình build cho ba hệ điều hành, nhưng chưa có xác nhận kiểm thử thủ công trên thiết bị macOS/Linux hoặc mọi phiên bản Windows. Cảnh báo và khả năng chạy có thể khác theo phiên bản OS, kiến trúc, chính sách bảo mật và driver.
-- USB token/driver thật chưa được xác minh. Nếu ký số là yêu cầu nghiệp vụ, kiểm tra file kết quả bằng phần mềm/CA mà nơi nhận yêu cầu.
-- Ứng dụng dành cho sử dụng cá nhân; file bộ cài chưa được ký phát hành và macOS chưa notarize.
+- Không có OCR và không có AI: không biến ảnh scan thành chữ tìm được.
+- Chỉ thử trên Windows. macOS và Linux chưa hỗ trợ trong bản này.
+- Tự cập nhật chưa có: cài bản mới đè lên.
+- Chữ ký: đã ký thành công bằng Viettel-CA trên một máy; chưa kiểm chứng trên mọi token/CA, và cần kiểm tra file bằng Adobe Reader trước khi nộp.
+- Ứng dụng không ký mã; SmartScreen sẽ cảnh báo khi cài lần đầu.
+- Làm phẳng trang cong và xóa ngón tay là đề xuất bằng thuật toán; luôn xem trước và chỉnh tay khi kết quả chưa đúng.
