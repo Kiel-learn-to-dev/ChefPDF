@@ -1107,7 +1107,8 @@
       "pin": "Token PIN",
       "pinHint": "Kept in memory while the dialog is open. Not stored, not logged, never retried automatically.",
       "certificate": "Certificate on the token",
-      "readJob": "Read certificate"
+      "readJob": "Read certificate",
+      "store": "Windows certificate store"
     },
     "pin": {
       "countLow": "The token has few PIN tries left. Wrong entries lock it.",
@@ -1242,6 +1243,13 @@
       },
       "margin": "Margin (pt)",
       "invalid": "Size or margin is not valid."
+    },
+    "store": {
+      "read": "Read the certificate store",
+      "readJob": "Read the Windows certificate store",
+      "empty": "No certificate with a private key in the personal store.",
+      "pick": "Certificate",
+      "until": "expires {{date}}"
     }
   },
   "certs": {

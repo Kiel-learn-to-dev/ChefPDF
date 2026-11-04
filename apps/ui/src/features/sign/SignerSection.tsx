@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Stethoscope,
   TriangleAlert,
+  ShieldCheck,
   Usb,
 } from 'lucide-react';
 import type {
@@ -32,12 +33,22 @@ import { errorMessage } from '../../app/actions';
 import { Button } from '../../components/Button';
 import { Checkbox, Field, Segmented, Select, TextInput } from '../../components/Form';
 import { chef } from '../../lib/bridge';
+import { runOp } from '../../lib/rpc';
 import { isPasswordProblem, toChefError } from '../../lib/errors';
 import { CertCard } from '../certs/CertCard';
 import { listTokens, readCertificate, scanDrivers } from '../certs/certOps';
 import { fileNameOf, findKnownPfx, setRemembered, upsertKnownPfx } from '../certs/pfxList';
 import { isSelectable, sortDrivers } from '../certs/driverList';
 import type { SignerChoice } from './signRequest';
+
+/** One certificate of the Windows personal store, as sign.listStoreCertificates reports it. */
+interface StoreRow {
+  subject: string;
+  issuer: string;
+  thumbprint: string;
+  notAfter: string;
+  hasPrivateKey: boolean;
+}
 import './sign.css';
 
 export interface SignerReady {
@@ -84,7 +95,10 @@ export const SignerSection = forwardRef<SignerHandle, Props>(function SignerSect
   const lastDriver = useSettings((s) => s.settings.lastDriverPath);
   const update = useSettings((s) => s.update);
   const openDialog = useUi((s) => s.openDialog);
-  const [kind, setKind] = useState<'pfx' | 'token'>('pfx');
+  const [kind, setKind] = useState<'pfx' | 'token' | 'store'>('pfx');
+  // Windows store state (T4.11).
+  const [storeRows, setStoreRows] = useState<StoreRow[] | null>(null);
+  const [storeThumb, setStoreThumb] = useState('');
   const [secretsOk, setSecretsOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +141,16 @@ export const SignerSection = forwardRef<SignerHandle, Props>(function SignerSect
 
   // Report the ready choice whenever an input changes.
   useEffect(() => {
+    if (kind === 'store') {
+      const picked = storeRows?.find((r) => r.thumbprint === storeThumb) ?? null;
+      onReady({
+        choice: picked ? { kind: 'store', thumbprint: picked.thumbprint } : null,
+        fingerprint: null,
+        finalTry: false,
+        label: picked?.subject ?? '',
+      });
+      return;
+    }
     if (kind === 'pfx') {
       onReady({
         choice: pfxPath
@@ -153,7 +177,20 @@ export const SignerSection = forwardRef<SignerHandle, Props>(function SignerSect
     });
     // onReady is stable enough: the parent passes a setState-based callback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, pfxPath, pfxPassword, cert, modulePath, token, tokenCert, slotId, certId, pin]);
+  }, [
+    kind,
+    pfxPath,
+    pfxPassword,
+    cert,
+    modulePath,
+    token,
+    tokenCert,
+    slotId,
+    certId,
+    pin,
+    storeRows,
+    storeThumb,
+  ]);
 
   const fail = (e: unknown) => {
     const msg = errorMessage(e);
@@ -229,6 +266,25 @@ export const SignerSection = forwardRef<SignerHandle, Props>(function SignerSect
     }
   };
 
+  // ---------- Windows certificate store ----------
+  const readStore = async () => {
+    setError(null);
+    try {
+      const result = await runOp(
+        'sign.listStoreCertificates',
+        { store: 'MY' },
+        { title: t('sign.store.readJob'), silent: true },
+      );
+      const rows = ((result.data as { certificates?: StoreRow[] }).certificates ?? []).filter(
+        (r) => r.hasPrivateKey,
+      );
+      setStoreRows(rows);
+      setStoreThumb(rows[0]?.thumbprint ?? '');
+    } catch (e) {
+      fail(e);
+    }
+  };
+
   // ---------- USB token ----------
 
   const scan = async () => {
@@ -283,7 +339,7 @@ export const SignerSection = forwardRef<SignerHandle, Props>(function SignerSect
   return (
     <div className="sign-section">
       <h3 className="sign-section__title">{t('sign.signer.title')}</h3>
-      <Segmented<'pfx' | 'token'>
+      <Segmented<'pfx' | 'token' | 'store'>
         aria-label={t('sign.signer.title')}
         value={kind}
         onChange={(v) => {
@@ -293,10 +349,31 @@ export const SignerSection = forwardRef<SignerHandle, Props>(function SignerSect
         options={[
           { value: 'pfx', label: t('sign.signer.file'), icon: <FileKey size={14} /> },
           { value: 'token', label: t('sign.signer.token'), icon: <Usb size={14} /> },
+          { value: 'store', label: t('sign.signer.store'), icon: <ShieldCheck size={14} /> },
         ]}
       />
 
-      {kind === 'pfx' ? (
+      {kind === 'store' ? (
+        <div className="sign-store">
+          <Button variant="secondary" onClick={() => void readStore()}>
+            {t('sign.store.read')}
+          </Button>
+          {storeRows && storeRows.length === 0 && <p className="muted">{t('sign.store.empty')}</p>}
+          {storeRows && storeRows.length > 0 && (
+            <Field label={t('sign.store.pick')} htmlFor="sign-store-cert">
+              <Select
+                id="sign-store-cert"
+                value={storeThumb}
+                onChange={setStoreThumb}
+                options={storeRows.map((r) => ({
+                  value: r.thumbprint,
+                  label: `${r.subject} · ${t('sign.store.until', { date: r.notAfter.slice(0, 10) })}`,
+                }))}
+              />
+            </Field>
+          )}
+        </div>
+      ) : kind === 'pfx' ? (
         <>
           <div className="sign-row">
             <Button icon={<FolderOpen size={15} />} onClick={() => void pickPfx()} disabled={busy}>

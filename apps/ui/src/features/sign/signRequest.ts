@@ -3,7 +3,12 @@
  * the dialog state. Pure. The PIN and the certificate password are only ever in the returned
  * params: `persistableDraft` strips them before anything is saved (T3.02, BLUEPRINT section 7).
  */
-import type { SignPadesParams, SignPadesTokenParams, SignatureTemplate } from '@chef/contracts';
+import type {
+  SignPadesParams,
+  SignPadesStoreParams,
+  SignPadesTokenParams,
+  SignatureTemplate,
+} from '@chef/contracts';
 
 export type SignLevel = 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
 export type CertifyMode = 'none' | 'no-changes' | 'form-fill' | 'annotate';
@@ -11,6 +16,8 @@ export type DigestName = 'sha256' | 'sha384' | 'sha512';
 
 export type SignerChoice =
   | { kind: 'pfx'; pfxPath: string; password?: string }
+  /** A certificate of the Windows personal store, by its SHA-1 thumbprint (T4.11). */
+  | { kind: 'store'; thumbprint: string }
   | {
       kind: 'token';
       modulePath: string;
@@ -56,7 +63,8 @@ export class SignRequestError extends Error {
 /** The op to call and its params. The caller passes `params` to runDocOp. */
 export type SignRequest =
   | { opId: 'sign.pades'; params: SignPadesParams }
-  | { opId: 'sign.padesToken'; params: SignPadesTokenParams };
+  | { opId: 'sign.padesToken'; params: SignPadesTokenParams }
+  | { opId: 'sign.padesStore'; params: SignPadesStoreParams };
 
 function commonParams(options: SignOptionsDraft, placement: ResolvedPlacement | null) {
   if (options.level !== 'B-B' && options.tsaUrls.length === 0) {
@@ -91,6 +99,13 @@ export function buildSignRequest(
   placement: ResolvedPlacement | null,
 ): SignRequest {
   const common = commonParams(options, placement);
+  if (signer.kind === 'store') {
+    if (!/^[0-9A-Fa-f]{40}$/.test(signer.thumbprint)) {
+      throw new SignRequestError('BAD_TOKEN_SELECTION', 'No certificate chosen');
+    }
+    const params = { ...common, thumbprint: signer.thumbprint };
+    return { opId: 'sign.padesStore', params: params as unknown as SignPadesStoreParams };
+  }
   if (signer.kind === 'pfx') {
     const params: Record<string, unknown> = { ...common, pfxPath: signer.pfxPath };
     if (signer.password) params.password = signer.password;

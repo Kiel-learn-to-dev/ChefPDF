@@ -3392,6 +3392,12 @@ export interface SignFindAnchorsParams {
 export interface SignListFieldsParams {
 }
 
+/** List the certificates of a Windows system store (MY is the personal store). */
+export interface SignListStoreCertificatesParams {
+  /** @default "MY" */
+  store?: 'MY' | 'CA' | 'ROOT';
+}
+
 /** Tokens in one driver, with their certificates. No PIN is needed. */
 export interface SignListTokensParams {
   /** Path of the PKCS#11 driver file (.dll, .dylib or .so). */
@@ -3428,6 +3434,36 @@ export interface SignPadesParams {
   pfxPath: string;
   /** Password of the certificate file. Never stored, logged or echoed back. */
   password?: string;
+}
+
+/** Sign with a certificate from the personal Windows store, chosen by thumbprint (PAdES). */
+export interface SignPadesStoreParams {
+  /**
+   * B-B: signature only. B-T: + timestamp. B-LT: + revocation data. B-LTA: + document timestamp for long-term validity.
+   * @default "B-B"
+   */
+  level?: 'B-B' | 'B-T' | 'B-LT' | 'B-LTA';
+  /** @default "sha256" */
+  digest?: 'sha256' | 'sha384' | 'sha512';
+  /** Timestamp servers, tried in order. Required for B-T and above. */
+  tsaUrls?: string[];
+  /** Extra trust roots (PEM or DER files, or folders of them) for B-LT and B-LTA. The bundled and user trust stores are always used. */
+  trustRootPaths?: string[];
+  reason?: string;
+  location?: string;
+  contactInfo?: string;
+  /** Look of a visible signature. Default: a plain text box. */
+  template?: SignatureTemplate;
+  /** Certify the document (DocMDP) with this signature. Only for the first signature of a document. no-changes: P=1; form-fill: P=2; annotate: P=3. */
+  certify?: 'no-changes' | 'form-fill' | 'annotate';
+  /** Signature field name. Default: the first free Signature<N>. */
+  fieldName?: string;
+  /** 0-based page for a visible signature. Needs rect. */
+  page?: number;
+  /** [x1, y1, x2, y2] in PDF points. Needs page. Also draws into an existing empty field of that name. */
+  rect?: number[];
+  /** SHA-1 thumbprint of the certificate, as Windows shows it. */
+  thumbprint: string;
 }
 
 /** Sign the document with a key on a USB token (PAdES). Same options as sign.pades. */
@@ -4312,8 +4348,10 @@ export interface OpParams {
   'sign.extractRevision': SignExtractRevisionParams;
   'sign.findAnchors': SignFindAnchorsParams;
   'sign.listFields': SignListFieldsParams;
+  'sign.listStoreCertificates': SignListStoreCertificatesParams;
   'sign.listTokens': SignListTokensParams;
   'sign.pades': SignPadesParams;
+  'sign.padesStore': SignPadesStoreParams;
   'sign.padesToken': SignPadesTokenParams;
   'sign.placeFromAnchor': SignPlaceFromAnchorParams;
   'sign.stampAndSign': SignStampAndSignParams;
@@ -4505,8 +4543,10 @@ export const OP_IDS = [
   'sign.extractRevision',
   'sign.findAnchors',
   'sign.listFields',
+  'sign.listStoreCertificates',
   'sign.listTokens',
   'sign.pades',
+  'sign.padesStore',
   'sign.padesToken',
   'sign.placeFromAnchor',
   'sign.stampAndSign',

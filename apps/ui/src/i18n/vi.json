@@ -1087,7 +1087,8 @@
       "pin": "Mã PIN của token",
       "pinHint": "Chỉ giữ trong bộ nhớ khi hộp thoại mở. Không lưu, không ghi log, không thử lại tự động.",
       "certificate": "Chứng thư trên token",
-      "readJob": "Đọc chứng thư"
+      "readJob": "Đọc chứng thư",
+      "store": "Kho chứng thư Windows"
     },
     "pin": {
       "countLow": "Token còn ít lần thử PIN. Nhập sai nhiều lần sẽ khóa token.",
@@ -1222,6 +1223,13 @@
       },
       "margin": "Lề (pt)",
       "invalid": "Kích thước hoặc lề không hợp lệ."
+    },
+    "store": {
+      "read": "Đọc kho chứng thư",
+      "readJob": "Đọc kho chứng thư Windows",
+      "empty": "Không có chứng thư nào có khóa riêng trong kho cá nhân.",
+      "pick": "Chứng thư",
+      "until": "hết hạn {{date}}"
     }
   },
   "certs": {

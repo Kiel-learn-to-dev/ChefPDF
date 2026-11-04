@@ -74,6 +74,12 @@ export function stampStepsOf(
  */
 export function withStamps(req: SignRequest, steps: StampStep[]): AnySignRequest {
   if (steps.length === 0) return req;
+  if (req.opId === 'sign.padesStore') {
+    // The core has stamp-and-sign only for a PFX file or a token (no store variant yet).
+    throw new Error(
+      'Con dấu và chữ ký hình ảnh chưa dùng với chứng thư trong kho Windows. Tắt con dấu hoặc chọn file .pfx/token.',
+    );
+  }
   if (req.opId === 'sign.pades') {
     return { opId: 'sign.stampAndSign', params: { stamps: steps, sign: req.params } };
   }

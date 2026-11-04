@@ -30,6 +30,8 @@ import type {
   PageimgPagePreviewParams,
   PageimgRemoveStainsParams,
   PageimgEnhanceParams,
+  SignListStoreCertificatesParams,
+  SignPadesStoreParams,
   PageimgEnhancePreviewParams,
   ImageCleanupParams,
   ImageFromStrokesParams,
@@ -201,6 +203,8 @@ export interface OpParams {
   'pageimg.pagePreview': PageimgPagePreviewParams;
   'pageimg.removeStains': PageimgRemoveStainsParams;
   'pageimg.enhance': PageimgEnhanceParams;
+  'sign.padesStore': SignPadesStoreParams;
+  'sign.listStoreCertificates': SignListStoreCertificatesParams;
   'pageimg.enhancePreview': PageimgEnhancePreviewParams;
   'export.document': ExportDocumentParams;
   'export.refresh': ExportRefreshParams;

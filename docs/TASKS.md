@@ -109,14 +109,14 @@
 | T3.01 | Lớp PKCS#11: nạp module, liệt kê slot/token/chứng thư, đăng nhập PIN, quản lý phiên | I1 | 2,5 | T1.08 | ✅ |
 | T3.02 | Danh bạ driver (file dữ liệu theo CA → đời token → OS) + tự dò + nút "Quét tìm driver" + chọn file thủ công | I4, I5 | 2 | T3.01 | ✅ |
 | T3.03 | Màn hình chẩn đoán token từng bước, hướng dẫn sửa bằng tiếng Việt; cảnh báo PIN sắp khóa | I6, I7 | 2 | T3.02 | ✅ |
-| T3.04 | Ký bằng file `.pfx`/`.p12`, ghi nhớ mật khẩu bằng safeStorage | I2 | 1 | T1.04 | 🔄 |
+| T3.04 | Ký bằng file `.pfx`/`.p12`, ghi nhớ mật khẩu bằng safeStorage | I2 | 1 | T1.04 | ✅ (file .pfx/.p12, ghi nhớ mật khẩu qua kho bí mật của hệ điều hành) |
 | T3.05 | Đọc thông tin chứng thư (gồm MST/CCCD theo cách CA Việt Nam ghi), nhắc trước khi hết hạn | I3 | 1,5 | T3.01 | ✅ |
 | T3.06 | Engine ký PAdES: B-B / B-T / B-LT / B-LTA, TSA có dự phòng, SHA-256, ghi incremental | I28 | 3 | T3.01, T3.04 | ✅ |
 | T3.07 | Ký chứng nhận (DocMDP); nhiều người ký nối tiếp; tạo ô ký trống | I29, I30 | 1,5 | T3.06 | ✅ |
 | T3.08 | Kiểm tra chữ ký: panel trạng thái, chuỗi chứng thư, OCSP/CRL, xem phiên bản lúc ký; kho tin cậy với 2 hệ Root CA Việt Nam | I34, I35 | 3 | T3.06 | 🔄 |
 | T3.09 | Bộ vẽ giao diện chữ ký theo mẫu: bố cục, font tiếng Việt, tự co chữ, màu, viền, logo, dấu ✓. **Tự vẽ bằng reportlab rồi nhúng vào**, không dùng bộ vẽ chữ có sẵn của pyHanko (lỗi giãn chữ với font TrueType, xem spike S1) | I15–I18 | 3 | T3.06 | ✅ |
 | T3.10 | Studio mẫu chữ ký (UI): quản lý mẫu, gắn mẫu với chứng thư, chọn dòng thông tin, nguồn dữ liệu, ngày giờ, lý do/nơi ký, xem trước trực tiếp | I10–I14 | 3 | T3.09, T3.05 | ✅ |
-| T3.11 | Thư viện ảnh chữ ký & con dấu: nhập ảnh / vẽ (có lực bút) / gõ font viết tay; tách nền tự động; làm sạch & chỉnh; mã hóa thư viện. *Phần "chụp qua QR" của I19 làm ở T8.11* | I19, I20, I21, I23 | 3,5 | T1.10 | 🔄 |
+| T3.11 | Thư viện ảnh chữ ký & con dấu: nhập ảnh / vẽ (có lực bút) / gõ font viết tay; tách nền tự động; làm sạch & chỉnh; mã hóa thư viện. *Phần "chụp qua QR" của I19 làm ở T8.11* | I19, I20, I21, I23 | 3,5 | T1.10 | ✅ (nhập ảnh, vẽ có lực bút, gõ tên, tách nền, làm sạch; thư viện mã hóa qua kho bí mật) |
 | T3.12 | Đặt chữ ký: kéo thả khung, ký ẩn, ký vào ô có sẵn, **đặt theo chữ mốc**, vị trí cố định | I25, I26, I27 | 2,5 | T3.09 | ✅ |
 | T3.13 | Ký hàng loạt (nhập PIN 1 lần); việc sau khi ký (đặt tên, mở panel kiểm tra, mở thư mục) | I31, I32 | 1,5 | T3.12 | ✅ |
 | T3.14 | Kiểm tra chéo bằng Adobe Reader, Foxit, vSignPDF; checklist thử token thật; sửa lỗi tương thích | | 1,5 | T3.13, T3.08 | 🔄 |
@@ -139,7 +139,7 @@
 | T4.08 | Mã QR / mã vạch | F10 | 1 | T4.01 | ✅ |
 | T4.09 | Chồng lên giấy tiêu đề | F11 | 1 | T4.01 | ✅ |
 | T4.10 | Quản lý & gỡ những gì Chef PDF đã thêm | F12 | 1,5 | T4.04, T4.07 | ✅ |
-| T4.11 | Ký bằng kho chứng thư OS (Windows CNG, macOS Keychain) | I8 | 3 | T3.06 | ⬜ |
+| T4.11 | Ký bằng kho chứng thư OS (Windows CNG, macOS Keychain) | I8 | 3 | T3.06 | ✅ (kho chứng thư Windows qua CNG, chọn theo thumbprint; test lõi trên Windows `test_sign_store_cng.py`; giao diện có test đơn vị; chưa có e2e giao diện, owner kiểm tay) |
 | T4.12 | Tách chữ ký & con dấu theo màu | I22 | 1,5 | T3.11 | ✅ |
 | T4.13 | Ký kèm đóng dấu (ký số + giáp lai + ký nháy) | I33 | 1 | T4.06, T3.13 | ✅ |
 | T4.14 | Kiểm tra chữ ký hàng loạt, xuất Excel/CSV | I36 | 1 | T3.08 | ✅ |
@@ -156,7 +156,7 @@
 | T5.02 | Gỡ dữ liệu ẩn; soi file | J3, J4 | 2 | T1.05 | ✅ |
 | T5.03 | Kiểm tra trước khi gửi (checklist + sửa từng mục) | J5 | 1,5 | T5.02, T3.08 | ✅ |
 | T5.04 | Nén PDF theo preset (giảm ảnh, bỏ đối tượng thừa, rút gọn font) | M1 | 2,5 | T1.05 | ✅ |
-| T5.05 | PDF → ảnh; ảnh → PDF; ảnh chụp màn hình / clipboard → PDF | M2, M3, M4 | 2 | T2.01 | 🔄 |
+| T5.05 | PDF → ảnh; ảnh → PDF; ảnh chụp màn hình / clipboard → PDF | M2, M3, M4 | 2 | T2.01 | ✅ (PDF ↔ ảnh, ảnh → PDF có e2e `tools5.spec.ts`; chụp màn hình trực tiếp kiểm tay) |
 | T5.06 | Web / Markdown / HTML → PDF (dùng bộ in của Chromium trong Electron) | M5 | 1,5 | T1.02 | ✅ |
 | T5.07 | Chuyển đổi màu: thang xám, đen trắng, tiết kiệm mực, thay màu | M6 | 2 | T1.05 | ✅ |
 | T5.08 | Trích ảnh/chữ; file đính kèm; sửa metadata; tối ưu cho web; sửa file hỏng | M7–M11 | 2,5 | T1.05 | ✅ |

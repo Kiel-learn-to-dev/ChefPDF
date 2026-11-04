@@ -9,6 +9,8 @@ same ``build_request`` (see sign_common.py).
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
 from chef_core.models import WireModel
@@ -20,6 +22,7 @@ from chef_core.ops.sign_common import (
     visible_spot,
 )
 from chef_core.signing.certinfo import cert_info
+from chef_core.signing.cng import list_store_certificates, load_cng
 from chef_core.signing.pades import sign_pades
 from chef_core.signing.pfx import load_pfx
 
@@ -69,6 +72,88 @@ def sign_pades_op(ctx: OpContext, p: SignPadesParams) -> OpOutput:
         raise RuntimeError("sign.pades needs a session")
     ctx.check_cancelled()
     loaded = load_pfx(p.pfx_path, p.password)
+    info = check_signer(ctx, loaded.certificate)
+    spot = visible_spot(ctx.input_path, p.page, p.rect)
+    result = sign_pades(
+        build_request(
+            p,
+            source=ctx.input_path,
+            destination=ctx.result_path,
+            signer=loaded,
+            spot=spot,
+            field_name=p.field_name,
+        )
+    )
+    ctx.modified = True
+    return OpOutput(
+        changed_pages=[result.page] if result.page is not None else [],
+        data={
+            "fieldName": result.field_name,
+            "level": p.level,
+            "tsaUrl": result.tsa_url,
+            "signer": info.model_dump(by_alias=True, mode="json"),
+        },
+    )
+
+
+# -- Windows certificate store (T4.11) ------------------------------------------------------
+
+
+class SignListStoreParams(WireModel):
+    """List the certificates of a Windows system store (MY is the personal store)."""
+
+    store: Literal["MY", "CA", "ROOT"] = "MY"
+
+
+@operation(
+    id="sign.listStoreCertificates",
+    title="List Windows certificates",
+    group="sign",
+    params=SignListStoreParams,
+    standalone=True,
+)
+def list_store_certificates_op(ctx: OpContext, p: SignListStoreParams) -> OpOutput:
+    rows = list_store_certificates(p.store)
+    return OpOutput(
+        data={
+            "store": p.store,
+            "certificates": [
+                {
+                    "subject": row.subject,
+                    "issuer": row.issuer,
+                    "thumbprint": row.thumbprint,
+                    "notAfter": row.not_after,
+                    "hasPrivateKey": row.has_private_key,
+                }
+                for row in rows
+            ],
+        }
+    )
+
+
+class SignPadesStoreParams(SignCommonParams):
+    """Sign with a certificate from the personal Windows store, chosen by thumbprint (PAdES)."""
+
+    thumbprint: str = Field(
+        min_length=40,
+        max_length=40,
+        pattern=r"^[0-9A-Fa-f]{40}$",
+        description="SHA-1 thumbprint of the certificate, as Windows shows it.",
+    )
+
+
+@operation(
+    id="sign.padesStore",
+    title="Sign with a Windows certificate (PAdES)",
+    group="sign",
+    params=SignPadesStoreParams,
+    finalizing=True,
+)
+def sign_pades_store_op(ctx: OpContext, p: SignPadesStoreParams) -> OpOutput:
+    if ctx.input_path is None or ctx.result_path is None:
+        raise RuntimeError("sign.padesStore needs a session")
+    ctx.check_cancelled()
+    loaded = load_cng(p.thumbprint)
     info = check_signer(ctx, loaded.certificate)
     spot = visible_spot(ctx.input_path, p.page, p.rect)
     result = sign_pades(

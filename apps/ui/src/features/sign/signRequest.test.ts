@@ -164,3 +164,20 @@ describe('persistableDraft', () => {
     expect(saved.signer).toEqual({ kind: 'pfx', pfxPath: 'a.pfx' });
   });
 });
+
+describe('buildSignRequest with a Windows store certificate', () => {
+  const STORE: SignerChoice = { kind: 'store', thumbprint: 'AB'.repeat(20) };
+
+  it('builds sign.padesStore with the thumbprint and no file or PIN', () => {
+    const req = buildSignRequest(STORE, OPTS, PLACEMENT);
+    expect(req.opId).toBe('sign.padesStore');
+    expect(req.params).toMatchObject({ thumbprint: 'AB'.repeat(20), level: 'B-B' });
+    expect(JSON.stringify(req.params)).not.toMatch(/pfxPath|pin|password/);
+  });
+
+  it('refuses a thumbprint that is not 40 hex digits', () => {
+    expect(() => buildSignRequest({ kind: 'store', thumbprint: 'nope' }, OPTS, PLACEMENT)).toThrow(
+      SignRequestError,
+    );
+  });
+});

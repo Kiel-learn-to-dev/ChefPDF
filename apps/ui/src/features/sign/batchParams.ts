@@ -91,6 +91,10 @@ export function buildBatchParams(files: readonly BatchRow[], f: BatchForm): Sign
     ...(f.certify !== 'none' ? { certify: f.certify } : {}),
     ...(f.template ? { template: f.template } : {}),
   };
+  if (f.signer.kind === 'store') {
+    // Batch signing reads a file or a token; the Windows store is used one document at a time.
+    throw new Error('Kho chứng thư Windows chưa dùng cho ký hàng loạt. Chọn file .pfx hoặc token.');
+  }
   const signer: SignBatchParams['signer'] =
     f.signer.kind === 'pfx'
       ? {
