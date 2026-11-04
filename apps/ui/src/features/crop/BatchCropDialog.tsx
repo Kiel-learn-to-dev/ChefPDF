@@ -39,6 +39,10 @@ export function BatchCropDialog() {
   const key = `${doc.state.revisionPath}:${selected.join(',')}`;
   const rows = scan?.key === key ? scan.rows : [];
   const workflowPages = rows.length ? checked : selected;
+  // Quick review: the pages that are not ticked, in page order, and that were detected at all.
+  const reviewQueue = rows
+    .filter((r) => r.status === 'done' && !checked.includes(r.pageIndex))
+    .map((r) => r.pageIndex);
   const detect = async () => {
     if (!selected.length) return;
     setBusy(true);
@@ -117,6 +121,16 @@ export function BatchCropDialog() {
       preview={
         <div>
           <h3>{t('batchCrop.results')}</h3>
+          {rows.length > 0 && reviewQueue.length > 0 && (
+            <Button
+              disabled={busy}
+              onClick={() =>
+                open('cropReview', { page: reviewQueue[0]! + 1, queue: reviewQueue.slice(1) })
+              }
+            >
+              {t('batchCrop.quickReview', { count: reviewQueue.length })}
+            </Button>
+          )}
           {!rows.length ? (
             <p>{t('batchCrop.hint')}</p>
           ) : (

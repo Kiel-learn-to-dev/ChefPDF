@@ -204,13 +204,13 @@
 
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | 🔄 (chưa có trình sửa ảnh canvas trên giao diện; lõi có lịch sử/hoàn tác) |
+| T8.01 | Trình sửa ảnh trang: canvas, lịch sử không phá hủy, áp cho nhiều trang, thay ảnh vào PDF | L9 | 4 | T6.04 | ✅ (các hộp thoại trên xem trước canvas: chỉnh ảnh, xóa ngón tay, tẩy vùng, khe gáy; lịch sử là hoàn tác theo phiên, không phá file gốc) |
 | T8.02 | Chỉnh nghiêng; làm trắng nền; khử nhiễu & chỉnh sáng; Levels/Curves, đảo màu, đổi DPI | L1, L3, L4, L12 | 3 | T8.01 | ✅ (hộp thoại Chỉnh ảnh trang: làm trắng, khử nhiễu, mức, đường cong 5 điểm, tương phản, đảo màu, thang xám, DPI, xem trước trước/sau; e2e `adjust.spec.ts`) |
 | T8.03 | Tẩy & tô màu nền giấy; xóa vết màu | L10, L11 | 2 | T8.01, T4.12 | ✅ (tẩy vùng bằng khung kéo, tô giấy hoặc trắng, xóa mực xanh/dạ quang/dấu đỏ; e2e `erase.spec.ts`) |
 | T8.04 | Dò viền bằng thuật toán: bản scan máy + ảnh chụp, điểm tin cậy | L15 | 3 | T8.01 | ✅ |
 | T8.05 | Mô hình dò viền ONNX: **kiểm tra giấy phép trước**, tích hợp, chọn kết quả tốt hơn giữa hai cách | L20 | 2,5 | T8.04 | ✅ |
 | T8.06 | Cắt thủ công: khung chữ nhật (kính lúp, tỉ lệ, mm, bám viền) và kéo 4 góc + nắn phối cảnh | L2, L16, L17 | 3 | T8.04 | ✅ |
-| T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | 🔄 (duyệt nhanh và kính lúp cho hàng loạt chưa xong) |
+| T8.07 | Cắt hàng loạt & duyệt nhanh; tự nhận khổ giấy | L18, L19 | 2 | T8.06 | ✅ (duyệt lần lượt các trang chưa tick với kính lúp và chuyển trang; e2e cắt và cắt hàng loạt đạt) |
 | T8.08 | Tách trang đôi (dò gáy sách, chỉnh tay) | L6 | 1,5 | T8.04 | ✅ (tự dò và chỉnh tay có giao diện, xem trước khe gáy, e2e `spine.spec.ts`) |
 | T8.09 | Làm phẳng trang cong (dò dòng chữ, khớp mặt cong) | L13 | 4 | T8.01 | ✅ (chưa thử trên ảnh sách thật) |
 | T8.10 | Xóa ngón tay bán tự động (dò màu da chạm mép, đề xuất, chỉnh cọ, tô nền) | L14 | 3 | T8.03 | ✅ (đề xuất, cọ tô và bỏ tô, tô giấy; e2e `finger.spec.ts` kiểm đề xuất và áp dụng; nét cọ chỉ có test đơn vị) |

@@ -130,7 +130,8 @@
     "review": "Needs review",
     "manual": "Adjust manually",
     "reviewAfter": "Pages {{pages}} were left unchanged because confidence was low.",
-    "done": "Selected pages cropped"
+    "done": "Selected pages cropped",
+    "quickReview": "Review {{count}} pages one by one"
   },
   "cropReview": {
     "angle": "Fine rotation (degrees)",
@@ -170,7 +171,8 @@
     "ratioHint": "The ratio is applied when fitting the frame; dragging corners afterward can change it.",
     "invalidMm": "Enter both width and height above zero; output dimensions must stay within the size limit.",
     "outputPixels": "Preview keeps the output aspect ratio; applied size: {{width}} × {{height}} px.",
-    "warning": "Cropping rebuilds the page and may remove other objects, links or annotations on it. Review the page before applying."
+    "warning": "Cropping rebuilds the page and may remove other objects, links or annotations on it. Review the page before applying.",
+    "skipNext": "Skip, go to the next page ({{left}} left)"
   },
   "rename": {
     "title": "Batch rename files",

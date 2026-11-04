@@ -98,7 +98,15 @@ export function CropDialog() {
   const { t } = useTranslation();
   const doc = useActiveDoc();
   const close = useUi((s) => s.closeDialog);
-  const data = useUi((s) => s.dialogData) as { page?: number } | undefined;
+  const open = useUi((s) => s.openDialog);
+  const data = useUi((s) => s.dialogData) as { page?: number; queue?: number[] } | undefined;
+  const queue = data?.queue ?? [];
+  /** Opens the next page of the quick review, or closes when the queue is empty. */
+  const nextInQueue = () => {
+    const [next, ...rest] = queue;
+    if (next === undefined) close();
+    else open('cropReview', { page: next + 1, queue: rest });
+  };
   const [page, setPage] = useState(() => String(data?.page ?? 1));
   const [preview, setPreview] = useState<{ revision: string; row: QuadRow } | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
@@ -179,7 +187,7 @@ export function CropDialog() {
       );
       if (result) {
         toast.success(t('cropReview.done'));
-        close();
+        nextInQueue();
       }
     } finally {
       setBusy(false);
@@ -308,6 +316,13 @@ export function CropDialog() {
             )}
           </div>
           {!validQuad(points) && <p role="alert">{t('cropReview.invalidQuad')}</p>}
+          {queue.length > 0 && (
+            <p className="crop-review__queue">
+              <Button variant="ghost" onClick={nextInQueue} disabled={busy}>
+                {t('cropReview.skipNext', { left: queue.length })}
+              </Button>
+            </p>
+          )}
           {validQuad(points) && validAngle && (
             <CorrectedPreview
               docId={doc.id}

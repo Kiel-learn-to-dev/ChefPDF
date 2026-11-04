@@ -130,7 +130,8 @@
     "review": "Cần xem lại",
     "manual": "Chỉnh tay",
     "reviewAfter": "Các trang {{pages}} được giữ nguyên vì độ tin cậy thấp.",
-    "done": "Đã cắt các trang đã chọn"
+    "done": "Đã cắt các trang đã chọn",
+    "quickReview": "Duyệt lần lượt {{count}} trang"
   },
   "cropReview": {
     "angle": "Xoay tinh (độ)",
@@ -170,7 +171,8 @@
     "ratioHint": "Tỉ lệ chỉ áp dụng khi đặt khung; kéo góc sau đó có thể thay đổi tỉ lệ.",
     "invalidMm": "Nhập cả rộng và cao lớn hơn 0; kích thước đầu ra không được vượt giới hạn.",
     "outputPixels": "Ảnh xem trước dùng đúng tỉ lệ đầu ra; kích thước áp dụng: {{width}} × {{height}} px.",
-    "warning": "Cắt ảnh sẽ dựng lại trang và có thể bỏ các đối tượng, liên kết hoặc ghi chú khác trên trang. Hãy kiểm tra trước khi áp dụng."
+    "warning": "Cắt ảnh sẽ dựng lại trang và có thể bỏ các đối tượng, liên kết hoặc ghi chú khác trên trang. Hãy kiểm tra trước khi áp dụng.",
+    "skipNext": "Bỏ qua, sang trang sau (còn {{left}})"
   },
   "rename": {
     "title": "Đổi tên file hàng loạt",
