@@ -177,6 +177,11 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-11-04 (demo v0.10 và đo hiệu năng lõi):**
+  - **Demo v0.10 đạt** (`demo-v10.spec.ts`, lõi thật): báo cáo 2 cột có bảng kẻ (fixture của bài kiểm tra bố cục) → DOCX "giữ bố cục" (6 section theo cột), DOCX "dễ chỉnh sửa" (1 section), Markdown (bảng pipe có dòng phân cách, tiêu đề cấp 1–3). Bảng 3×4 đúng, header/footer/số trang không lọt vào thân, thứ tự tiêu đề đúng, tiếng Việt giữ nguyên. Chưa mở bằng Word/LibreOffice (chủ dự án kiểm tay). Đóng T10.01, T10.02, T10.04, T10.05. Còn mở: T10.03 (màn hình sửa bố cục), T10.06 (làm mới), T10.07 (rã hàng loạt thành bước quy trình; đã có preset và chạy hàng loạt trong demo v0.9 nhưng chưa có kiểm tra riêng).
+  - **Hiệu năng lõi đóng gói (T11.02, phần lõi):** khởi động (ping) 1,26 s; RAM khi rảnh 139 MB. File 1000 trang: mở 0,05 s, thông tin 0,03 s, raster 1 trang 150 dpi 0,37 s, RAM 157 MB. File 305 MB (60 trang ảnh JPEG): mở 0,19 s, raster 1 trang 0,8 s, RAM đỉnh 444 MB. Chưa đo: cuộn mượt trong pdf.js (giao diện), thời gian khởi động toàn app (cửa sổ ~0,36 s đo trước đó).
+  - **Lỗi dò tiêu đề lặp đã sửa** (xem mục nhật ký trước): fixture demo đặt chữ sát mép trên khiến DOCX rỗng; đã dời nội dung xuống giữa trang.
+
 - **2026-11-04 (v1 phase: quy trình ghép, treo pool, dò tiêu đề lặp):**
   - **Treo khi raster qua RPC (đã sửa dev, tắt pool trong bản đóng gói).** Quy trình ghép 40 trang không bao giờ xong qua RPC; 7 trang thì xong. Nguyên nhân gặp ở dev: worker của `ProcessPoolExecutor` thừa kế stdin pipe của RPC. Sửa `core/chef_core/__main__.py` (`_claim_stdin`: stdin đọc RPC qua bản sao, fd 0 trỏ tới devnull, `SetStdHandle`). Test hồi quy `test_rasterize_with_worker_processes_finishes_while_stdin_is_open` thất bại khi tắt fix. **Bản đóng gói vẫn treo** dù đã có fix: worker chỉ 11 MB, không chạy việc nào, nghi lỗi khởi động worker trong PyInstaller. Chưa tìm ra gốc, nên tắt pool trong bản đóng gói (D43); đo: 40 trang 200 dpi tuần tự 1,0 s. **Việc còn mở:** tìm nguyên nhân worker đóng gói; sau đó bật lại pool để đạt T2.04.
   - **Thư mục tự động chạy ghép theo đợt** (D42). Trước đó quy trình "Nộp hồ sơ online" không chạy được vì watch luôn chạy từng file.
