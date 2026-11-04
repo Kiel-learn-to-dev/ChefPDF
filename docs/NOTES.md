@@ -5,8 +5,8 @@
 
 ## Trạng thái hiện tại
 
-- **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md).
-- **Số liệu (2026-11-04):** [TASKS.md](TASKS.md) có 119 task: 87 xong, 26 đang làm, 5 chưa làm, 1 tạm dừng (T9.08). Hôm nay chạy: typecheck, lint, ruff, mypy (lõi) sạch; pytest hai file pageimg 84 đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); e2e 15 đạt (demo-v08, capture, crop-review, dewarp, smoke). Bộ e2e đủ và pytest lõi đủ (1638) chưa chạy lại từ 2026-11-03; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh (lượt trước); E2E Linux/macOS không chặn.
+- **Giai đoạn:** đang triển khai và kiểm thử các mốc v0.5 đến v0.10; **bản 1.0 chỉ cam kết Windows** (D37). Kế hoạch từng bước ở [PLAN_V1.md](PLAN_V1.md). **Bản 1.1** đã duyệt phạm vi (2026-11-04), xem [PLAN_V1_1.md](PLAN_V1_1.md): sửa hai lỗi báo cáo trước, rồi sửa chữ PDF khớp blueprint ABBYY.
+- **Số liệu (2026-11-04):** [TASKS.md](TASKS.md) có 119 task: 116 xong, 3 tạm dừng (T3.08, T3.14, T9.08), không còn 🔄 hay ⬜ (đã sửa số liệu cũ "26 🔄"). Hôm nay chạy: typecheck, lint, ruff, mypy (lõi) sạch; pytest hai file pageimg 84 đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); e2e 15 đạt (demo-v08, capture, crop-review, dewarp, smoke). Bộ e2e đủ và pytest lõi đủ (1638) chưa chạy lại từ 2026-11-03; không còn `test.fixme`. CI GitHub: Core, JS, E2E Windows xanh (lượt trước); E2E Linux/macOS không chặn.
 - **Ký số:** token Viettel V6 trên máy chính (Windows) đã ký thật thành công qua lõi của app (PAdES B-B); chủ dự án chấp nhận kết quả và đã trả token. Đã đóng T1.08, T3.01–T3.03. Còn: ảnh Adobe Reader/Foxit (T3.14), ký từ giao diện app và ký hàng loạt (cần token lần nữa, gộp vào một lần cuối mốc v0.9).
 - **Phạm vi đã chốt:** 196 tính năng (đã tính các thay đổi sau khi chốt), trong đó:
 
@@ -84,6 +84,15 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D43 | **Lõi đóng gói không dùng process pool để render** (`scan.POOL_ENABLED = not frozen`); dev vẫn dùng pool. Đo tuần tự 40 trang 200 dpi xám: 1,0 s (pool 1,1 s khi chạy được) | Trong bản đóng gói, worker của pool không khởi động xong nên job treo (quy trình ghép 40 trang không bao giờ xong). Nguyên nhân gốc trong bản đóng gói chưa tìm ra; xem nhật ký 2026-11-04 |
 | D44 | **Lưu thành bước quy trình chỉ cho hộp thoại có tham số thuần** (không phụ thuộc vị trí trang hoặc vùng vẽ trên tài liệu). Các hộp thoại theo vùng (cắt, tẩy vùng, ngón tay, khe gáy thủ công, tách trang theo vị trí, đóng dấu theo tọa độ, tách theo trang cụ thể) không có nút này | Một bước quy trình chạy trên mọi file đầu vào; chỉ số trang và tọa độ trên một tài liệu không có nghĩa với file khác |
 | D41 | **Chủ dự án ủy quyền quyết định thẩm mỹ giao diện**, tiêu chí duy nhất là **cân đối** (không lệch hàng, khe, cỡ, bo góc, chữ; không lỗi UI). Quy tắc áp dụng: một giá trị cho mỗi hàng, thanh hoặc vai trò (thanh tiêu đề và thanh trạng thái theo một cỡ; nút trong hộp thoại cùng cỡ 32px; khoảng cách trong nhóm icon 4px; chân hộp căn phải). Mọi lựa chọn được ghi ở nhật ký và [UI_AUDIT.md](UI_AUDIT.md) | Chủ dự án, nhắn cuối phiên: "miễn sao đẹp, cân đối, không lỗi UI, không lộn xộn". Các mục trong danh sách D cũ được coi là đã quyết theo tiêu chí này |
+| D45 | **Bản 1.1 bắt đầu bằng sửa hai lỗi báo cáo ở 1.0** (B1: lưu bản scan rồi mở lại còn chữ; B2: chuột không cuộn file dài và sau lần mở thứ hai). Tái hiện trên bản đóng gói trước khi sửa, rồi mới đến tính năng | Chủ dự án, 2026-11-04 (câu 7) |
+| D46 | **Ưu tiên 1.1: sửa chữ PDF khớp blueprint ABBYY §5** (một chế độ Chỉnh sửa, hàng định dạng cố định dưới thanh công cụ, chỉ báo trạng thái xem/chọn/chỉnh sửa). Đặc tả ở [PLAN_V1_1.md](PLAN_V1_1.md) mục 5 | Chủ dự án, 2026-11-04 (câu 11) |
+| D47 | **Thanh bên giữ hiện theo ngữ cảnh** (B3), không đổi sang thanh biểu tượng cố định như ABBYY | Chủ dự án, 2026-11-04 (câu 5) |
+| D48 | **Ngoài 1.1:** so sánh chữ (P1), quét từ máy quét (A15), PDF/A (M12), nén MRC. OCR giữ ở nhóm Q theo D22 | Chủ dự án, 2026-11-04 (câu 3, 4, 6, 10) |
+| D49 | **Kiểm chữ ký bằng Adobe Reader/Foxit và panel kiểm tra chữ ký (T3.14, T3.08) làm sau 1.1**, không chặn 1.1 | Chủ dự án, 2026-11-04 (câu 8) |
+| D50 | **Chấp nhận giấy phép LGPL** của img2pdf (LGPL-3.0) và FFmpeg trong opencv (LGPL-2.1), ghi trong NOTICE. Vẫn không dùng AGPL (D7) | Chủ dự án, 2026-11-04 (câu 9) |
+| D51 | **Cửa sổ E2E ngoài màn hình là mặc định.** Spec cần cửa sổ hiển thị dùng `LaunchOptions.visible` (biến `CHEF_E2E_SHOW=1`). Hai spec cuộn chuột dùng cửa sổ hiển thị. Commit `6c97168` | Chủ dự án, 2026-11-04 (câu 2) |
+| D52 | **Mã tính năng mới cho 1.1: B11, B12, D13, D14** (FEATURES, mức v1.1). Tay nắm khung (Q-c) và các mục U3, U7, U8, U11 chờ quyết định, chưa vào FEATURES | Chủ dự án, 2026-11-04 (câu 11, mục 7 PLAN_V1_1) |
+
 
 ## Kiến trúc dự kiến
 
@@ -177,6 +186,16 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-04 (duyệt kế hoạch 1.1, thử bản đóng gói):**
+  - **Harness E2E (commit `6c97168`):** cửa sổ test vẫn ngoài màn hình; hai spec cuộn chuột dùng cửa sổ hiển thị (D51). Đã kiểm: wheel và wheel-second-instance 3/3 (hiển thị); keyboard, smoke, integration, page-menu, capture, tools5-pages 26/26 (ngoài màn hình); typecheck, eslint, prettier sạch.
+  - **B1 không tái hiện trên bản đóng gói** (`chef-pdf.exe` build 11:35, lõi đóng gói, xác nhận `isPackaged`). File của chủ dự án `docs/A81-VBNB_2026-KH-0080-2026_daky_ban-sao.pdf` (không commit): 5 trang, 11.509 ký tự. Các bước dựng lại (chuyển bản scan mặc định, Ctrl+S, đóng, mở lại) cho 0 ký tự và file không còn annotation. Các bước đúng của chủ dự án chưa xác nhận (PLAN_V1_1 mục 7, câu 1).
+  - **B2 cuộn được** trên bản đóng gói: CDP (`long.pdf`, `scan_long.pdf`, lần mở thứ hai: 20 → 820) và chuột thật của Windows có focus (cùng ba trường hợp). Chưa chạy trường hợp cửa sổ khác đang ở trên: lệnh bị bộ phân loại an toàn chặn vì sẽ đưa cửa sổ khác lên và dừng tiến trình Notepad của người dùng.
+  - **Quan sát:** `editableCopy` (`pageActions.ts:87`, "Tạo bản sao để sửa") giữ 5 widget chữ ký `/FT /Sig` có `/V` ở trang 1 và 5, không có `AcroForm`. Chưa kiểm trên giao diện xem có hiện khung chữ ký không.
+  - **Blueprint:** tay nắm khung không có định nghĩa offline. `help.fineReader.xml` cài trên máy chỉ là bản đồ chủ đề, nội dung là bản trực tuyến (Q-c).
+  - **Đóng:** N8 (LGPL có trong NOTICE), N9 (số liệu). **Dời sau 1.1:** N1, N2.
+
+- **2026-11-04 (kế hoạch bản 1.1, chờ duyệt):** Viết [PLAN_V1_1.md](PLAN_V1_1.md). Hai lỗi chủ dự án báo ở 1.0 (B1: lưu bản scan rồi mở lại còn chữ; B2: chuột không cuộn file dài mở từ dòng lệnh và ở lần mở thứ hai) đều **chưa tái hiện** trên dev; kế hoạch bắt đầu bằng tái hiện trên bản đóng gói và viết test đỏ trước khi sửa. Đối chiếu blueprint ABBYY với FEATURES: 13 điểm còn thiếu hoặc cần kiểm (gồm PDF/A và MRC) (chế độ xem/chỉnh sửa, chỉ báo lớp chữ, panel ghi chú, bảng thuộc tính, thanh định dạng, thanh chọn nhiều trang, tìm trong gần đây, quét từ máy quét, so sánh chữ P1, xem trước phạm vi che). Chưa đổi phạm vi trong FEATURES; chờ chủ dự án trả lời 10 câu ở mục 6 của kế hoạch. Số liệu cũ "26 🔄" ở đầu file và ở PLAN_V1 không khớp TASKS (116 ✅, 3 ⏸, 0 🔄); cần đồng bộ.
 
 - **2026-11-04 (hoàn tất v0.8–v0.10 trên giao diện; đo hiệu năng trong app):**
   - **Đo trong app (T11.02):** file 1000 trang: trang đầu hiện sau 4,1 s; 20 lần PageDown 0,9 s. File 305 MB: trang đầu sau 5,1 s; 20 lần PageDown 52 ms. Đo bằng `perf-large.spec.ts` (chạy khi đặt `CHEF_PERF_DIR`). Số đo lõi trước đó vẫn đúng.

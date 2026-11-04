@@ -9,6 +9,7 @@
 | Cột "Mức" | Nghĩa |
 |---|---|
 | **v0.1 … v0.10** | Thuộc phạm vi **bản 1.0**. Số bản là mốc phát triển trong [BLUEPRINT.md](BLUEPRINT.md) mục 13 |
+| **v1.1** | Thuộc phạm vi **bản 1.1** (đã duyệt 2026-11-04, xem [PLAN_V1_1.md](PLAN_V1_1.md)) |
 | **Sau 1.0** | Muốn có, nhưng làm sau bản 1.0 |
 | **Nâng cấp** | Thuộc **gói nâng cấp nhận dạng** (OCR, mô hình AI chạy trên máy, hoặc API trả phí). Để dành cho phiên bản nâng cấp sau này |
 | **Ý tưởng** | Chưa cam kết, xem lại khi lập kế hoạch |
@@ -133,6 +134,8 @@ Chef PDF
 | B8 | Xem song song | Chia đôi màn hình xem 2 file hoặc 2 vị trí của cùng một file | v0.5 |
 | B9 | Chế độ đọc ban đêm | Đảo màu trang | v0.5 |
 | B10 | Đọc to | Đọc chữ bằng giọng đọc có sẵn của hệ điều hành | Ý tưởng |
+| B11 | Chế độ Xem / Chọn / Chỉnh sửa | Trạng thái rõ trên thanh công cụ và con trỏ; khóa thao tác sửa khi đang ở chế độ xem | v1.1 |
+| B12 | Chỉ báo lớp chữ | Thanh dưới cho biết tài liệu có chữ, không có chữ (bản scan) hay hỗn hợp | v1.1 |
 
 ---
 
@@ -177,6 +180,8 @@ Chef PDF
 | D10 | Tìm & thay thế chữ | Thay một cụm từ trên toàn tài liệu | v0.7 |
 | D11 | Liên kết | Thêm/sửa/xóa link (trang nội bộ, web, email) | v0.7 |
 | D12 | Tự tạo mục lục | Dò các dòng tiêu đề (cỡ chữ lớn, in đậm) để tạo bookmark | v0.10 |
+| D13 | Bảng thuộc tính đối tượng | Panel phải hiện thuộc tính của đối tượng đang chọn: chữ, ảnh, ghi chú, chữ ký | v1.1 |
+| D14 | Hàng định dạng chữ cố định | Hàng dưới thanh công cụ PDF khi chỉnh chữ, theo blueprint ABBYY: Thêm văn bản, font, cỡ, tăng/giảm cỡ, đậm, nghiêng, căn lề, thụt lề, khoảng cách, màu | v1.1 |
 
 ## E. Lớp & gỡ watermark
 
@@ -448,10 +453,11 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 | Mức | Số tính năng |
 |---|---|
 | Bản 1.0 (v0.1–v0.10) | 161 |
+| Bản 1.1 | 4 |
 | Sau 1.0 | 5 |
 | Nâng cấp | 12 |
 | Ý tưởng | 20 |
-| **Tổng** | 198 |
+| **Tổng** | 202 |
 
 ## Thay đổi sau khi chốt
 
@@ -459,6 +465,7 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
+| 2026-11-04 | B11, B12, D13, D14 | Thêm mức **v1.1**: chế độ Xem/Chọn/Chỉnh sửa (B11), chỉ báo lớp chữ (B12), bảng thuộc tính đối tượng (D13), hàng định dạng chữ cố định kiểu ABBYY (D14). Bản 1.1 có 4 tính năng, tổng 202. Chưa vào FEATURES: tay nắm khung, panel ghi chú nâng cao (G4), menu nhiều trang thanh bên (C15), tìm trong gần đây (A1), kiểm xem trước khi che (J6). Ngoài 1.1 theo quyết định: P1, A15, M12, U13 | Chủ dự án duyệt kế hoạch 1.1 (PLAN_V1_1.md); ưu tiên sửa chữ PDF theo blueprint ABBYY |
 | 2026-11-03 | C13, C14 | Thêm **menu chuột phải khi chọn nhiều trang** (kiểu ABBYY) và **tạo PDF từ các trang đã chọn**. Menu có lối tắt tới đóng dấu (F2–F5) và nén (M1, K10) cho đúng các trang đã chọn; bản thân đóng dấu và nén đã có sẵn trong bản 1.0. Bản 1.0 thành 161 tính năng, tổng 198. Task T11.06 | Chủ dự án bổ sung |
 | 2026-11-03 | A8 | Bản 1.0 chỉ cam kết **bộ cài và kiểm thử trên Windows**; macOS và Linux (cấu hình build vẫn giữ) kiểm thử sau 1.0. Mức của A8 không đổi, số tính năng không đổi | Chủ dự án: ưu tiên phiên bản Windows (D37) |
 | 2026-11-03 | A10 | **Tự cập nhật** chuyển từ v0.9 sang **Sau 1.0**. Bản 1.0 còn 159 tính năng; T9.08 tạm dừng | Chủ dự án (trả lời CH2): phát hành bản mới sau, chưa cần tự cập nhật |

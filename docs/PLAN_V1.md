@@ -4,7 +4,7 @@
 
 ## Hiện trạng (2026-11-04)
 
-- 119 task: 87 ✅, 26 🔄, 5 ⬜, 1 ⏸ (T9.08 tự cập nhật, làm sau 1.0). Bản 1.0 có **161** tính năng.
+- 119 task: 116 ✅, 3 ⏸ (T3.08, T3.14, T9.08 tự cập nhật, làm sau 1.0; số liệu cũ "26 🔄" đã sửa). Bản 1.0 có **161** tính năng.
 - Test trên Windows (2026-11-04): typecheck, lint, ruff, mypy (lõi) sạch; pytest `test_pageimg_core` và `test_pageimg_ops` 84 đạt; giao diện 755 đạt; desktop 230 đạt (1 bỏ qua); e2e Electron + lõi thật 15 đạt (`demo-v08`, `capture`, `crop-review`, `dewarp`, `smoke`). Bộ e2e đủ (109) và pytest lõi đủ (1638) lần cuối ở 2026-11-03; không còn `test.fixme`.
 - CI GitHub: job **Core**, **JS** và **E2E Windows** xanh. E2E Linux và macOS **không còn chặn** (D37); Linux còn hỏng một spec, macOS chưa có kết quả.
 - Ký số: token Viettel V6 trên Windows đã **ký thật thành công** (PAdES B-B) và kiểm tra lại đạt; chủ dự án chấp nhận kết quả. T1.08, T3.01–T3.03 đã đóng ✅. Chưa có ảnh Adobe Reader/Foxit (T3.14 🔄).
