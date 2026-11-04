@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
   BookOpen,
+  Hand,
   ClipboardPaste,
   Columns2,
   Combine,
@@ -1324,6 +1325,17 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       enabled: canRewrite,
       disabledHint: doc?.state.signed ? t('pageTools.signedBlocked') : undefined,
       run: () => ui.openDialog('spine'),
+    },
+    {
+      id: 'tools.finger',
+      title: t('pageimg.finger.cmd'),
+      short: t('pageimg.finger.short'),
+      keywords: ['ngon tay', 'finger', 'xoa ngon tay', 'hand', 'bong tay'],
+      group: 'tools',
+      icon: <Hand size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('pageTools.signedBlocked') : undefined,
+      run: () => ui.openDialog('finger'),
     },
     {
       id: 'tools.workflow',

@@ -640,6 +640,38 @@ def test_finger_proposal_then_removal_with_the_edited_mask(
     assert float(skin.mean()) < 0.001
 
 
+def test_finger_removal_accepts_the_mask_as_base64(harness: Harness, tmp_path: Path) -> None:
+    """The app cannot write files: the edited mask comes as base64 (mask_png_base64)."""
+    import base64
+
+    scene = photo_scene(size=(1240, 1754), seed=101, skin_blob=True)
+    src = _image_pdf(tmp_path / "finger_b64.pdf", [scene.rgb])
+    sid = _sid(harness, src)
+    proposal = harness.op("pageimg.proposeFingerMask", {"pageIndex": 0}, sid)["data"]
+    encoded = base64.b64encode(Path(proposal["maskPath"]).read_bytes()).decode("ascii")
+    res = harness.op(
+        "pageimg.removeFingers",
+        {"mode": "mask", "maskPngBase64": encoded, "pages": [0]},
+        sid,
+    )
+    assert _pages(res)[0]["status"] == "done"
+    out = _rgb(_revision(harness, sid))
+    skin = (np.abs(out.astype(int) - np.array([224, 172, 140])).sum(axis=2)) < 60
+    assert float(skin.mean()) < 0.001
+
+
+def test_finger_removal_rejects_bad_base64(harness: Harness, tmp_path: Path) -> None:
+    src = _image_pdf(tmp_path / "finger_bad.pdf", [text_page(1240, 1754, seed=102)])
+    sid = _sid(harness, src)
+    with pytest.raises(Exception):  # noqa: B017 - the harness raises the RPC error
+        harness.op(
+            "pageimg.removeFingers",
+            {"mode": "mask", "maskPngBase64": "%%%not base64%%%", "pages": [0]},
+            sid,
+        )
+    assert _page_count(_revision(harness, sid)) == 1
+
+
 def test_erase_fills_the_rectangle_with_paper(harness: Harness, tmp_path: Path) -> None:
     frame = np.full((1754, 1240, 3), 240, np.uint8)
     frame[300:500, 300:900] = 20  # black block

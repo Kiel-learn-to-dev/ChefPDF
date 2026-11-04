@@ -2709,6 +2709,27 @@
       "apply": "Tách trang đôi",
       "job": "Tách trang đôi: {{name}}",
       "applyReview": "Trang {{pages}} cần xem lại: khe gáy không rõ, chưa tách."
+    },
+    "finger": {
+      "cmd": "Xóa ngón tay…",
+      "short": "Xóa ngón tay",
+      "title": "Xóa ngón tay",
+      "description": "Đề xuất vùng ngón tay chạm mép trang rồi chỉnh bằng cọ. Vùng tô đỏ sẽ được tô bằng màu giấy.",
+      "page": "Trang cần xử lý",
+      "pageHint": "Một trang mỗi lần. Đề xuất xong mới chỉnh được.",
+      "invalidPage": "Số trang không hợp lệ.",
+      "propose": "Đề xuất vùng ngón tay",
+      "previewEmpty": "Nhập số trang rồi bấm Đề xuất để xem các vùng ngón tay.",
+      "noProposal": "Không tìm thấy ngón tay trên trang này.",
+      "pageAlt": "Trang {{page}}",
+      "maskAlt": "Vùng ngón tay sẽ xóa",
+      "tools": "Công cụ cọ",
+      "toolAdd": "Tô thêm vùng",
+      "toolRemove": "Bỏ tô",
+      "brush": "Cỡ cọ",
+      "coverage": "Vùng sẽ xóa: {{value}}% của trang",
+      "apply": "Xóa ngón tay",
+      "job": "Xóa ngón tay: {{name}}"
     }
   },
   "compress": {

@@ -2974,6 +2974,8 @@ export interface PageimgRemoveFingersParams {
   mode?: 'auto' | 'mask';
   /** mode mask: PNG from proposeFingerMask (edited); white = erase. One page. */
   maskPng?: string;
+  /** mode mask: the same PNG as base64 (no file write needed). Wins over maskPng. */
+  maskPngBase64?: string;
   /** @default "paper" */
   fill?: string;
   /** @default 80 */

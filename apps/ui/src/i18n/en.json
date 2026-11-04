@@ -2729,6 +2729,27 @@
       "apply": "Split spreads",
       "job": "Split spreads: {{name}}",
       "applyReview": "Pages {{pages}} need review: the spine is unclear, not split."
+    },
+    "finger": {
+      "cmd": "Remove fingers…",
+      "short": "Remove fingers",
+      "title": "Remove fingers",
+      "description": "Propose the finger regions on the page edges, then adjust them with the brush. Red areas are filled with paper colour.",
+      "page": "Page to process",
+      "pageHint": "One page at a time. Propose first, then adjust.",
+      "invalidPage": "Invalid page number.",
+      "propose": "Propose finger regions",
+      "previewEmpty": "Enter a page number and press Propose to see the finger regions.",
+      "noProposal": "No fingers found on this page.",
+      "pageAlt": "Page {{page}}",
+      "maskAlt": "Finger regions to remove",
+      "tools": "Brush tools",
+      "toolAdd": "Paint more",
+      "toolRemove": "Clear paint",
+      "brush": "Brush size",
+      "coverage": "Area to remove: {{value}}% of the page",
+      "apply": "Remove fingers",
+      "job": "Remove fingers: {{name}}"
     }
   },
   "compress": {

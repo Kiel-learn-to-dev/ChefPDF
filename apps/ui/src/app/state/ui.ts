@@ -88,6 +88,7 @@ export type DialogId =
   | 'capture'
   | 'dewarp'
   | 'spine'
+  | 'finger'
   | 'watch'
   | 'shortcuts'
   | 'workflow';

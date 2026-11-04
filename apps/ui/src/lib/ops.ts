@@ -24,6 +24,8 @@ import type {
   PageimgDewarpPreviewParams,
   PageimgSpinePreviewParams,
   PageimgSplitSpreadParams,
+  PageimgProposeFingerMaskParams,
+  PageimgRemoveFingersParams,
   ImageCleanupParams,
   ImageFromStrokesParams,
   ImageRemoveBackgroundParams,
@@ -188,6 +190,8 @@ export interface OpParams {
   'pageimg.dewarpPreview': PageimgDewarpPreviewParams;
   'pageimg.spinePreview': PageimgSpinePreviewParams;
   'pageimg.splitSpread': PageimgSplitSpreadParams;
+  'pageimg.proposeFingerMask': PageimgProposeFingerMaskParams;
+  'pageimg.removeFingers': PageimgRemoveFingersParams;
   'export.document': ExportDocumentParams;
   'export.refresh': ExportRefreshParams;
   'page.rotate': { pages: number[]; angle: RotateAngle };

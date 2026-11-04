@@ -24,6 +24,8 @@ enough; the page is left as it is and listed in ``needsReview``).
 
 from __future__ import annotations
 
+import base64
+import binascii
 import io
 import logging
 from dataclasses import dataclass
@@ -1123,6 +1125,9 @@ def propose_finger_mask(ctx: OpContext, p: ProposeFingerMaskParams) -> OpOutput:
     mask = pi.find_skin_regions(rgb)
     out = _work_dir(ctx) / f"p{p.page_index}-fingers-{ctx.job_id[:8]}.png"
     Image.fromarray(mask, mode="L").save(out, format="PNG")
+    # The page itself, for the editor's background (the mask has the same pixel size).
+    page_path = _work_dir(ctx) / f"p{p.page_index}-page-{ctx.job_id[:8]}.png"
+    _pil(rgb).save(page_path, format="PNG")
     h, w = mask.shape
     return OpOutput(
         changed_pages=[],
@@ -1131,6 +1136,7 @@ def propose_finger_mask(ctx: OpContext, p: ProposeFingerMaskParams) -> OpOutput:
             "pageIndex": p.page_index,
             "status": "done",
             "maskPath": str(out),
+            "pagePath": str(page_path),
             "pixelSize": [w, h],
             "coverage": round(float((mask > 0).mean()), 5),
         },
@@ -1146,6 +1152,11 @@ class RemoveFingersParams(WireModel):
         default=None,
         description="mode mask: PNG from proposeFingerMask (edited); white = erase. One page.",
     )
+    mask_png_base64: str | None = Field(
+        default=None,
+        max_length=8_000_000,
+        description="mode mask: the same PNG as base64 (no file write needed). Wins over maskPng.",
+    )
     fill: FillPattern = "paper"
     jpeg_quality: Quality = 80
 
@@ -1158,8 +1169,17 @@ class RemoveFingersParams(WireModel):
     destructive=True,
 )
 def remove_fingers(ctx: OpContext, p: RemoveFingersParams) -> OpOutput:
-    if p.mode == "mask" and p.mask_png is None:
+    if p.mode == "mask" and p.mask_png is None and p.mask_png_base64 is None:
         raise invalid_params("MASK_REQUIRED", {"mode": "mask"})
+    mask_file: str | None = p.mask_png
+    if p.mode == "mask" and p.mask_png_base64 is not None:
+        try:
+            raw = base64.b64decode(p.mask_png_base64, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise invalid_params("MASK_NOT_BASE64", {"mode": "mask"}) from exc
+        mask_path = ctx.work_dir / f"finger-mask-{ctx.job_id[:8]}.png"
+        mask_path.write_bytes(raw)
+        mask_file = str(mask_path)
     rows: list[dict[str, Any]] = []
     changed: list[int] = []
     with ctx.open_input() as pdf:
@@ -1173,8 +1193,8 @@ def remove_fingers(ctx: OpContext, p: RemoveFingersParams) -> OpOutput:
                 continue
             rgb = _pixels(dom)
             mask = None
-            if p.mode == "mask" and p.mask_png is not None:
-                mask = _mask_from_png(p.mask_png, (rgb.shape[1], rgb.shape[0]))
+            if p.mode == "mask" and mask_file is not None:
+                mask = _mask_from_png(mask_file, (rgb.shape[1], rgb.shape[0]))
             out, used = pi.remove_fingers(rgb, mask, fill=p.fill)
             if not used.any():
                 rows.append({"pageIndex": index, "status": "skipped", "reason": "NO_FINGERS_FOUND"})
