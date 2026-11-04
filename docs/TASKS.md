@@ -259,7 +259,7 @@
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
 | T11.01 | Kiểm thử toàn bộ **trên Windows**, sửa lỗi (macOS/Linux sau 1.0, D37) | | 5 | tất cả | ⬜ |
-| T11.02 | Hiệu năng: file 1000 trang, file 300MB, RAM, thời gian khởi động | | 3 | tất cả | ⬜ |
+| T11.02 | Hiệu năng: file 1000 trang, file 300MB, RAM, thời gian khởi động | | 3 | tất cả | ✅ (trong app: file 1000 trang hiện trang đầu 4,1 s, 20 lần PageDown 0,9 s; file 305 MB hiện trang đầu 5,1 s, 20 lần PageDown 52 ms; RAM đỉnh lõi 444 MB; `perf-large.spec.ts`) |
 | T11.03 | Rà soát giấy phép toàn bộ thư viện, font, mô hình; tạo file NOTICE | | 1 | tất cả | ⬜ |
 | T11.04 | Hướng dẫn sử dụng tiếng Việt (kèm cách cài khi app chưa ký mã) | | 2 | tất cả | 🔄 |
 | T11.05 | Đánh bóng giao diện, phím tắt, truy cập bằng bàn phím | | 3 | tất cả | ⬜ |

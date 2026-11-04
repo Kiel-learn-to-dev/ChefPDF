@@ -178,6 +178,13 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-11-04 (hoàn tất v0.8–v0.10 trên giao diện; đo hiệu năng trong app):**
+  - **Đo trong app (T11.02):** file 1000 trang: trang đầu hiện sau 4,1 s; 20 lần PageDown 0,9 s. File 305 MB: trang đầu sau 5,1 s; 20 lần PageDown 52 ms. Đo bằng `perf-large.spec.ts` (chạy khi đặt `CHEF_PERF_DIR`). Số đo lõi trước đó vẫn đúng.
+  - **v0.8 hoàn tất:** xóa ngón tay có vùng đề xuất và cọ (T8.10), tẩy vùng và xóa vết màu (T8.03), chỉnh ảnh trang gồm đường cong và xem trước trước/sau (T8.02), chỉnh khe gáy tự dò và tay (T8.08), duyệt lần lượt cắt hàng loạt (T8.07), trình sửa ảnh là các hộp thoại trên xem trước với hoàn tác theo phiên (T8.01). Lõi thêm: `pageimg.spinePreview`, `pageimg.pagePreview`, `pageimg.enhancePreview`, `pageimg.enhance.curve`, `removeFingers.maskPngBase64`, `proposeFingerMask.pagePath`.
+  - **v0.9 hoàn tất:** form, workflow, mẫu và kéo thả, đổi tên (T9.01–T9.07); lưu thành bước từ ba hộp thoại có tham số chung và xuất (D44). T9.08 (tự cập nhật) giữ ⏸ theo D36.
+  - **v0.10 hoàn tất:** demo rã tài liệu (T10.01, 02, 04, 05), màn hình kiểm tra (T10.03), làm mới (T10.06), rã hàng loạt thành bước (T10.07).
+  - **v1.0:** hướng dẫn viết lại cho Windows (T11.04); NOTICE và bỏ mypy/pytest/ruff khỏi bản đóng gói (T11.03); đo hiệu năng trong app (T11.02).
+
 - **2026-11-04 (demo v0.10 và đo hiệu năng lõi):**
   - **Demo v0.10 đạt** (`demo-v10.spec.ts`, lõi thật): báo cáo 2 cột có bảng kẻ (fixture của bài kiểm tra bố cục) → DOCX "giữ bố cục" (6 section theo cột), DOCX "dễ chỉnh sửa" (1 section), Markdown (bảng pipe có dòng phân cách, tiêu đề cấp 1–3). Bảng 3×4 đúng, header/footer/số trang không lọt vào thân, thứ tự tiêu đề đúng, tiếng Việt giữ nguyên. Chưa mở bằng Word/LibreOffice (chủ dự án kiểm tay). Đóng T10.01, T10.02, T10.04, T10.05. Còn mở: T10.03 (màn hình sửa bố cục), T10.06 (làm mới), T10.07 (rã hàng loạt thành bước quy trình; đã có preset và chạy hàng loạt trong demo v0.9 nhưng chưa có kiểm tra riêng).
   - **Hiệu năng lõi đóng gói (T11.02, phần lõi):** khởi động (ping) 1,26 s; RAM khi rảnh 139 MB. File 1000 trang: mở 0,05 s, thông tin 0,03 s, raster 1 trang 150 dpi 0,37 s, RAM 157 MB. File 305 MB (60 trang ảnh JPEG): mở 0,19 s, raster 1 trang 0,8 s, RAM đỉnh 444 MB. Chưa đo: cuộn mượt trong pdf.js (giao diện), thời gian khởi động toàn app (cửa sổ ~0,36 s đo trước đó).
