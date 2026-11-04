@@ -17,6 +17,8 @@ export interface TextLine {
   fontSize: number;
   bold: boolean;
   italic: boolean;
+  /** '#rrggbb' of the text, or null when the core does not know it. */
+  colour?: string | null;
   canEncodeAny: boolean;
   paragraphId: string | null;
   editable: boolean;

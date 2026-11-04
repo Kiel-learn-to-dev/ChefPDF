@@ -19,10 +19,15 @@ import {
 } from './textEditModel';
 import { useTextEdit, type ReplacementFont } from './textEditState';
 import {
+  KEEP_STYLE,
   editParagraphParams,
   overlapHighlights,
+  pageOfParagraph,
+  paragraphCentre,
   paragraphWarnings,
+  reselectParagraph,
   styleParagraphParams,
+  type ParagraphInfo,
   type ParagraphResultData,
   type ParagraphStyle,
   type TextBlock,
@@ -43,18 +48,23 @@ export function textRevisionKey(docId: string): string {
   return `${docId}:${getDoc(docId)?.version ?? 0}`;
 }
 
-/** Lines and blocks of one page (read only). */
+/** Lines, blocks and paragraph info of one page (read only). */
 export async function listPageText(
   docId: string,
   pageIndex: number,
-): Promise<{ lines: TextLine[]; blocks: TextBlock[] }> {
+): Promise<{ lines: TextLine[]; blocks: TextBlock[]; paragraphs: ParagraphInfo[] }> {
   const result = await runOp(
     'text.getLines',
     { pageIndex },
     { sessionId: docId, title: t('textEdit.listing'), silent: true },
   );
-  const data = result.data as { lines?: TextLine[]; blocks?: TextBlock[] } | undefined;
-  return { lines: data?.lines ?? [], blocks: data?.blocks ?? [] };
+  const data = result.data as
+    { lines?: TextLine[]; blocks?: TextBlock[]; paragraphs?: ParagraphInfo[] } | undefined;
+  return {
+    lines: data?.lines ?? [],
+    blocks: data?.blocks ?? [],
+    paragraphs: data?.paragraphs ?? [],
+  };
 }
 
 /** Lines of one page (read only). */
@@ -95,8 +105,8 @@ export async function reloadLines(docId: string, pages: number[]): Promise<void>
   const key = textRevisionKey(docId);
   useTextEdit.getState().resetFor(key);
   for (const index of pages) {
-    const { lines, blocks } = await listPageText(docId, index);
-    useTextEdit.getState().setPage(key, index, lines, blocks);
+    const { lines, blocks, paragraphs } = await listPageText(docId, index);
+    useTextEdit.getState().setPage(key, index, lines, blocks, paragraphs);
   }
 }
 
@@ -133,40 +143,24 @@ export async function applyParagraph(docId: string): Promise<boolean> {
   return true;
 }
 
-/** Paragraph mode: only the style changes, the text is kept (text.styleParagraph). */
-export async function applyParagraphStyle(docId: string): Promise<boolean> {
-  const para = useTextEdit.getState().paraEditor;
-  if (!para) return false;
-  const store = useTextEdit.getState();
-  store.patchParagraph({ applying: true, error: null });
-  const result = await runDocOp(
-    docId,
-    'text.styleParagraph',
-    styleParagraphParams(para.pageIndex, para.paragraphId, para.style, store.fontStrategy),
-    t('textEdit.op.style'),
-    {
-      toastWarnings: false,
-      onError: (e) => {
-        if (textErrorCode(e) === null) return false;
-        useTextEdit.getState().patchParagraph({ applying: false, error: textErrorText(e) });
-        return true;
-      },
-    },
-  );
-  if (!result) {
-    useTextEdit.getState().patchParagraph({ applying: false });
-    return false;
-  }
-  await afterParagraph(docId, para.pageIndex, result.data as ParagraphResultData | undefined);
-  return true;
-}
-
 /** After a paragraph op: warnings to the user, the overlapped blocks drawn, lines read again. */
 async function afterParagraph(
   docId: string,
   pageIndex: number,
   data: ParagraphResultData | undefined,
 ): Promise<void> {
+  // Read the old lines before they are dropped by the reload: the paragraph keeps its place.
+  const before = useTextEdit.getState();
+  const oldId = before.paraEditor?.paragraphId ?? before.selectedParagraphId;
+  const centre = oldId ? paragraphCentre(before.lines[pageIndex] ?? [], oldId) : null;
+  warnParagraph(docId, pageIndex, data);
+  useTextEdit.getState().closeParagraph();
+  await reloadLines(docId, [pageIndex]).catch((e: unknown) => showError(e));
+  if (oldId) selectAfterReload(pageIndex, oldId, centre);
+}
+
+/** Toast and highlights for the overflow and the overlapped blocks of a paragraph change. */
+function warnParagraph(docId: string, pageIndex: number, data: ParagraphResultData | undefined) {
   const blocks: TextBlock[] = useTextEdit.getState().blocks[pageIndex] ?? [];
   const w = paragraphWarnings(data, blocks);
   const parts: string[] = [];
@@ -177,8 +171,62 @@ async function afterParagraph(
   }
   parts.push(...w.messages);
   if (parts.length > 0) toast.warning(t('textEdit.op.paragraph'), parts.join(' '));
-  useTextEdit.getState().closeParagraph();
-  await reloadLines(docId, [pageIndex]).catch((e: unknown) => showError(e));
+}
+
+/** Selects the paragraph that replaces oldId on a page read again (see reselectParagraph). */
+function selectAfterReload(pageIndex: number, oldId: string, centre: [number, number] | null) {
+  const lines = useTextEdit.getState().lines[pageIndex] ?? [];
+  useTextEdit.getState().setSelectedParagraph(reselectParagraph(lines, oldId, centre));
+}
+
+/**
+ * Format bar (D14): one style change on a paragraph, applied at once. Each change is one revision,
+ * so one Ctrl+Z undoes one change. The bar takes no new change while one runs.
+ */
+export function applyFormat(
+  docId: string,
+  patch: Partial<ParagraphStyle>,
+  fontName: string | null = null,
+): Promise<boolean> {
+  const run = formatQueue.then(() => runFormat(docId, patch, fontName));
+  formatQueue = run.catch(() => false);
+  return run;
+}
+
+/** Changes queued by the format bar: each runs after the one before (one op at a time). */
+let formatQueue: Promise<boolean> = Promise.resolve(true);
+
+/** Runs one format change on the paragraph that is selected when it starts (not when queued). */
+async function runFormat(
+  docId: string,
+  patch: Partial<ParagraphStyle>,
+  fontName: string | null,
+): Promise<boolean> {
+  const store = useTextEdit.getState();
+  const paragraphId = store.selectedParagraphId;
+  const pageIndex = paragraphId ? pageOfParagraph(paragraphId) : null;
+  if (!paragraphId || pageIndex === null) return false;
+  const centre = paragraphCentre(store.lines[pageIndex] ?? [], paragraphId);
+  store.setFormatBusy(true);
+  try {
+    const result = await runDocOp(
+      docId,
+      'text.styleParagraph',
+      styleParagraphParams(pageIndex, paragraphId, { ...KEEP_STYLE, ...patch }, 'auto', fontName),
+      t('textEdit.op.style'),
+      { toastWarnings: false },
+    );
+    if (!result) return false;
+    warnParagraph(docId, pageIndex, result.data as ParagraphResultData | undefined);
+    await reloadLines(docId, [pageIndex]);
+    selectAfterReload(pageIndex, paragraphId, centre);
+    return true;
+  } catch (e) {
+    showError(e);
+    return false;
+  } finally {
+    useTextEdit.getState().setFormatBusy(false);
+  }
 }
 
 /** Warnings of a finished text.editLine, as text lines for the toast. */

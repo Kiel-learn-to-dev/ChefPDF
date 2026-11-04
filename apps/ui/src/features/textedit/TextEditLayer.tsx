@@ -166,8 +166,9 @@ export function TextEditLayer({
           if (st.key !== cacheKey) return;
           if (st.lines[index]) continue;
           try {
-            const { lines: list, blocks } = await listPageText(doc.id, index);
-            if (!cancelled) useTextEdit.getState().setPage(cacheKey, index, list, blocks);
+            const { lines: list, blocks, paragraphs } = await listPageText(doc.id, index);
+            if (!cancelled)
+              useTextEdit.getState().setPage(cacheKey, index, list, blocks, paragraphs);
           } catch (e) {
             if (!cancelled) showError(e);
             return;
@@ -290,13 +291,8 @@ export function TextEditLayer({
     if (paraEditor) return;
     const hit = hitAt(e);
     const st = useTextEdit.getState();
-    if (st.paragraphMode || e.altKey) {
-      // Paragraph mode (or Alt): the whole paragraph of the line is selected.
-      st.setSelectedParagraph(hit?.paragraphId ?? null);
-      st.setSelected(hit?.id ?? null);
-      return;
-    }
-    st.setSelectedParagraph(null);
+    // A click selects the line and its paragraph: the frame covers the paragraph (D53).
+    st.setSelectedParagraph(hit?.paragraphId ?? null);
     st.setSelected(hit?.id ?? null);
   };
 

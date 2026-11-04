@@ -53,6 +53,8 @@ export interface ParagraphStyle {
   color: Keep<string>;
   bold: Keep<boolean>;
   italic: Keep<boolean>;
+  /** Indent of the first line in points (>= 0), or 'keep'. */
+  indent: Keep<number>;
 }
 
 export const KEEP_STYLE: ParagraphStyle = {
@@ -62,11 +64,90 @@ export const KEEP_STYLE: ParagraphStyle = {
   color: 'keep',
   bold: 'keep',
   italic: 'keep',
+  indent: 'keep',
 };
 
-/** True when the style asks for at least one change. */
-export function hasStyleChange(style: ParagraphStyle): boolean {
-  return (Object.keys(KEEP_STYLE) as (keyof ParagraphStyle)[]).some((k) => style[k] !== 'keep');
+/** Paragraph facts that getLines gives apart from the lines (align, indent). */
+export interface ParagraphInfo {
+  id: string;
+  align: string;
+  indent: number;
+}
+
+/** The format of the selected paragraph, as the format bar shows it. */
+export interface CurrentFormat {
+  /** Alignment read from the lines; 'none' when one line cannot tell left from centre (D53). */
+  align: string;
+  indent: number;
+  fontSize: number;
+  bold: boolean;
+  italic: boolean;
+  colour: string | null;
+}
+
+/** Format of a paragraph from its lines and its info; null when the paragraph is not on the page. */
+export function currentFormat(
+  lines: readonly TextLine[],
+  paragraphs: readonly ParagraphInfo[],
+  paragraphId: string,
+): CurrentFormat | null {
+  const own = paragraphLines(lines, paragraphId);
+  const first = own[0];
+  const info = paragraphs.find((p) => p.id === paragraphId);
+  if (!first || !info) return null;
+  return {
+    // The alignment is read from the geometry of the lines, so a single line gives no answer.
+    align: own.length >= 2 ? info.align : 'none',
+    indent: info.indent,
+    fontSize: first.fontSize,
+    bold: first.bold,
+    italic: first.italic,
+    colour: first.colour ?? null,
+  };
+}
+
+/** Page index of a paragraph id (`P<page>:<digest>:<n>`), or null for a malformed id. */
+export function pageOfParagraph(paragraphId: string): number | null {
+  const m = /^P(\d+):/.exec(paragraphId);
+  return m ? Number(m[1]) : null;
+}
+
+/** Position of a paragraph on its page (the trailing <n> of its id), or null. */
+export function paragraphIndex(paragraphId: string): number | null {
+  const m = /:(\d+)$/.exec(paragraphId);
+  return m ? Number(m[1]) : null;
+}
+
+/** Centre of a paragraph's box (points), or null when it has no lines. */
+export function paragraphCentre(
+  lines: readonly TextLine[],
+  paragraphId: string,
+): [number, number] | null {
+  const box = paragraphBox(lines, paragraphId);
+  return box ? [(box[0]! + box[2]!) / 2, (box[1]! + box[3]!) / 2] : null;
+}
+
+/**
+ * The paragraph to select after a style change re-reads the page: the paragraph with the same
+ * position (<n> in the id), else the one that holds the old centre. Null when neither is found.
+ */
+export function reselectParagraph(
+  lines: readonly TextLine[],
+  oldId: string,
+  oldCentre: [number, number] | null,
+): string | null {
+  const ids = [...new Set(lines.map((l) => l.paragraphId).filter((id): id is string => !!id))];
+  const index = paragraphIndex(oldId);
+  const same = ids.find((id) => paragraphIndex(id) === index);
+  if (same) return same;
+  if (!oldCentre) return null;
+  const [x, y] = oldCentre;
+  return (
+    ids.find((id) => {
+      const box = paragraphBox(lines, id);
+      return !!box && x >= box[0]! && x <= box[2]! && y >= box[1]! && y <= box[3]!;
+    }) ?? null
+  );
 }
 
 export interface EditParagraphOpts {
@@ -96,6 +177,7 @@ export function editParagraphParams(
     color: opts.style.color,
     bold: opts.style.bold,
     italic: opts.style.italic,
+    indent: opts.style.indent,
     boxWidth: opts.boxWidth ?? 'keep',
   };
   if (opts.fontName) params.fontName = opts.fontName;
@@ -108,8 +190,9 @@ export function styleParagraphParams(
   paragraphId: string,
   style: ParagraphStyle,
   fontStrategy: 'auto' | 'keep' | 'replace' = 'auto',
+  fontName: string | null = null,
 ): TextStyleParagraphParams {
-  return {
+  const params: TextStyleParagraphParams = {
     pageIndex,
     paragraphId,
     fontStrategy,
@@ -120,8 +203,11 @@ export function styleParagraphParams(
     color: style.color,
     bold: style.bold,
     italic: style.italic,
+    indent: style.indent,
     boxWidth: 'keep',
   };
+  if (fontName) params.fontName = fontName;
+  return params;
 }
 
 /** The data of a finished paragraph op (the parts the UI reads). */
@@ -167,7 +253,7 @@ export function paragraphOf(line: TextLine | null): string | null {
   return line?.paragraphId ?? null;
 }
 
-/** Apply is allowed when the text changed or a style was chosen. */
-export function canApplyParagraph(original: string, text: string, style: ParagraphStyle): boolean {
-  return text.trim() !== original.trim() || hasStyleChange(style);
+/** Apply is allowed when the text changed (the style has its own bar, D14). */
+export function canApplyParagraph(original: string, text: string): boolean {
+  return text.trim() !== original.trim();
 }

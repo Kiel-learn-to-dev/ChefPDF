@@ -6,7 +6,7 @@ vi.mock('../../app/actions', () => ({
   showError: vi.fn(),
 }));
 
-import { applyParagraph, applyParagraphStyle } from './textEditActions';
+import { applyParagraph } from './textEditActions';
 import { useTextEdit } from './textEditState';
 
 describe('paragraph operation failure', () => {
@@ -19,14 +19,11 @@ describe('paragraph operation failure', () => {
     });
   });
 
-  it.each([applyParagraph, applyParagraphStyle])(
-    'lets the user retry after an operation fails',
-    async (apply) => {
-      expect(await apply('document')).toBe(false);
-      expect(useTextEdit.getState().paraEditor).toMatchObject({
-        text: 'Changed',
-        applying: false,
-      });
-    },
-  );
+  it('lets the user retry after an operation fails', async () => {
+    expect(await applyParagraph('document')).toBe(false);
+    expect(useTextEdit.getState().paraEditor).toMatchObject({
+      text: 'Changed',
+      applying: false,
+    });
+  });
 });

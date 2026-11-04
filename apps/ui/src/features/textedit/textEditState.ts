@@ -13,7 +13,12 @@ import {
   type FontStrategy,
   type TextLine,
 } from './textEditModel';
-import { KEEP_STYLE, type ParagraphStyle, type TextBlock } from './textParagraphModel';
+import {
+  KEEP_STYLE,
+  type ParagraphInfo,
+  type ParagraphStyle,
+  type TextBlock,
+} from './textParagraphModel';
 
 /** The open paragraph editor (D9): the paragraph, its text as typed, and its style choices. */
 export interface ParaEditor {
@@ -52,12 +57,23 @@ interface TextEditState {
   selectedParagraphId: string | null;
   /** Blocks of the loaded pages (for the overlap warnings), by page index. */
   blocks: Record<number, TextBlock[]>;
+  /** Paragraph align and indent of the loaded pages, by page index. */
+  paragraphs: Record<number, ParagraphInfo[]>;
+  /** A format change is running: the bar takes no new change until it ends (one op at a time). */
+  formatBusy: boolean;
   paraEditor: ParaEditor | null;
   setActive(active: boolean): void;
   setParagraphMode(on: boolean): void;
   setSelectedParagraph(id: string | null): void;
   resetFor(key: string): void;
-  setPage(key: string, index: number, lines: TextLine[], blocks?: TextBlock[]): void;
+  setPage(
+    key: string,
+    index: number,
+    lines: TextLine[],
+    blocks?: TextBlock[],
+    paragraphs?: ParagraphInfo[],
+  ): void;
+  setFormatBusy(on: boolean): void;
   setHover(id: string | null): void;
   setSelected(id: string | null): void;
   setFonts(fonts: ReplacementFont[]): void;
@@ -82,6 +98,8 @@ export const useTextEdit = create<TextEditState>((set, get) => ({
   paragraphMode: false,
   selectedParagraphId: null,
   blocks: {},
+  paragraphs: {},
+  formatBusy: false,
   paraEditor: null,
   setActive(active) {
     set(
@@ -104,17 +122,21 @@ export const useTextEdit = create<TextEditState>((set, get) => ({
     set({ selectedParagraphId: id });
   },
   resetFor(key) {
-    set((s) => (s.key === key ? s : { key, lines: {}, blocks: {}, hoverId: null }));
+    set((s) => (s.key === key ? s : { key, lines: {}, blocks: {}, paragraphs: {}, hoverId: null }));
   },
-  setPage(key, index, lines, blocks) {
+  setPage(key, index, lines, blocks, paragraphs) {
     set((s) =>
       s.key !== key
         ? s
         : {
             lines: { ...s.lines, [index]: lines },
             ...(blocks ? { blocks: { ...s.blocks, [index]: blocks } } : {}),
+            ...(paragraphs ? { paragraphs: { ...s.paragraphs, [index]: paragraphs } } : {}),
           },
     );
+  },
+  setFormatBusy(on) {
+    set({ formatBusy: on });
   },
   openParagraph(p) {
     set({ paraEditor: { ...p, style: KEEP_STYLE, applying: false, error: null } });

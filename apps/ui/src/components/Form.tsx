@@ -72,6 +72,7 @@ export interface SelectProps<V extends string> {
   options: SelectOption<V>[];
   id?: string;
   size?: 'sm' | 'md';
+  disabled?: boolean;
   'aria-label'?: string;
   className?: string;
 }
@@ -82,11 +83,12 @@ export function Select<V extends string>({
   options,
   id,
   size = 'md',
+  disabled,
   className,
   ...rest
 }: SelectProps<V>) {
   return (
-    <RS.Root value={value} onValueChange={(v) => onChange(v as V)}>
+    <RS.Root value={value} onValueChange={(v) => onChange(v as V)} disabled={disabled}>
       <RS.Trigger
         id={id}
         className={clsx('select-trigger', size === 'sm' && 'select-trigger--sm', className)}

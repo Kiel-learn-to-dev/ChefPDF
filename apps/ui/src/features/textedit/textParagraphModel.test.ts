@@ -3,7 +3,6 @@ import {
   KEEP_STYLE,
   canApplyParagraph,
   editParagraphParams,
-  hasStyleChange,
   overlapHighlights,
   paragraphBox,
   paragraphLines,
@@ -70,12 +69,6 @@ describe('paragraph lines and text', () => {
 });
 
 describe('style', () => {
-  it('detects whether any style field changes', () => {
-    expect(hasStyleChange(KEEP_STYLE)).toBe(false);
-    expect(hasStyleChange({ ...KEEP_STYLE, align: 'justify' })).toBe(true);
-    expect(hasStyleChange({ ...KEEP_STYLE, lineSpacing: 14 })).toBe(true);
-  });
-
   it('applies only the chosen style fields in styleParagraph', () => {
     const p = styleParagraphParams(1, 'P1', { ...KEEP_STYLE, bold: true, color: '#c00000' });
     expect(p).toMatchObject({
@@ -111,10 +104,9 @@ describe('style', () => {
     ).toBe('serif');
   });
 
-  it('allows apply when the text or the style changed', () => {
-    expect(canApplyParagraph('a b', 'a b', KEEP_STYLE)).toBe(false);
-    expect(canApplyParagraph('a b', 'a c', KEEP_STYLE)).toBe(true);
-    expect(canApplyParagraph('a b', 'a b', { ...KEEP_STYLE, italic: true })).toBe(true);
+  it('allows apply only when the text changed (the format bar applies the style)', () => {
+    expect(canApplyParagraph('a b', 'a b')).toBe(false);
+    expect(canApplyParagraph('a b', 'a c')).toBe(true);
   });
 });
 

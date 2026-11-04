@@ -20,6 +20,7 @@ import { useGlobalShortcuts } from './useGlobalShortcuts';
 import { DocumentTabs } from './DocumentTabs';
 import { FunctionTabs } from './FunctionTabs';
 import { Toolbar } from './Toolbar';
+import { TextFormatBar } from '../features/textedit/TextFormatBar';
 import { Sidebar } from './Sidebar';
 import { PropertiesPanel } from './PropertiesPanel';
 import { StatusBar } from './StatusBar';
@@ -100,6 +101,7 @@ export function App() {
             <div className="chrome">
               <FunctionTabs />
               <Toolbar />
+              <TextFormatBar doc={doc} />
             </div>
             <Workspace doc={doc} />
           </>
