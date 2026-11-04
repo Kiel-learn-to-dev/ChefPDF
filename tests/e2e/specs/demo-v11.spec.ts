@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { launchApp, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { launchUnderTest, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -76,7 +76,7 @@ test('demo v1.1: edit mode, one paragraph formatted and re-typed, saved text has
   test.setTimeout(240_000);
   const file = path.join(corpus, `demo-v11-${Date.now()}.pdf`);
   fs.copyFileSync(path.join(corpus, 'contract.pdf'), file);
-  launched = await launchApp({ args: [file], env: { CHEF_CORE_CMD: realCoreCmd } });
+  launched = await launchUnderTest({ args: [file], env: { CHEF_CORE_CMD: realCoreCmd } });
   const l = launched;
   await l.page.setViewportSize({ width: 1280, height: 800 });
   await l.page.waitForSelector('.pdfViewer .page canvas', { timeout: 30_000 });

@@ -3566,6 +3566,7 @@
       "smaller": "Giảm cỡ chữ",
       "bigger": "Tăng cỡ chữ",
       "indent": "Thụt lề dòng đầu (pt)",
+      "lineSpacing": "Khoảng dòng (pt)",
       "editText": "Sửa nội dung đoạn",
       "pick": "Chọn một đoạn trên trang để định dạng.",
       "alignNone": "Căn lề (chưa rõ)"

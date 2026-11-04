@@ -112,6 +112,8 @@ test('signed original, editable copy, scan, save, reopen: the copy has no text l
   await expect(page.locator('.doctab__dirty')).toHaveCount(0, { timeout: 120_000 });
   const afterSave = pdfState(copyPath);
   console.log('B1s copy right after save', JSON.stringify(afterSave));
+  // B12: the status bar of the copy says it has no text layer any more.
+  await expect(launched.page.locator('.status')).toContainText('Bản scan');
   await launched.app.close();
   launched = null;
 

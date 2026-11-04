@@ -39,6 +39,7 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
   const [sizeDraft, setSizeDraft] = useState<string | null>(null);
   const [indentDraft, setIndentDraft] = useState<string | null>(null);
   const [colourDraft, setColourDraft] = useState<string | null>(null);
+  const [lineDraft, setLineDraft] = useState<string | null>(null);
 
   const page = pid ? pageOfParagraph(pid) : null;
   const fmt =
@@ -86,6 +87,14 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
     useTextEdit
       .getState()
       .openParagraph({ pageIndex: page, paragraphId: pid, original: text, text });
+  };
+
+  // Line spacing is not read back (getLines has no pitch), so the field is empty: it means keep.
+  const commitLineSpacing = () => {
+    const raw = lineDraft;
+    setLineDraft(null);
+    const n = Number(raw);
+    if (fmt && raw !== null && raw.trim() !== '' && n > 0) change({ lineSpacing: n });
   };
 
   const commitColour = () => {
@@ -196,6 +205,19 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         onChange={(e) => setIndentDraft(e.target.value)}
         onBlur={commitIndent}
         onKeyDown={(e) => e.key === 'Enter' && commitIndent()}
+      />
+      <TextInput
+        aria-label={t('textEdit.fmt.lineSpacing')}
+        title={t('textEdit.fmt.lineSpacing')}
+        placeholder={t('textEdit.fmt.lineSpacing')}
+        type="number"
+        min={1}
+        step={0.5}
+        disabled={locked}
+        value={lineDraft ?? ''}
+        onChange={(e) => setLineDraft(e.target.value)}
+        onBlur={commitLineSpacing}
+        onKeyDown={(e) => e.key === 'Enter' && commitLineSpacing()}
       />
       <input
         type="color"

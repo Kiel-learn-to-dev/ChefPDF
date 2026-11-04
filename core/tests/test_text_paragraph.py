@@ -386,3 +386,26 @@ def test_an_indented_paragraph_after_a_justified_run_stays_separate(
     first = para_of("Điều một")
     assert para_of("thanh toán theo") == first
     assert para_of("Điều hai") != first
+
+
+@pytest.mark.parametrize("align", ["center", "right"])
+def test_two_line_paragraph_stays_one_paragraph_when_centred_or_right_aligned(
+    harness: Harness, tmp_path: Path, align: str
+) -> None:
+    src = _rows(
+        tmp_path / "two_lines.pdf",
+        [
+            (60, 700, 10, "Hợp đồng này quy định việc cung cấp dịch vụ giữa các bên", False),
+            (60, 686, 10, "theo đúng điều khoản", False),
+        ],
+    )
+    sid = _sid(harness, src)
+    before = _page(harness, sid)
+    para = _paragraph_of(before, "Hợp đồng này")
+    assert len(para["lines"]) == 2
+    text_before = _paragraph_text(before, "Hợp đồng này")
+    count_before = len(before["paragraphs"])
+    _edit(harness, sid, para["id"], None, align=align)
+    after = _page(harness, sid)
+    assert len(after["paragraphs"]) == count_before
+    assert _paragraph_text(after, "Hợp đồng này") == text_before

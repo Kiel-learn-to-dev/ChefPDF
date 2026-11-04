@@ -1,15 +1,16 @@
 /**
  * Format bar (D14, 1.1): built UI + Electron shell + the REAL Python core.
- * A click on a line selects its paragraph; the bar then changes bold, size, alignment and indent at
- * once. Three changes in a row must each keep the paragraph selected (no STALE_OBJECT_IDS), and one
- * Ctrl+Z undoes exactly one change. Requires `pnpm --filter @chef/ui build` and `uv`.
+ * A click on a line selects its paragraph; the bar then changes bold, alignment, line spacing and
+ * size at once. Each change keeps the paragraph selected (no STALE_OBJECT_IDS), and one Ctrl+Z undoes
+ * exactly one change. With CHEF_E2E_EXE set it runs the packaged exe. Requires `pnpm --filter
+ * @chef/ui build` and `uv`.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { launchApp, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { launchUnderTest, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -73,7 +74,7 @@ test('format bar: bold, centre and size in a row keep the paragraph; one Ctrl+Z 
   test.setTimeout(180_000);
   const file = path.join(corpus, `format-row-${Date.now()}.pdf`);
   fs.copyFileSync(path.join(corpus, 'contract.pdf'), file);
-  launched = await launchApp({ args: [file], env: { CHEF_CORE_CMD: realCoreCmd } });
+  launched = await launchUnderTest({ args: [file], env: { CHEF_CORE_CMD: realCoreCmd } });
   const l = launched;
   await l.page.setViewportSize({ width: 1280, height: 800 });
   await l.page.waitForSelector('.pdfViewer .page canvas', { timeout: 30_000 });
@@ -105,6 +106,11 @@ test('format bar: bold, centre and size in a row keep the paragraph; one Ctrl+Z 
   await align.click();
   await l.page.getByRole('option', { name: 'Giữa' }).click();
   await expect(align).toHaveText(/Giữa/, { timeout: 30_000 });
+  const spacing = bar.getByLabel('Khoảng dòng (pt)');
+  await spacing.fill('16');
+  await spacing.press('Enter');
+  await expect(bold).toBeEnabled({ timeout: 30_000 });
+  await expect(spacing).toHaveValue('');
   await bigger.click();
   await expect(size).toHaveValue(String(start + 1), { timeout: 30_000 });
 
@@ -134,7 +140,11 @@ test('format bar: bold, centre and size in a row keep the paragraph; one Ctrl+Z 
   await expect(bold).toHaveAttribute('aria-pressed', 'true');
   await expect(align).toHaveText(/Giữa/);
 
-  // The next undo removes the alignment, the one after that the bold.
+  // The next undo removes the line spacing (the bar shows no pitch, so nothing visible changes),
+  // then the alignment, then the bold.
+  await l.page.keyboard.press('Control+z');
+  await expect(align).toHaveText(/Giữa/);
+  await expect(bold).toHaveAttribute('aria-pressed', 'true');
   await l.page.keyboard.press('Control+z');
   await expect(align).toHaveText(alignStart, { timeout: 30_000 });
   await expect(bold).toHaveAttribute('aria-pressed', 'true');

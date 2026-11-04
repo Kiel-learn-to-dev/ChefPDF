@@ -3586,6 +3586,7 @@
       "smaller": "Smaller text",
       "bigger": "Larger text",
       "indent": "First-line indent (pt)",
+      "lineSpacing": "Line spacing (pt)",
       "editText": "Edit paragraph text",
       "pick": "Select a paragraph on the page to format it.",
       "alignNone": "Alignment (unknown)"
