@@ -120,6 +120,10 @@ export async function launchUnderTest(o: LaunchOptions = {}): Promise<Launched> 
   }
   const extra: Record<string, string> = { ...(o.env ?? {}) };
   delete extra.CHEF_CORE_CMD; // the packaged exe runs its own bundled core
+  // Test windows stay off screen and do not take focus, as in dev (D51); a spec that needs a real
+  // visible window (the wheel) asks for it with `visible`.
+  if (o.visible === true) extra.CHEF_E2E_SHOW = '1';
+  else extra.CHEF_E2E_OFFSCREEN = '1';
   const app = await _electron.launch({
     executablePath: exe,
     args: o.args ?? [],

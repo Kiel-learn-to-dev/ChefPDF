@@ -250,8 +250,12 @@ async function onReady(): Promise<void> {
       devServerUrl,
       title: APP_TITLE,
       log,
+      // E2E runs keep the window off screen (dev with CHEF_E2E, packaged with CHEF_E2E_OFFSCREEN)
+      // unless a spec asks for a visible one (CHEF_E2E_SHOW).
       offscreen:
-        !app.isPackaged && process.env.CHEF_E2E === '1' && process.env.CHEF_E2E_SHOW !== '1',
+        process.env.CHEF_E2E_SHOW !== '1' &&
+        ((!app.isPackaged && process.env.CHEF_E2E === '1') ||
+          process.env.CHEF_E2E_OFFSCREEN === '1'),
     });
     mainWindow = win;
     const deliverFiles = (paths: string[]) => {
