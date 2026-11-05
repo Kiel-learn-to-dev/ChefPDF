@@ -92,6 +92,11 @@ def load_registry() -> tuple[FontEntry, ...]:
 
 
 def entry(font_id: str) -> FontEntry | None:
+    """A bundled font by id, or a font installed on the computer (``sys:`` ids)."""
+    if font_id.startswith("sys:"):
+        from chef_core.text.system_fonts import system_entry
+
+        return system_entry(font_id)
     for item in load_registry():
         if item.id == font_id:
             return item

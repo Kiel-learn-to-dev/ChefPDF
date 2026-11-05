@@ -91,7 +91,8 @@ def test_a_two_line_block_that_stops_short_is_not_justified(tmp_path: Path) -> N
     "text",
     [
         TEXTS[0],
-        "Hợp đồng  này có  khoảng trắng kép\nvà xuống dòng cứng, rồi thêm một câu dài để xuống dòng.",
+        "Hợp đồng  này có  khoảng trắng kép\nvà xuống dòng cứng, "
+        "rồi thêm một câu dài để xuống dòng.",
     ],
 )
 def test_every_row_character_points_at_its_own_character_in_the_text(

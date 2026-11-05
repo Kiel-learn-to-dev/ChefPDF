@@ -269,8 +269,11 @@ def test_signed_document_blocks_text_edits(harness: Harness, corpus: dict[str, P
 def test_list_fonts_has_the_bundled_faces(harness: Harness, tmp_path: Path) -> None:
     sid = _sid(harness, vietnamese_pdf(tmp_path / "fonts.pdf"))
     fonts = harness.op("text.listFonts", {}, sid)["data"]["fonts"]
-    assert [f["id"] for f in fonts] == ["BeVietnamPro-Regular", "BeVietnamPro-Bold"]
-    assert all(f["coverage"] == "vietnamese" for f in fonts)
+    bundled = [f for f in fonts if f["source"] == "bundled"]
+    assert [f["id"] for f in bundled] == ["BeVietnamPro-Regular", "BeVietnamPro-Bold"]
+    assert all(f["coverage"] == "vietnamese" for f in bundled)
+    # The fonts installed on the computer follow the bundled ones, marked as such.
+    assert all(f["source"] == "system" for f in fonts[len(bundled) :])
 
 
 def test_raw_content_still_renders_after_an_edit(harness: Harness, tmp_path: Path) -> None:

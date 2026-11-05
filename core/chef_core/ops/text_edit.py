@@ -43,6 +43,7 @@ from chef_core.text.edit import (
 from chef_core.text.find import apply_spans, find_spans, replacement_for
 from chef_core.text.fonts import load_registry
 from chef_core.text.model import TextLine, TextPage, parse_line_id
+from chef_core.text.system_fonts import system_entries
 
 FontStrategy = Literal["auto", "keep", "replace"]
 FitWidth = Literal["none", "shrink", "track"]
@@ -207,7 +208,10 @@ class TextListFontsParams(WireModel):
 
 @operation(id="text.listFonts", title="Replacement fonts", group="text", params=TextListFontsParams)
 def list_fonts(ctx: OpContext, p: TextListFontsParams) -> OpOutput:
+    """The bundled fonts, then the fonts installed on this computer (source: bundled | system)."""
     del ctx, p
+    bundled = [(f, "bundled") for f in load_registry()]
+    installed = [(f, "system") for f in system_entries()]
     return OpOutput(
         changed_pages=[],
         data={
@@ -220,8 +224,9 @@ def list_fonts(ctx: OpContext, p: TextListFontsParams) -> OpOutput:
                     "italic": f.italic,
                     "coverage": f.coverage,
                     "license": f.license,
+                    "source": source,
                 }
-                for f in load_registry()
+                for f, source in bundled + installed
             ]
         },
     )

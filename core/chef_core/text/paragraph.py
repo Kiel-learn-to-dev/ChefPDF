@@ -49,6 +49,7 @@ from chef_core.text.edit import FontBook, advance_only, find_et, font_cap, resou
 from chef_core.text.fontcap import FontCapability
 from chef_core.text.fonts import FontEntry, Wanted, covers, entry, load_registry, pick
 from chef_core.text.model import TextLine, TextPage, TextParagraph
+from chef_core.text.system_fonts import match_original
 
 STRATEGIES = ("auto", "keep", "replace")
 ALIGNS = ("keep", "left", "right", "center", "justify")
@@ -255,6 +256,17 @@ def _choose(
         if missing:
             raise invalid_params("TEXT_GLYPH_MISSING", {"missing": missing})
         raise invalid_params("TEXT_KEEP_UNSUPPORTED", {"reason": "font"})
+    if missing and opts.keep_style and not style_changed:
+        # The document's own font, installed on this computer, writes the missing characters: it is
+        # used before any bundled font, so a font that exists is not swapped for another one.
+        cps = {ord(c) for c in text if c not in "\r\n\t"}
+        matched = match_original(dom.font_name, cps, bold, italic)
+        if matched is not None:
+            warnings.append(
+                f"Đã dùng font {matched.family} của máy thay cho {dom.font_name} "
+                f"vì font gốc thiếu: {''.join(missing)}"
+            )
+            return _Writer(None, matched)
     sub = _registry(dom, text, bold, italic, opts, warnings)
     assert sub.item is not None
     if missing:
@@ -636,12 +648,20 @@ def preview_rows(page: TextPage, plan: ParagraphPlan) -> list[dict[str, Any]]:
     return rows
 
 
+def _font_label(font_id: str | None) -> str | None:
+    """A font for people to read: the family of an installed font, else the bundled id."""
+    if font_id is None or not font_id.startswith("sys:"):
+        return font_id
+    item = entry(font_id)
+    return item.family if item is not None else font_id
+
+
 def plan_json(plan: ParagraphPlan) -> dict[str, Any]:
     return {
         "paragraphId": plan.paragraph_id,
         "action": plan.action,
         "fontFrom": plan.font_from,
-        "fontTo": plan.font_to,
+        "fontTo": _font_label(plan.font_to),
         "fontSize": round(plan.font_size, 3),
         "lineCount": plan.line_count,
         "pitch": round(plan.pitch, 3),
