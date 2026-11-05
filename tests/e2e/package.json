@@ -1,6 +1,6 @@
 {
   "name": "@chef/e2e",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Playwright end-to-end tests for the Electron app",

@@ -1,7 +1,7 @@
 {
   "name": "chef-pdf",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.2.0",
   "description": "Chef PDF - desktop PDF app (personal use)",
   "packageManager": "pnpm@10.28.0",
   "engines": {
