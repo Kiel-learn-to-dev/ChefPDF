@@ -20,7 +20,7 @@ import type { ChefEvent, RpcNotification, RpcNotifications, Settings } from '@ch
 import { APP_SCHEME, FILE_SCHEME, IpcChannels } from '../shared/ipc';
 import { PathAllowlist } from './allowlist';
 import { buildCsp } from './csp';
-import { defaultOpenFilters, registerIpc } from './ipc';
+import { registerIpc } from './ipc';
 import { labelsFor } from './labels';
 import { RotatingLog } from './logger';
 import { installMenu } from './menu';
@@ -225,13 +225,12 @@ async function onReady(): Promise<void> {
     trustedOrigins: origins,
     labels: () => labelsFor(settings.get().language),
     log,
+    openLogs: () => void shell.openPath(logsDir),
+    openDataDir: () => void shell.openPath(userData),
   });
 
   const menuActions = {
-    open: () => void showOpenFromMenu(),
     about: () => void showAbout(),
-    openLogs: () => void shell.openPath(logsDir),
-    openDataDir: () => void shell.openPath(userData),
   };
   const applyMenu = (s: Settings): void =>
     installMenu(labelsFor(s.language), menuActions, { platform: process.platform, isDev });
@@ -329,18 +328,6 @@ function hardenSession(): void {
       callback({ responseHeaders: headers });
     });
   }
-}
-
-async function showOpenFromMenu(): Promise<void> {
-  const l = labelsFor(settings.get().language);
-  const opts = {
-    properties: ['openFile', 'multiSelections'] as Array<'openFile' | 'multiSelections'>,
-    filters: defaultOpenFilters(l),
-  };
-  const res = mainWindow
-    ? await dialog.showOpenDialog(mainWindow, opts)
-    : await dialog.showOpenDialog(opts);
-  if (!res.canceled && res.filePaths.length > 0) openFiles.add(res.filePaths);
 }
 
 async function showAbout(): Promise<void> {

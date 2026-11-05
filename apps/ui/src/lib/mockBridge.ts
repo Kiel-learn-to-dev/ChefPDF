@@ -2117,7 +2117,7 @@ export function createMockBridge(): ChefBridge {
   async function handle(method: RpcMethod, params: unknown): Promise<unknown> {
     switch (method) {
       case 'system.ping':
-        return { version: '0.1.0-mock', python: 'n/a' };
+        return { version: '1.2.0-mock', python: 'n/a' };
       case 'system.shutdown':
         return null;
       case 'ops.list':
@@ -2290,12 +2290,15 @@ export function createMockBridge(): ChefBridge {
       },
     },
     app: {
-      version: '0.1.0-dev',
+      version: '1.2.0-dev',
       platform: navigator.platform.toLowerCase().includes('mac')
         ? 'darwin'
         : navigator.platform.toLowerCase().includes('win')
           ? 'win32'
           : 'linux',
+      versions: { electron: 'mock', chrome: 'mock', node: 'mock' },
+      async openLogs() {},
+      async openDataDir() {},
       async initialFiles() {
         const demo = new URLSearchParams(location.search).get('demo');
         if (demo === null) return [];

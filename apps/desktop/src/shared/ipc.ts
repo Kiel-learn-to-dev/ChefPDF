@@ -14,6 +14,8 @@ export const IpcChannels = {
   settingsSet: 'chef:settings.set',
   settingsAddRecent: 'chef:settings.addRecent',
   appInitialFiles: 'chef:app.initialFiles',
+  appOpenLogs: 'chef:app.openLogs',
+  appOpenDataDir: 'chef:app.openDataDir',
   clipboardWriteText: 'chef:clipboard.writeText',
   clipboardWriteImagePng: 'chef:clipboard.writeImagePng',
   clipboardReadImagePng: 'chef:clipboard.readImagePng',

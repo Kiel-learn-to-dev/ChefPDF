@@ -1,26 +1,32 @@
-/**
- * Native application menu. Edit/View use standard roles; app actions are minimal for v0.1.
- */
+/** Native menu: none on Windows and Linux; a minimal app menu and Edit on macOS (1.2). */
 import { Menu, type MenuItemConstructorOptions } from 'electron';
 import type { Labels } from './labels';
 
 export interface MenuActions {
-  open(): void;
   about(): void;
-  openLogs(): void;
-  openDataDir(): void;
 }
 
-export function buildMenuTemplate(
+/**
+ * Menu bar (1.2). Windows and Linux have none: their keys (Ctrl+O, zoom, F11) belong to the window
+ * and the app. macOS keeps a minimal menu: the Edit items are what Cmd+C, Cmd+V, Cmd+X, Cmd+A and
+ * Cmd+Z use there.
+ */
+export function installMenu(
   l: Labels,
   actions: MenuActions,
   opts: { platform: NodeJS.Platform; isDev: boolean },
-): MenuItemConstructorOptions[] {
-  const mac = opts.platform === 'darwin';
-  const template: MenuItemConstructorOptions[] = [];
+): void {
+  if (opts.platform !== 'darwin') {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+  Menu.setApplicationMenu(Menu.buildFromTemplate(macMenuTemplate(l, actions)));
+}
 
-  if (mac) {
-    template.push({
+/** The macOS menu of 1.2: the app menu and Edit only. */
+export function macMenuTemplate(l: Labels, actions: MenuActions): MenuItemConstructorOptions[] {
+  return [
+    {
       label: l.appName,
       submenu: [
         { label: l.about, click: actions.about },
@@ -33,88 +39,18 @@ export function buildMenuTemplate(
         { type: 'separator' },
         { role: 'quit', label: l.quit },
       ],
-    });
-  }
-
-  template.push({
-    label: l.file,
-    submenu: [
-      // The window handles Ctrl+O itself; registering it here as well opens two dialogs on
-      // Linux and macOS. The menu only shows the shortcut.
-      {
-        label: l.open,
-        accelerator: 'CmdOrCtrl+O',
-        registerAccelerator: false,
-        click: actions.open,
-      },
-      { type: 'separator' },
-      mac ? { role: 'close', label: l.closeWindow } : { role: 'quit', label: l.quit },
-    ],
-  });
-
-  template.push({
-    label: l.edit,
-    submenu: [
-      { role: 'undo', label: l.undo },
-      { role: 'redo', label: l.redo },
-      { type: 'separator' },
-      { role: 'cut', label: l.cut },
-      { role: 'copy', label: l.copy },
-      { role: 'paste', label: l.paste },
-      { role: 'selectAll', label: l.selectAll },
-    ],
-  });
-
-  template.push({
-    label: l.view,
-    submenu: [
-      ...(opts.isDev
-        ? ([{ role: 'reload', label: l.reload }] satisfies MenuItemConstructorOptions[])
-        : []),
-      { role: 'toggleDevTools', label: l.devTools },
-      { type: 'separator' },
-      { role: 'resetZoom', label: l.resetZoom },
-      { role: 'zoomIn', label: l.zoomIn },
-      { role: 'zoomOut', label: l.zoomOut },
-      { type: 'separator' },
-      { role: 'togglefullscreen', label: l.fullscreen },
-    ],
-  });
-
-  template.push({
-    label: l.window,
-    submenu: mac
-      ? [
-          { role: 'minimize', label: l.minimize },
-          { role: 'zoom', label: l.zoom },
-          { type: 'separator' },
-          { role: 'front', label: l.front },
-        ]
-      : [
-          { role: 'minimize', label: l.minimize },
-          { role: 'close', label: l.closeWindow },
-        ],
-  });
-
-  template.push({
-    role: 'help',
-    label: l.help,
-    submenu: [
-      ...(mac
-        ? []
-        : ([{ label: l.about, click: actions.about }] satisfies MenuItemConstructorOptions[])),
-      { label: l.openLogs, click: actions.openLogs },
-      { label: l.openData, click: actions.openDataDir },
-    ],
-  });
-
-  return template;
-}
-
-export function installMenu(
-  l: Labels,
-  actions: MenuActions,
-  opts: { platform: NodeJS.Platform; isDev: boolean },
-): void {
-  Menu.setApplicationMenu(Menu.buildFromTemplate(buildMenuTemplate(l, actions, opts)));
+    },
+    {
+      label: l.edit,
+      submenu: [
+        { role: 'undo', label: l.undo },
+        { role: 'redo', label: l.redo },
+        { type: 'separator' },
+        { role: 'cut', label: l.cut },
+        { role: 'copy', label: l.copy },
+        { role: 'paste', label: l.paste },
+        { role: 'selectAll', label: l.selectAll },
+      ],
+    },
+  ];
 }

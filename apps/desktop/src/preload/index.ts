@@ -102,6 +102,14 @@ const bridge: ChefBridge = {
     version: appVersion,
     platform,
     initialFiles: () => ipcRenderer.invoke(IpcChannels.appInitialFiles),
+    /** Versions of the runtime, for the About tab. */
+    versions: {
+      electron: process.versions.electron ?? '',
+      chrome: process.versions.chrome ?? '',
+      node: process.versions.node ?? '',
+    },
+    openLogs: () => ipcRenderer.invoke(IpcChannels.appOpenLogs),
+    openDataDir: () => ipcRenderer.invoke(IpcChannels.appOpenDataDir),
   },
 
   secrets: {

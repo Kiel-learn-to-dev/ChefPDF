@@ -65,6 +65,9 @@ export interface IpcDeps {
   trustedOrigins: Set<string>;
   labels(): Labels;
   log(message: string): void;
+  /** The About tab's folder buttons (1.2): the logs and the data folder, opened in the OS. */
+  openLogs(): void;
+  openDataDir(): void;
 }
 
 export function defaultOpenFilters(l: Labels): OpenDialogOptions['filters'] {
@@ -260,6 +263,8 @@ export function registerIpc(d: IpcDeps): void {
   handle(IpcChannels.captureStatus, () => captureCall(async () => d.capture.status()));
 
   handle(IpcChannels.appInitialFiles, () => d.openFiles.takeInitialFiles());
+  handle(IpcChannels.appOpenLogs, () => d.openLogs());
+  handle(IpcChannels.appOpenDataDir, () => d.openDataDir());
 
   handle(IpcChannels.clipboardWriteText, async (_event, text) => {
     await clipboard.writeText(validateText(text));

@@ -223,6 +223,11 @@ export interface ChefBridge {
     platform: 'win32' | 'darwin' | 'linux';
     /** Paths passed on the command line / by the OS at launch. */
     initialFiles(): Promise<string[]>;
+    /** Versions of the runtime (Electron, Chrome, Node), for the About tab. */
+    versions: { electron: string; chrome: string; node: string };
+    /** Opens the logs folder and the data folder in the OS file manager (About tab). */
+    openLogs(): Promise<void>;
+    openDataDir(): Promise<void>;
   };
   /**
    * Encrypted secrets with the OS keychain (Electron safeStorage). Only PFX passwords are stored

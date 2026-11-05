@@ -76,6 +76,21 @@ export function createMainWindow(o: CreateWindowOptions): BrowserWindow {
   });
 
   lockDownNavigation(win, trustedOrigins(o.devServerUrl));
+  // The keys of the menu items that are gone (1.2): F11 toggles full screen; in development the
+  // devtools and the reload stay available.
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    if (input.key === 'F11') {
+      event.preventDefault();
+      win.setFullScreen(!win.isFullScreen());
+    } else if (o.devServerUrl && input.control && input.shift && input.key.toLowerCase() === 'i') {
+      event.preventDefault();
+      win.webContents.toggleDevTools();
+    } else if (o.devServerUrl && input.control && input.key.toLowerCase() === 'r') {
+      event.preventDefault();
+      win.webContents.reload();
+    }
+  });
   persistGeometry(win, o.statePath);
 
   win.once('ready-to-show', () => {
