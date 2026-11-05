@@ -138,7 +138,7 @@ test('side-by-side view navigates independently within the same document', async
     path.join(corpus, 'vietnamese_text.pdf'),
   );
   await l.page.keyboard.press('Control+o');
-  await expect(l.page.locator('.doctab')).toHaveCount(2);
+  await expect(l.page.locator('.doctab:not(.doctab--about)')).toHaveCount(2);
   const select = pane.getByRole('combobox', { name: 'Tài liệu bên phải' });
   await expect(select.locator('option')).toHaveCount(2);
   await select.selectOption({ label: 'outline_10p.pdf' });

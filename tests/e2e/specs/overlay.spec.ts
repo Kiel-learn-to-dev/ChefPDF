@@ -172,7 +172,12 @@ test('adds a Vietnamese text to page 1 and the saved file has it', async () => {
   const file = copyOf('outline_10p.pdf', 'text.pdf');
   const l = await open(file);
   await openEditTab(l);
-  await l.page.click('.toolbar__btn:has-text("Thêm chữ")');
+  // The options of a new text (size, colour, pages) are in the Sửa chữ format row (D66).
+  await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
+  await l.page
+    .getByRole('toolbar', { name: 'Định dạng chữ' })
+    .getByRole('button', { name: 'Tùy chọn…' })
+    .click();
   await expect(l.page.locator('.dlg__title')).toHaveText('Thêm chữ');
 
   await l.page.fill('#ov-text-content', 'Bản sao có kiểm soát');
@@ -241,7 +246,7 @@ test('a watermark is listed by the overlay manager and "Xóa" removes it from th
 test('a signed document disables the edit buttons and says why', async () => {
   const l = await open(path.join(corpus, 'fake_signed.pdf'));
   await openEditTab(l);
-  const labels = ['Thêm chữ', 'Thêm ảnh', 'Watermark', 'Header/Footer', 'Số trang', 'Mã QR/vạch'];
+  const labels = ['Sửa chữ', 'Thêm ảnh', 'Watermark', 'Header/Footer', 'Số trang', 'Mã QR/vạch'];
   for (const label of labels) {
     const hint = l.page.locator('.toolbar__hint', {
       has: l.page.locator(`button:has-text("${label}")`),

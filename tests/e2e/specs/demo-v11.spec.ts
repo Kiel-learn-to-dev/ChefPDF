@@ -12,6 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { launchUnderTest, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { clickEdit, selectLine } from '../fixtures/textedit';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -88,11 +89,7 @@ test('demo v1.1: edit mode, one paragraph formatted and re-typed, saved text has
   await expect(l.page.locator('.status')).toContainText('Có chữ');
 
   // 2. A click selects the paragraph; the bar has its controls on.
-  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await box.waitFor({ timeout: 30_000 });
-  const bounds = await box.boundingBox();
-  if (!bounds) throw new Error('Text line has no bounding box');
-  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await selectLine(l.page, OLD_LINE);
   const bar = l.page.getByRole('toolbar', { name: 'Định dạng chữ' });
   const bold = bar.getByRole('button', { name: 'In đậm' });
   const size = bar.getByLabel('Cỡ chữ (pt)');
@@ -120,12 +117,8 @@ test('demo v1.1: edit mode, one paragraph formatted and re-typed, saved text has
   await expect(bold).toHaveAttribute('aria-pressed', 'false', { timeout: 30_000 });
 
   // 4. Re-type the paragraph in place (D62): a click opens it, Ctrl+A, the new text, a click outside.
-  const again = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await again.waitFor({ timeout: 30_000 });
-  const spot = await again.boundingBox();
-  if (!spot) throw new Error('Text line has no bounding box');
-  await l.page.mouse.click(spot.x + spot.width / 2, spot.y + spot.height / 2);
-  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await selectLine(l.page, OLD_LINE);
+  await clickEdit(l.page);
   await l.page.keyboard.press('Control+a');
   await l.page.keyboard.type(`${NEW_SENTENCE} Mọi khoản phí do bên B chịu.`);
   const pageBox = await l.page.locator('.pdfViewer .page canvas').first().boundingBox();

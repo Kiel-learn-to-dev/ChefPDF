@@ -78,7 +78,7 @@ test('after a second open of another file, the wheel scrolls that file', async (
   });
   await new Promise((resolve) => second.on('exit', resolve));
   await page.waitForSelector('.pdfViewer .page canvas', { timeout: 60_000 });
-  await expect(page.locator('.doctab')).toHaveCount(3);
+  await expect(page.locator('.doctab:not(.doctab--about)')).toHaveCount(3);
 
   const viewer = page.locator('.viewer__scroll');
   const box = await viewer.boundingBox();

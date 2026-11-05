@@ -207,7 +207,7 @@ test('image: the blue block is inverted with "Đảo màu" and the saved file sh
   const l = await open('image.pdf');
   await waitViewer(l);
   await l.page.click('.ftab >> text=Chỉnh sửa');
-  await l.page.locator('.toolbar__btn', { hasText: 'Chọn & sửa đối tượng' }).click();
+  await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
   await l.page.waitForSelector('[data-testid="object-box"]', { timeout: 30_000 });
   const p = await pagePoint(l, IMAGE_POINT);
   await l.page.mouse.click(p.x, p.y);
@@ -234,7 +234,7 @@ test('image: "Thay ảnh" puts the picked PNG in the place of the blue block', a
   const l = await open('image.pdf');
   await waitViewer(l);
   await l.page.click('.ftab >> text=Chỉnh sửa');
-  await l.page.locator('.toolbar__btn', { hasText: 'Chọn & sửa đối tượng' }).click();
+  await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
   await l.page.waitForSelector('[data-testid="object-box"]', { timeout: 30_000 });
   const p = await pagePoint(l, IMAGE_POINT);
   await l.page.mouse.click(p.x, p.y);

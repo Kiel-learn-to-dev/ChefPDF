@@ -17,6 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { launchApp, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { clickEdit, selectLine } from '../fixtures/textedit';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -205,15 +206,11 @@ test('demo v0.7: edit a sentence, replace the company name, highlight and note, 
   // (a) One Vietnamese sentence is replaced in place.
   await l.page.click('.ftab >> text=Chỉnh sửa');
   await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
-  const line = l.page.locator('[data-testid="tedit-box"][data-text*="Thanh toán trong vòng"]');
-  await line.waitFor({ timeout: 30_000 });
-  const bounds = await line.boundingBox();
-  if (!bounds) throw new Error('sentence has no bounding box');
-  // The paragraph is typed into (D62): a click opens it, Ctrl+A selects its text, the new text
-  // replaces it, and a click outside writes it. The original font cannot write ư and ớ: the chip
-  // says which font takes over.
-  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  // The sentence is selected by a drag and opened with Sửa (D65). Ctrl+A selects the textbox text,
+  // the new text replaces it, and a click outside writes it. The original font cannot write ư and ớ:
+  // the chip says which font takes over.
+  await selectLine(l.page, 'Thanh toán trong vòng');
+  await clickEdit(l.page);
   await l.page.keyboard.press('Control+a');
   await l.page.keyboard.type(`${NEW_SENTENCE} Mọi khoản phí do bên B chịu.`);
   await expect(l.page.locator('.tedit-chip--warn').first()).toBeVisible({ timeout: 15_000 });

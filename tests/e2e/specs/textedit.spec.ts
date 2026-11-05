@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { launchApp, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { clickEdit, selectLine } from '../fixtures/textedit';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -114,14 +115,10 @@ test('text edit: a sentence is typed into the paragraph; the saved text shows it
   await l.page.click('.ftab >> text=Chỉnh sửa');
   await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
 
-  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await box.waitFor({ timeout: 30_000 });
-  const bounds = await box.boundingBox();
-  if (!bounds) throw new Error('Text line has no bounding box');
   // A click on the text opens the paragraph for typing; Ctrl+A selects its text, then the new text
   // replaces it. The original font cannot write ư, ữ, ệ: the chip says which font takes over.
-  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await selectLine(l.page, OLD_LINE);
+  await clickEdit(l.page);
   await l.page.keyboard.press('Control+a');
   await l.page.keyboard.type(`${NEW_LINE}. Mọi khoản phí do bên B chịu.`);
   await expect(l.page.locator('.tedit-chip--warn').first()).toBeVisible({ timeout: 15_000 });
@@ -166,12 +163,8 @@ test('paragraph edit: a paragraph is re-typed in place and the saved result has 
   await waitViewer(l);
   await l.page.click('.ftab >> text=Chỉnh sửa');
   await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
-  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await box.waitFor({ timeout: 30_000 });
-  const bounds = await box.boundingBox();
-  if (!bounds) throw new Error('Text line has no bounding box');
-  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await selectLine(l.page, OLD_LINE);
+  await clickEdit(l.page);
   await l.page.keyboard.press('Control+a');
   await l.page.keyboard.type(NEW_LINE);
   await clickOutside(l);
@@ -189,11 +182,7 @@ test('paragraph style: change font size without changing the text', async () => 
   await waitViewer(l);
   await l.page.click('.ftab >> text=Chỉnh sửa');
   await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
-  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await box.waitFor({ timeout: 30_000 });
-  const bounds = await box.boundingBox();
-  if (!bounds) throw new Error('Text line has no bounding box');
-  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await selectLine(l.page, OLD_LINE);
   const size = l.page.getByRole('toolbar', { name: 'Định dạng chữ' }).getByLabel('Cỡ chữ (pt)');
   await size.fill('16');
   await size.press('Enter');

@@ -112,7 +112,7 @@ const at = (p: { left: number; top: number; scale: number }, pt: { x: number; y:
 
 async function enterObjectMode(l: Launched): Promise<void> {
   await l.page.click('.ftab >> text=Chỉnh sửa');
-  await l.page.locator('.toolbar__btn', { hasText: 'Chọn & sửa đối tượng' }).click();
+  await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
   await l.page.waitForSelector('[data-testid="object-box"]', { timeout: 30_000 });
 }
 

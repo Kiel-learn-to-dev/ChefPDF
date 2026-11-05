@@ -93,7 +93,9 @@ test('create a PDF from the selected pages: a new tab with those pages, the sour
   await l.page.getByRole('menuitem', { name: 'Tạo PDF từ 2 trang đã chọn' }).click();
 
   // The new file opens in a tab of its own and becomes the active one.
-  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(2, { timeout: 60_000 });
+  await expect(l.page.locator('.doctab:not(.doctab--home):not(.doctab--about)')).toHaveCount(2, {
+    timeout: 60_000,
+  });
   await expect(l.page.locator('.doctab.is-active')).toContainText('selected_2_4');
   await l.page.waitForFunction(() => !document.querySelector('.status__job.is-running'), null, {
     timeout: 30_000,
@@ -131,7 +133,7 @@ test('compress the selected pages: the new tab opens with the compress dialog', 
   await l.page.getByRole('menuitem', { name: 'Nén các trang đã chọn…' }).click();
 
   await expect(l.page.locator('.dlg__title')).toHaveText('Nén PDF');
-  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(2);
+  await expect(l.page.locator('.doctab:not(.doctab--home):not(.doctab--about)')).toHaveCount(2);
   await expect(l.page.locator('.doctab.is-active')).toContainText('selected_compress');
   expect(check(out, 'pagetexts')).toEqual({ texts: ['M2', 'M4'] });
 });
@@ -156,7 +158,9 @@ test('the sidebar thumbnails share the selection: Ctrl+click two pages, the menu
   await thumbs.nth(3).click({ button: 'right' });
   await l.page.getByRole('menuitem', { name: 'Tạo PDF từ 2 trang đã chọn' }).click();
 
-  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(2, { timeout: 60_000 });
+  await expect(l.page.locator('.doctab:not(.doctab--home):not(.doctab--about)')).toHaveCount(2, {
+    timeout: 60_000,
+  });
   await expect(l.page.locator('.doctab.is-active')).toContainText('sidebar_2_4');
   await l.page.waitForFunction(() => !document.querySelector('.status__job.is-running'), null, {
     timeout: 30_000,

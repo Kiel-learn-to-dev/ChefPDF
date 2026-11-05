@@ -175,8 +175,10 @@ async function measureNow(page: Page, r: ScreenResult, name: string): Promise<vo
 }
 
 /** Màn start: chạy riêng, không mở tài liệu. */
-async function auditStart(): Promise<ScreenResult> {
-  const r = blank({ name: 'start', kind: 'start' });
+async function auditStart(
+  screen: Screen = { name: 'start', kind: 'start' },
+): Promise<ScreenResult> {
+  const r = blank(screen);
   startApp = await launchApp({
     args: ['--force-device-scale-factor=1'],
     env: { CHEF_CORE_CMD: realCoreCmd },
@@ -188,7 +190,12 @@ async function auditStart(): Promise<ScreenResult> {
     .waitFor({ state: 'visible', timeout: 30_000 });
   const diag = new Diagnostics();
   diag.attach(startApp.page);
-  await measureNow(startApp.page, r, 'start');
+  if (screen.kind === 'about') {
+    // The About tab opens over the start screen (1.2): its own screen, measured the same way.
+    await startApp.page.locator('.doctab--about').click();
+    await startApp.page.locator('.about').waitFor({ state: 'visible', timeout: 30_000 });
+  }
+  await measureNow(startApp.page, r, screen.name);
   Object.assign(r, diag.since({ c: 0, p: 0 }));
   return r;
 }
@@ -246,7 +253,11 @@ async function auditEditScreen(screen: Screen): Promise<ScreenResult[]> {
       await line.waitFor({ timeout: 30_000 });
       const b = await line.boundingBox();
       if (!b) throw new Error('dòng chữ không có khung');
-      await l.page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+      // Chọn cả dòng bằng cách kéo (D65): hàng định dạng áp cho đoạn của chữ đã chọn.
+      await l.page.mouse.move(b.x + 1, b.y + b.height / 2);
+      await l.page.mouse.down();
+      await l.page.mouse.move(b.x + b.width - 1, b.y + b.height / 2, { steps: 6 });
+      await l.page.mouse.up();
       await l.page
         .getByRole('toolbar', { name: 'Định dạng chữ' })
         .getByRole('button', { name: 'In đậm' })
@@ -377,10 +388,10 @@ test.describe('UI audit (report only)', () => {
     test(screen.name, async () => {
       if (!wanted(screen.name)) test.skip(true, 'UI_AUDIT_ONLY');
       const started = Date.now();
-      if (screen.kind === 'start') {
+      if (screen.kind === 'start' || screen.kind === 'about') {
         let r: ScreenResult;
         try {
-          r = await auditStart();
+          r = await auditStart(screen);
         } catch (e) {
           r = { ...blank(screen), status: 'error', error: String(e).slice(0, 300) };
         } finally {

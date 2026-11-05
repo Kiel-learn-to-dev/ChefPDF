@@ -68,7 +68,7 @@ export function readSidebarTabs(src = readUiSource()): string[] {
 
 export interface Screen {
   name: string;
-  kind: 'start' | 'main' | 'overlay' | 'dialog' | 'edit';
+  kind: 'start' | 'main' | 'overlay' | 'dialog' | 'edit' | 'about';
   tab?: string;
   sidebarTab?: string;
   overlay?: 'palette' | 'jobPanel' | 'findbar';
@@ -94,6 +94,8 @@ export function buildScreens(src = readUiSource()): Screen[] {
   }
   // Chế độ Chỉnh sửa: không có hook riêng, spec bật chế độ bằng thao tác trên giao diện.
   screens.push({ name: 'edit:textEdit', kind: 'edit' }, { name: 'edit:paragraph', kind: 'edit' });
+  // The About tab (1.2) opens over the start screen.
+  screens.push({ name: 'about', kind: 'about' });
   for (const dialog of readDialogIds(src)) {
     screens.push({ name: `dialog:${dialog}`, kind: 'dialog', dialog });
   }

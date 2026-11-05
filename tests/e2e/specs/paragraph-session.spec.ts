@@ -1,6 +1,6 @@
 /**
- * Paragraph session (1.1, D62): a click on text opens the paragraph for typing, like a word
- * processor. Built UI + Electron + the REAL Python core, on the text corpus.
+ * Textbox of a paragraph (1.1, D62, D65): the text selected on the page opens with Sửa, like a word
+ * processor's text box. Built UI + Electron + the REAL Python core, on the text corpus.
  * - typing at the caret, Backspace and Delete, then a click outside writes the paragraph (one save);
  * - Esc leaves the file's bytes as they were;
  * - one Ctrl+Z after the write reverts the whole session;
@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { launchUnderTest, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { clickEdit, selectLine } from '../fixtures/textedit';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -93,15 +94,10 @@ async function openEdit(): Promise<Launched> {
   return l;
 }
 
-/** Clicks the centre of the line that holds OLD_LINE: a click on text opens the session. */
+/** Selects the line that holds OLD_LINE by a drag, then opens it with Sửa (D65). */
 async function clickText(l: Launched): Promise<void> {
-  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await box.waitFor({ timeout: 30_000 });
-  const b = await box.boundingBox();
-  if (!b) throw new Error('text line has no box');
-  await l.page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
-  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
-  await expect(l.page.getByTestId('tedit-caret')).toBeVisible();
+  await selectLine(l.page, OLD_LINE);
+  await clickEdit(l.page);
 }
 
 /** Clicks the page margin: outside the paragraph, so the session is written. */
@@ -113,7 +109,7 @@ async function clickOutside(l: Launched): Promise<void> {
   await expect(l.page.getByTestId('tedit-session')).toHaveCount(0, { timeout: 30_000 });
 }
 
-test('a click mid-line, typing, Backspace and Delete; a click outside writes the paragraph', async () => {
+test('Sửa opens the selected line; typing, Backspace and Delete; a click outside writes the paragraph', async () => {
   test.setTimeout(180_000);
   const l = await openEdit();
   await clickText(l);
@@ -178,7 +174,9 @@ test('closing the tab with typed text asks first; "Bỏ chữ" closes and writes
     timeout: 30_000,
   });
   await l.page.getByRole('button', { name: 'Bỏ chữ' }).click();
-  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(0, { timeout: 30_000 });
+  await expect(l.page.locator('.doctab:not(.doctab--home):not(.doctab--about)')).toHaveCount(0, {
+    timeout: 30_000,
+  });
   expect(sha256(current)).toBe(before);
 });
 
@@ -197,5 +195,23 @@ test('closing with typed text: "Ghi chữ" writes it, then the document asks to 
     timeout: 30_000,
   });
   await l.page.getByRole('button', { name: 'Không lưu' }).click();
-  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(0, { timeout: 30_000 });
+  await expect(l.page.locator('.doctab:not(.doctab--home):not(.doctab--about)')).toHaveCount(0, {
+    timeout: 30_000,
+  });
+});
+
+test('deleting and retyping a character keeps the font of the paragraph (D65)', async () => {
+  test.setTimeout(120_000);
+  const l = await openEdit();
+  await clickText(l);
+  const glyph = l.page.locator('.tedit-sess__glyph').first();
+  await expect(glyph).toBeVisible({ timeout: 30_000 });
+  const fontOf = () => glyph.evaluate((el) => getComputedStyle(el).fontFamily);
+  const start = await fontOf();
+  await l.page.keyboard.press('Control+End');
+  await l.page.keyboard.press('Backspace');
+  await expect.poll(fontOf, { timeout: 15_000 }).toBe(start);
+  await l.page.keyboard.type('s');
+  await expect.poll(fontOf, { timeout: 15_000 }).toBe(start);
+  await l.page.keyboard.press('Escape');
 });

@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { launchUnderTest, removeTempDirs, repoRoot, type Launched } from '../fixtures/app';
+import { selectLine } from '../fixtures/textedit';
 
 const uiBuilt = fs.existsSync(path.join(repoRoot, 'apps', 'ui', 'dist', 'index.html'));
 const coreDir = path.join(repoRoot, 'core');
@@ -83,11 +84,8 @@ test('format bar: bold, centre and size in a row keep the paragraph; one Ctrl+Z 
 
   await l.page.click('.ftab >> text=Chỉnh sửa');
   await l.page.locator('.toolbar__btn', { hasText: 'Sửa chữ' }).click();
-  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
-  await box.waitFor({ timeout: 30_000 });
-  const bounds = await box.boundingBox();
-  if (!bounds) throw new Error('Text line has no bounding box');
-  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await selectLine(l.page, OLD_LINE);
+  const box = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`).first();
 
   const bar = l.page.getByRole('toolbar', { name: 'Định dạng chữ' });
   const bold = bar.getByRole('button', { name: 'In đậm' });
@@ -123,8 +121,9 @@ test('format bar: bold, centre and size in a row keep the paragraph; one Ctrl+Z 
   // On disk every line of the paragraph has the change, not only the first line.
   await l.page.keyboard.press('Control+s');
   await expect(l.page.locator('.doctab__dirty')).toHaveCount(0, { timeout: 120_000 });
+  const paragraph = await box.getAttribute('data-paragraph');
   const lineTexts = await l.page
-    .locator('[data-testid="tedit-box"].tedit-box--selected')
+    .locator(`[data-testid="tedit-box"][data-paragraph="${paragraph}"]`)
     .evaluateAll((els) => els.map((el) => el.getAttribute('data-text') ?? ''));
   expect(lineTexts.length).toBeGreaterThanOrEqual(2);
   for (const text of lineTexts) {
