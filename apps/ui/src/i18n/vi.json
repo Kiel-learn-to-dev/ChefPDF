@@ -882,6 +882,10 @@
     "warning": "Lưu ý khi lưu"
   },
   "close": {
+    "sessionTitle": "Chữ đang sửa chưa lưu",
+    "sessionMessage": "Đoạn chữ đang gõ trong “{{name}}” chưa được ghi vào văn bản. Bạn muốn ghi trước khi đóng không?",
+    "sessionDiscard": "Bỏ chữ",
+    "sessionSave": "Ghi chữ",
     "unsavedTitle": "Lưu thay đổi?",
     "unsavedMessage": "“{{name}}” có thay đổi chưa lưu. Bạn muốn lưu trước khi đóng không?",
     "discard": "Không lưu",

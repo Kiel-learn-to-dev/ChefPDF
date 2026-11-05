@@ -7,7 +7,8 @@
 import { textErrorCode, type TextErrorCode } from '../../lib/errors';
 import { runOp } from '../../lib/rpc';
 import { toast } from '../../components/Toast';
-import { errorMessage, runDocOp, showError } from '../../app/actions';
+import { errorMessage, onBeforeClose, runDocOp, showError } from '../../app/actions';
+import { confirmDialog } from '../../app/prompts';
 import { getDoc } from '../../app/state/documents';
 import { i18n } from '../../i18n';
 import { caretFromPoint, type SessionRow } from './textSession';
@@ -141,6 +142,7 @@ async function startSessionBody(
   if (own.length === 0) return;
   const text = paragraphText(lines, paragraphId);
   useTextEdit.getState().openSession({
+    docId,
     pageIndex,
     paragraphId,
     original: text,
@@ -361,6 +363,8 @@ async function runFormat(
   patch: Partial<ParagraphStyle>,
   fontName: string | null,
 ): Promise<boolean> {
+  // Text still being typed is written first, so the style applies to the text the reader sees.
+  if (useTextEdit.getState().session) await doCommit(docId);
   const store = useTextEdit.getState();
   const paragraphId = store.selectedParagraphId;
   const pageIndex = paragraphId ? pageOfParagraph(paragraphId) : null;
@@ -387,3 +391,29 @@ async function runFormat(
     useTextEdit.getState().setFormatBusy(false);
   }
 }
+
+// Closing a document with an open paragraph session asks first: write the typed text, drop it, or
+// stay (1.1). A failed write keeps the document open with the session.
+onBeforeClose(async (docId) => {
+  const s = useTextEdit.getState().session;
+  if (!s || s.docId !== docId) return true;
+  if (s.text === s.original) {
+    cancelSession();
+    return true;
+  }
+  const answer = await confirmDialog({
+    title: t('close.sessionTitle'),
+    message: t('close.sessionMessage'),
+    actions: [
+      { id: 'cancel', label: t('common.cancel'), variant: 'ghost' },
+      { id: 'discard', label: t('close.sessionDiscard') },
+      { id: 'save', label: t('close.sessionSave'), variant: 'primary' },
+    ],
+  });
+  if (answer === null || answer === 'cancel') return false;
+  if (answer === 'discard') {
+    cancelSession();
+    return true;
+  }
+  return commitSession(docId);
+});

@@ -115,7 +115,10 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         onChange={(v) => v !== 'pick' && change({}, v)}
         options={[
           { value: 'pick', label: t('textEdit.fmt.font') },
-          ...(fonts ?? []).map((f) => ({ value: f.id, label: f.family + (f.bold ? ' Bold' : '') })),
+          ...(fonts ?? []).map((f) => ({
+            value: f.id,
+            label: f.family + (f.bold ? ' Bold' : '') + (f.source === 'system' ? ' · máy' : ''),
+          })),
         ]}
         size="sm"
         disabled={locked}

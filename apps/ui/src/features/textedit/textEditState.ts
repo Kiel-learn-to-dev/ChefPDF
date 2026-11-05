@@ -21,6 +21,8 @@ export interface SessionNote {
  * (null until the first answer), and `seq` drops answers that come after a newer keystroke.
  */
 export interface ParaSession {
+  /** The document the session writes into. */
+  docId: string;
   pageIndex: number;
   /** The paragraph id of the revision the session started from. */
   paragraphId: string;
@@ -41,6 +43,8 @@ export interface ReplacementFont {
   style: string;
   bold: boolean;
   italic: boolean;
+  /** 'bundled' (shipped with the app) or 'system' (installed on this computer). */
+  source?: string;
 }
 
 interface TextEditState {
@@ -75,7 +79,9 @@ interface TextEditState {
   setHover(id: string | null): void;
   setFonts(fonts: ReplacementFont[]): void;
   setFontName(id: string | null): void;
-  openSession(s: Pick<ParaSession, 'pageIndex' | 'paragraphId' | 'original' | 'fontSize'>): void;
+  openSession(
+    s: Pick<ParaSession, 'docId' | 'pageIndex' | 'paragraphId' | 'original' | 'fontSize'>,
+  ): void;
   patchSession(patch: Partial<ParaSession>): void;
   closeSession(): void;
 }
@@ -94,7 +100,8 @@ export const useTextEdit = create<TextEditState>((set) => ({
   formatBusy: false,
   session: null,
   setActive(active) {
-    set(active ? { active } : { active, session: null, hoverId: null, selectedParagraphId: null });
+    // Turning the mode off keeps an open session: the layer writes it, so typed text is not lost.
+    set(active ? { active } : { active, hoverId: null, selectedParagraphId: null });
   },
   setSelectedParagraph(id) {
     set({ selectedParagraphId: id });

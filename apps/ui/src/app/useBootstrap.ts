@@ -10,6 +10,7 @@ import { isJobEvent, useJobStore } from '../features/jobs/jobStore';
 import { setLanguage } from '../i18n';
 import { closeDoc, openFiles } from './actions';
 import { useCoreRecovery } from './CoreStatusBanner';
+import { useTextEdit } from '../features/textedit/textEditState';
 import { useDocs } from './state/documents';
 import { useSettings } from './state/settings';
 import { useUi } from './state/ui';
@@ -84,7 +85,8 @@ export function useBootstrap() {
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (allowClose) return;
-      const dirty = useDocs.getState().docs.filter((d) => d.state.dirty);
+      const pending = useTextEdit.getState().session?.docId;
+      const dirty = useDocs.getState().docs.filter((d) => d.state.dirty || d.id === pending);
       if (dirty.length === 0) return;
       e.preventDefault();
       e.returnValue = '';

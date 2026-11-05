@@ -225,9 +225,7 @@ export function ParagraphSession({
           }
           onSelect={onSelect}
           onKeyDown={onKeyDown}
-          onBlur={() => {
-            if (!dragging.current) void commitSession(docId);
-          }}
+          // Losing the focus keeps the session: a click on the page writes it, and closing asks.
         />
       </div>
       <div className="tedit-sess__notes" style={{ left, top: Math.max(0, top - 26) }}>

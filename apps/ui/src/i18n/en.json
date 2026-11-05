@@ -902,6 +902,10 @@
     "warning": "Note about saving"
   },
   "close": {
+    "sessionTitle": "Unsaved paragraph text",
+    "sessionMessage": "The paragraph you are typing in “{{name}}” is not written into the document yet. Write it before closing?",
+    "sessionDiscard": "Discard text",
+    "sessionSave": "Write text",
     "unsavedTitle": "Save changes?",
     "unsavedMessage": "“{{name}}” has unsaved changes. Save before closing?",
     "discard": "Don’t save",

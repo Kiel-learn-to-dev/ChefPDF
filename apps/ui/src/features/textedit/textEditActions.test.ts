@@ -4,7 +4,9 @@ vi.mock('../../app/actions', () => ({
   runDocOp: vi.fn().mockResolvedValue(null),
   errorMessage: vi.fn(),
   showError: vi.fn(),
+  onBeforeClose: vi.fn(),
 }));
+vi.mock('../../app/prompts', () => ({ confirmDialog: vi.fn() }));
 vi.mock('../../lib/rpc', () => ({ runOp: vi.fn() }));
 
 import { runDocOp } from '../../app/actions';
@@ -15,6 +17,7 @@ describe('paragraph session commit', () => {
   beforeEach(() => {
     useTextEdit.getState().closeSession();
     useTextEdit.getState().openSession({
+      docId: 'document',
       pageIndex: 0,
       paragraphId: 'P0:aaaaaaaaaaaa:0',
       original: 'Original',

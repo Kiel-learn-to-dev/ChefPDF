@@ -168,6 +168,11 @@ export function TextEditLayer({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [active, doc.id, blocked]);
 
+  // Turning the mode off writes an open session: the typed text is not lost.
+  useEffect(() => {
+    if (!active) void commitSession(doc.id);
+  }, [active, doc.id]);
+
   if (!active) return null;
 
   const pageOf = (index: number) => pages.find((p) => p.index === index);

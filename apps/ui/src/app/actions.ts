@@ -194,10 +194,23 @@ export async function saveDoc(id: string, saveAs = false): Promise<boolean> {
 }
 
 /** Close a tab, asking to save unsaved changes. Returns false if the user cancelled. */
+/** Asks before a document closes (1.1: an open paragraph session). False keeps the document open. */
+type BeforeClose = (id: string) => Promise<boolean>;
+const beforeCloseHooks = new Set<BeforeClose>();
+
+export function onBeforeClose(hook: BeforeClose): void {
+  beforeCloseHooks.add(hook);
+}
+
 export async function closeDoc(id: string): Promise<boolean> {
   const doc = getDoc(id);
   if (!doc) return true;
-  if (doc.state.dirty) {
+  for (const hook of beforeCloseHooks) {
+    if (!(await hook(id))) return false;
+  }
+  // Read again: a hook may have written the document (the unsaved check comes after).
+  const current = getDoc(id) ?? doc;
+  if (current.state.dirty) {
     const answer = await confirmDialog({
       title: t('close.unsavedTitle'),
       message: t('close.unsavedMessage', { name: doc.name }),
