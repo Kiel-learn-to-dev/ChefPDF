@@ -4010,6 +4010,68 @@ export interface TextLayerParams {
 export interface TextListFontsParams {
 }
 
+/** Where a re-flow of the paragraph would put its text. Read only: nothing is written. */
+export interface TextPreviewParagraphParams {
+  /**
+   * auto: keep the font when it writes everything, else a registry font. keep: never change the font (error when characters are missing). replace: always a registry font.
+   * @default "auto"
+   */
+  fontStrategy?: 'auto' | 'keep' | 'replace';
+  /** Registry font id (text.listFonts); overrides fontStrategy. */
+  fontName?: string;
+  /**
+   * A registry font follows the sans/serif/mono class of the text.
+   * @default true
+   */
+  keepStyle?: boolean;
+  /**
+   * Alignment of the lines.
+   * @default "keep"
+   */
+  align?: 'keep' | 'left' | 'right' | 'center' | 'justify';
+  /**
+   * keep: the leading ratio of the paragraph; or a pitch in pt.
+   * @default "keep"
+   */
+  lineSpacing?: 'keep' | number;
+  /**
+   * keep or points.
+   * @default "keep"
+   */
+  fontSize?: 'keep' | number;
+  /**
+   * keep or #rrggbb.
+   * @default "keep"
+   */
+  color?: 'keep' | string;
+  /**
+   * keep or true/false.
+   * @default "keep"
+   */
+  bold?: 'keep' | boolean;
+  /**
+   * keep or true/false.
+   * @default "keep"
+   */
+  italic?: 'keep' | boolean;
+  /**
+   * keep: up to the right edge of the text block; or points.
+   * @default "keep"
+   */
+  boxWidth?: 'keep' | number;
+  /**
+   * keep: the indent of the first line; or points, >= 0.
+   * @default "keep"
+   */
+  indent?: 'keep' | number;
+  /** 0-based page. */
+  pageIndex: number;
+  /** Paragraph id from text.getLines. */
+  paragraphId: string;
+  /** The text the paragraph would have. */
+  newText: string;
+}
+
 /** Change the style of one paragraph; its text is kept. */
 export interface TextStyleParagraphParams {
   /**
@@ -4389,6 +4451,7 @@ export interface OpParams {
   'text.getLines': TextGetLinesParams;
   'text.layer': TextLayerParams;
   'text.listFonts': TextListFontsParams;
+  'text.previewParagraph': TextPreviewParagraphParams;
   'text.styleParagraph': TextStyleParagraphParams;
   'toc.fromHeadings': TocFromHeadingsParams;
   'toc.insertPage': TocInsertPageParams;
@@ -4585,6 +4648,7 @@ export const OP_IDS = [
   'text.getLines',
   'text.layer',
   'text.listFonts',
+  'text.previewParagraph',
   'text.styleParagraph',
   'toc.fromHeadings',
   'toc.insertPage',

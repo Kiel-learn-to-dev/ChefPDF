@@ -315,7 +315,12 @@ def _paragraphs(block: list[TextLine]) -> list[list[TextLine]]:
     return groups
 
 
-def _align(lines: list[TextLine]) -> str:
+def _align(lines: list[TextLine], edge: float) -> str:
+    """Alignment of a paragraph. ``edge`` is the right edge of its block (the column).
+
+    Justified needs lines that all start at one edge and end at the column edge: two lines whose
+    first line stops short of the column are left-aligned (a signature block, a short item).
+    """
     if len(lines) < 2:
         return "left"
     tol = max(1.0, 0.5 * max(ln.font_size for ln in lines))
@@ -323,7 +328,8 @@ def _align(lines: list[TextLine]) -> str:
     x1s = [ln.bbox[2] for ln in lines]
     centres = [(a + b) / 2 for a, b in zip(x0s, x1s, strict=True)]
     inner_right = [ln.bbox[2] for ln in lines[:-1]]
-    if max(inner_right) - min(inner_right) <= tol and max(x0s) - min(x0s) <= tol:
+    reaches_edge = min(inner_right) >= edge - tol
+    if reaches_edge and max(inner_right) - min(inner_right) <= tol and max(x0s) - min(x0s) <= tol:
         return "justify"
     if max(x0s) - min(x0s) <= tol:
         return "left"
@@ -387,7 +393,7 @@ def build_text_page(pdf: pikepdf.Pdf, page: pikepdf.Page, page_index: int) -> Te
         block_paragraph_ids: list[str] = []
         for group in _paragraphs(block):
             para_id = make_paragraph_id(page_index, model.digest, len(paragraphs))
-            align = _align(group)
+            align = _align(group, max(ln.bbox[2] for ln in block))
             role = _role(group, body_size, body_bold)
             indent = group[0].bbox[0] - min(ln.bbox[0] for ln in group) if len(group) > 1 else 0.0
             for ln in group:

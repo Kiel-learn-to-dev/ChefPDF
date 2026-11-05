@@ -580,6 +580,31 @@ def apply_paragraph(
     editor.ins_at.setdefault(plan.insert_at, []).extend(block)
 
 
+def preview_rows(page: TextPage, plan: ParagraphPlan) -> list[dict[str, Any]]:
+    """The rows of a plan for the editor: each row's baseline start in the displayed frame
+    (points, origin top-left, as text.getLines), its text and the x of every character after the
+    start of the row. The same plan writes the paragraph on commit, so the two cannot drift."""
+    if plan.writer is None:
+        return []
+    rows: list[dict[str, Any]] = []
+    for ln in plan.layout:
+        x0, y0, _, _ = page.display_box((ln.x, ln.y, ln.x, ln.y))
+        char_x = [0.0]
+        acc = 0.0
+        for ch in ln.text:
+            acc += plan.writer.em(ch) * plan.font_size + (ln.word_space if ch == " " else 0.0)
+            char_x.append(round(acc, 3))
+        rows.append(
+            {
+                "text": ln.text,
+                "x": round(x0, 3),
+                "baseline": round(y0, 3),
+                "charX": char_x,
+            }
+        )
+    return rows
+
+
 def plan_json(plan: ParagraphPlan) -> dict[str, Any]:
     return {
         "paragraphId": plan.paragraph_id,

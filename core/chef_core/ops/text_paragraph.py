@@ -29,6 +29,7 @@ revision give STALE_OBJECT_IDS.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Any, Literal
 
 from pydantic import Field
@@ -39,12 +40,14 @@ from chef_core.models import WireModel
 from chef_core.ops.base import OpContext, OpOutput, operation
 from chef_core.text.build import build_text_page
 from chef_core.text.edit import FontBook
+from chef_core.text.model import TextPage
 from chef_core.text.paragraph import (
     ParagraphOptions,
     apply_paragraph,
     parse_paragraph_id,
     plan_json,
     plan_paragraph,
+    preview_rows,
 )
 
 FontStrategy = Literal["auto", "keep", "replace"]
@@ -183,9 +186,65 @@ def style_paragraph(ctx: OpContext, p: TextStyleParagraphParams) -> OpOutput:
     return _run(ctx, p.page_index, p.paragraph_id, None, _options(p))
 
 
+class TextPreviewParagraphParams(_StyleFields):
+    """Where a re-flow of the paragraph would put its text. Read only: nothing is written."""
+
+    page_index: int = Field(ge=0, description="0-based page.")
+    paragraph_id: str = Field(description="Paragraph id from text.getLines.")
+    new_text: str = Field(description="The text the paragraph would have.")
+
+
+@operation(
+    id="text.previewParagraph",
+    title="Preview a paragraph re-flow",
+    group="text",
+    params=TextPreviewParagraphParams,
+)
+def preview_paragraph(ctx: OpContext, p: TextPreviewParagraphParams) -> OpOutput:
+    """The rows text.editParagraph would write, from the same plan (see preview_rows)."""
+    if ctx.input_path is None:
+        raise RuntimeError("paragraph ops need a session")
+    parsed = parse_paragraph_id(p.paragraph_id)
+    if parsed is None:
+        raise invalid_params("INVALID_PARAGRAPH_ID", {"paragraphId": p.paragraph_id})
+    if parsed[0] != p.page_index:
+        raise invalid_params(
+            "PARAGRAPH_NOT_ON_PAGE", {"paragraphId": p.paragraph_id, "pageIndex": p.page_index}
+        )
+    tp = _cached_page(ctx, p.page_index)
+    plan = plan_paragraph(tp, p.paragraph_id, p.new_text, _options(p))
+    rows = preview_rows(tp, plan)
+    return OpOutput(changed_pages=[], data={**plan_json(plan), "rows": rows})
+
+
+# The text model of the last pages read for previews. A revision is a new file (new mtime), so a
+# cached model is never used for another revision. Building it costs most of a preview.
+_PAGE_CACHE: OrderedDict[tuple[str, int, int, int], TextPage] = OrderedDict()
+_PAGE_CACHE_SIZE = 4
+
+
+def _cached_page(ctx: OpContext, page_index: int) -> TextPage:
+    assert ctx.input_path is not None
+    stat = ctx.input_path.stat()
+    key = (str(ctx.input_path), stat.st_mtime_ns, stat.st_size, page_index)
+    hit = _PAGE_CACHE.get(key)
+    if hit is not None:
+        _PAGE_CACHE.move_to_end(key)
+        return hit
+    with ctx.open_input() as pdf:
+        _check_page(len(pdf.pages), page_index)
+        tp = build_text_page(pdf, pdf.pages[page_index], page_index)
+    _PAGE_CACHE[key] = tp
+    while len(_PAGE_CACHE) > _PAGE_CACHE_SIZE:
+        _PAGE_CACHE.popitem(last=False)
+    return tp
+
+
 __all__ = [
     "TextEditParagraphParams",
+    "TextPreviewParagraphParams",
     "TextStyleParagraphParams",
     "edit_paragraph",
+    "preview_paragraph",
     "style_paragraph",
 ]
