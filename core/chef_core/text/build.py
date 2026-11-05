@@ -328,8 +328,15 @@ def _align(lines: list[TextLine], edge: float) -> str:
     x1s = [ln.bbox[2] for ln in lines]
     centres = [(a + b) / 2 for a, b in zip(x0s, x1s, strict=True)]
     inner_right = [ln.bbox[2] for ln in lines[:-1]]
+    # Two lines are too few to tell justified from left: a bold change re-wraps them, and the
+    # reading then flips, so the first edit would stretch the lines. Justified needs three.
     reaches_edge = min(inner_right) >= edge - tol
-    if reaches_edge and max(inner_right) - min(inner_right) <= tol and max(x0s) - min(x0s) <= tol:
+    if (
+        len(lines) >= 3
+        and reaches_edge
+        and max(inner_right) - min(inner_right) <= tol
+        and max(x0s) - min(x0s) <= tol
+    ):
         return "justify"
     if max(x0s) - min(x0s) <= tol:
         return "left"

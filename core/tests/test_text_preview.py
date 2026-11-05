@@ -85,3 +85,25 @@ def test_a_two_line_block_that_stops_short_is_not_justified(tmp_path: Path) -> N
     lines = {ln.id: ln for ln in tp.lines}
     (para,) = [p for p in tp.paragraphs if any(lines[i].text.startswith("KT.") for i in p.line_ids)]
     assert para.align == "left"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        TEXTS[0],
+        "Hợp đồng  này có  khoảng trắng kép\nvà xuống dòng cứng, rồi thêm một câu dài để xuống dòng.",
+    ],
+)
+def test_every_row_character_points_at_its_own_character_in_the_text(
+    harness: Harness, tmp_path: Path, text: str
+) -> None:
+    src = two_column_pdf(tmp_path / "two.pdf")
+    sid = _sid(harness, src)
+    pid = _paragraph_of(_page(harness, sid), LEFT)["id"]
+    previous = -1
+    for row in _preview(harness, sid, pid, text)["rows"]:
+        assert len(row["index"]) == len(row["text"])
+        for ch, i in zip(row["text"], row["index"], strict=True):
+            assert i > previous, (ch, i, previous)
+            previous = i
+            assert text[i] == ch or (ch == " " and text[i].isspace()), (ch, i, text[i])

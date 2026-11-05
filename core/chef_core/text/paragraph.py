@@ -178,6 +178,8 @@ class ParagraphPlan:
     stroke: FillState | None = None
     render_mode: int = 0
     line_width: float = 1.0
+    body: str = ""  # the text laid out (the new text, with a kept list marker in front)
+    body_prefix: int = 0  # length of that marker, not part of the new text
 
 
 def parse_paragraph_id(value: str) -> tuple[int, str] | None:
@@ -376,6 +378,8 @@ def plan_paragraph(
     writer = _choose(dom, cap, body, opts, bold, italic, warnings)
     plan.action = "reflow"
     plan.writer = writer
+    plan.body = body
+    plan.body_prefix = len(body) - len(text)
     plan.font_id = writer.item.id if writer.item is not None else None
     plan.font_to = plan.font_id
     plan.missing = cap.missing(body)
@@ -580,13 +584,37 @@ def apply_paragraph(
     editor.ins_at.setdefault(plan.insert_at, []).extend(block)
 
 
+def _body_index(body: str, row: str, start: int) -> tuple[list[int], int]:
+    """Position in ``body`` of every character of a laid-out row, and the position after it.
+
+    A row is the body with each whitespace run cut to one space and the breaks removed, so a space
+    in the row is some whitespace run of the body and a letter is the next equal letter.
+    """
+    out: list[int] = []
+    p = start
+    for ch in row:
+        if ch == " ":
+            while p < len(body) and body[p].isspace():
+                p += 1
+            out.append(max(p - 1, start))
+            continue
+        while p < len(body) and body[p] != ch:
+            p += 1
+        out.append(min(p, max(len(body) - 1, 0)))
+        p += 1
+    return out, p
+
+
 def preview_rows(page: TextPage, plan: ParagraphPlan) -> list[dict[str, Any]]:
     """The rows of a plan for the editor: each row's baseline start in the displayed frame
-    (points, origin top-left, as text.getLines), its text and the x of every character after the
-    start of the row. The same plan writes the paragraph on commit, so the two cannot drift."""
+    (points, origin top-left, as text.getLines), the x of every character (``charX``, one more
+    than the row: the x after the last one), and the index in the new text of every character
+    (``index``; -1 for a list marker the new text does not have). The commit writes the same plan,
+    so the two cannot drift."""
     if plan.writer is None:
         return []
     rows: list[dict[str, Any]] = []
+    cursor = 0
     for ln in plan.layout:
         x0, y0, _, _ = page.display_box((ln.x, ln.y, ln.x, ln.y))
         char_x = [0.0]
@@ -594,12 +622,15 @@ def preview_rows(page: TextPage, plan: ParagraphPlan) -> list[dict[str, Any]]:
         for ch in ln.text:
             acc += plan.writer.em(ch) * plan.font_size + (ln.word_space if ch == " " else 0.0)
             char_x.append(round(acc, 3))
+        body_pos, cursor = _body_index(plan.body, ln.text, cursor)
+        index = [pos - plan.body_prefix if pos >= plan.body_prefix else -1 for pos in body_pos]
         rows.append(
             {
                 "text": ln.text,
                 "x": round(x0, 3),
                 "baseline": round(y0, 3),
                 "charX": char_x,
+                "index": index,
             }
         )
     return rows
