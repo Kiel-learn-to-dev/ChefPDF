@@ -17,7 +17,6 @@ import './textedit.css';
 import {
   currentFormat,
   pageOfParagraph,
-  paragraphText,
   reselectParagraph,
   type ParagraphStyle,
 } from './textParagraphModel';
@@ -79,14 +78,6 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
     if (fmt && indentDraft !== null && indentDraft.trim() !== '' && n >= 0 && n !== fmt.indent) {
       change({ indent: n });
     }
-  };
-
-  const editText = () => {
-    if (!fmt || pid === null || page === null) return;
-    const text = paragraphText(lines[page] ?? [], pid);
-    useTextEdit
-      .getState()
-      .openParagraph({ pageIndex: page, paragraphId: pid, original: text, text });
   };
 
   // Line spacing is not read back (getLines has no pitch), so the field is empty: it means keep.
@@ -230,9 +221,6 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         onChange={(e) => setColourDraft(e.target.value)}
         onBlur={commitColour}
       />
-      <Button size="sm" variant="secondary" disabled={locked} onClick={editText}>
-        {t('textEdit.fmt.editText')}
-      </Button>
       {!pid && <span className="tedit-fmt__hint">{t('textEdit.fmt.pick')}</span>}
     </div>
   );

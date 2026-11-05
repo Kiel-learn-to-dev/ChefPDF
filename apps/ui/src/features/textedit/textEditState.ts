@@ -1,34 +1,38 @@
 /**
- * In-memory state of the text edit mode (not saved): the mode toggle, the hovered and selected
- * line, the open editor, the replacement font list and the options of the editor. The line cache
+ * In-memory state of the text edit mode (not saved): the mode toggle, the hovered line, the
+ * selected paragraph, the open paragraph session (D62) and the replacement font list. The line cache
  * is keyed by `<doc id>:<revision version>` like the object cache: a response for another revision
  * is dropped, so a slow text.getLines cannot put stale lines on screen.
  */
 import { create } from 'zustand';
-import {
-  reduceEditor,
-  type Editor,
-  type EditorEvent,
-  type FitWidth,
-  type FontStrategy,
-  type TextLine,
-} from './textEditModel';
-import {
-  KEEP_STYLE,
-  type ParagraphInfo,
-  type ParagraphStyle,
-  type TextBlock,
-} from './textParagraphModel';
+import type { SessionRow } from './textSession';
+import type { FontStrategy, TextLine } from './textEditModel';
+import type { ParagraphInfo, TextBlock } from './textParagraphModel';
 
-/** The open paragraph editor (D9): the paragraph, its text as typed, and its style choices. */
-export interface ParaEditor {
+/** A message the session shows: the font takes over, characters are missing, text overflows. */
+export interface SessionNote {
+  tone: 'warn' | 'error';
+  text: string;
+}
+
+/**
+ * The paragraph being typed into (D62). The text is what the paragraph would have; nothing is
+ * written until the session commits. `rows` is the layout of the text from text.previewParagraph
+ * (null until the first answer), and `seq` drops answers that come after a newer keystroke.
+ */
+export interface ParaSession {
   pageIndex: number;
+  /** The paragraph id of the revision the session started from. */
   paragraphId: string;
   original: string;
   text: string;
-  style: ParagraphStyle;
-  applying: boolean;
-  error: string | null;
+  caret: number;
+  anchor: number;
+  fontSize: number;
+  rows: SessionRow[] | null;
+  notes: SessionNote[];
+  seq: number;
+  committing: boolean;
 }
 
 export interface ReplacementFont {
@@ -46,10 +50,7 @@ interface TextEditState {
   lines: Record<number, TextLine[]>;
   key: string;
   hoverId: string | null;
-  selectedId: string | null;
-  editor: Editor | null;
   fonts: ReplacementFont[] | null;
-  fitWidth: FitWidth;
   fontStrategy: FontStrategy;
   fontName: string | null;
   selectedParagraphId: string | null;
@@ -59,7 +60,7 @@ interface TextEditState {
   paragraphs: Record<number, ParagraphInfo[]>;
   /** A format change is running: the bar takes no new change until it ends (one op at a time). */
   formatBusy: boolean;
-  paraEditor: ParaEditor | null;
+  session: ParaSession | null;
   setActive(active: boolean): void;
   setSelectedParagraph(id: string | null): void;
   resetFor(key: string): void;
@@ -72,44 +73,28 @@ interface TextEditState {
   ): void;
   setFormatBusy(on: boolean): void;
   setHover(id: string | null): void;
-  setSelected(id: string | null): void;
   setFonts(fonts: ReplacementFont[]): void;
-  setOptions(patch: Partial<Pick<TextEditState, 'fitWidth' | 'fontStrategy' | 'fontName'>>): void;
-  dispatch(ev: EditorEvent): void;
-  openParagraph(p: Omit<ParaEditor, 'style' | 'applying' | 'error'>): void;
-  patchParagraph(patch: Partial<Pick<ParaEditor, 'text' | 'style' | 'applying' | 'error'>>): void;
-  closeParagraph(): void;
+  setFontName(id: string | null): void;
+  openSession(s: Pick<ParaSession, 'pageIndex' | 'paragraphId' | 'original' | 'fontSize'>): void;
+  patchSession(patch: Partial<ParaSession>): void;
+  closeSession(): void;
 }
 
-export const useTextEdit = create<TextEditState>((set, get) => ({
+export const useTextEdit = create<TextEditState>((set) => ({
   active: false,
   lines: {},
   key: '',
   hoverId: null,
-  selectedId: null,
-  editor: null,
   fonts: null,
-  fitWidth: 'none',
   fontStrategy: 'auto',
   fontName: null,
   selectedParagraphId: null,
   blocks: {},
   paragraphs: {},
   formatBusy: false,
-  paraEditor: null,
+  session: null,
   setActive(active) {
-    set(
-      active
-        ? { active, editor: null, paraEditor: null }
-        : {
-            active,
-            editor: null,
-            paraEditor: null,
-            hoverId: null,
-            selectedId: null,
-            selectedParagraphId: null,
-          },
-    );
+    set(active ? { active } : { active, session: null, hoverId: null, selectedParagraphId: null });
   },
   setSelectedParagraph(id) {
     set({ selectedParagraphId: id });
@@ -131,38 +116,34 @@ export const useTextEdit = create<TextEditState>((set, get) => ({
   setFormatBusy(on) {
     set({ formatBusy: on });
   },
-  openParagraph(p) {
-    set({ paraEditor: { ...p, style: KEEP_STYLE, applying: false, error: null } });
-  },
-  patchParagraph(patch) {
-    set((s) => (s.paraEditor ? { paraEditor: { ...s.paraEditor, ...patch } } : s));
-  },
-  closeParagraph() {
-    set({ paraEditor: null });
-  },
   setHover(id) {
     set({ hoverId: id });
-  },
-  setSelected(id) {
-    set({ selectedId: id });
   },
   setFonts(fonts) {
     set({ fonts });
   },
-  setOptions(patch) {
-    set(patch);
+  setFontName(id) {
+    set({ fontName: id });
   },
-  dispatch(ev) {
-    set({ editor: reduceEditor(get().editor, ev) });
+  openSession(s) {
+    set({
+      session: {
+        ...s,
+        text: s.original,
+        caret: s.original.length,
+        anchor: s.original.length,
+        rows: null,
+        notes: [],
+        seq: 0,
+        committing: false,
+      },
+      selectedParagraphId: s.paragraphId,
+    });
+  },
+  patchSession(patch) {
+    set((s) => (s.session ? { session: { ...s.session, ...patch } } : s));
+  },
+  closeSession() {
+    set({ session: null });
   },
 }));
-
-/** The line with an id, found in the loaded pages. */
-export function findLine(lines: Record<number, TextLine[]>, id: string | null): TextLine | null {
-  if (!id) return null;
-  for (const list of Object.values(lines)) {
-    const hit = list.find((l) => l.id === id);
-    if (hit) return hit;
-  }
-  return null;
-}

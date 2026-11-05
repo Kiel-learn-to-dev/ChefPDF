@@ -3551,6 +3551,12 @@
     }
   },
   "textEdit": {
+    "session": {
+      "label": "Đoạn đang sửa",
+      "hint": "Esc: hủy · Ctrl+Enter hoặc bấm ra ngoài: lưu đoạn",
+      "saving": "Đang ghi đoạn…",
+      "enter": "Enter hoặc bấm đúp để sửa đoạn đã chọn"
+    },
     "title": "Sửa chữ",
     "cmd": "Sửa chữ",
     "hint": "Nhấn Enter hoặc nhấp đúp để sửa đoạn này.",

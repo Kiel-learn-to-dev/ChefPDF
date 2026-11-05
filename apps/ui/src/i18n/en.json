@@ -3571,6 +3571,12 @@
     }
   },
   "textEdit": {
+    "session": {
+      "label": "Paragraph being edited",
+      "hint": "Esc: cancel · Ctrl+Enter or click outside: write the paragraph",
+      "saving": "Writing the paragraph…",
+      "enter": "Press Enter or double-click to edit the selected paragraph"
+    },
     "title": "Edit text",
     "cmd": "Edit text",
     "hint": "Press Enter or double-click to edit this paragraph.",

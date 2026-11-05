@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   KEEP_STYLE,
-  canApplyParagraph,
   editParagraphParams,
   overlapHighlights,
   paragraphBox,
@@ -102,11 +101,6 @@ describe('style', () => {
         style: KEEP_STYLE,
       }).fontName,
     ).toBe('serif');
-  });
-
-  it('allows apply only when the text changed (the format bar applies the style)', () => {
-    expect(canApplyParagraph('a b', 'a b')).toBe(false);
-    expect(canApplyParagraph('a b', 'a c')).toBe(true);
   });
 });
 

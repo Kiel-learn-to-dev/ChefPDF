@@ -38,36 +38,6 @@
   font-size: var(--text-sm);
   pointer-events: none;
 }
-.tedit-editor {
-  position: absolute;
-  z-index: 2;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--c-surface);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
-}
-.tedit-editor__input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid #2563eb;
-  border-radius: var(--radius-xs);
-  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
-  line-height: 1.2;
-  background: #fff;
-  color: #111827;
-}
-.tedit-editor__bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-sm);
-}
 .tedit-chip {
   padding: var(--space-1) var(--space-4);
   border-radius: 999px;
@@ -88,51 +58,7 @@
   background: #fee2e2;
   color: #991b1b;
 }
-.tedit-editor__error {
-  color: #991b1b;
-  font-size: var(--text-sm);
-}
-.tedit-editor__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-}
-
 /* Sửa đoạn (D9): the paragraph editor and its style bar. */
-.tedit-para {
-  position: absolute;
-  z-index: 2;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--c-surface);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
-}
-.tedit-para__text {
-  box-sizing: border-box;
-  width: 100%;
-  resize: vertical;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid #2563eb;
-  border-radius: var(--radius-xs);
-  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
-  font-size: var(--text-md);
-  line-height: 1.35;
-}
-.tedit-para__style {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-  font-size: var(--text-sm);
-}
-.tedit-para__style input[type='number'] {
-  width: 74px;
-}
-
 /* Tìm & thay thế (D10). */
 .fr-form {
   display: flex;
@@ -218,4 +144,63 @@
   margin-left: auto;
   color: var(--c-muted);
   font-size: var(--text-sm);
+}
+
+/* Paragraph session (D62): the paragraph is drawn from the core's rows; keys go to a hidden input. */
+.tedit-sess {
+  position: absolute;
+  z-index: 3;
+  pointer-events: auto;
+  cursor: text;
+}
+.tedit-sess__mask {
+  position: absolute;
+  background: #fff;
+}
+.tedit-sess__select {
+  position: absolute;
+  background: rgb(10 102 194 / 0.25);
+}
+.tedit-sess__glyph {
+  position: absolute;
+  line-height: 1;
+  white-space: pre;
+  color: #111;
+  pointer-events: none;
+}
+.tedit-sess__caret {
+  position: absolute;
+  width: 1.5px;
+  background: #0a66c2;
+  pointer-events: none;
+  animation: tedit-blink 1s steps(2, start) infinite;
+}
+@keyframes tedit-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.tedit-sess__input {
+  position: absolute;
+  width: 1px;
+  height: 1em;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  resize: none;
+  overflow: hidden;
+}
+.tedit-sess__notes {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+.tedit-sess__hint {
+  position: absolute;
+  z-index: 4;
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+  pointer-events: none;
 }

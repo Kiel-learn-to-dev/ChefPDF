@@ -138,6 +138,7 @@ import type {
   TextGetLinesParams,
   TextLayerParams,
   TextListFontsParams,
+  TextPreviewParagraphParams,
   TextStyleParagraphParams,
   LinksAddParams,
   LinksAutoDetectParams,
@@ -336,6 +337,7 @@ export interface OpParams {
   'text.getLines': TextGetLinesParams;
   'text.listFonts': TextListFontsParams;
   'text.layer': TextLayerParams;
+  'text.previewParagraph': TextPreviewParagraphParams;
   'text.checkText': TextCheckTextParams;
   'text.editLine': TextEditLineParams;
   'text.editParagraph': TextEditParagraphParams;

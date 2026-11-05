@@ -1,32 +1,29 @@
 /**
- * Operations of the text edit mode (D8, T7.02). They run text.* ops on the document session: a
- * line edit is a new revision (undo through the session), after which the lines are read again.
+ * Operations of the text edit mode (D8, D62). A paragraph session previews the text it would have
+ * (text.previewParagraph, read only, the same plan the commit uses) and commits it once
+ * (text.editParagraph: one revision, one Ctrl+Z). The format bar changes the style of a paragraph
+ * the same way. Commits and style changes run in one queue, so they never overlap.
  */
-import type { OpResult } from '@chef/contracts';
 import { textErrorCode, type TextErrorCode } from '../../lib/errors';
 import { runOp } from '../../lib/rpc';
 import { toast } from '../../components/Toast';
 import { errorMessage, runDocOp, showError } from '../../app/actions';
 import { getDoc } from '../../app/state/documents';
 import { i18n } from '../../i18n';
-import {
-  checkTextParams,
-  editLineParams,
-  needsRefetch,
-  type CheckResult,
-  type Editor,
-  type TextLine,
-} from './textEditModel';
-import { useTextEdit, type ReplacementFont } from './textEditState';
+import { caretFromPoint, type SessionRow } from './textSession';
+import { hitLine, type TextLine } from './textEditModel';
+import { useTextEdit, type ReplacementFont, type SessionNote } from './textEditState';
 import {
   KEEP_STYLE,
   editParagraphParams,
   overlapHighlights,
   pageOfParagraph,
   paragraphCentre,
+  paragraphLines,
   paragraphWarnings,
   reselectParagraph,
   styleParagraphParams,
+  paragraphText,
   type ParagraphInfo,
   type ParagraphResultData,
   type ParagraphStyle,
@@ -67,11 +64,6 @@ export async function listPageText(
   };
 }
 
-/** Lines of one page (read only). */
-export async function listPageLines(docId: string, pageIndex: number): Promise<TextLine[]> {
-  return (await listPageText(docId, pageIndex)).lines;
-}
-
 /** Loads the replacement fonts once per session. */
 export async function loadFonts(docId: string): Promise<ReplacementFont[]> {
   const known = useTextEdit.getState().fonts;
@@ -86,20 +78,6 @@ export async function loadFonts(docId: string): Promise<ReplacementFont[]> {
   return fonts;
 }
 
-/** text.checkText: would the text fit the font of the line? Changes nothing. */
-export async function checkLine(
-  docId: string,
-  lineId: string,
-  newText: string,
-): Promise<CheckResult> {
-  const result = await runOp('text.checkText', checkTextParams(lineId, newText), {
-    sessionId: docId,
-    title: t('textEdit.checking'),
-    silent: true,
-  });
-  return result.data as CheckResult;
-}
-
 /** Reads the lines of the pages again for the current revision (after an edit or a jump). */
 export async function reloadLines(docId: string, pages: number[]): Promise<void> {
   const key = textRevisionKey(docId);
@@ -110,54 +88,241 @@ export async function reloadLines(docId: string, pages: number[]): Promise<void>
   }
 }
 
-/** Paragraph mode: the text of a paragraph is replaced and re-flowed (text.editParagraph). */
-export async function applyParagraph(docId: string): Promise<boolean> {
-  const para = useTextEdit.getState().paraEditor;
-  if (!para) return false;
+/** Runs jobs one after another: commits and style changes share this queue. */
+let queue: Promise<unknown> = Promise.resolve();
+
+function enqueue<T>(job: () => Promise<T>): Promise<T> {
+  const run = queue.then(job);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+// ---------- The paragraph session ----------
+
+/** The notes a preview shows: the font that takes over, missing characters, overflow, overlap. */
+export function previewNotes(data: ParagraphResultData & { missing?: string[] }): SessionNote[] {
+  const notes: SessionNote[] = [];
+  // The core keeps the paragraph's font (fontTo null) or writes it with a registry font. `missing`
+  // lists what the original font lacks: it is only an error when nothing takes over.
+  if (data.fontTo) {
+    notes.push({ tone: 'warn', text: t('textEdit.warn.font', { font: data.fontTo }) });
+  } else if (data.missing && data.missing.length > 0) {
+    notes.push({
+      tone: 'error',
+      text: t('textEdit.chip.missing', { chars: data.missing.join(' ') }),
+    });
+  }
+  if ((data.overflow ?? 0) > 0) {
+    notes.push({ tone: 'warn', text: t('textEdit.warn.overflow', { pt: data.overflow }) });
+  }
+  if ((data.overlapsBlockIds ?? []).length > 0) {
+    notes.push({
+      tone: 'warn',
+      text: t('textEdit.warn.overlap', { count: data.overlapsBlockIds?.length ?? 0 }),
+    });
+  }
+  for (const w of data.warnings ?? []) notes.push({ tone: 'warn', text: w });
+  return notes;
+}
+
+/**
+ * Opens a session on a paragraph of the current revision. The caret goes to the point clicked (in
+ * points) when there is one, else to the end. The first preview gives the rows that the caret uses.
+ * Runs in the queue, after a pending session has been written (see openSessionAt).
+ */
+async function startSessionBody(
+  docId: string,
+  pageIndex: number,
+  paragraphId: string,
+  point: { x: number; y: number } | null,
+): Promise<void> {
+  const lines = useTextEdit.getState().lines[pageIndex] ?? [];
+  const own = paragraphLines(lines, paragraphId);
+  if (own.length === 0) return;
+  const text = paragraphText(lines, paragraphId);
+  useTextEdit.getState().openSession({
+    pageIndex,
+    paragraphId,
+    original: text,
+    fontSize: own[0]!.fontSize,
+  });
+  const seq = useTextEdit.getState().session?.seq ?? 0;
+  const data = await previewRequest(docId, pageIndex, paragraphId, text);
+  const s = useTextEdit.getState().session;
+  if (!s || s.paragraphId !== paragraphId || s.seq !== seq || !data) return;
+  const rows = (data.rows as SessionRow[] | undefined) ?? [];
+  const caret = point ? (caretFromPoint(rows, point.x, point.y) ?? text.length) : text.length;
+  useTextEdit.getState().patchSession({
+    rows,
+    notes: previewNotes(data),
+    caret,
+    anchor: caret,
+  });
+}
+
+/** Writes a session still open (a failed write stays open), then tells whether none is left. */
+async function closePendingSession(docId: string): Promise<boolean> {
+  if (useTextEdit.getState().session) await doCommit(docId);
+  return useTextEdit.getState().session === null;
+}
+
+/** Opens a session on a paragraph (Enter on the selected paragraph). */
+export function startSession(docId: string, pageIndex: number, paragraphId: string): Promise<void> {
+  return enqueue(async () => {
+    if (!(await closePendingSession(docId))) return;
+    await startSessionBody(docId, pageIndex, paragraphId, null);
+  });
+}
+
+/**
+ * A click at a point of the page: writes the session that is open, then opens the paragraph under
+ * the point of the lines as they are now (a write can move the paragraphs). A click on no paragraph
+ * only clears the selection.
+ */
+export function openSessionAt(
+  docId: string,
+  pageIndex: number,
+  point: { x: number; y: number },
+): Promise<void> {
+  return enqueue(async () => {
+    if (!(await closePendingSession(docId))) return;
+    const lines = useTextEdit.getState().lines[pageIndex] ?? [];
+    const hit = hitLine(lines, point.x, point.y);
+    if (!hit || !hit.paragraphId) {
+      useTextEdit.getState().setSelectedParagraph(null);
+      return;
+    }
+    await startSessionBody(docId, pageIndex, hit.paragraphId, point);
+  });
+}
+
+/** One preview of `newText` as the paragraph of the session would have it (read only). */
+async function previewRequest(
+  docId: string,
+  pageIndex: number,
+  paragraphId: string,
+  newText: string,
+): Promise<(ParagraphResultData & { missing?: string[]; rows?: unknown[] }) | null> {
+  try {
+    const result = await runOp(
+      'text.previewParagraph',
+      {
+        pageIndex,
+        paragraphId,
+        newText,
+        fontStrategy: 'auto',
+        fontName: useTextEdit.getState().fontName ?? undefined,
+      },
+      { sessionId: docId, title: t('textEdit.checking'), silent: true },
+    );
+    return result.data as (ParagraphResultData & { missing?: string[]; rows?: unknown[] }) | null;
+  } catch (e) {
+    const s = useTextEdit.getState().session;
+    if (s) {
+      useTextEdit.getState().patchSession({
+        rows: null,
+        notes: [{ tone: 'error', text: textErrorText(e) }],
+      });
+    }
+    return null;
+  }
+}
+
+let previewTimer: number | undefined;
+
+/**
+ * The text of the session changed: its preview is asked again after a short pause. An answer that
+ * comes after a newer keystroke is dropped (seq).
+ */
+export function changeSessionText(
+  docId: string,
+  text: string,
+  caret: number,
+  anchor: number,
+): void {
+  const s = useTextEdit.getState().session;
+  if (!s) return;
+  useTextEdit.getState().patchSession({ text, caret, anchor, seq: s.seq + 1 });
+  window.clearTimeout(previewTimer);
+  previewTimer = window.setTimeout(() => void runPreview(docId), 60);
+}
+
+/** Moves the caret and the selection end without changing the text. */
+export function moveSessionCaret(caret: number, anchor: number): void {
+  useTextEdit.getState().patchSession({ caret, anchor });
+}
+
+async function runPreview(docId: string): Promise<void> {
+  const s = useTextEdit.getState().session;
+  if (!s) return;
+  const { seq, text, paragraphId, pageIndex } = s;
+  const data = await previewRequest(docId, pageIndex, paragraphId, text);
+  const now = useTextEdit.getState().session;
+  if (!now || now.seq !== seq || !data) return;
+  useTextEdit.getState().patchSession({
+    rows: (data.rows as SessionRow[] | undefined) ?? [],
+    notes: previewNotes(data),
+  });
+}
+
+/**
+ * Writes the session's text into the paragraph: one text.editParagraph, one revision. Unchanged
+ * text only closes the session. A failure keeps the session open with the Vietnamese error.
+ */
+export function commitSession(docId: string): Promise<boolean> {
+  return enqueue(() => doCommit(docId));
+}
+
+async function doCommit(docId: string): Promise<boolean> {
+  const s = useTextEdit.getState().session;
+  if (!s || s.committing) return false;
+  if (s.text === s.original) {
+    useTextEdit.getState().closeSession();
+    return true;
+  }
+  const { pageIndex, paragraphId, text } = s;
+  const centre = paragraphCentre(useTextEdit.getState().lines[pageIndex] ?? [], paragraphId);
+  useTextEdit.getState().patchSession({ committing: true });
   const store = useTextEdit.getState();
-  const style: ParagraphStyle = para.style;
-  store.patchParagraph({ applying: true, error: null });
   const result = await runDocOp(
     docId,
     'text.editParagraph',
-    editParagraphParams(para.pageIndex, para.paragraphId, para.text, {
+    editParagraphParams(pageIndex, paragraphId, text, {
       fontStrategy: store.fontStrategy,
       fontName: store.fontName,
-      style,
+      style: KEEP_STYLE,
     }),
     t('textEdit.op.paragraph'),
     {
       toastWarnings: false,
       onError: (e) => {
         if (textErrorCode(e) === null) return false;
-        useTextEdit.getState().patchParagraph({ applying: false, error: textErrorText(e) });
+        useTextEdit.getState().patchSession({
+          committing: false,
+          notes: [{ tone: 'error', text: textErrorText(e) }],
+        });
         return true;
       },
     },
   );
   if (!result) {
-    useTextEdit.getState().patchParagraph({ applying: false });
+    useTextEdit.getState().patchSession({ committing: false });
     return false;
   }
-  await afterParagraph(docId, para.pageIndex, result.data as ParagraphResultData | undefined);
+  warnParagraph(docId, pageIndex, result.data as ParagraphResultData | undefined);
+  useTextEdit.getState().closeSession();
+  await reloadLines(docId, [pageIndex]).catch((e: unknown) => showError(e));
+  selectAfterReload(pageIndex, paragraphId, centre);
   return true;
 }
 
-/** After a paragraph op: warnings to the user, the overlapped blocks drawn, lines read again. */
-async function afterParagraph(
-  docId: string,
-  pageIndex: number,
-  data: ParagraphResultData | undefined,
-): Promise<void> {
-  // Read the old lines before they are dropped by the reload: the paragraph keeps its place.
-  const before = useTextEdit.getState();
-  const oldId = before.paraEditor?.paragraphId ?? before.selectedParagraphId;
-  const centre = oldId ? paragraphCentre(before.lines[pageIndex] ?? [], oldId) : null;
-  warnParagraph(docId, pageIndex, data);
-  useTextEdit.getState().closeParagraph();
-  await reloadLines(docId, [pageIndex]).catch((e: unknown) => showError(e));
-  if (oldId) selectAfterReload(pageIndex, oldId, centre);
+/** Drops the session without writing anything (Esc). */
+export function cancelSession(): void {
+  window.clearTimeout(previewTimer);
+  useTextEdit.getState().closeSession();
 }
+
+// ---------- Format bar ----------
 
 /** Toast and highlights for the overflow and the overlapped blocks of a paragraph change. */
 function warnParagraph(docId: string, pageIndex: number, data: ParagraphResultData | undefined) {
@@ -180,23 +345,17 @@ function selectAfterReload(pageIndex: number, oldId: string, centre: [number, nu
 }
 
 /**
- * Format bar (D14): one style change on a paragraph, applied at once. Each change is one revision,
- * so one Ctrl+Z undoes one change. The bar takes no new change while one runs.
+ * Format bar (D14): one style change on the selected paragraph, applied at once. A session that is
+ * open is committed first (it is queued before the change), so the style applies to the new text.
  */
 export function applyFormat(
   docId: string,
   patch: Partial<ParagraphStyle>,
   fontName: string | null = null,
 ): Promise<boolean> {
-  const run = formatQueue.then(() => runFormat(docId, patch, fontName));
-  formatQueue = run.catch(() => false);
-  return run;
+  return enqueue(() => runFormat(docId, patch, fontName));
 }
 
-/** Changes queued by the format bar: each runs after the one before (one op at a time). */
-let formatQueue: Promise<boolean> = Promise.resolve(true);
-
-/** Runs one format change on the paragraph that is selected when it starts (not when queued). */
 async function runFormat(
   docId: string,
   patch: Partial<ParagraphStyle>,
@@ -227,56 +386,4 @@ async function runFormat(
   } finally {
     useTextEdit.getState().setFormatBusy(false);
   }
-}
-
-/** Warnings of a finished text.editLine, as text lines for the toast. */
-export function editWarnings(data: unknown): string[] {
-  const d = data as
-    | { fontFrom?: string | null; fontTo?: string | null; overflow?: number; warnings?: string[] }
-    | undefined;
-  const out: string[] = [];
-  if (d?.fontTo && d.fontTo !== d.fontFrom) out.push(t('textEdit.warn.font', { font: d.fontTo }));
-  if ((d?.overflow ?? 0) > 0) out.push(t('textEdit.warn.overflow', { pt: d!.overflow }));
-  for (const w of d?.warnings ?? []) out.push(w);
-  return out;
-}
-
-/**
- * Applies the open editor: text.editLine with the options of the editor. Failures keep the editor
- * open with the Vietnamese error; a stale id refetches the lines.
- */
-export async function applyEditor(docId: string, editor: Editor): Promise<boolean> {
-  const store = useTextEdit.getState();
-  const opts = {
-    fontStrategy: store.fontStrategy,
-    fontName: store.fontName,
-    fitWidth: store.fitWidth,
-  };
-  const params = editLineParams(
-    { id: editor.lineId, pageIndex: editor.pageIndex },
-    editor.text,
-    opts,
-  );
-  const result: OpResult | null = await runDocOp(
-    docId,
-    'text.editLine',
-    params,
-    t('textEdit.op.edit'),
-    {
-      toastWarnings: false,
-      onError: (e) => {
-        const code = textErrorCode(e);
-        if (code === null) return false;
-        useTextEdit.getState().dispatch({ type: 'failed', message: textErrorText(e) });
-        if (needsRefetch(code)) void reloadLines(docId, [editor.pageIndex]);
-        return true;
-      },
-    },
-  );
-  if (!result) return false;
-  const warnings = editWarnings(result.data);
-  if (warnings.length > 0) toast.warning(t('textEdit.op.edit'), warnings.join(' '));
-  useTextEdit.getState().dispatch({ type: 'applied' });
-  await reloadLines(docId, [editor.pageIndex]).catch((e: unknown) => showError(e));
-  return true;
 }

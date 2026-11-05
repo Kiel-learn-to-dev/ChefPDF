@@ -252,8 +252,3 @@ export function overlapHighlights(
 export function paragraphOf(line: TextLine | null): string | null {
   return line?.paragraphId ?? null;
 }
-
-/** Apply is allowed when the text changed (the style has its own bar, D14). */
-export function canApplyParagraph(original: string, text: string): boolean {
-  return text.trim() !== original.trim();
-}
