@@ -86,7 +86,11 @@ test('B2: with another window on top, the real wheel over Chef scrolls the long 
     visible: true,
   });
   const page = launched.page;
-  await page.setViewportSize({ width: 1280, height: 900 });
+  // Size the real window, not only the page viewport: the offsets below assume they match.
+  await launched.app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0]?.setContentSize(1280, 900);
+  });
+  await page.waitForTimeout(500);
   await page.waitForSelector('.pdfViewer .page canvas', { timeout: 60_000 });
   await page.waitForTimeout(500);
 
