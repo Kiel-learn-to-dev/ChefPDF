@@ -282,6 +282,26 @@
 | T12.06 | Chỉ báo lớp chữ trên thanh dưới: có chữ, không có chữ (bản scan), hỗn hợp | B12 | 1 | | ✅ (text.layer và nhãn trên thanh trạng thái; core test_text_layer) |
 | T12.07 | Bảng thuộc tính đối tượng (chữ, ảnh, ghi chú, chữ ký) ở panel phải | D13 | 2,5 | T12.04 | ⬜ |
 | T12.08 | Demo v1.1: `demo-v11.spec.ts` theo §5.7, lõi đóng gói; ui-audit cập nhật baseline có chủ ý (D41) | | 2 | T12.01–T12.06 | ✅ (demo-v11, format-row, b1-in-session đạt trên bản đóng gói ngày 2026-11-05; ui-audit đo hai màn hình chỉnh sửa, sạch; đường exe giả làm spec lỗi đúng) |
+| T12.09 | **Chọn chữ rồi bấm Sửa (D65):** bôi đen trên trang, nút Sửa hoặc Enter mở hộp chữ; hộp chữ vẽ bằng font mà lúc ghi sẽ dùng (`render` của lõi); xóa rồi gõ lại không đổi font; kéo chỉ áp sau khi lần nhấn đã chọn xong | D65 | 3 | T12.04, T12.05 | ✅ (pytest `test_text_preview` 13 đạt, có Arial thật; vitest 791 đạt; e2e dev: paragraph-session, textedit, format-row, demo-v11, demo-v07, ui-audit 89 đạt; bản đóng gói: paragraph-session, format-row, demo-v11, b1-in-session 10 đạt; xem NOTES 2026-11-05e) |
+| T12.10 | **Sửa chữ là một chế độ (D66):** bỏ Thêm chữ và Chọn & sửa đối tượng khỏi thanh; Thêm văn bản là công cụ đầu hàng định dạng (khung nháp, Ctrl+Enter ghi qua `overlay.addText`); chọn, kéo, nhích, xóa đối tượng trong cùng chế độ; cảnh báo font đọc được (không `sys:`, không "X bằng X", ký tự vô hình là U+XXXX); ghi chú trên hàng định dạng | D66 | 3 | T12.09 | ✅ (pytest text; vitest; e2e `text-merged` 6, cùng các spec chữ và đối tượng: dev 120 đạt, bản đóng gói 16 đạt; xem NOTES 2026-11-05f) |
+
+---
+
+## v1.2: Menu, Giới thiệu, sửa chữ theo vùng chọn
+
+**Mục tiêu:** bản 1.2 (`1.2.0`): không còn thanh menu trên Windows và Linux; tab Giới thiệu; sửa chữ theo vùng bôi đen, viền đứt chỉ quanh đoạn; đóng gói macOS khi có máy Mac (D67–D70).
+**Demo:** `text-merged`, `about-menu` và bộ text/đối tượng đạt trên dev và trên bản đóng gói.
+
+| Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
+|---|---|---|---|---|---|
+| T13.01 | Bỏ thanh menu trên Windows/Linux; macOS giữ menu tối thiểu có Edit (phím Cmd+C/V); F11 và phím dev ở cửa sổ | D67 | 1 | | ✅ (`about-menu`: `Menu.getApplicationMenu()` là null trên Windows) |
+| T13.02 | Tab Giới thiệu: phiên bản, lõi, môi trường, nút mở thư mục nhật ký và dữ liệu (IPC mới) | D68 | 2 | T13.01 | ✅ (`about-menu`; ui-audit `about`) |
+| T13.03 | Sửa chữ: bỏ khung đứt xanh theo từng đối tượng chữ, vẽ một khung đứt quanh mỗi đoạn | D69 | 1 | T12.10 | ✅ (`text-merged`: 0 khung chữ, số khung đoạn đúng) |
+| T13.04 | Bôi đen rồi Sửa: textbox chọn đúng vùng đã bôi đen, gõ thay thế vùng đó | D70 | 2 | T12.09 | ✅ (`text-merged`: "replaces it") |
+| T13.05 | Khung chữ đặt không đè lên tab và thanh công cụ khi cuộn (cắt theo khung xem) | D66 | 1 | T12.10 | ✅ (`text-merged`: cắt theo mép trên) |
+| T13.06 | Phiên bản 1.2.0 ở mọi gói (`package.json`, desktop, ui, core `__version__` và `pyproject`, `uv.lock`) | | 0,5 | | ✅ |
+| T13.07 | Bản đóng gói Windows 1.2.0 (installer và `win-unpacked`), E2E trên bản đóng gói | | 1 | T13.01–T13.06 | ✅ (`chef-pdf-1.2.0-setup-x64.exe`; 21 E2E đạt trên bản đóng gói; xem NOTES 2026-11-05h) |
+| T13.08 | Bản macOS (`.dmg`): cấu hình có sẵn trong `electron-builder.yml`; cần build trên máy Mac (hoặc CI macOS, cần chủ dự án đồng ý) | | 2 | T13.07 | ⏸ (chưa có máy Mac trong phiên này) |
 
 ---
 

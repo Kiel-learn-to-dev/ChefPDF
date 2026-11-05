@@ -1,6 +1,6 @@
-# Chef PDF: Hướng dẫn sử dụng (bản 1.0, Windows)
+# Chef PDF: Hướng dẫn sử dụng (bản 1.2.0, Windows)
 
-> Hướng dẫn này khớp với bản 1.0 chạy trên **Windows**. macOS và Linux để sau bản 1.0 (D37).
+> Hướng dẫn này khớp với bản 1.2.0 chạy trên **Windows**. macOS và Linux để sau (D37).
 > Tên lệnh và nút trong hướng dẫn là đúng như hiển thị trong ứng dụng.
 
 ## 1. Cài đặt trên Windows
@@ -18,6 +18,7 @@ Dữ liệu (phiên làm việc, nhật ký, cài đặt) nằm trong thư mục
 ## 2. Làm quen
 
 - **Màn hình Start**: các ô nhiệm vụ (Mở PDF, Ghép, Tách, Quét…), file gần đây và quy trình đã lưu. Kéo file PDF vào cửa sổ để mở.
+- **Tab Giới thiệu**: phiên bản đang chạy, phiên bản lõi, môi trường, và nút mở thư mục nhật ký và thư mục dữ liệu. Chế độ Windows không có thanh menu: các lệnh nằm trên thanh công cụ, bảng lệnh (Ctrl+K) và phím tắt; F11 bật toàn màn hình.
 - **Ctrl+K**: bảng lệnh. Gõ tên lệnh, có thể gõ không dấu (ví dụ `chinh khe gay`).
 - **Tab tài liệu**: mỗi file mở trong một tab. Nút **Lưu** ghi đè file gốc; **Lưu thành…** ghi ra file mới. Tab có dấu chấm là còn thay đổi chưa lưu.
 - **Hoàn tác / Làm lại**: Ctrl+Z / Ctrl+Y, theo phiên làm việc. Hoàn tác không sửa file gốc cho tới khi bạn Lưu.
@@ -55,7 +56,7 @@ Các thao tác này không sửa file gốc cho tới khi bạn Lưu. Trang đã
 
 ## 6. Nội dung, ghi chú, form
 
-- **Sửa chữ**: chọn dòng hoặc đoạn, sửa chữ; nếu font trong file không có ký tự tiếng Việt, ứng dụng cảnh báo và thay font gần giống.
+- **Sửa chữ** (một chế độ trên tab Chỉnh sửa): bôi đen chữ trên trang (kéo chuột; nhấp đúp chọn một từ), rồi bấm **Sửa** (hoặc Enter) để mở chữ đó thành hộp chữ và sửa như trong Word. Esc hủy; bấm ra ngoài thì ghi. **Thêm văn bản** (nút đầu hàng định dạng): bật công cụ, bấm vào trang chỗ cần đặt, gõ chữ, Ctrl+Enter ghi (Esc hủy). Trong cùng chế độ, bấm một ảnh hoặc hình để chọn, kéo để di chuyển, phím mũi tên để nhích, Delete để xóa. **Tùy chọn…** mở các tùy chọn của chữ mới (cỡ, màu, nhiều trang, độ mờ, xoay). Nếu font trong file không có ký tự tiếng Việt, ứng dụng cảnh báo bằng tên font (ví dụ Be Vietnam Pro) và thay font gần giống.
 - **Tìm và thay thế** cả tài liệu; **Liên kết** thêm, sửa, xóa.
 - **Gỡ logo chìm / watermark**: dò ứng viên, xem trước, tích chọn trang trước khi xóa.
 - **Che thông tin mật**: tìm CCCD, số điện thoại, email, số tài khoản; xóa thật nội dung bên dưới (kiểm tra bằng cách copy chữ sau khi che).
