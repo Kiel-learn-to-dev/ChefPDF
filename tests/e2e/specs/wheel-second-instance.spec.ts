@@ -57,7 +57,6 @@ test('after a second open of another file, the wheel scrolls that file', async (
     args: [path.join(workDir, 'contract.pdf')],
     env: { CHEF_CORE_CMD: realCoreCmd },
     userDataDir: userData,
-    visible: true,
   });
   const page = launched.page;
   await page.setViewportSize({ width: 1280, height: 900 });

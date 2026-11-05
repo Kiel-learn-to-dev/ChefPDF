@@ -25,6 +25,11 @@ let launched: Launched | null = null;
 let topWindow: ChildProcess | null = null;
 
 test.describe.configure({ mode: 'serial' });
+// Opt-in only: it moves the real mouse and shows windows on the desktop. Set CHEF_E2E_OS_INPUT=1 to run it.
+test.skip(
+  process.env.CHEF_E2E_OS_INPUT !== '1',
+  'B2 needs real mouse input (set CHEF_E2E_OS_INPUT=1)',
+);
 test.skip(process.platform !== 'win32', 'B2 OS wheel is Windows only');
 test.skip(!uiBuilt && !process.env.CHEF_E2E_EXE, 'UI not built (run pnpm --filter @chef/ui build)');
 

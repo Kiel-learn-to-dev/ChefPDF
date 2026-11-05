@@ -53,11 +53,10 @@ test.afterAll(() => {
 for (const name of ['long.pdf', 'scan_long.pdf']) {
   test(`the mouse wheel scrolls ${name} opened from the command line`, async () => {
     test.setTimeout(180_000);
-    // Visible window: an off-screen test window would hide a focus-dependent wheel bug.
+    // Off screen like every test window (D51): the wheel goes through the page protocol.
     launched = await launchApp({
       args: [path.join(workDir, name)],
       env: { CHEF_CORE_CMD: realCoreCmd },
-      visible: true,
     });
     const page = launched.page;
     await page.setViewportSize({ width: 1280, height: 900 });
