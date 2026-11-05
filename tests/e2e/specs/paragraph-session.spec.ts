@@ -166,3 +166,36 @@ test('a character outside the font shows the chip that says which font takes ove
   await expect(l.page.locator('.tedit-chip--warn').first()).toBeVisible({ timeout: 15_000 });
   await l.page.keyboard.press('Escape');
 });
+
+test('closing the tab with typed text asks first; "Bỏ chữ" closes and writes nothing', async () => {
+  test.setTimeout(120_000);
+  const l = await openEdit();
+  const before = sha256(current);
+  await clickText(l);
+  await l.page.keyboard.type('Tạm thời');
+  await l.page.locator('.doctab__close').first().click();
+  await expect(l.page.getByRole('dialog').getByText('Chữ đang sửa chưa lưu')).toBeVisible({
+    timeout: 30_000,
+  });
+  await l.page.getByRole('button', { name: 'Bỏ chữ' }).click();
+  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(0, { timeout: 30_000 });
+  expect(sha256(current)).toBe(before);
+});
+
+test('closing with typed text: "Ghi chữ" writes it, then the document asks to save', async () => {
+  test.setTimeout(120_000);
+  const l = await openEdit();
+  await clickText(l);
+  await l.page.keyboard.press('Control+Home');
+  await l.page.keyboard.type('Ghi lại ');
+  await l.page.locator('.doctab__close').first().click();
+  await expect(l.page.getByRole('dialog').getByText('Chữ đang sửa chưa lưu')).toBeVisible({
+    timeout: 30_000,
+  });
+  await l.page.getByRole('button', { name: 'Ghi chữ' }).click();
+  await expect(l.page.getByRole('dialog').getByText('Lưu thay đổi?')).toBeVisible({
+    timeout: 30_000,
+  });
+  await l.page.getByRole('button', { name: 'Không lưu' }).click();
+  await expect(l.page.locator('.doctab:not(.doctab--home)')).toHaveCount(0, { timeout: 30_000 });
+});
