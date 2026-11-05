@@ -47,9 +47,18 @@ from chef_core.pdf.content import mul
 from chef_core.text.build import LIST_MARKER, matrix_of
 from chef_core.text.edit import FontBook, advance_only, find_et, font_cap, resource_name
 from chef_core.text.fontcap import FontCapability
-from chef_core.text.fonts import FontEntry, Wanted, covers, entry, load_registry, pick
+from chef_core.text.fonts import (
+    FontEntry,
+    Wanted,
+    covers,
+    entry,
+    load_registry,
+    old_font_label,
+    pick,
+    substitution_note,
+)
 from chef_core.text.model import TextLine, TextPage, TextParagraph
-from chef_core.text.system_fonts import match_original
+from chef_core.text.system_fonts import installed_match, match_original
 
 STRATEGIES = ("auto", "keep", "replace")
 ALIGNS = ("keep", "left", "right", "center", "justify")
@@ -181,6 +190,7 @@ class ParagraphPlan:
     line_width: float = 1.0
     body: str = ""  # the text laid out (the new text, with a kept list marker in front)
     body_prefix: int = 0  # length of that marker, not part of the new text
+    render: dict[str, Any] = field(default_factory=dict)  # font the session draws with (_render_of)
 
 
 def parse_paragraph_id(value: str) -> tuple[int, str] | None:
@@ -242,6 +252,7 @@ def _choose(
             raise invalid_params("TEXT_GLYPH_MISSING", {"missing": _uncovered(text)})
         if item.bold != bold or item.italic != italic:
             warnings.append("Font đã chọn không có đủ kiểu đậm/nghiêng được yêu cầu.")
+        warnings.append(f"Dùng font {item.family} theo lựa chọn.")
         return _Writer(None, item)
     style_changed = bold != dom.bold or italic != dom.italic
     if opts.font_strategy == "replace" or (style_changed and opts.font_strategy != "keep"):
@@ -263,18 +274,12 @@ def _choose(
         matched = match_original(dom.font_name, cps, bold, italic)
         if matched is not None:
             warnings.append(
-                f"Đã dùng font {matched.family} của máy thay cho {dom.font_name} "
-                f"vì font gốc thiếu: {''.join(missing)}"
+                substitution_note(old_font_label(dom.font_name), matched.family, missing)
             )
             return _Writer(None, matched)
     sub = _registry(dom, text, bold, italic, opts, warnings)
     assert sub.item is not None
-    if missing:
-        warnings.append(
-            f"Đã thay font {dom.font_name} bằng {sub.item.id} vì font gốc thiếu: {''.join(missing)}"
-        )
-    else:
-        warnings.append(f"Đã thay font {dom.font_name} bằng {sub.item.id}.")
+    warnings.append(substitution_note(old_font_label(dom.font_name), sub.item.family, missing))
     return sub
 
 
@@ -390,6 +395,7 @@ def plan_paragraph(
     writer = _choose(dom, cap, body, opts, bold, italic, warnings)
     plan.action = "reflow"
     plan.writer = writer
+    plan.render = _render_of(dom, writer, bold, italic)
     plan.body = body
     plan.body_prefix = len(body) - len(text)
     plan.font_id = writer.item.id if writer.item is not None else None
@@ -405,6 +411,27 @@ def plan_paragraph(
     plan.line_width = ref.lw
     _layout(page, para, lines, body, writer, size, size0, opts, plan)
     return plan
+
+
+def _render_of(dom: TextLine, writer: _Writer, bold: bool, italic: bool) -> dict[str, Any]:
+    """The font the text is drawn with in a session: the family the commit writes. A bundled font
+    is named by its own family; the document's font is named only when it is installed on this
+    computer (else the browser falls back to the style, sans or serif)."""
+    if writer.item is not None:
+        item = writer.item
+        return {
+            "family": item.family,
+            "style": item.style,
+            "bold": item.bold,
+            "italic": item.italic,
+        }
+    installed = installed_match(dom.font_name, bold, italic)
+    return {
+        "family": installed.family if installed is not None else None,
+        "style": dom.style,
+        "bold": bold,
+        "italic": italic,
+    }
 
 
 def _fill_of(run: PageObject) -> FillState:

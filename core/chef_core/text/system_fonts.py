@@ -171,6 +171,12 @@ def normalize_base_font(base_font: str) -> tuple[str, bool, bool]:
     return family, bold, italic
 
 
+def installed_match(base_font: str, bold: bool, italic: bool) -> FontEntry | None:
+    """The installed font of the document's font (same family), without the check of characters.
+    The session draws its text with this family when the commit keeps the document's font."""
+    return match_original(base_font, set(), bold, italic)
+
+
 def match_original(
     base_font: str, codepoints: set[int], bold: bool, italic: bool
 ) -> FontEntry | None:

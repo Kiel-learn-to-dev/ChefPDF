@@ -83,6 +83,25 @@ def _options(
     return opts
 
 
+def _glyphs_json(tp: TextPage, line: TextLine) -> list[list[float]]:
+    """Displayed [left, right] of every character of line.text (one pair per display index).
+
+    An inferred space (no character of the page) takes the right edge of the character before it,
+    so the pairs stay in reading order and the selection can point at any index of the text.
+    """
+    out: list[list[float]] = []
+    edge = tp.display_box(line.bbox)[0]
+    for index in line.display_map:
+        if index is None:
+            out.append([edge, edge])
+            continue
+        c = line.chars[index]
+        left, _, right, _ = tp.display_box((c.x0, c.y0, c.x1, c.y1))
+        out.append([round(left, 3), round(right, 3)])
+        edge = round(right, 3)
+    return out
+
+
 def _line_json(tp: TextPage, line: TextLine) -> dict[str, Any]:
     cap = font_cap(tp, line.runs[0].font)
     can_any = any(cap.can(ch) for ch in line.text if not ch.isspace())
@@ -91,6 +110,7 @@ def _line_json(tp: TextPage, line: TextLine) -> dict[str, Any]:
         "pageIndex": line.page_index,
         "text": line.text,
         "bbox": [round(v, 3) for v in tp.display_box(line.bbox)],
+        "glyphs": _glyphs_json(tp, line),
         "fontName": line.font_name,
         "fontSize": round(line.font_size, 3),
         "bold": line.bold,

@@ -214,7 +214,7 @@ def preview_paragraph(ctx: OpContext, p: TextPreviewParagraphParams) -> OpOutput
     tp = _cached_page(ctx, p.page_index)
     plan = plan_paragraph(tp, p.paragraph_id, p.new_text, _options(p))
     rows = preview_rows(tp, plan)
-    return OpOutput(changed_pages=[], data={**plan_json(plan), "rows": rows})
+    return OpOutput(changed_pages=[], data={**plan_json(plan), "rows": rows, "render": plan.render})
 
 
 # The text model of the last pages read for previews. A revision is a new file (new mtime), so a

@@ -40,7 +40,16 @@ from chef_core.overlay.pagecontent import category
 from chef_core.pdf.content import mul
 from chef_core.text.build import Tok, matrix_of, show_items, tokens_of
 from chef_core.text.fontcap import FontCapability
-from chef_core.text.fonts import FontEntry, Wanted, covers, entry, load_registry, pick
+from chef_core.text.fonts import (
+    FontEntry,
+    Wanted,
+    covers,
+    entry,
+    load_registry,
+    old_font_label,
+    pick,
+    substitution_note,
+)
 from chef_core.text.model import TextLine, TextPage
 
 FONT_FLOOR = 0.8  # shrink never goes below this share of the original size
@@ -420,13 +429,9 @@ def _plan_substitute(
         text=new_text,
         codepoints=cps,
     )
-    if plan.missing:
-        plan.warnings.append(
-            f"Đã thay font {line.font_name} bằng {item.id} "
-            f"vì font gốc thiếu: {''.join(plan.missing)}"
-        )
-    else:
-        plan.warnings.append(f"Đã thay font {line.font_name} bằng {item.id}.")
+    plan.warnings.append(
+        substitution_note(old_font_label(line.font_name), item.family, plan.missing)
+    )
     plan.warnings += _warnings(page, line, plan, opts)
     return plan
 

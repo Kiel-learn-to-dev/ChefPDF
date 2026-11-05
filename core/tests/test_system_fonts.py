@@ -85,7 +85,17 @@ def test_a_missing_letter_takes_the_installed_font_of_the_same_family(
     result = _edit(harness, sid, para["id"], "Ạ ệ ộ ự ẫ tiếng Việt mới.")
     # The document's own font family is kept: it is installed, so it is used, not a bundled one.
     assert result["data"]["fontTo"] == "Be Vietnam Pro"
-    assert any("của máy" in w for w in result["warnings"])
+    assert any("bản đầy đủ của font" in w for w in result["warnings"])
     assert "tiếng Việt mới" in pdf_text(
         Path(harness.call("session.state", {"sessionId": sid})["revisionPath"])
     )
+
+
+def test_the_document_font_is_named_by_its_family_not_its_basefont() -> None:
+    """A message names the document's font as people know it: the installed family when there is one,
+    else the BaseFont without its subset tag and PS/MT suffixes (D66)."""
+    from chef_core.text.fonts import old_font_label
+
+    assert old_font_label("ABCDEF+NoSuchFontPS-BoldMT") == "NoSuchFont"
+    if Path("C:/Windows/Fonts/times.ttf").exists():
+        assert old_font_label("ABCDEF+TimesNewRomanPS-BoldMT") == "Times New Roman"

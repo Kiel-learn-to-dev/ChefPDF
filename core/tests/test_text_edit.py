@@ -86,7 +86,7 @@ def test_the_classic_trap_replaces_the_font_and_shows_the_new_text(
     result = _edit(harness, sid, line, new)
     assert result["data"]["action"] == "substitute"
     assert result["data"]["fontTo"] == "BeVietnamPro-Regular"
-    assert any("Đã thay font" in w for w in result["warnings"])
+    assert any("Be Vietnam Pro" in w for w in result["warnings"])
     out = _revision(harness, sid)
     assert squash(new) in squash(pdf_text(out))
     assert "Tiếng Việt" not in pdf_text(out)

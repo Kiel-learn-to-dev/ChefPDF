@@ -123,7 +123,7 @@ def test_substitution_warning_when_the_subset_lacks_the_new_letters(
     result = _edit(harness, sid, para["id"], "Ạ ệ ộ ự ẫ tiếng Việt mới.")
     assert result["data"]["fontTo"] == "BeVietnamPro-Regular"
     assert result["data"]["missing"]
-    assert any("Đã thay font" in w for w in result["warnings"])
+    assert any("Be Vietnam Pro" in w for w in result["warnings"])
 
 
 def test_overflow_is_reported_and_blocks_are_listed(harness: Harness, tmp_path: Path) -> None:
