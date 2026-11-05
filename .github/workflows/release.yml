@@ -22,10 +22,8 @@ jobs:
           - name: macos-arm64
             os: macos-latest
             builder_args: --mac --arm64
-          # Intel macOS: the macos-13 image has been retired; macos-15-intel is its successor.
-          - name: macos-x64
-            os: macos-15-intel
-            builder_args: --mac --x64
+          # No Intel macOS build: onnxruntime >= 1.31 ships no macosx x86_64 wheel, so the core
+          # (PyInstaller) cannot be built on macos-15-intel. Apple Silicon only.
           - name: linux-x64
             os: ubuntu-latest
             builder_args: --linux --x64
