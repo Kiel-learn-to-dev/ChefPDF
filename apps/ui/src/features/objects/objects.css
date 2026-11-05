@@ -4,6 +4,9 @@
   inset: 0;
   z-index: 18;
   pointer-events: none;
+  /* Cut at the viewer's edge, like the text layer: a box scrolled past the top is not drawn over
+     the tabs and the toolbar. */
+  overflow: hidden;
 }
 .obj-layer--live {
   pointer-events: auto;

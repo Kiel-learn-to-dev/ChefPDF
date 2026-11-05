@@ -4,38 +4,47 @@
   inset: 0;
   z-index: 19;
   pointer-events: none;
+  /* The layer is the size of the viewer: a box scrolled past its top edge is cut there, not drawn
+     over the tabs and the toolbar (D66). */
+  overflow: hidden;
 }
-.tedit-layer--live {
+/* The line boxes are invisible. They take the mouse in the live mode (D66): a press on text selects
+   it, a press on the empty page goes on to the object layer below. */
+.tedit-box {
+  position: absolute;
+  pointer-events: none;
+}
+.tedit-box--live {
   pointer-events: auto;
   cursor: text;
 }
-.tedit-box {
+/* The outline of an editable paragraph in the Sửa chữ mode (D67): dashed, blue, around the paragraph. */
+.tedit-para {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid transparent;
+  border: 1px dashed #2563eb;
   pointer-events: none;
 }
-.tedit-box--hover {
-  border-color: color-mix(in srgb, #2563eb 70%, transparent);
-  background: color-mix(in srgb, #2563eb 8%, transparent);
-}
-.tedit-box--selected {
-  border: 2px solid #2563eb;
-  background: color-mix(in srgb, #2563eb 12%, transparent);
-}
-.tedit-box--locked {
-  border-style: dotted;
-  border-color: color-mix(in srgb, #64748b 60%, transparent);
-}
-.tedit-hint {
+/* A new text box (Thêm văn bản, D66): a dashed frame; the text is the overlay text it becomes. */
+.tedit-draft {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-sm);
-  background: var(--c-surface-2);
-  color: var(--c-inverse-text);
-  font-size: var(--text-sm);
+  z-index: 4;
+  box-sizing: border-box;
+  min-height: 1.6em;
+  padding: 0 2px;
+  border: 1px dashed #2563eb;
+  background: rgb(255 255 255 / 0.6);
+  color: #000;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  line-height: 1.25;
+  resize: none;
+  outline: none;
+  pointer-events: auto;
+}
+/* Text selected on the page (D65): a translucent band over the characters, as in a word processor. */
+.tedit-sel {
+  position: absolute;
+  background: rgb(10 102 194 / 0.25);
   pointer-events: none;
 }
 .tedit-chip {
@@ -146,12 +155,15 @@
   font-size: var(--text-sm);
 }
 
-/* Paragraph session (D62): the paragraph is drawn from the core's rows; keys go to a hidden input. */
+/* Textbox of a paragraph (D62, D65): the paragraph is drawn from the core's rows; keys go to a hidden input. */
+/* The textbox (D65): a thin frame around the paragraph, like a word processor's text box. */
 .tedit-sess {
   position: absolute;
   z-index: 3;
   pointer-events: auto;
   cursor: text;
+  box-sizing: border-box;
+  border: 1px solid #2563eb;
 }
 .tedit-sess__mask {
   position: absolute;
@@ -190,17 +202,12 @@
   resize: none;
   overflow: hidden;
 }
-.tedit-sess__notes {
-  position: absolute;
-  z-index: 4;
+
+.tedit-fmt__notes {
   display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
-  pointer-events: none;
-}
-.tedit-sess__hint {
-  position: absolute;
-  z-index: 4;
-  color: var(--c-muted);
-  font-size: var(--text-sm);
-  pointer-events: none;
+  min-width: 0;
 }

@@ -27,30 +27,32 @@ describe('paragraph session commit', () => {
   });
 
   it('keeps the session open when the write fails, so the typed text is not lost', async () => {
-    expect(await commitSession('document')).toBe(false);
+    expect(await commitSession()).toBe(false);
     expect(useTextEdit.getState().session).toMatchObject({ text: 'Changed', committing: false });
     expect(vi.mocked(runDocOp)).toHaveBeenCalled();
   });
 
   it('only closes the session when the text is unchanged', async () => {
     useTextEdit.getState().patchSession({ text: 'Original' });
-    expect(await commitSession('document')).toBe(true);
+    expect(await commitSession()).toBe(true);
     expect(useTextEdit.getState().session).toBeNull();
     expect(vi.mocked(runDocOp)).not.toHaveBeenCalled();
   });
 });
 
 describe('preview notes', () => {
-  it('says which font takes over, and what overflows or overlaps', () => {
+  it('shows the core warnings once, then what overflows or overlaps', () => {
     const notes = previewNotes({
       fontFrom: 'BeVietnamPro-Regular',
       fontTo: 'BeVietnamPro-Regular',
-      missing: ['ư'],
+      warnings: ['Đã dùng bản đầy đủ của font Be Vietnam Pro cho ký tự: ư.'],
+      missing: [],
       overflow: 4,
       overlapsBlockIds: ['B1'],
     });
     expect(notes.map((n) => n.tone)).toEqual(['warn', 'warn', 'warn']);
-    expect(notes[0]?.text).toContain('BeVietnamPro-Regular');
+    expect(notes[0]?.text).toContain('Be Vietnam Pro');
+    expect(notes.map((n) => n.text).join(' ')).not.toContain('BeVietnamPro-Regular');
   });
 
   it('reports missing characters only when no font takes over', () => {

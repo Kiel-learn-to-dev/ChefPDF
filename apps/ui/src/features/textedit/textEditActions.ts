@@ -13,14 +13,27 @@ import { getDoc } from '../../app/state/documents';
 import { i18n } from '../../i18n';
 import { caretFromPoint, type SessionRow } from './textSession';
 import { hitLine, type TextLine } from './textEditModel';
-import { useTextEdit, type ReplacementFont, type SessionNote } from './textEditState';
+import {
+  DEFAULT_PAGES,
+  DEFAULT_TEXT_FORM,
+  addTextParams,
+  type TextForm,
+} from '../overlay/overlayModel';
+import { applyOverlay } from '../overlay/overlayActions';
+import { clampRange, indexAt, paragraphGlyphs, wordRange } from './textSelection';
+import {
+  useTextEdit,
+  type RenderFont,
+  type ReplacementFont,
+  type SessionNote,
+} from './textEditState';
 import {
   KEEP_STYLE,
   editParagraphParams,
   overlapHighlights,
-  pageOfParagraph,
   paragraphCentre,
   paragraphLines,
+  charsLabel,
   paragraphWarnings,
   reselectParagraph,
   styleParagraphParams,
@@ -100,17 +113,22 @@ function enqueue<T>(job: () => Promise<T>): Promise<T> {
 
 // ---------- The paragraph session ----------
 
-/** The notes a preview shows: the font that takes over, missing characters, overflow, overlap. */
+/** Where a session puts its caret when it opens: at the end, at a point, or on a range (D65). */
+export type SessionPlace =
+  | { at: 'end' }
+  | { at: 'point'; x: number; y: number }
+  | { at: 'range'; anchor: number; caret: number };
+
+/**
+ * The notes a preview shows, once each: the core's warnings (they already name the font that takes
+ * over, by its family), characters that no font writes, overflow and overlap.
+ */
 export function previewNotes(data: ParagraphResultData & { missing?: string[] }): SessionNote[] {
-  const notes: SessionNote[] = [];
-  // The core keeps the paragraph's font (fontTo null) or writes it with a registry font. `missing`
-  // lists what the original font lacks: it is only an error when nothing takes over.
-  if (data.fontTo) {
-    notes.push({ tone: 'warn', text: t('textEdit.warn.font', { font: data.fontTo }) });
-  } else if (data.missing && data.missing.length > 0) {
+  const notes: SessionNote[] = (data.warnings ?? []).map((text) => ({ tone: 'warn', text }));
+  if (data.missing && data.missing.length > 0 && !data.fontTo) {
     notes.push({
       tone: 'error',
-      text: t('textEdit.chip.missing', { chars: data.missing.join(' ') }),
+      text: t('textEdit.chip.missing', { chars: charsLabel(data.missing) }),
     });
   }
   if ((data.overflow ?? 0) > 0) {
@@ -122,80 +140,203 @@ export function previewNotes(data: ParagraphResultData & { missing?: string[] })
       text: t('textEdit.warn.overlap', { count: data.overlapsBlockIds?.length ?? 0 }),
     });
   }
-  for (const w of data.warnings ?? []) notes.push({ tone: 'warn', text: w });
   return notes;
 }
 
 /**
- * Opens a session on a paragraph of the current revision. The caret goes to the point clicked (in
- * points) when there is one, else to the end. The first preview gives the rows that the caret uses.
- * Runs in the queue, after a pending session has been written (see openSessionAt).
+ * Opens a session on a paragraph of the current revision, with the caret or the range of `place`.
+ * The first preview gives the rows that the caret uses. Runs in the queue, after a pending session
+ * has been written (see editSelection).
  */
 async function startSessionBody(
   docId: string,
   pageIndex: number,
   paragraphId: string,
-  point: { x: number; y: number } | null,
+  place: SessionPlace,
 ): Promise<void> {
   const lines = useTextEdit.getState().lines[pageIndex] ?? [];
   const own = paragraphLines(lines, paragraphId);
   if (own.length === 0) return;
   const text = paragraphText(lines, paragraphId);
+  const range = place.at === 'range' ? clampRange(place.anchor, place.caret, text.length) : null;
   useTextEdit.getState().openSession({
     docId,
     pageIndex,
     paragraphId,
     original: text,
     fontSize: own[0]!.fontSize,
+    anchor: range?.anchor,
+    caret: range?.caret,
   });
   const seq = useTextEdit.getState().session?.seq ?? 0;
   const data = await previewRequest(docId, pageIndex, paragraphId, text);
   const s = useTextEdit.getState().session;
   if (!s || s.paragraphId !== paragraphId || s.seq !== seq || !data) return;
   const rows = (data.rows as SessionRow[] | undefined) ?? [];
-  const caret = point ? (caretFromPoint(rows, point.x, point.y) ?? text.length) : text.length;
+  if (range) {
+    useTextEdit.getState().patchSession({
+      rows,
+      render: data.render ?? null,
+      notes: previewNotes(data),
+      anchor: range.anchor,
+      caret: range.caret,
+    });
+    return;
+  }
+  const at =
+    place.at === 'point' ? (caretFromPoint(rows, place.x, place.y) ?? text.length) : text.length;
   useTextEdit.getState().patchSession({
     rows,
+    render: data.render ?? null,
     notes: previewNotes(data),
-    caret,
-    anchor: caret,
+    caret: at,
+    anchor: at,
   });
 }
 
 /** Writes a session still open (a failed write stays open), then tells whether none is left. */
-async function closePendingSession(docId: string): Promise<boolean> {
-  if (useTextEdit.getState().session) await doCommit(docId);
+async function closePendingSession(): Promise<boolean> {
+  if (useTextEdit.getState().session) await doCommit();
   return useTextEdit.getState().session === null;
 }
 
-/** Opens a session on a paragraph (Enter on the selected paragraph). */
-export function startSession(docId: string, pageIndex: number, paragraphId: string): Promise<void> {
+/**
+ * The Sửa button and Enter: writes the session that is open, then opens a textbox on the text
+ * selected on the page (D65). The selection is read after the write, since a write can move the
+ * paragraph and the range with it.
+ */
+export function editSelection(docId: string): Promise<void> {
   return enqueue(async () => {
-    if (!(await closePendingSession(docId))) return;
-    await startSessionBody(docId, pageIndex, paragraphId, null);
+    if (!(await closePendingSession())) return;
+    const sel = useTextEdit.getState().selection;
+    if (!sel) return;
+    await startSessionBody(docId, sel.pageIndex, sel.paragraphId, {
+      at: 'range',
+      anchor: sel.anchor,
+      caret: sel.caret,
+    });
   });
 }
 
 /**
- * A click at a point of the page: writes the session that is open, then opens the paragraph under
- * the point of the lines as they are now (a write can move the paragraphs). A click on no paragraph
- * only clears the selection.
+ * A press on the page: writes the session that is open, then selects the text under the point (its
+ * paragraph only). Shift extends the selection from its anchor; `word` selects the word there (a
+ * double click). A press on no text clears the selection.
  */
-export function openSessionAt(
+export function selectAt(
+  docId: string,
+  pageIndex: number,
+  point: { x: number; y: number },
+  options: { extend?: boolean; word?: boolean } = {},
+): Promise<void> {
+  return enqueue(async () => {
+    if (!(await closePendingSession())) return;
+    if (!(await closePendingDraft())) return;
+    const lines = useTextEdit.getState().lines[pageIndex] ?? [];
+    const hit = hitLine(lines, point.x, point.y);
+    if (!hit || !hit.paragraphId) {
+      useTextEdit.getState().setSelection(null);
+      return;
+    }
+    const paragraphId = hit.paragraphId;
+    const pg = paragraphGlyphs(lines, paragraphId);
+    const index = indexAt(pg, point.x, point.y);
+    if (options.word) {
+      const [from, to] = wordRange(pg.text, index);
+      useTextEdit.getState().setSelection({ pageIndex, paragraphId, anchor: from, caret: to });
+      return;
+    }
+    const prev = useTextEdit.getState().selection;
+    const anchor = options.extend && prev && prev.paragraphId === paragraphId ? prev.anchor : index;
+    useTextEdit.getState().setSelection({ pageIndex, paragraphId, anchor, caret: index });
+  });
+}
+
+/** A press on the page margin: writes the textbox that is open and clears the selection. */
+export function clearSelection(): Promise<void> {
+  return enqueue(async () => {
+    if (!(await closePendingSession())) return;
+    if (!(await closePendingDraft())) return;
+    useTextEdit.getState().setSelection(null);
+  });
+}
+
+// ---------- Thêm văn bản (D66) ----------
+
+/** Size of a new text box (points); Tùy chọn… changes the size, colour and page of the next one. */
+export const NEW_TEXT_SIZE = 12;
+
+/**
+ * Writes the new text box as one overlay text (overlay.addText, one revision). Empty text only
+ * closes the box. A failed write keeps the box open with its text.
+ */
+async function doCommitDraft(): Promise<boolean> {
+  const d = useTextEdit.getState().draft;
+  if (!d) return true;
+  const docId = d.docId;
+  if (d.text.trim() === '') {
+    useTextEdit.getState().closeDraft();
+    return true;
+  }
+  const pageCount = getDoc(docId)?.info.pageCount ?? d.pageIndex + 1;
+  const form: TextForm = {
+    ...DEFAULT_TEXT_FORM,
+    text: d.text,
+    fontSize: NEW_TEXT_SIZE,
+    unit: 'pt',
+    x: d.x,
+    y: d.y,
+    pages: DEFAULT_PAGES,
+  };
+  const ok = await applyOverlay(
+    docId,
+    'overlay.addText',
+    addTextParams(form, d.pageIndex, pageCount),
+    t('textEdit.op.addText'),
+  );
+  if (ok) useTextEdit.getState().closeDraft();
+  return ok;
+}
+
+/** Writes the open text box, if it has one (a failed write keeps it open). */
+async function closePendingDraft(): Promise<boolean> {
+  if (useTextEdit.getState().draft) await doCommitDraft();
+  return useTextEdit.getState().draft === null;
+}
+
+/** Writes the text box that is open (Ctrl+Enter, a press elsewhere, or leaving the mode). */
+export function commitDraft(): Promise<boolean> {
+  return enqueue(() => doCommitDraft());
+}
+
+/**
+ * A press on the page with the add-text tool on: writes what is open, then starts a text box at the
+ * point (points, displayed frame).
+ */
+export function startDraft(
   docId: string,
   pageIndex: number,
   point: { x: number; y: number },
 ): Promise<void> {
   return enqueue(async () => {
-    if (!(await closePendingSession(docId))) return;
-    const lines = useTextEdit.getState().lines[pageIndex] ?? [];
-    const hit = hitLine(lines, point.x, point.y);
-    if (!hit || !hit.paragraphId) {
-      useTextEdit.getState().setSelectedParagraph(null);
-      return;
-    }
-    await startSessionBody(docId, pageIndex, hit.paragraphId, point);
+    if (!(await closePendingSession())) return;
+    if (!(await closePendingDraft())) return;
+    useTextEdit.getState().setSelection(null);
+    useTextEdit.getState().openDraft({ docId, pageIndex, x: point.x, y: point.y });
   });
+}
+
+/** Drops the text box that is open, without writing it (Esc). */
+export function cancelDraft(): void {
+  useTextEdit.getState().closeDraft();
+}
+
+/** A drag over the page: the caret of the selection follows the point, within its paragraph. */
+export function dragSelection(point: { x: number; y: number }): void {
+  const sel = useTextEdit.getState().selection;
+  if (!sel) return;
+  const pg = paragraphGlyphs(useTextEdit.getState().lines[sel.pageIndex] ?? [], sel.paragraphId);
+  useTextEdit.getState().setSelection({ ...sel, caret: indexAt(pg, point.x, point.y) });
 }
 
 /** One preview of `newText` as the paragraph of the session would have it (read only). */
@@ -204,7 +345,7 @@ async function previewRequest(
   pageIndex: number,
   paragraphId: string,
   newText: string,
-): Promise<(ParagraphResultData & { missing?: string[]; rows?: unknown[] }) | null> {
+): Promise<PreviewData | null> {
   try {
     const result = await runOp(
       'text.previewParagraph',
@@ -217,7 +358,7 @@ async function previewRequest(
       },
       { sessionId: docId, title: t('textEdit.checking'), silent: true },
     );
-    return result.data as (ParagraphResultData & { missing?: string[]; rows?: unknown[] }) | null;
+    return result.data as PreviewData | null;
   } catch (e) {
     const s = useTextEdit.getState().session;
     if (s) {
@@ -229,6 +370,13 @@ async function previewRequest(
     return null;
   }
 }
+
+/** The answer of text.previewParagraph: the commit's plan, its rows and the font they are drawn in. */
+type PreviewData = ParagraphResultData & {
+  missing?: string[];
+  rows?: unknown[];
+  render?: RenderFont;
+};
 
 let previewTimer: number | undefined;
 
@@ -263,6 +411,7 @@ async function runPreview(docId: string): Promise<void> {
   if (!now || now.seq !== seq || !data) return;
   useTextEdit.getState().patchSession({
     rows: (data.rows as SessionRow[] | undefined) ?? [],
+    render: data.render ?? null,
     notes: previewNotes(data),
   });
 }
@@ -271,18 +420,20 @@ async function runPreview(docId: string): Promise<void> {
  * Writes the session's text into the paragraph: one text.editParagraph, one revision. Unchanged
  * text only closes the session. A failure keeps the session open with the Vietnamese error.
  */
-export function commitSession(docId: string): Promise<boolean> {
-  return enqueue(() => doCommit(docId));
+export function commitSession(): Promise<boolean> {
+  return enqueue(() => doCommit());
 }
 
-async function doCommit(docId: string): Promise<boolean> {
+async function doCommit(): Promise<boolean> {
   const s = useTextEdit.getState().session;
   if (!s || s.committing) return false;
+  const docId = s.docId;
   if (s.text === s.original) {
     useTextEdit.getState().closeSession();
     return true;
   }
   const { pageIndex, paragraphId, text } = s;
+  const range = { anchor: s.anchor, caret: s.caret };
   const centre = paragraphCentre(useTextEdit.getState().lines[pageIndex] ?? [], paragraphId);
   useTextEdit.getState().patchSession({ committing: true });
   const store = useTextEdit.getState();
@@ -314,7 +465,7 @@ async function doCommit(docId: string): Promise<boolean> {
   warnParagraph(docId, pageIndex, result.data as ParagraphResultData | undefined);
   useTextEdit.getState().closeSession();
   await reloadLines(docId, [pageIndex]).catch((e: unknown) => showError(e));
-  selectAfterReload(pageIndex, paragraphId, centre);
+  selectAfterReload(pageIndex, paragraphId, centre, range);
   return true;
 }
 
@@ -340,10 +491,28 @@ function warnParagraph(docId: string, pageIndex: number, data: ParagraphResultDa
   if (parts.length > 0) toast.warning(t('textEdit.op.paragraph'), parts.join(' '));
 }
 
-/** Selects the paragraph that replaces oldId on a page read again (see reselectParagraph). */
-function selectAfterReload(pageIndex: number, oldId: string, centre: [number, number] | null) {
+/**
+ * Selects the paragraph that replaces oldId on a page read again (see reselectParagraph), with the
+ * range clamped to its new text. Nothing is selected when the paragraph is not found.
+ */
+export function selectAfterReload(
+  pageIndex: number,
+  oldId: string,
+  centre: [number, number] | null,
+  range: { anchor: number; caret: number },
+): void {
   const lines = useTextEdit.getState().lines[pageIndex] ?? [];
-  useTextEdit.getState().setSelectedParagraph(reselectParagraph(lines, oldId, centre));
+  const id = reselectParagraph(lines, oldId, centre);
+  if (!id) {
+    useTextEdit.getState().setSelection(null);
+    return;
+  }
+  const length = paragraphGlyphs(lines, id).text.length;
+  useTextEdit.getState().setSelection({
+    pageIndex,
+    paragraphId: id,
+    ...clampRange(range.anchor, range.caret, length),
+  });
 }
 
 /**
@@ -364,11 +533,12 @@ async function runFormat(
   fontName: string | null,
 ): Promise<boolean> {
   // Text still being typed is written first, so the style applies to the text the reader sees.
-  if (useTextEdit.getState().session) await doCommit(docId);
+  if (useTextEdit.getState().session) await doCommit();
   const store = useTextEdit.getState();
-  const paragraphId = store.selectedParagraphId;
-  const pageIndex = paragraphId ? pageOfParagraph(paragraphId) : null;
-  if (!paragraphId || pageIndex === null) return false;
+  const sel = store.selection;
+  if (!sel) return false;
+  const { paragraphId, pageIndex } = sel;
+  const range = { anchor: sel.anchor, caret: sel.caret };
   const centre = paragraphCentre(store.lines[pageIndex] ?? [], paragraphId);
   store.setFormatBusy(true);
   try {
@@ -382,7 +552,7 @@ async function runFormat(
     if (!result) return false;
     warnParagraph(docId, pageIndex, result.data as ParagraphResultData | undefined);
     await reloadLines(docId, [pageIndex]);
-    selectAfterReload(pageIndex, paragraphId, centre);
+    selectAfterReload(pageIndex, paragraphId, centre, range);
     return true;
   } catch (e) {
     showError(e);
@@ -396,9 +566,12 @@ async function runFormat(
 // stay (1.1). A failed write keeps the document open with the session.
 onBeforeClose(async (docId) => {
   const s = useTextEdit.getState().session;
-  if (!s || s.docId !== docId) return true;
-  if (s.text === s.original) {
+  const d = useTextEdit.getState().draft;
+  const openSession = !!s && s.docId === docId && s.text !== s.original;
+  const newText = !!d && d.docId === docId && d.text.trim() !== '';
+  if (!openSession && !newText) {
     cancelSession();
+    cancelDraft();
     return true;
   }
   const answer = await confirmDialog({
@@ -413,7 +586,10 @@ onBeforeClose(async (docId) => {
   if (answer === null || answer === 'cancel') return false;
   if (answer === 'discard') {
     cancelSession();
+    cancelDraft();
     return true;
   }
-  return commitSession(docId);
+  // The open textbox is written first; a failed write keeps the document open.
+  if (!(await commitSession())) return false;
+  return commitDraft();
 });

@@ -1,11 +1,17 @@
 /**
- * The paragraph being typed into (D62): the paragraph is drawn from the core's rows (the same plan
- * the commit writes), with a caret and a selection placed by the text index of each character.
- * Keys go to a hidden textarea, so typing, IME and the clipboard work as in a text field. Up, Down,
- * Home and End move by the lines the reader sees. Esc drops the session; Ctrl+Enter or a click
- * outside the paragraph writes it (one revision).
+ * The textbox of a paragraph (D62, D65): the paragraph is drawn from the core's rows (the same plan
+ * the commit writes), in the font the commit writes, with a caret and a selection placed by the text
+ * index of each character. Keys go to a hidden textarea, so typing, IME and the clipboard work as in
+ * a text field. Up, Down, Home and End move by the lines the reader sees. Esc drops the textbox;
+ * Ctrl+Enter or a click outside writes it (one revision).
  */
-import { useEffect, useRef, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { pagePt, type MeasuredPage } from '../objects/pageMeasure';
 import {
@@ -14,9 +20,9 @@ import {
   commitSession,
   moveSessionCaret,
 } from './textEditActions';
-import { useTextEdit } from './textEditState';
+import { useTextEdit, type RenderFont } from './textEditState';
 import type { TextLine } from './textEditModel';
-import { paragraphBox } from './textParagraphModel';
+import { paragraphBox, paragraphLines } from './textParagraphModel';
 import {
   caretAt,
   caretFromPoint,
@@ -26,6 +32,7 @@ import {
   selectionBoxes,
   type SessionRow,
 } from './textSession';
+import { wordRange } from './textSelection';
 import './textedit.css';
 
 /** Ascent of a glyph as a share of its size: the glyph box sits on the baseline. */
@@ -34,6 +41,17 @@ const ASCENT = 0.8;
 const MARGIN = 3;
 
 type Box = [number, number, number, number];
+
+/**
+ * CSS font of the glyphs: the family the commit writes when it is installed on this computer, else
+ * the generic family of its style (a bundled font that is not installed shows in that style).
+ */
+export function renderCss(render: RenderFont | null): string {
+  const generic =
+    render?.style === 'serif' ? 'serif' : render?.style === 'mono' ? 'monospace' : 'sans-serif';
+  if (!render?.family) return generic;
+  return `"${render.family.replace(/["\\]/g, '')}", ${generic}`;
+}
 
 export function ParagraphSession({
   docId,
@@ -50,10 +68,20 @@ export function ParagraphSession({
   const dragging = useRef(false);
   const dragAnchor = useRef(0);
 
-  // The session takes the keyboard as soon as it opens (a new paragraph or a new page).
-  useEffect(() => {
-    if (session) inputRef.current?.focus();
-  }, [session?.paragraphId, session?.pageIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The session takes the keyboard as soon as it opens (a new paragraph or a new page), with the
+  // range it opened on selected in the input: typing replaces that range, as in a word processor.
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!session || !el) return;
+    el.focus();
+    el.setSelectionRange(
+      Math.min(session.anchor, session.caret),
+      Math.max(session.anchor, session.caret),
+      session.caret < session.anchor ? 'backward' : 'forward',
+    );
+    // Only on opening: the session's own keys keep the input's selection in step afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.paragraphId, session?.pageIndex]);
 
   if (!session) return null;
 
@@ -69,7 +97,15 @@ export function ParagraphSession({
   const rx = (x: number) => (x - ax) * k;
   const ry = (y: number) => (y - ay) * k;
 
-  const dirty = session.text !== session.original;
+  // The rows are drawn over the PDF text (the mask hides it) once the first preview has answered.
+  const drawn = session.rows !== null;
+  const colour = paragraphLines(lines, session.paragraphId)[0]?.colour ?? '#111';
+  const glyphStyle = {
+    fontFamily: renderCss(session.render),
+    fontWeight: session.render?.bold ? 700 : 400,
+    fontStyle: session.render?.italic ? 'italic' : 'normal',
+    color: colour,
+  };
   const at = caretAt(rows, session.caret);
   const boxes = selectionBoxes(rows, session.anchor, session.caret, size);
 
@@ -95,7 +131,7 @@ export function ParagraphSession({
       // The paragraph is written; the document is saved by a later Ctrl+S.
       e.preventDefault();
       e.stopPropagation();
-      void commitSession(docId);
+      void commitSession();
     } else if (mod && (key === 'z' || key === 'y')) {
       // Typing keeps its own undo; the document's undo waits until the session is written.
       e.stopPropagation();
@@ -152,11 +188,7 @@ export function ParagraphSession({
     e.stopPropagation();
     const st = useTextEdit.getState().session;
     if (!st) return;
-    const text = st.text;
-    let from = Math.min(st.caret, text.length);
-    let to = from;
-    while (from > 0 && !/\s/.test(text[from - 1]!)) from--;
-    while (to < text.length && !/\s/.test(text[to]!)) to++;
+    const [from, to] = wordRange(st.text, st.caret);
     setCaret(to, from);
   };
 
@@ -175,7 +207,7 @@ export function ParagraphSession({
         onPointerCancel={() => (dragging.current = false)}
         onDoubleClick={onDoubleClick}
       >
-        {dirty && (
+        {drawn && (
           <div
             className="tedit-sess__mask"
             style={{ left: 0, top: 0, width: aw * k, height: ah * k }}
@@ -188,7 +220,7 @@ export function ParagraphSession({
             style={{ left: rx(b.left), top: ry(b.top), width: b.width * k, height: b.height * k }}
           />
         ))}
-        {dirty &&
+        {drawn &&
           rows.map((row, r) =>
             [...row.text].map((ch, c) =>
               ch === ' ' ? null : (
@@ -196,6 +228,7 @@ export function ParagraphSession({
                   key={`${r}-${c}`}
                   className="tedit-sess__glyph"
                   style={{
+                    ...glyphStyle,
                     left: rx(row.x + row.charX[c]!),
                     top: ry(row.baseline - ASCENT * size),
                     fontSize: size * k,
@@ -227,23 +260,6 @@ export function ParagraphSession({
           onKeyDown={onKeyDown}
           // Losing the focus keeps the session: a click on the page writes it, and closing asks.
         />
-      </div>
-      <div className="tedit-sess__notes" style={{ left, top: Math.max(0, top - 26) }}>
-        {session.notes.map((n, i) => (
-          <span
-            key={i}
-            className={`tedit-chip tedit-chip--${n.tone === 'error' ? 'error' : 'warn'}`}
-            role="status"
-          >
-            {n.text}
-          </span>
-        ))}
-        {session.committing && (
-          <span className="tedit-chip tedit-chip--none">{t('textEdit.session.saving')}</span>
-        )}
-      </div>
-      <div className="tedit-sess__hint" style={{ left, top: top + ah * k + 4 }}>
-        {t('textEdit.session.hint')}
       </div>
     </>
   );

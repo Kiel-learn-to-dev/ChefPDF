@@ -28,6 +28,8 @@ import { showError } from '../../app/actions';
 import { toast } from '../../components/Toast';
 import { isEditableTarget } from '../../lib/shortcuts';
 import { useEraseState } from '../erase/eraseState';
+import { clearSelection, startDraft } from '../textedit/textEditActions';
+import { useTextEdit } from '../textedit/textEditState';
 import {
   addIds,
   bboxToPageBox,
@@ -67,6 +69,14 @@ interface Drag {
 }
 
 const KIND_KEYS: ObjectKind[] = ['text', 'image', 'path', 'shading', 'form'];
+
+/**
+ * The objects the layer answers for. In the Sửa chữ mode (D66) the text runs are not objects here:
+ * the text part draws one outline per paragraph and answers for the text (D67).
+ */
+function answering(list: PageObject[]): PageObject[] {
+  return useTextEdit.getState().active ? list.filter((o) => o.kind !== 'text') : list;
+}
 
 export function ObjectLayer({
   doc,
@@ -218,6 +228,18 @@ export function ObjectLayer({
     if (!live || e.button !== 0) return;
     const pt = local(e);
     const page = pageAt(pages, pt.x, pt.y);
+    // The Sửa chữ mode answers the empty page too (D66): with Thêm văn bản on, a press places a new
+    // text box; otherwise a press writes the text that is open and clears the text selection.
+    const text = useTextEdit.getState();
+    if (text.active) {
+      if (text.addingText && page) {
+        // The press keeps the focus for the new text box, which takes it as it opens.
+        e.preventDefault();
+        void startDraft(doc.id, page.index, pagePt(page, pt));
+        return;
+      }
+      void clearSelection();
+    }
     const st = useObjectEdit.getState();
     const additive = e.shiftKey || e.ctrlKey || e.metaKey;
     if (!page) {
@@ -225,7 +247,7 @@ export function ObjectLayer({
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
-    const pageObjs = st.objects[page.index] ?? [];
+    const pageObjs = answering(st.objects[page.index] ?? []);
     const p = pagePt(page, pt);
     const hits = hitObjects(pageObjs, p.x, p.y);
     const top = pickHit(hits, anchor.current, e.altKey);
@@ -254,7 +276,7 @@ export function ObjectLayer({
       const page = pageAt(pages, pt.x, pt.y);
       if (!page) return setHover(null);
       const p = pagePt(page, pt);
-      const top = hitObjects(objects[page.index] ?? [], p.x, p.y)[0];
+      const top = hitObjects(answering(objects[page.index] ?? []), p.x, p.y)[0];
       setHover(top?.id ?? null);
       return;
     }
@@ -272,7 +294,7 @@ export function ObjectLayer({
       return;
     }
     const rect = normRectPt(pagePt(d.page, d.start), pagePt(d.page, d.cur));
-    const ids = objectsInRect(objects[d.page.index] ?? [], rect).map((o) => o.id);
+    const ids = objectsInRect(answering(objects[d.page.index] ?? []), rect).map((o) => o.id);
     const st = useObjectEdit.getState();
     st.setSelected(d.additive ? addIds(st.selected, ids) : ids);
   };
@@ -285,7 +307,7 @@ export function ObjectLayer({
   const selSet = new Set(selected);
 
   const renderPage = (page: MeasuredPage) => {
-    const pageObjs = active ? (objects[page.index] ?? []) : [];
+    const pageObjs = active ? answering(objects[page.index] ?? []) : [];
     const summary = kinds ? types[page.index] : undefined;
     const nodes: ReactNode[] = [];
     const selectedBoxes: { left: number; top: number; right: number; bottom: number }[] = [];

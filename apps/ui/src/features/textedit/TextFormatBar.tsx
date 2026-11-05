@@ -1,8 +1,8 @@
 /**
- * Format bar (D14, 1.1): a fixed row under the PDF toolbar while the text edit mode is on. It shows
- * the format of the selected paragraph and applies each change at once, one revision per change
- * (Ctrl+Z undoes one change). With no paragraph selected the row keeps its place with the controls
- * off, so the page does not jump.
+ * Format bar (D14, 1.1): a fixed row under the PDF toolbar while the text edit mode is on. Its Sửa
+ * button opens the text selected on the page as a textbox (D65). It shows the format of the paragraph
+ * of the selection and applies each change at once, one revision per change (Ctrl+Z undoes one
+ * change). With no selection the row keeps its place with the controls off, so the page does not jump.
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,15 +11,10 @@ import type { DocTab } from '../../app/state/documents';
 import { useUi } from '../../app/state/ui';
 import { Button } from '../../components/Button';
 import { Select, TextInput } from '../../components/Form';
-import { applyFormat, loadFonts } from './textEditActions';
+import { applyFormat, editSelection, loadFonts, selectAfterReload } from './textEditActions';
 import { useTextEdit } from './textEditState';
 import './textedit.css';
-import {
-  currentFormat,
-  pageOfParagraph,
-  reselectParagraph,
-  type ParagraphStyle,
-} from './textParagraphModel';
+import { currentFormat, type ParagraphStyle } from './textParagraphModel';
 
 type Align = 'left' | 'center' | 'right' | 'justify';
 const ALIGNS: Align[] = ['left', 'center', 'right', 'justify'];
@@ -29,7 +24,9 @@ const ALIGNS: Align[] = ['left', 'center', 'right', 'justify'];
 export function TextFormatBar({ doc }: { doc: DocTab }) {
   const { t } = useTranslation();
   const active = useTextEdit((s) => s.active);
-  const pid = useTextEdit((s) => s.selectedParagraphId);
+  const selection = useTextEdit((s) => s.selection);
+  const session = useTextEdit((s) => s.session);
+  const addingText = useTextEdit((s) => s.addingText);
   const lines = useTextEdit((s) => s.lines);
   const paragraphs = useTextEdit((s) => s.paragraphs);
   const busy = useTextEdit((s) => s.formatBusy);
@@ -40,7 +37,8 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
   const [colourDraft, setColourDraft] = useState<string | null>(null);
   const [lineDraft, setLineDraft] = useState<string | null>(null);
 
-  const page = pid ? pageOfParagraph(pid) : null;
+  const pid = selection?.paragraphId ?? null;
+  const page = selection?.pageIndex ?? null;
   const fmt =
     pid !== null && page !== null
       ? currentFormat(lines[page] ?? [], paragraphs[page] ?? [], pid)
@@ -54,10 +52,11 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
   // Undo and redo make a new revision, so the id of the selected paragraph can go stale. Once the
   // page is read again, select the paragraph at the same position (no centre: the lines are gone).
   useEffect(() => {
-    if (pid === null || page === null) return;
+    if (!selection || !pid || page === null) return;
     const pageLines = lines[page];
     if (!pageLines || pageLines.some((l) => l.paragraphId === pid)) return;
-    useTextEdit.getState().setSelectedParagraph(reselectParagraph(pageLines, pid, null));
+    selectAfterReload(page, pid, null, selection);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pid, page, lines]);
 
   if (!active) return null;
@@ -101,13 +100,25 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
 
   return (
     <div className="tedit-fmt" role="toolbar" aria-label={t('textEdit.fmt.label')}>
+      {/* The blueprint's first control (D66): Thêm văn bản places a text box where the page is pressed. */}
       <Button
         size="sm"
-        variant="ghost"
+        variant={addingText ? 'primary' : 'ghost'}
+        aria-pressed={addingText}
         disabled={doc.state.signed}
-        onClick={() => openDialog('overlayText')}
+        title={t('textEdit.fmt.addTextHint')}
+        onClick={() => useTextEdit.getState().setAddingText(!addingText)}
       >
         {t('textEdit.fmt.addText')}
+      </Button>
+      <Button
+        size="sm"
+        variant="primary"
+        disabled={!selection || busy || doc.state.signed}
+        title={t('textEdit.fmt.editHint')}
+        onClick={() => void editSelection(doc.id)}
+      >
+        {t('textEdit.fmt.edit')}
       </Button>
       <Select<string>
         aria-label={t('textEdit.fmt.font')}
@@ -224,7 +235,35 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         onChange={(e) => setColourDraft(e.target.value)}
         onBlur={commitColour}
       />
-      {!pid && <span className="tedit-fmt__hint">{t('textEdit.fmt.pick')}</span>}
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={doc.state.signed}
+        title={t('textEdit.fmt.optionsHint')}
+        onClick={() => openDialog('overlayText')}
+      >
+        {t('textEdit.fmt.options')}
+      </Button>
+      {session ? (
+        <div className="tedit-fmt__notes" role="status" aria-live="polite">
+          {session.notes.map((n, i) => (
+            <span
+              key={i}
+              className={`tedit-chip tedit-chip--${n.tone === 'error' ? 'error' : 'warn'}`}
+            >
+              {n.text}
+            </span>
+          ))}
+          {session.committing && (
+            <span className="tedit-chip tedit-chip--none">{t('textEdit.session.saving')}</span>
+          )}
+          <span className="tedit-fmt__hint">{t('textEdit.session.hint')}</span>
+        </div>
+      ) : addingText ? (
+        <span className="tedit-fmt__hint">{t('textEdit.fmt.addingHint')}</span>
+      ) : (
+        !selection && <span className="tedit-fmt__hint">{t('textEdit.fmt.pick')}</span>
+      )}
     </div>
   );
 }

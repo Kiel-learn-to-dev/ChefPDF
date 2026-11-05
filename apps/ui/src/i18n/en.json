@@ -3578,8 +3578,7 @@
     "session": {
       "label": "Paragraph being edited",
       "hint": "Esc: cancel · Ctrl+Enter or click outside: write the paragraph",
-      "saving": "Writing the paragraph…",
-      "enter": "Press Enter or double-click to edit the selected paragraph"
+      "saving": "Writing the paragraph…"
     },
     "title": "Edit text",
     "cmd": "Edit text",
@@ -3597,9 +3596,14 @@
       "bigger": "Larger text",
       "indent": "First-line indent (pt)",
       "lineSpacing": "Line spacing (pt)",
-      "editText": "Edit paragraph text",
-      "pick": "Select a paragraph on the page to format it.",
-      "alignNone": "Alignment (unknown)"
+      "edit": "Edit",
+      "editHint": "Open the selected text in a textbox to edit it (Enter)",
+      "pick": "Select text on the page, then click Edit.",
+      "alignNone": "Alignment (unknown)",
+      "addTextHint": "Click the page to place a new text (Ctrl+Enter writes, Esc cancels)",
+      "addingHint": "Click the page to place new text.",
+      "options": "Options…",
+      "optionsHint": "Size, colour, several pages, opacity and rotation of the new text"
     },
     "para": {
       "title": "Edit paragraph",
@@ -3618,7 +3622,8 @@
     "op": {
       "edit": "Edit text",
       "paragraph": "Edit paragraph",
-      "style": "Change paragraph style"
+      "style": "Change paragraph style",
+      "addText": "Add text"
     },
     "warn": {
       "font": "Replaced the font with {{font}}.",
@@ -3664,7 +3669,26 @@
       "FIND_REQUIRED": "Enter the text to find.",
       "UNKNOWN_FONT": "This font is not in the list.",
       "PAGE_OUT_OF_RANGE": "The page does not exist."
+    },
+    "draft": {
+      "label": "New text being typed",
+      "placeholder": "Type text…"
     }
+  },
+  "about": {
+    "tab": "About",
+    "version": "Version {{version}}",
+    "personal": "Software for personal use. Not code-signed, not released.",
+    "core": "PDF core",
+    "coreValue": "Version {{version}} (Python {{python}})",
+    "coreError": "The core version could not be read.",
+    "coreLoading": "Reading…",
+    "runtime": "Runtime",
+    "runtimeValue": "Electron {{electron}} · Chrome {{chrome}} · Node {{node}}",
+    "licences": "Licences",
+    "licencesValue": "Third-party libraries and their licences: see the NOTICE file in the install folder.",
+    "openLogs": "Open logs folder",
+    "openDataDir": "Open data folder"
   },
   "findReplace": {
     "title": "Find & replace",

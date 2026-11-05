@@ -3558,8 +3558,7 @@
     "session": {
       "label": "Đoạn đang sửa",
       "hint": "Esc: hủy · Ctrl+Enter hoặc bấm ra ngoài: lưu đoạn",
-      "saving": "Đang ghi đoạn…",
-      "enter": "Enter hoặc bấm đúp để sửa đoạn đã chọn"
+      "saving": "Đang ghi đoạn…"
     },
     "title": "Sửa chữ",
     "cmd": "Sửa chữ",
@@ -3577,9 +3576,14 @@
       "bigger": "Tăng cỡ chữ",
       "indent": "Thụt lề dòng đầu (pt)",
       "lineSpacing": "Khoảng dòng (pt)",
-      "editText": "Sửa nội dung đoạn",
-      "pick": "Chọn một đoạn trên trang để định dạng.",
-      "alignNone": "Căn lề (chưa rõ)"
+      "edit": "Sửa",
+      "editHint": "Mở chữ đang bôi đen thành hộp chữ để sửa (Enter)",
+      "pick": "Bôi đen chữ trên trang, rồi bấm Sửa để chỉnh.",
+      "alignNone": "Căn lề (chưa rõ)",
+      "addTextHint": "Bấm vào trang để đặt một chữ mới (Ctrl+Enter ghi, Esc hủy)",
+      "addingHint": "Bấm vào trang để đặt chữ mới.",
+      "options": "Tùy chọn…",
+      "optionsHint": "Cỡ, màu, nhiều trang, độ mờ và xoay của chữ mới"
     },
     "para": {
       "title": "Sửa đoạn",
@@ -3598,7 +3602,8 @@
     "op": {
       "edit": "Sửa chữ",
       "paragraph": "Sửa đoạn",
-      "style": "Đổi kiểu đoạn"
+      "style": "Đổi kiểu đoạn",
+      "addText": "Thêm chữ"
     },
     "warn": {
       "font": "Đã thay font bằng {{font}}.",
@@ -3644,7 +3649,26 @@
       "FIND_REQUIRED": "Cần nhập chữ cần tìm.",
       "UNKNOWN_FONT": "Không có font này trong danh sách.",
       "PAGE_OUT_OF_RANGE": "Trang không tồn tại."
+    },
+    "draft": {
+      "label": "Chữ mới đang gõ",
+      "placeholder": "Gõ chữ…"
     }
+  },
+  "about": {
+    "tab": "Giới thiệu",
+    "version": "Phiên bản {{version}}",
+    "personal": "Phần mềm dùng cho cá nhân. Không ký mã, không phát hành.",
+    "core": "Lõi xử lý PDF",
+    "coreValue": "Phiên bản {{version}} (Python {{python}})",
+    "coreError": "Không đọc được phiên bản lõi.",
+    "coreLoading": "Đang đọc…",
+    "runtime": "Môi trường",
+    "runtimeValue": "Electron {{electron}} · Chrome {{chrome}} · Node {{node}}",
+    "licences": "Giấy phép",
+    "licencesValue": "Thư viện bên thứ ba và giấy phép: xem tệp NOTICE trong thư mục cài đặt.",
+    "openLogs": "Mở thư mục nhật ký",
+    "openDataDir": "Mở thư mục dữ liệu"
   },
   "findReplace": {
     "title": "Tìm & thay thế",

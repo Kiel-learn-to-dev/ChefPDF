@@ -26,7 +26,6 @@ import { Separator } from '../components/Misc';
 import { Slider } from '../components/Slider';
 import { getViewer } from '../features/viewer/controllers';
 import { usePageStore, useSelection } from '../features/pages/pageStore';
-import { useObjectEdit } from '../features/objects/objectState';
 import { useEraseState } from '../features/erase/eraseState';
 import { useTextEdit } from '../features/textedit/textEditState';
 import { useAnnotUi } from '../features/annots/annotState';
@@ -259,14 +258,12 @@ const EXPORT_ITEMS: Item[] = [
 
 /** Chỉnh sửa: eight overlay tools in the bar, Bates in the overflow menu (D1, D2, F1-F12). */
 const EDIT_ITEMS: Item[] = [
-  { kind: 'cmd', id: 'edit.addText', label: true },
+  { kind: 'cmd', id: 'edit.textEdit', label: true },
   { kind: 'cmd', id: 'edit.addImage', label: true },
   { kind: 'cmd', id: 'edit.watermark', label: true },
   { kind: 'cmd', id: 'edit.headerFooter', label: true },
   { kind: 'cmd', id: 'edit.pageNumbers', label: true },
   { kind: 'cmd', id: 'edit.qrBarcode', label: true },
-  { kind: 'cmd', id: 'edit.objects', label: true },
-  { kind: 'cmd', id: 'edit.textEdit', label: true },
 ];
 const EDIT_OVERFLOW = [
   'edit.overlays',
@@ -335,7 +332,6 @@ export function Toolbar() {
   const tool = useUi((s) => s.tool);
   const findOpen = useUi((s) => s.findOpen);
   const commands = useCommands();
-  const objectActive = useObjectEdit((s) => s.active);
   const eraseActive = useEraseState((s) => s.active);
   const textActive = useTextEdit((s) => s.active);
   const annotTool = useAnnotUi((s) => s.tool);
@@ -381,7 +377,6 @@ export function Toolbar() {
   const pressed: Record<string, boolean> = {
     'view.snapshot': tool === 'snapshot',
     'view.find': findOpen,
-    'edit.objects': objectActive,
     'edit.textEdit': textActive,
     'annot.note': annotTool === 'note',
     'annot.freeText': annotTool === 'freetext',

@@ -21,6 +21,8 @@ export interface TextLine {
   paragraphId: string | null;
   editable: boolean;
   artifact: boolean;
+  /** [left, right] in points of every character of `text` (one pair per index, reading order). */
+  glyphs?: [number, number][];
 }
 
 export type FontStrategy = 'auto' | 'keep' | 'replace';
@@ -44,18 +46,4 @@ export function hitLine(lines: readonly TextLine[], x: number, y: number): TextL
     }
   }
   return best;
-}
-
-/** Screen box (px) of a line, from the measured page (px per point and page origin). */
-export function lineScreenBox(
-  line: TextLine,
-  page: { left: number; top: number; scale: number },
-): { left: number; top: number; width: number; height: number } {
-  const [l, t, r, b] = boxOf(line);
-  return {
-    left: page.left + l * page.scale,
-    top: page.top + t * page.scale,
-    width: (r - l) * page.scale,
-    height: (b - t) * page.scale,
-  };
 }

@@ -252,3 +252,16 @@ export function overlapHighlights(
 export function paragraphOf(line: TextLine | null): string | null {
   return line?.paragraphId ?? null;
 }
+
+/**
+ * Characters for a message. An invisible or unprintable one (a control, a format or a private-use
+ * character, a space or an unassigned code point) is shown as its code point, U+XXXX.
+ */
+export function charsLabel(chars: readonly string[]): string {
+  const shown = [...new Set(chars)].map((c) =>
+    /[\p{Cc}\p{Cf}\p{Co}\p{Cn}\p{Zs}\p{Zl}\p{Zp}]/u.test(c)
+      ? `U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`
+      : c,
+  );
+  return shown.join(' ');
+}

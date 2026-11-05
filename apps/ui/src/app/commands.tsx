@@ -687,13 +687,6 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
     // Chỉnh sửa: overlay tools (D1, D2, F1-F12). Blocked on signed documents (core rule).
     ...[
       {
-        id: 'edit.addText',
-        title: t('overlay.cmd.addText'),
-        dialog: 'overlayText' as const,
-        icon: <Type size={I} />,
-        keywords: ['text', 'chu', 'them chu', 'hop chu'],
-      },
-      {
         id: 'edit.addImage',
         title: t('overlay.cmd.addImage'),
         dialog: 'overlayImage' as const,
@@ -833,16 +826,37 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
         'paragraph',
         'sua doan',
         'xuong dong',
+        'them chu',
+        'hop chu',
+        'chon doi tuong',
+        'doi tuong',
       ],
       group: 'edit',
       icon: <Type size={I} />,
       enabled: canRewrite,
       disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
       run: () => {
-        const text = useTextEdit.getState();
-        useObjectEdit.getState().setActive(false);
+        // One mode (D66): Sửa chữ holds selecting and editing text, placing new text and the objects.
         useEraseState.getState().setActive(false);
+        const text = useTextEdit.getState();
         text.setActive(!text.active);
+      },
+    },
+    {
+      id: 'edit.addText',
+      title: t('overlay.cmd.addText'),
+      short: t('overlay.cmd.addText'),
+      keywords: ['text', 'chu', 'them chu', 'hop chu'],
+      group: 'edit',
+      icon: <Type size={I} />,
+      enabled: canRewrite,
+      disabledHint: doc?.state.signed ? t('overlay.signedBlocked') : undefined,
+      run: () => {
+        // Opens the Sửa chữ mode with Thêm văn bản on; the options stay in the format row (D66).
+        useEraseState.getState().setActive(false);
+        const text = useTextEdit.getState();
+        if (!text.active) text.setActive(true);
+        text.setAddingText(true);
       },
     },
     {
@@ -952,9 +966,10 @@ function build({ t, doc, docCount, functionTab }: Ctx): Command[] {
       icon: <MousePointer2 size={I} />,
       enabled: has,
       run: () => {
-        const objects = useObjectEdit.getState();
-        if (!objects.active) useEraseState.getState().setActive(false);
-        objects.setActive(!objects.active);
+        // The object tools are part of the Sửa chữ mode (D66): the command opens that mode.
+        useEraseState.getState().setActive(false);
+        const text = useTextEdit.getState();
+        text.setActive(!text.active);
       },
     },
     {

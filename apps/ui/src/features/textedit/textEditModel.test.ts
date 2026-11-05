@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hitLine, lineScreenBox, type TextLine } from './textEditModel';
+import { hitLine, type TextLine } from './textEditModel';
 
 function line(id: string, bbox: number[], extra: Partial<TextLine> = {}): TextLine {
   return {
@@ -35,12 +35,5 @@ describe('hitLine', () => {
 
   it('is null outside every line', () => {
     expect(hitLine([line('a', [0, 0, 10, 10])], 50, 50)).toBeNull();
-  });
-});
-
-describe('lineScreenBox', () => {
-  it('maps points to pixels with the page origin and scale', () => {
-    const box = lineScreenBox(line('a', [10, 20, 30, 40]), { left: 100, top: 200, scale: 2 });
-    expect(box).toEqual({ left: 120, top: 240, width: 40, height: 40 });
   });
 });
