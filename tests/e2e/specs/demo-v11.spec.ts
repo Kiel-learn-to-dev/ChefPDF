@@ -119,19 +119,19 @@ test('demo v1.1: edit mode, one paragraph formatted and re-typed, saved text has
   await l.page.keyboard.press('Control+z');
   await expect(bold).toHaveAttribute('aria-pressed', 'false', { timeout: 30_000 });
 
-  // 4. Re-type the paragraph with diacritics; save; the file has the sentence.
+  // 4. Re-type the paragraph in place (D62): a click opens it, Ctrl+A, the new text, a click outside.
   const again = l.page.locator(`[data-testid="tedit-box"][data-text*="${OLD_LINE}"]`);
   await again.waitFor({ timeout: 30_000 });
   const spot = await again.boundingBox();
   if (!spot) throw new Error('Text line has no bounding box');
   await l.page.mouse.click(spot.x + spot.width / 2, spot.y + spot.height / 2);
-  const edit = bar.getByRole('button', { name: 'Sửa nội dung đoạn' });
-  await expect(edit).toBeEnabled({ timeout: 30_000 });
-  await edit.click();
-  const dialog = l.page.getByRole('dialog', { name: 'Sửa đoạn' });
-  await dialog.getByLabel('Nội dung đoạn').fill(`${NEW_SENTENCE} Mọi khoản phí do bên B chịu.`);
-  await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
-  await expect(dialog).toBeHidden({ timeout: 60_000 });
+  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await l.page.keyboard.press('Control+a');
+  await l.page.keyboard.type(`${NEW_SENTENCE} Mọi khoản phí do bên B chịu.`);
+  const pageBox = await l.page.locator('.pdfViewer .page canvas').first().boundingBox();
+  if (!pageBox) throw new Error('page has no box');
+  await l.page.mouse.click(pageBox.x + 4, pageBox.y + 4);
+  await expect(l.page.getByTestId('tedit-session')).toHaveCount(0, { timeout: 30_000 });
   await l.page.keyboard.press('Control+s');
   await expect(l.page.locator('.doctab__dirty')).toHaveCount(0, { timeout: 120_000 });
   const saved = (check(file, ['text', '0']) as { text: string }).text.replace(/\s+/g, ' ');

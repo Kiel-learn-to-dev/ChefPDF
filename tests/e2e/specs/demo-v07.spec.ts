@@ -209,14 +209,18 @@ test('demo v0.7: edit a sentence, replace the company name, highlight and note, 
   await line.waitFor({ timeout: 30_000 });
   const bounds = await line.boundingBox();
   if (!bounds) throw new Error('sentence has no bounding box');
-  await l.page.mouse.dblclick(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  const input = l.page.locator('.tedit-editor__input');
-  await expect(input).toBeVisible();
-  await input.fill(NEW_SENTENCE);
-  // The original font cannot write ư and ớ: the chip says which font takes over.
-  await expect(l.page.locator('.tedit-chip--warn')).toBeVisible({ timeout: 15_000 });
-  await input.press('Enter');
-  await expect(l.page.locator('.tedit-editor')).toBeHidden({ timeout: 30_000 });
+  // The paragraph is typed into (D62): a click opens it, Ctrl+A selects its text, the new text
+  // replaces it, and a click outside writes it. The original font cannot write ư and ớ: the chip
+  // says which font takes over.
+  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await l.page.keyboard.press('Control+a');
+  await l.page.keyboard.type(`${NEW_SENTENCE} Mọi khoản phí do bên B chịu.`);
+  await expect(l.page.locator('.tedit-chip--warn').first()).toBeVisible({ timeout: 15_000 });
+  const margin = await l.page.locator('.pdfViewer .page canvas').first().boundingBox();
+  if (!margin) throw new Error('page has no box');
+  await l.page.mouse.click(margin.x + 4, margin.y + 4);
+  await expect(l.page.getByTestId('tedit-session')).toHaveCount(0, { timeout: 30_000 });
   await waitJobs(l);
   await l.page.keyboard.press('Control+s');
   await waitSaved(l);

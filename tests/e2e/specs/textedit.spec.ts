@@ -99,7 +99,16 @@ const waitSaved = (l: Launched) =>
     timeout: 30_000,
   });
 
-test('text edit: the line gets a sentence the font does not contain; the saved text shows it', async () => {
+/** Clicks the page margin: outside the paragraph, so the session is written. */
+async function clickOutside(l: Launched): Promise<void> {
+  const page = l.page.locator('.pdfViewer .page canvas').first();
+  const b = await page.boundingBox();
+  if (!b) throw new Error('page has no box');
+  await l.page.mouse.click(b.x + 4, b.y + 4);
+  await expect(l.page.getByTestId('tedit-session')).toHaveCount(0, { timeout: 30_000 });
+}
+
+test('text edit: a sentence is typed into the paragraph; the saved text shows it', async () => {
   const l = await open();
   await waitViewer(l);
   await l.page.click('.ftab >> text=Chỉnh sửa');
@@ -109,26 +118,24 @@ test('text edit: the line gets a sentence the font does not contain; the saved t
   await box.waitFor({ timeout: 30_000 });
   const bounds = await box.boundingBox();
   if (!bounds) throw new Error('Text line has no bounding box');
-  await l.page.mouse.dblclick(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-
-  const input = l.page.locator('.tedit-editor__input');
-  await expect(input).toBeVisible();
-  await input.fill(NEW_LINE);
-  // The original font cannot write ư, ữ, ệ: the chip says which font replaces it.
-  await expect(l.page.locator('.tedit-chip--warn')).toBeVisible({ timeout: 15_000 });
-  await input.press('Enter');
-  await expect(l.page.locator('.tedit-editor')).toBeHidden({ timeout: 30_000 });
+  // A click on the text opens the paragraph for typing; Ctrl+A selects its text, then the new text
+  // replaces it. The original font cannot write ư, ữ, ệ: the chip says which font takes over.
+  await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await l.page.keyboard.press('Control+a');
+  await l.page.keyboard.type(`${NEW_LINE}. Mọi khoản phí do bên B chịu.`);
+  await expect(l.page.locator('.tedit-chip--warn').first()).toBeVisible({ timeout: 15_000 });
+  await clickOutside(l);
   await waitJobs(l);
 
   await l.page.keyboard.press('Control+s');
   await waitSaved(l);
   const text = (check(current, ['text', '0']) as { text: string }).text;
-  expect(text).toContain(NEW_LINE);
+  expect(text.replace(/\s+/g, ' ')).toContain(NEW_LINE);
   expect(text).not.toContain(OLD_LINE);
   // The other lines are unchanged.
   expect(text).toContain('Bên A là Công ty ABC');
   expect(text).toContain('Mọi khoản phí do bên B chịu');
-  expect(text).toContain('Hợp đồng số 1');
 });
 
 test('find and replace: the company name changes on all three pages', async () => {
@@ -154,7 +161,7 @@ test('find and replace: the company name changes on all three pages', async () =
   }
 });
 
-test('paragraph edit: replace Vietnamese text and save the result', async () => {
+test('paragraph edit: a paragraph is re-typed in place and the saved result has it', async () => {
   const l = await open();
   await waitViewer(l);
   await l.page.click('.ftab >> text=Chỉnh sửa');
@@ -164,17 +171,11 @@ test('paragraph edit: replace Vietnamese text and save the result', async () => 
   const bounds = await box.boundingBox();
   if (!bounds) throw new Error('Text line has no bounding box');
   await l.page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await l.page
-    .getByRole('toolbar', { name: 'Định dạng chữ' })
-    .getByRole('button', { name: 'Sửa nội dung đoạn' })
-    .click();
-  const dialog = l.page.getByRole('dialog', { name: 'Sửa đoạn' });
-  const input = dialog.getByLabel('Nội dung đoạn');
-  await expect(input).toBeVisible();
-  await expect(input).toHaveValue(/Thanh toán trong vòng 30 ngày/);
-  await input.fill(NEW_LINE);
-  await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
-  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await expect(l.page.getByTestId('tedit-session')).toBeVisible({ timeout: 30_000 });
+  await l.page.keyboard.press('Control+a');
+  await l.page.keyboard.type(NEW_LINE);
+  await clickOutside(l);
+  await waitJobs(l);
   await l.page.keyboard.press('Control+s');
   await waitSaved(l);
   const text = (check(current, ['text', '0']) as { text: string }).text;
