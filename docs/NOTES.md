@@ -18,7 +18,7 @@
   | Ý tưởng chưa cam kết | 20 |
 
   **Mã tính năng trong FEATURES.md là mã chính thức**, mã ở các bản nháp trước đã bỏ.
-- **Việc tiếp theo (Windows):** (1) bản 1.0 đã đóng trên code (116 ✅, 3 ⏸); còn cổng 5.5 (bộ cài trên máy sạch) và 5.6 (dùng một tuần, chủ dự án làm); (2) bản 1.1: B1 chờ chủ dự án trả lời PLAN_V1_1 mục 7 câu 1; B2 chờ cho phép; sửa chữ (mục 5) đã có chế độ, hàng định dạng, thụt lề, nhãn chế độ và chỉ báo lớp chữ; còn: bảng thuộc tính (D13), ui-audit cho chế độ chỉnh sửa (T12.08 giữ 🔄); (3) việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit (T3.14), kiểm tay panel chữ ký (T3.08), đối chiếu dấu vân tay Root CA.
+- **Việc tiếp theo (Windows):** (1) bản 1.0 đã đóng trên code (116 ✅, 3 ⏸); còn cổng 5.5 (bộ cài trên máy sạch) và 5.6 (dùng một tuần, chủ dự án làm); (2) bản 1.1: B1 chờ chủ dự án trả lời PLAN_V1_1 mục 7 câu 1; B2 chờ cho phép; sửa chữ (mục 5) đã có chế độ, hàng định dạng, thụt lề, nhãn chế độ và chỉ báo lớp chữ; còn: bảng thuộc tính (D13); (3) việc phụ chờ chủ dự án: ảnh Adobe Reader/Foxit (T3.14), kiểm tay panel chữ ký (T3.08), đối chiếu dấu vân tay Root CA.
 - **Để sau 1.0:** macOS và Linux (kiểm thử, bộ cài, driver token), tự cập nhật. Chi tiết ở mục "Sau 1.0" của PLAN_V1.md.
 - **Quy tắc sau khi chốt:** thay đổi phạm vi phải ghi vào mục "Thay đổi sau khi chốt" cuối FEATURES.md và vào nhật ký ở đây.
 - **Câu hỏi còn mở:**
@@ -196,6 +196,8 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 
 ## Nhật ký
 
+- **2026-11-05b (ui-audit cho chế độ chỉnh sửa, T12.08 ✅):** Thêm hai màn hình `edit:textEdit` và `edit:paragraph` vào bộ đo (`ui-audit.spec.ts`, `uiAudit.ts`). Spec bật và tắt chế độ theo `aria-pressed` và tắt khi xong, để hộp thoại sau không bị thanh định dạng làm nhiễu. Lần đo đầu tìm được hai lỗi cân đối của thanh định dạng (D41): ô số và ô màu cao 32 px cạnh điều khiển 26 px; separator làm khe không đều. Sửa: ô dùng cỡ `sm`, ô màu theo chiều cao `sm`, bỏ separator. Ghi baseline có chủ đích cho 103 màn hình (`4e2cbfd`); strict đạt. Bản đóng gói build lại: `format-row`, `demo-v11`, `b1-in-session` đạt. **Chưa chắc:** `dialog:tokenWizard` báo settle-timeout (hộp thoại ở "Đang kiểm tra" quá 10 s) trong ba lần chạy hôm nay; lần đo đầu của phiên thì đạt. Quét driver chỉ mất 0,05 s, nên phần chậm nằm ở bước khác của chẩn đoán; chưa đối chiếu với bản trước.
+
 - **2026-11-05 (bản 1.1: B1, gộp chế độ, hàng định dạng, nhóm đoạn, chỉ báo lớp chữ):**
   - **Đồng bộ tài liệu** (`e17772e`): các dòng cũ đã sửa; thêm mốc 1.1 vào TASKS; D53–D57.
   - **B1 không tái hiện** trên cả bốn đường đã thử: spec `b1-in-session` (bản sao đã ký → scan → lưu → mở lại) xanh trên dev và trên bản đóng gói build lại; file thật của chủ dự án (`repro-local`, không commit) trên bản đóng gói: 11.509 → 0 ký tự. Đã kiểm rằng spec thật sự dùng `chef-pdf.exe` (đường dẫn giả làm spec lỗi). Harness được commit (`007dfc9`). T12.01 ⏸, chờ PLAN_V1_1 §7 câu 1. B2 không chạy lại (cần cho phép).
@@ -206,7 +208,7 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
   - **Nhãn chế độ và chỉ báo lớp chữ** (`2e413a3`, `d7a8412`): `text.layer` chỉ đọc; `demo-v11` (`d7a8412`) chạy đủ §5.7 trên dev với lõi thật.
   - **Hiệu năng `text.layer`:** 1000 trang có chữ mất 0,08 s (đo bằng pdfium, không tính IPC), nên chạy lại theo mỗi revision không đáng kể.
   - **Kiểm thử cuối (2026-11-05):** lõi `pytest tests`: 1669 đạt, 3 bỏ qua, 2 lỗi CNG (môi trường); mypy, ruff sạch. Giao diện `vitest`: 783 đạt (94 file). e2e đầy đủ: 221 đạt, 3 bỏ qua. Bản đóng gói `chef-pdf.exe` (build 2026-11-05): `format-row`, `demo-v11`, `b1-in-session` đạt; đường exe giả làm `format-row` và `demo-v11` lỗi (đã kiểm). Lần chạy lõi đầy đủ trước đó: 1665 đạt, 2 lỗi ở `test_sign_store_cng.py` (môi trường, đã kiểm tay: Windows PowerShell 5.1 không có ổ `Cert:` trên máy này; `pwsh` 7 thì có và tạo được chứng thư; mã ký không đổi; đổi fixture sang `pwsh` là việc chủ dự án quyết). Giao diện: textedit, i18n, app đạt (50). e2e: `textedit`, `format-row`, `demo-v07`, `demo-v10`, `layout-review`, `keyboard`, `demo-v11`, `ui-audit` xanh; ui-audit strict không tăng phát hiện.
-  - **Chưa làm:** bảng thuộc tính (D13, T12.07); B2; ui-audit chưa đo màn hình chế độ chỉnh sửa (hàng định dạng không có trong baseline; T12.08 giữ 🔄); căn lề đoạn một dòng (D58); khoảng dòng không đọc lại được nên ô luôn trống.
+  - **Chưa làm:** bảng thuộc tính (D13, T12.07); B2; căn lề đoạn một dòng (D58); khoảng dòng không đọc lại được nên ô luôn trống; `dialog:tokenWizard` báo settle-timeout trong ui-audit (xem nhật ký 2026-11-05b).
   - **Thứ tự làm khác kế hoạch:** làm hàng định dạng trước khi gộp chế độ (advisor cho phép gộp trước; gộp trước sẽ mất đường vào "Sửa đoạn" trong khi hàng định dạng chưa có). Commit vẫn tách theo mảng.
 
 - **2026-11-04 (bắt đầu 1.1: đồng bộ tài liệu, quyết định D53–D57):** Chủ dự án chọn làm lỗi B1, B2 và sửa chữ theo mục 5. Chốt theo đề xuất mục 5.4 (D53–D56) theo lời advisor, ghi lại để đổi được. Đồng bộ các dòng cũ: NOTES "Việc tiếp theo", PLAN_V1 mục 1.4–1.7, giai đoạn 3 (v0.8 đã đóng đủ 11 task), rủi ro "54 task 🔄" (không còn 🔄). Thêm mốc 1.1 vào TASKS (T12.xx). Chưa đổi FEATURES mức 1.0; mã mới đã có ở mức v1.1 từ trước.
