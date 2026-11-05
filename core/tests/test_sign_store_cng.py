@@ -7,6 +7,7 @@ removes the certificate again. Other platforms skip the module.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import uuid
@@ -24,7 +25,8 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows certifi
 
 def _ps(script: str) -> str:
     done = subprocess.run(
-        ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+        # pwsh (PowerShell 7) has the Cert: drive; Windows PowerShell 5.1 may not (see NOTES).
+        [shutil.which("pwsh") or "powershell", "-NoProfile", "-NonInteractive", "-Command", script],
         capture_output=True,
         text=True,
         timeout=120,
