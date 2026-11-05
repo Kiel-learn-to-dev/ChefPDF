@@ -275,7 +275,7 @@
 | Mã | Việc | Tính năng | Điểm | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
 | T12.01 | **B1:** tái hiện trên bản đóng gói (harness `b1-in-session`), test đỏ, sửa, test xanh. Chờ chủ dự án xác nhận bước của mình (PLAN_V1_1 mục 7, câu 1) | B1 | 2 | | ⏸ (chờ chủ dự án, PLAN_V1_1 §7 câu 1: không tái hiện trên dev hay bản đóng gói) |
-| T12.02 | **B2:** kịch bản "cửa sổ khác ở trên" chưa chạy; cần chủ dự án cho phép rõ ràng | B2 | 1 | | ⬜ (chờ chủ dự án cho phép chạy kịch bản cửa sổ khác ở trên) |
+| T12.02 | **B2:** kịch bản "cửa sổ khác ở trên" chưa chạy; cần chủ dự án cho phép rõ ràng | B2 | 1 | | ✅ (kịch bản cửa sổ khác ở trên, chuột thật của Windows, trên bản đóng gói 2026-11-05; đối chứng vùng bị che không cuộn) |
 | T12.03 | Lõi: tham số `indent` (pt hoặc keep) cho `text.editParagraph` và `text.styleParagraph`, test lõi, cập nhật contracts | D53–D56 | 1 | T9.03 | ✅ |
 | T12.04 | Một chế độ **Chỉnh sửa** thay hai lệnh dòng và đoạn; khung là khối từ lõi; ô nhập nội dung đoạn mở từ hàng định dạng (giữ), có cảnh báo tràn và chồng khối | B11 | 3 | T12.03 | ✅ (một chế độ, D53; có nhãn trên thanh trạng thái) |
 | T12.05 | **Hàng định dạng cố định** dưới hàng công cụ: font, cỡ (tăng/giảm), đậm, nghiêng, căn, thụt lề, khoảng cách, màu; áp dụng ngay, giữ id đoạn sau mỗi revision | D14 | 4 | T12.04 | ✅ (hàng định dạng gồm font, cỡ, đậm, nghiêng, căn, thụt lề, khoảng dòng, màu, D14; e2e format-row, demo-v11) |
