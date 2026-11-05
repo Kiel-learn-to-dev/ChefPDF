@@ -209,11 +209,9 @@
   background: var(--c-surface);
 }
 
-.tedit-fmt__sep {
-  width: 1px;
-  align-self: stretch;
-  margin: 0 var(--space-1);
-  background: var(--c-border);
+/* The colour swatch shares the row height of the small controls (D41). */
+.tedit-fmt .ov-color__swatch {
+  height: var(--control-h-sm);
 }
 
 .tedit-fmt__hint {

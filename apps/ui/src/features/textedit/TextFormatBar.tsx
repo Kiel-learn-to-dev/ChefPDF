@@ -118,7 +118,6 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
       >
         {t('textEdit.fmt.addText')}
       </Button>
-      <span className="tedit-fmt__sep" aria-hidden />
       <Select<string>
         aria-label={t('textEdit.fmt.font')}
         value="pick"
@@ -140,6 +139,7 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         <Minus size={14} aria-hidden />
       </Button>
       <TextInput
+        size="sm"
         aria-label={t('textEdit.para.size')}
         type="number"
         min={1}
@@ -159,7 +159,6 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
       >
         <Plus size={14} aria-hidden />
       </Button>
-      <span className="tedit-fmt__sep" aria-hidden />
       <Button
         size="sm"
         variant="ghost"
@@ -195,6 +194,7 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         disabled={locked}
       />
       <TextInput
+        size="sm"
         aria-label={t('textEdit.fmt.indent')}
         title={t('textEdit.fmt.indent')}
         type="number"
@@ -207,6 +207,7 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         onKeyDown={(e) => e.key === 'Enter' && commitIndent()}
       />
       <TextInput
+        size="sm"
         aria-label={t('textEdit.fmt.lineSpacing')}
         title={t('textEdit.fmt.lineSpacing')}
         placeholder={t('textEdit.fmt.lineSpacing')}
@@ -229,7 +230,6 @@ export function TextFormatBar({ doc }: { doc: DocTab }) {
         onChange={(e) => setColourDraft(e.target.value)}
         onBlur={commitColour}
       />
-      <span className="tedit-fmt__sep" aria-hidden />
       <Button size="sm" variant="secondary" disabled={locked} onClick={editText}>
         {t('textEdit.fmt.editText')}
       </Button>

@@ -68,14 +68,14 @@ export function readSidebarTabs(src = readUiSource()): string[] {
 
 export interface Screen {
   name: string;
-  kind: 'start' | 'main' | 'overlay' | 'dialog';
+  kind: 'start' | 'main' | 'overlay' | 'dialog' | 'edit';
   tab?: string;
   sidebarTab?: string;
   overlay?: 'palette' | 'jobPanel' | 'findbar';
   dialog?: string;
 }
 
-/** start; main:<tab> (8 tab); main:view/sidebar:<x> (5 tab bên); lớp phủ; mọi DialogId. */
+/** start; main:<tab> (8 tab); main:view/sidebar:<x> (5 tab bên); lớp phủ; chỉnh sửa; mọi DialogId. */
 export function buildScreens(src = readUiSource()): Screen[] {
   const screens: Screen[] = [{ name: 'start', kind: 'start' }];
   for (const tab of readFunctionTabs(src)) {
@@ -92,6 +92,8 @@ export function buildScreens(src = readUiSource()): Screen[] {
   for (const overlay of ['palette', 'jobPanel', 'findbar'] as const) {
     screens.push({ name: `overlay:${overlay}`, kind: 'overlay', overlay });
   }
+  // Chế độ Chỉnh sửa: không có hook riêng, spec bật chế độ bằng thao tác trên giao diện.
+  screens.push({ name: 'edit:textEdit', kind: 'edit' }, { name: 'edit:paragraph', kind: 'edit' });
   for (const dialog of readDialogIds(src)) {
     screens.push({ name: `dialog:${dialog}`, kind: 'dialog', dialog });
   }

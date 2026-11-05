@@ -223,6 +223,48 @@ async function auditVariant(
 }
 
 /**
+ * Chế độ Chỉnh sửa (T12.08): mở tab, bật "Sửa chữ" bằng thao tác giao diện, và với
+ * edit:paragraph còn chọn một đoạn để hàng định dạng bật. Không ném lỗi.
+ */
+/** Bật hoặc tắt chế độ Chỉnh sửa: bấm nút chỉ khi trạng thái (aria-pressed) khác yêu cầu. */
+async function setEditMode(page: Page, on: boolean): Promise<void> {
+  const btn = page.locator('.toolbar__btn', { hasText: 'Sửa chữ' });
+  const pressed = (await btn.getAttribute('aria-pressed')) === 'true';
+  if (pressed !== on) await btn.click();
+}
+
+async function auditEditScreen(screen: Screen): Promise<ScreenResult[]> {
+  const r = blank(screen);
+  const l = await ensureDoc();
+  const mark = l.diag.mark();
+  try {
+    await resetScreen(l.page);
+    await l.page.click('.ftab >> text=Chỉnh sửa');
+    await setEditMode(l.page, true);
+    if (screen.name === 'edit:paragraph') {
+      const line = l.page.locator('[data-testid="tedit-box"]').first();
+      await line.waitFor({ timeout: 30_000 });
+      const b = await line.boundingBox();
+      if (!b) throw new Error('dòng chữ không có khung');
+      await l.page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+      await l.page
+        .getByRole('toolbar', { name: 'Định dạng chữ' })
+        .getByRole('button', { name: 'In đậm' })
+        .waitFor({ state: 'visible', timeout: 10_000 });
+    }
+    await measureNow(l.page, r, screen.name);
+  } catch (e) {
+    r.status = 'error';
+    r.error = String(e).slice(0, 300);
+  } finally {
+    // The later screens (dialogs) must not see the edit mode or its format bar.
+    await setEditMode(l.page, false).catch(() => undefined);
+    Object.assign(r, l.diag.since(mark));
+  }
+  return [r];
+}
+
+/**
  * Một màn hình trong tài liệu đang mở, kèm biến thể của hộp thoại (trừ hộp thoại thiết bị).
  * Không ném lỗi: mọi lỗi ghi vào báo cáo.
  */
@@ -349,7 +391,9 @@ test.describe('UI audit (report only)', () => {
         record(r);
         return;
       }
-      for (const r of await auditDocScreen(screen)) {
+      const found =
+        screen.kind === 'edit' ? await auditEditScreen(screen) : await auditDocScreen(screen);
+      for (const r of found) {
         r.ms = Date.now() - started;
         record(r);
       }
