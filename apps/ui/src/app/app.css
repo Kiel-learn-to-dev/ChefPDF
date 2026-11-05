@@ -72,6 +72,9 @@
   color: var(--c-text);
   letter-spacing: -0.01em;
 }
+.doctab__label {
+  white-space: nowrap;
+}
 .doctab__name {
   overflow: hidden;
   text-overflow: ellipsis;

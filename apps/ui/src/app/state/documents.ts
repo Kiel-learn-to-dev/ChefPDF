@@ -20,9 +20,13 @@ interface DocsState {
   docs: DocTab[];
   /** null = start screen. */
   activeId: string | null;
+  /** The About tab is open over the start screen or the active document (1.2). */
+  aboutOpen: boolean;
   add(doc: Omit<DocTab, 'version' | 'lastChange' | 'busy'>): void;
   remove(id: string): void;
+  /** Activates a document, or the start screen (null). Either one leaves the About tab. */
   activate(id: string | null): void;
+  openAbout(): void;
   update(id: string, patch: Partial<DocTab>): void;
   /** Apply a new session state (after an op, undo/redo or save). */
   applyState(id: string, state: SessionState, changed: ChangedPages, info?: DocumentInfo): void;
@@ -33,11 +37,13 @@ interface DocsState {
 export const useDocs = create<DocsState>((set) => ({
   docs: [],
   activeId: null,
+  aboutOpen: false,
 
   add(doc) {
     set((s) => ({
       docs: [...s.docs, { ...doc, version: 0, lastChange: 'all', busy: 0 }],
       activeId: doc.id,
+      aboutOpen: false,
     }));
   },
 
@@ -52,7 +58,11 @@ export const useDocs = create<DocsState>((set) => ({
   },
 
   activate(id) {
-    set({ activeId: id });
+    set({ activeId: id, aboutOpen: false });
+  },
+
+  openAbout() {
+    set({ aboutOpen: true });
   },
 
   update(id, patch) {

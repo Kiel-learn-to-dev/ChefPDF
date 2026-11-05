@@ -6,12 +6,13 @@ import { TooltipProvider } from '../components/Tooltip';
 import { Toaster } from '../components/Toast';
 import { EmptyState } from '../components/Misc';
 import { StartScreen } from '../features/start/StartScreen';
+import { AboutScreen } from '../features/about/AboutScreen';
 import { Viewer } from '../features/viewer/Viewer';
 import { ComparePane } from '../features/viewer/ComparePane';
 import { Presentation } from '../features/viewer/Presentation';
 import { PageOrganizer } from '../features/pages/PageOrganizer';
 import { CommandPalette } from '../features/palette/CommandPalette';
-import { useActiveDoc, type DocTab } from './state/documents';
+import { useActiveDoc, useDocs, type DocTab } from './state/documents';
 import { useViewStore } from './state/viewer';
 import { READY_TABS, useUi } from './state/ui';
 import { useCommands } from './commands';
@@ -91,12 +92,15 @@ export function App() {
   const commands = useCommands();
   useGlobalShortcuts(commands);
   const doc = useActiveDoc();
+  const aboutOpen = useDocs((s) => s.aboutOpen);
   return (
     <TooltipProvider delayDuration={450} skipDelayDuration={200}>
       <div className="app">
         <DocumentTabs />
         <CoreStatusBanner />
-        {doc ? (
+        {aboutOpen ? (
+          <AboutScreen />
+        ) : doc ? (
           <>
             <div className="chrome">
               <FunctionTabs />

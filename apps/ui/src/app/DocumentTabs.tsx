@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { Plus, Search, Settings, X } from 'lucide-react';
+import { Info, Plus, Search, Settings, X } from 'lucide-react';
 import { useDocs } from './state/documents';
 import { useUi } from './state/ui';
 import { closeDoc, openWithDialog } from './actions';
@@ -14,17 +14,21 @@ export function DocumentTabs() {
   const { t } = useTranslation();
   const docs = useDocs((s) => s.docs);
   const activeId = useDocs((s) => s.activeId);
+  const aboutOpen = useDocs((s) => s.aboutOpen);
   const activate = useDocs((s) => s.activate);
+  const openAbout = useDocs((s) => s.openAbout);
   const set = useUi((s) => s.set);
 
+  // The tabs in order: start, the documents, About. The arrow keys walk them.
   const onKeyDown = (e: React.KeyboardEvent, index: number) => {
-    const ids = [null, ...docs.map((d) => d.id)];
+    const count = docs.length + 2;
     let next: number | null = null;
-    if (e.key === 'ArrowRight') next = Math.min(ids.length - 1, index + 1);
+    if (e.key === 'ArrowRight') next = Math.min(count - 1, index + 1);
     if (e.key === 'ArrowLeft') next = Math.max(0, index - 1);
     if (next === null) return;
     e.preventDefault();
-    activate(ids[next] ?? null);
+    if (next === count - 1) openAbout();
+    else activate(next === 0 ? null : (docs[next - 1]?.id ?? null));
     (
       e.currentTarget.parentElement?.parentElement?.children[next]?.querySelector(
         '[role=tab]',
@@ -39,9 +43,9 @@ export function DocumentTabs() {
           <button
             type="button"
             role="tab"
-            aria-selected={activeId === null}
-            tabIndex={activeId === null ? 0 : -1}
-            className={clsx('doctab doctab--home', activeId === null && 'is-active')}
+            aria-selected={activeId === null && !aboutOpen}
+            tabIndex={activeId === null && !aboutOpen ? 0 : -1}
+            className={clsx('doctab doctab--home', activeId === null && !aboutOpen && 'is-active')}
             onClick={() => activate(null)}
             onKeyDown={(e) => onKeyDown(e, 0)}
           >
@@ -50,7 +54,7 @@ export function DocumentTabs() {
           </button>
         </div>
         {docs.map((d, i) => {
-          const active = d.id === activeId;
+          const active = d.id === activeId && !aboutOpen;
           return (
             <div key={d.id} className={clsx('doctab-wrap', active && 'is-active')}>
               <button
@@ -81,6 +85,20 @@ export function DocumentTabs() {
             </div>
           );
         })}
+        <div className="doctab-wrap">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aboutOpen}
+            tabIndex={aboutOpen ? 0 : -1}
+            className={clsx('doctab doctab--about', aboutOpen && 'is-active')}
+            onClick={() => openAbout()}
+            onKeyDown={(e) => onKeyDown(e, docs.length + 1)}
+          >
+            <Info size={14} aria-hidden />
+            <span className="doctab__label">{t('about.tab')}</span>
+          </button>
+        </div>
         <IconButton
           size="sm"
           className="doctabs__add"
