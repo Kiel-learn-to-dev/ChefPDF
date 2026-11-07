@@ -1,0 +1,15 @@
+diff --git a/web/pdf_viewer.mjs b/web/pdf_viewer.mjs
+index e4a6b24652d1ed233dc3de1b746188a246e5fb9e..0acba466fe45a9931e88e7882a52b5168924eb77 100644
+--- a/web/pdf_viewer.mjs
++++ b/web/pdf_viewer.mjs
+@@ -5980,6 +5980,10 @@ class TextHighlighter {
+     this.#eventAC?.abort();
+     this.#eventAC = null;
+     this._updateMatches(true);
++    // Drop the spans of the text layer that was cancelled. The page view keeps this highlighter,
++    // and without this the spans of every page ever rendered stay in memory, detached from the DOM.
++    this.textDivs = null;
++    this.textContentItemsStr = null;
+   }
+   _convertMatches(matches, matchesLength) {
+     if (!matches) {

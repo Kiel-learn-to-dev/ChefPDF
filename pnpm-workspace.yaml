@@ -5,3 +5,6 @@ packages:
 onlyBuiltDependencies:
   - electron
   - esbuild
+
+patchedDependencies:
+  pdfjs-dist@6.4.299: patches/pdfjs-dist@6.4.299.patch
