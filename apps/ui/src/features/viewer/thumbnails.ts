@@ -44,6 +44,21 @@ function docCache(doc: DocTab): DocCache {
   return c;
 }
 
+/** Thumbnails kept per document; the oldest rendered one is dropped beyond this (a 1000-page file would hold 1000 PNGs otherwise). */
+const MAX_THUMBS_PER_DOC = 60;
+/** Object URLs the cache dropped for the size cap. A thumbnail that still holds one shows its placeholder. */
+const evictedUrls = new Set<string>();
+
+function remember(c: DocCache, key: string, url: string) {
+  c.pages.set(key, url);
+  while (c.pages.size > MAX_THUMBS_PER_DOC) {
+    const [oldKey, oldUrl] = c.pages.entries().next().value!;
+    c.pages.delete(oldKey);
+    evictedUrls.add(oldUrl);
+    revokeLater(oldUrl);
+  }
+}
+
 export function dropThumbnails(docId: string) {
   cache.get(docId)?.pages.forEach((url) => URL.revokeObjectURL(url));
   cache.delete(docId);
@@ -86,6 +101,8 @@ export async function renderPageToCanvas(
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+  // pdf.js keeps the page's operator list and images until cleanup; a thumbnail needs neither.
+  page.cleanup();
   return canvas;
 }
 
@@ -121,12 +138,15 @@ export function useThumbnail(
     schedule(async () => {
       if (cancelled) return undefined;
       const canvas = await renderPageToCanvas(pdf, pageIndex, width);
-      return canvasToUrl(canvas);
+      const url = await canvasToUrl(canvas);
+      // Release the backing store now; the PNG is all that is kept.
+      canvas.width = canvas.height = 0;
+      return url;
     })
       .then((u) => {
         if (!u) return;
         // Only cache when the pdf matches the doc's current version.
-        if (docCache(doc).version === version) c.pages.set(key, u);
+        if (docCache(doc).version === version) remember(c, key, u);
         if (!cancelled) setRendered({ url: u, version });
       })
       .catch(() => undefined);
@@ -137,7 +157,7 @@ export function useThumbnail(
   }, [doc.id, version, pdf, key, visible]);
 
   if (cached) return cached;
-  if (!rendered) return undefined;
+  if (!rendered || evictedUrls.has(rendered.url)) return undefined;
   if (rendered.version === version || doc.lastChange !== 'all') return rendered.url;
   return undefined;
 }
@@ -151,7 +171,8 @@ export function useInView<T extends Element>(
   useEffect(() => {
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && setInView(true)),
+      // Leaving the view clears the flag, so a thumbnail scrolled back into view renders again.
+      (entries) => entries.forEach((e) => setInView(e.isIntersecting)),
       {
         rootMargin,
       },
