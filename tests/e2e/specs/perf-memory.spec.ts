@@ -145,9 +145,13 @@ async function snapshot(l: Launched, label: string, cdp: Cdp | null): Promise<vo
 
 let launched: Launched | null = null;
 
+/** Chromium switches (space separated) for an experiment, e.g. "--disable-gpu-compositing". */
+const switches = (process.env.CHEF_PERF_SWITCHES ?? '').split(/\s+/).filter(Boolean);
+
 function launchArgs(files: string[]): string[] {
-  // Chromium switch first, so the app's file parser (argv) sees only the files after it.
-  return dpr ? [`--force-device-scale-factor=${dpr}`, ...files] : files;
+  // Switches first: the app's file parser skips arguments that start with "-".
+  const dprArg = dpr ? [`--force-device-scale-factor=${dpr}`] : [];
+  return [...dprArg, ...switches, ...files];
 }
 
 test.afterEach(async () => {
@@ -179,11 +183,12 @@ test('one 1000-page document: open, scroll to the end, back to the top', async (
   await page.waitForTimeout(3_000);
   await snapshot(launched, 'open-1000', cdp);
   await page.evaluate(() => {
-    const w = window as unknown as { __longTasks: { count: number; max: number } };
-    w.__longTasks = { count: 0, max: 0 };
+    const w = window as unknown as { __longTasks: { count: number; max: number; total: number } };
+    w.__longTasks = { count: 0, max: 0, total: 0 };
     new PerformanceObserver((list) => {
       for (const e of list.getEntries()) {
         w.__longTasks.count += 1;
+        w.__longTasks.total += e.duration;
         w.__longTasks.max = Math.max(w.__longTasks.max, e.duration);
       }
     }).observe({ entryTypes: ['longtask'] });
@@ -203,7 +208,10 @@ test('one 1000-page document: open, scroll to the end, back to the top', async (
   const lt = await page.evaluate(
     () => (window as unknown as { __longTasks: { count: number; max: number } }).__longTasks,
   );
-  console.log(`PERFMEM longtasks count=${lt.count} maxMs=${Math.round(lt.max)}`);
+  console.log(
+    `PERFMEM longtasks count=${lt.count} maxMs=${Math.round(lt.max)} totalMs=${Math.round(lt.total)} ` +
+      `switches="${switches.join(' ')}"`,
+  );
   await page.evaluate(() => {
     const el = document.querySelector('.viewer__scroll');
     if (el) el.scrollTop = 0;
