@@ -4,6 +4,10 @@ out/
 release*/
 build/
 *.tsbuildinfo
+# Bản native (Rust): thư mục build của cargo (TASKS_RUST R1.05)
+apps/native/target/
+# DLL pdfium tải bằng scripts/fetch-pdfium.mjs: không commit binary.
+apps/native/third_party/
 .vite/
 coverage/
 .DS_Store

@@ -1,0 +1,141 @@
+# cargo-deny cho bản native (TASKS_RUST R1.03). Chạy trong apps/native: cargo deny check
+# Nguyên tắc: GPL, AGPL, LGPL không tự động được phép. Thêm giấy phép mới phải ghi vào NOTES.
+
+[graph]
+all-features = false
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+# Giấy phép permissive đã biết. MPL và LGPL cố ý không có ở đây: cần quyết định riêng.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    # Hai giấy phép permissive gặp trong đồ thị của gpui (ghi NOTES, 2026-11-08):
+    "bzip2-1.0.6",
+    "NCSA",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "OFL-1.1",
+    "Unicode-3.0",
+    "Zlib",
+]
+# Không có khóa deny ở đây: cargo-deny v2 từ chối mọi giấy phép không nằm trong allow.
+# GPL và AGPL vì vậy bị chặn (BLUEPRINT_RUST §9, CLAUDE.md). Chúng không được thêm vào allow.
+# Crate nội bộ của dự án (chef-*) có license "LicenseRef-Proprietary", khai báo riêng từng crate.
+# KHÔNG dùng [licenses.private] ignore: nó cũng bỏ qua các crate của Zed có publish = false
+# (ztracing, zlog, gpui_util… là GPL hoặc không khai báo giấy phép), làm mất khoản cần quyết định.
+[[licenses.exceptions]]
+name = "chef-app"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-theme"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-ui"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-rpc"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-pdf"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-viewer"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-contracts"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-capture"
+allow = ["LicenseRef-Proprietary"]
+
+[[licenses.exceptions]]
+name = "chef-testkit"
+allow = ["LicenseRef-Proprietary"]
+
+# Quyết định D75 (2026-11-08): dùng cá nhân, không phát hành, nên chấp nhận GPL cho các crate
+# nội bộ của Zed mà gpui kéo theo. AGPL vẫn bị chặn. Mỗi ngoại lệ phải có tên crate cụ thể.
+# Nếu sau này phát hành binary, phải xem lại D75 (nghĩa vụ GPL khi phân phối).
+[[licenses.exceptions]]
+name = "zlog"
+allow = ["GPL-3.0-or-later"]
+
+[[licenses.exceptions]]
+name = "ztracing"
+allow = ["GPL-3.0-or-later"]
+
+[[licenses.exceptions]]
+name = "ztracing_macro"
+allow = ["GPL-3.0-or-later"]
+
+# Hai crate này không khai báo license trong Cargo.toml. Giả định: theo giấy phép GPL của repo Zed
+# (LICENSE-GPL). CHƯA xác nhận từng file; ghi rõ là giả định trong NOTES D75.
+[[licenses.clarify]]
+name = "gpui_util"
+expression = "GPL-3.0-or-later"
+license-files = []
+
+[[licenses.clarify]]
+name = "gpui_shared_string"
+expression = "GPL-3.0-or-later"
+license-files = []
+
+[[licenses.exceptions]]
+name = "gpui_util"
+allow = ["GPL-3.0-or-later"]
+
+[[licenses.exceptions]]
+name = "gpui_shared_string"
+allow = ["GPL-3.0-or-later"]
+
+# MPL-2.0 (copyleft mức file, không lan sang cả dự án). Mặc định cho dùng cá nhân; chờ chủ dự án xác nhận.
+[[licenses.exceptions]]
+name = "cbindgen"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+name = "dwrote"
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+name = "option-ext"
+allow = ["MPL-2.0"]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+# Nguồn git được phép: đúng các repo mà gpui kéo vào, đều ghim theo rev trong Cargo.toml/Cargo.lock.
+# Fork của Zed (font-kit, wgpu, calloop, async-task) là phụ thuộc gián tiếp của gpui.
+allow-git = [
+    "https://github.com/zed-industries/zed",
+    "https://github.com/zed-industries/calloop",
+    "https://github.com/zed-industries/font-kit",
+    "https://github.com/zed-industries/wgpu",
+    "https://github.com/smol-rs/async-task",
+]
+
+[bans]
+multiple-versions = "warn"
+# gpui và gpui_platform được ghim theo rev git (không có số phiên bản), cargo-deny coi đó là wildcard.
+# Kiểm soát thật là rev đã ghim, nên cho phép ở đây.
+wildcards = "allow"
+# PDF engine AGPL: không dùng (CLAUDE.md, D-PDF stack). Có tên crate phổ biến để chặn nhầm.
+deny = [
+    { crate = "mupdf", reason = "MuPDF là AGPL (CLAUDE.md)" },
+    { crate = "mupdf-sys", reason = "MuPDF là AGPL (CLAUDE.md)" },
+]
+
+[advisories]
+version = 2

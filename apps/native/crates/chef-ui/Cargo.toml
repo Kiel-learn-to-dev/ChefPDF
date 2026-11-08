@@ -1,0 +1,14 @@
+[package]
+name = "chef-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+gpui.workspace = true
+# Cùng phiên bản với workspace của Zed (gpui dùng unicode-segmentation 1.10+).
+unicode-segmentation = "1.10"

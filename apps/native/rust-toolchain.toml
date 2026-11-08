@@ -1,0 +1,5 @@
+[toolchain]
+# Khớp rust-toolchain.toml của Zed tại tag v0.233.10 (xem TASKS_RUST R1.01).
+channel = "1.94.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

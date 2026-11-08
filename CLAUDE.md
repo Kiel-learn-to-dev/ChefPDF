@@ -5,7 +5,8 @@ App PDF desktop đa nền tảng (Windows/macOS/Linux), mạnh nhưng gọn gàn
 ## Đọc trước khi làm
 - `docs/NOTES.md`: các quyết định đã chốt, kiến trúc, trạng thái hiện tại, câu hỏi còn mở. **Đọc đầu tiên.**
 - `docs/FEATURES.md`: **cây tính năng 1.0 đã chốt** (196 tính năng, mã A1…Q12). Mã trong file này là mã chính thức.
-- `docs/BLUEPRINT.md`: kiến trúc, quy ước code, kiểm thử, build, các mốc, rủi ro. **Đọc trước khi viết code.**
+- `docs/BLUEPRINT.md`: kiến trúc, quy ước code, kiểm thử, build, các mốc, rủi ro. **Đọc trước khi viết code.** Vẫn mô tả bản Electron đang chạy.
+- `docs/BLUEPRINT_RUST.md`, `docs/PLAN_RUST.md` và `docs/TASKS_RUST.md`: **đang chuyển vỏ sang Rust + GPUI (D71–D74).** BLUEPRINT_RUST là thiết kế; TASKS_RUST là việc và trạng thái (nguồn trạng thái duy nhất); PLAN_RUST là thứ tự mốc. Số mục giữ như BLUEPRINT.md. Electron 1.3 vẫn là bản dùng hằng ngày cho đến khi bản Rust đạt parity và chủ dự án chốt. Khi làm việc trên vỏ, đọc BLUEPRINT_RUST rồi TASKS_RUST.
 - `docs/TASKS.md`: danh sách task theo mốc, có điểm, phụ thuộc, trạng thái. **Cập nhật trạng thái khi xong task.**
 - `docs/TOKENS.md`: tra cứu USB token / CA Việt Nam cho phần ký số.
 
@@ -18,4 +19,4 @@ App PDF desktop đa nền tảng (Windows/macOS/Linux), mạnh nhưng gọn gàn
 - App chỉ để chủ dự án tự dùng: không ký mã, không phát hành.
 - **Bản 1.0 ưu tiên Windows** (D37): macOS và Linux để sau; đừng sửa lỗi riêng của chúng trước 1.0. Máy chính: Windows, token Viettel-CA. Kế hoạch: `docs/PLAN_V1.md`.
 - Mọi tính năng tác động lên tài liệu phải là một Operation trong lõi Python (BLUEPRINT mục 3). Không sửa PDF ở renderer.
-- Stack đã chốt: Electron + React + TypeScript + pdf.js (giao diện); Python sidecar với pyHanko, pypdfium2, pikepdf, Pillow, img2pdf (lõi xử lý).
+- Stack đang chạy: Electron + React + TypeScript + pdf.js (giao diện). **Đang chuyển sang Rust + GPUI (D71)**, theo `docs/BLUEPRINT_RUST.md`; Electron vẫn là bản chính đến parity. Lõi xử lý giữ nguyên: Python sidecar với pyHanko, pypdfium2, pikepdf, Pillow, img2pdf.

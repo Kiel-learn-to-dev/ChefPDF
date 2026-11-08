@@ -1,0 +1,30 @@
+# Workspace của bản Rust + GPUI (BLUEPRINT_RUST §8.1). Xem docs/TASKS_RUST.md.
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-Proprietary"
+publish = false
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+# GPUI lấy từ repo Zed, ghim commit của tag v0.233.10 (R1.01).
+# Không ghim theo nhánh main: API GPUI đổi thường xuyên.
+[workspace.dependencies]
+gpui = { git = "https://github.com/zed-industries/zed", rev = "350f33871e84d5ed83a403523e9490b9bf014a94" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "350f33871e84d5ed83a403523e9490b9bf014a94" }
+
+# [patch] trong Cargo.toml của Zed không áp dụng cho dự án phụ thuộc vào gpui,
+# nên chép lại đúng các mục gpui dùng (lấy từ Cargo.lock của Zed cùng tag).
+[patch.crates-io]
+async-task = { git = "https://github.com/smol-rs/async-task.git", rev = "b4486cd71e4e94fbda54ce6302444de14f4d190e" }
+calloop = { git = "https://github.com/zed-industries/calloop", rev = "eb6b4fd17b9af5ecc226546bdd04185391b3e265" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
