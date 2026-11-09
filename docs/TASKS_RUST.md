@@ -25,9 +25,9 @@ Checkpoint sau mỗi 2–3 task và cuối mỗi mốc là **điểm kiểm** đ
 
 | # | Câu hỏi | Chặn task | Đề xuất |
 |---|---|---|---|
-| CH-R1 | **Chuyển trang web sang PDF** (`web2pdfRender.ts` dùng `printToPDF` của Chromium, bản Rust không có Chromium). Chọn một: (a) giữ một tiến trình Electron nhỏ, chỉ chạy khi dùng tính năng này; (b) dùng WebView2 có sẵn của Windows qua CDP; (c) bỏ tính năng, ghi vào "Thay đổi sau khi chốt" của FEATURES | R5.16 | (b), nếu WebView2 đủ `printToPDF`; nếu không thì (a) |
+| CH-R1 | **Chuyển trang web sang PDF** (`web2pdfRender.ts` dùng `printToPDF` của Chromium, bản Rust không có Chromium). Chọn một: (a) giữ một tiến trình Electron nhỏ, chỉ chạy khi dùng tính năng này; (b) dùng WebView2 có sẵn của Windows qua CDP; (c) bỏ tính năng, ghi vào "Thay đổi sau khi chốt" của FEATURES | R5.16 (❌) | **Đã chốt (c), 2026-11-09:** bỏ tính năng, ghi FEATURES M5 và D78 |
 | CH-R2 | Độ tương phản của token (D72): có đổi màu `--c-text-3`, `--c-success`, `--c-warning` khi chữ không đạt 4,5:1 không | Không chặn; quyết định ở M9 | Giữ nguyên, ghi nhận |
-| CH-R3 | Lọc `invert` của trang đọc tối và `grayscale` của màn hình Start (BLUEPRINT_RUST §6.2) | R2.28 (đã có đề xuất) | Đảo màu bitmap trong Rust; bỏ grayscale nếu không đáng |
+| CH-R3 | Lọc `invert` của trang đọc tối và `grayscale` của màn hình Start (BLUEPRINT_RUST §6.2) | R2.28 (đã có đề xuất) | Đảo màu bitmap trong Rust; bỏ grayscale nếu không đáng **Đã chốt (2026-11-09): đảo màu trên CPU, D79; grayscale quyết ở R2.16.** |
 
 ## Việc thủ công của chủ dự án
 
@@ -281,12 +281,12 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 ### R1.22 · Ô nhập một dòng cơ bản · M
 - **Mô tả:** ô nhập GPUI: ký tự Unicode qua `WM_CHAR`, con trỏ, chọn bằng chuột và Shift, Ctrl+A, Ctrl+C/V/X, Backspace và Delete.
 - **Tiêu chí:** (1) dán chuỗi tiếng Việt có dấu giữ nguyên; (2) chọn và xóa đúng vùng; (3) con trỏ không nhảy khi gõ nhanh.
-- **Kiểm chứng:** test Rust cho buffer; E2E qua kênh debug (lệnh `type`).
+- **Kiểm chứng:** test Rust cho buffer (15 test trong chef-ui, gồm gõ nhanh, chọn ngược rồi xóa, dán NFC, chuẩn hóa nhiều dòng); E2E qua kênh debug: `scripts/e2e-native-input.ps1` (19 kiểm tra: gõ, chọn ngược, copy/cut/paste qua clipboard, dán `\r\n`, Home/End, Select All, Backspace, gõ nhanh, mũi tên và Delete). Lệnh `action` của kênh debug đưa action vào đúng đường keymap, vì PostMessage không đặt được Shift/Ctrl.
 - **Phụ thuộc:** R1.07
-- **File:** `apps/native/crates/chef-ui/src/text_input.rs`
+- **File:** `apps/native/crates/chef-ui/src/text_input.rs`, `apps/native/crates/chef-ui/src/text_buffer.rs`, `apps/native/crates/chef-app/src/debug.rs`, `scripts/e2e-native-input.ps1`
 - **Tính năng:** —
-- **Ghi chú:** một phần (2026-11-09): ô tìm kiếm trên thanh viewer gõ được, Backspace xóa được (qua lệnh `char` và `key` của kênh debug, xác nhận bằng ảnh chụp). Buffer có 11 test. Chưa kiểm: dán tiếng Việt có dấu, chọn bằng Shift và chuột, con trỏ khi gõ nhanh. Chữ ô nhập màu tối trên nền tối vì chưa nhận màu theme. Cách sửa lỗi cửa sổ trắng đã đưa vào §10.3
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-09) hoàn tất. Chữ ô nhập dùng màu theme (`text` trên thanh viewer), placeholder mờ 50%. Phần IME (gõ Telex, Unikey, EVKey) không thuộc R1.22; xem R1.23 đến R1.27.
+- **Trạng thái:** ✅
 
 ### R1.23 · Kiểm composition của GPUI trên Windows · S
 - **Mô tả:** đọc mã Windows của commit đã ghim tìm `WM_IME_COMPOSITION`, `WM_IME_STARTCOMPOSITION`, TSF. Viết một ô thử để xem composition có đi qua không.
@@ -686,7 +686,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-viewer/src/view.rs`
 - **E2E:** `wheel`, `b2-other-window-top`, `perf-wheel`
 - **Tính năng:** B2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) PageDown và PageUp đi đúng một trang, kiểm bằng E2E `scripts/e2e-native-view.ps1`. Bánh xe đã có từ trước. Chưa đo khung (tiêu chí 3, cần R1.37).
+- **Trạng thái:** 🔄
 
 ### R2.20 · Viewer: hai trang, kiểu sách, toàn màn hình · M
 - **Mô tả:** chế độ hai trang và kiểu sách (trang đầu lẻ), toàn màn hình bằng F11 (phím của bản menu cũ, D67), trình chiếu.
@@ -705,7 +706,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-viewer/src/zoom.rs`
 - **E2E:** `perf-large`, `keyboard`
 - **Tính năng:** B1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Ctrl+=, Ctrl+−, Ctrl+0 và giữ điểm giữa vùng nhìn khi zoom, kiểm bằng E2E `e2e-native-view`. Chưa làm: nhập phần trăm, vừa trang, xoay 90°. Chưa so với Electron ở ba cỡ cửa sổ, chưa đo file 305 MB.
+- **Trạng thái:** 🔄
 
 ### R2.22 · Thanh bên: thumbnail ảo hóa và mục lục · M
 - **Mô tả:** thumbnail chỉ render dòng nhìn thấy, cap 60 thumbnail mỗi tài liệu (`c3496fc`), chiều cao dòng tính từ kích thước trang. Mục lục từ bookmark của pdfium.
@@ -724,7 +726,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.28
 - **File:** `apps/native/crates/chef-pdf/src/search.rs`
 - **Tính năng:** B4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Bỏ dấu bằng NFD trong `chef-pdf/src/search.rs`. Test: "nghi dinh" khớp "nghị định" và "NGHỊ ĐỊNH"; vị trí khớp là hộp chữ thật (test trên PDF mẫu). Dùng chung với R2.18 khi có.
+- **Trạng thái:** ✅
 
 ### R2.24 · UI tìm và tô sáng · S
 - **Mô tả:** Ctrl+F mở ô tìm, tô sáng mọi kết quả, Enter và Shift+Enter đi tới, đếm "3/12".
@@ -734,7 +737,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-viewer/src/find.rs`
 - **E2E:** `keyboard`
 - **Tính năng:** B4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Ô tìm trên thanh viewer; quét 1000 trang trong 8 s; tô sáng bằng `--c-highlight` và `--c-highlight-selected`; Enter, Shift+Enter có vòng lại; Esc xóa. E2E `scripts/e2e-native-find.ps1` 14/14.
+- **Trạng thái:** ✅
 
 ### R2.25a · Hộp chữ và hit-test · M
 - **Mô tả:** lấy hộp của từng ký tự bằng `FPDFText`, tìm ký tự dưới con trỏ, xây dựng vùng chọn theo dòng.
@@ -743,7 +747,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.28
 - **File:** `apps/native/crates/chef-pdf/src/text.rs`
 - **Tính năng:** B5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) `chef-pdf/src/text.rs`: hộp glyph (tight) để chọn và hộp dòng (loose) để gom dòng. Hit-test chọn ký tự chứa điểm, không có thì ký tự gần nhất. Trang scan trả rỗng (test với PDF scan).
+- **Trạng thái:** ✅
 
 ### R2.25b · Chọn và copy chữ · M
 - **Mô tả:** kéo chuột để chọn chữ, vẽ vùng chọn, Ctrl+C đưa chữ vào clipboard (Unicode), chọn bằng Ctrl+A trong trang.
@@ -753,7 +758,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-viewer/src/selection.rs`
 - **E2E:** `keyboard` (phần copy)
 - **Tính năng:** B5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Kéo chuột chọn, Ctrl+A chọn trang nhìn thấy, Ctrl+C đưa Unicode lên clipboard, xuống dòng theo dòng thật. E2E `scripts/e2e-native-select.ps1` 5/5.
+- **Trạng thái:** ✅
 
 ### R2.26 · Mở file có mật khẩu · S
 - **Mô tả:** hỏi mật khẩu khi pdfium báo cần mật khẩu, không ghi mật khẩu ra đĩa, giữ trong bộ nhớ (zeroize khi đóng tab).
@@ -781,7 +787,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-viewer/src/invert.rs`
 - **E2E:** `ui-audit` (màn hình đọc ban đêm)
 - **Tính năng:** B9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Đảo màu trên CPU theo cùng công thức `invert(1) hue-rotate(180deg)` (D79), tại chỗ, không tăng bộ nhớ (tiêu chí 2). E2E `scripts/e2e-native-night.ps1` 5/5. Chưa so ảnh với Electron (tiêu chí 1, cần R2.01).
+- **Trạng thái:** 🔄
 
 ### R2.29 · Chip "có chữ, scan, hỗn hợp" · XS
 - **Mô tả:** thanh dưới cho biết tài liệu có chữ, không có chữ (scan) hay hỗn hợp, dựa trên số ký tự của từng trang đã biết.
@@ -790,7 +797,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.25a
 - **File:** `apps/native/crates/chef-app/src/statusbar.rs`
 - **Tính năng:** B12 (một phần; chỉ báo trên viewer)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Chỉ báo lấy mẫu 8 trang đều nhau (không đọc cả file). E2E `scripts/e2e-native-kind.ps1` 3/3 với PDF chữ, scan, hỗn hợp.
+- **Trạng thái:** ✅
 
 ### R2.30 · Hộp chọn file mở và lưu · S
 - **Mô tả:** hộp thoại mở và lưu của Windows với lọc PDF, mở nhiều file, thư mục mặc định từ cài đặt.
@@ -809,7 +817,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-app/src/keys.rs`
 - **E2E:** `keyboard`
 - **Tính năng:** A3 (phím tắt)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Có: Ctrl+F, Ctrl+A, Ctrl+C, Ctrl+=, Ctrl+−, Ctrl+0, PageUp, PageDown, F11, đọc ban đêm. Chưa có: Ctrl+O (cần R2.30), Ctrl+K (cần R2.18), Ctrl+Tab (cần R2.15). Phím được kiểm qua action, không qua tổ hợp thật.
+- **Trạng thái:** 🔄
 
 ### R2.32 · Điểm kiểm M2 · —
 - **Mô tả:** chạy ui-audit cho màn hình xem, so ảnh (R2.02), đo RAM (R1.37) cho file 1000 trang, mở và cuộn 350 màn hình.
@@ -1396,7 +1405,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-app/src/web_print.rs`
 - **E2E:** `web2pdf`
 - **Tính năng:** M5 (web)
-- **Trạng thái:** ⬜
+- **Ghi chú:** bỏ theo CH-R1 (c), 2026-11-09 (D78, FEATURES M5). Không làm.
+- **Trạng thái:** ❌
 
 ### R5.17 · Chuyển đổi màu · S
 - **Mô tả:** màu, xám, đen trắng 1-bit với ngưỡng và tùy chọn dithering. Operation `color.convert`.

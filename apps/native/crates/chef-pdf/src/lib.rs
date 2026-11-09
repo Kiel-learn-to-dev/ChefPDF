@@ -2,6 +2,8 @@
 //! vì pdfium không an toàn luồng (BLUEPRINT_RUST §2.1). UI chỉ gửi yêu cầu và nhận ảnh BGRA.
 
 pub mod render;
+pub mod search;
+pub mod text;
 
 use std::path::Path;
 

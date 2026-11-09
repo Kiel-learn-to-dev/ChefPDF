@@ -79,6 +79,16 @@ pub fn hex(c: Rgba) -> u32 {
     ((c[0] as u32) << 16) | ((c[1] as u32) << 8) | (c[2] as u32)
 }
 
+/// Màu chữ đã chọn: màu nhấn với alpha 0x55 (khoảng 33%).
+fn accent_selection(accent: Rgba) -> u32 {
+    rgba_hex([accent[0], accent[1], accent[2], 0x55])
+}
+
+/// Màu có alpha dạng RRGGBBAA cho gpui::rgba.
+pub fn rgba_hex(c: Rgba) -> u32 {
+    ((c[0] as u32) << 24) | ((c[1] as u32) << 16) | ((c[2] as u32) << 8) | (c[3] as u32)
+}
+
 /// Bảng màu đang dùng cho cửa sổ viewer.
 #[derive(Debug, Clone, Copy)]
 pub struct Palette {
@@ -87,6 +97,11 @@ pub struct Palette {
     pub border: u32,
     pub text: u32,
     pub text_2: u32,
+    /// Tô sáng khớp tìm kiếm và khớp đang chọn, dạng RRGGBBAA (gpui::rgba).
+    pub highlight: u32,
+    pub highlight_selected: u32,
+    /// Chữ đã chọn trong trang: màu nhấn của theme với alpha thấp.
+    pub selection: u32,
 }
 
 pub fn palette(dark: bool) -> Palette {
@@ -97,6 +112,9 @@ pub fn palette(dark: bool) -> Palette {
             border: hex(chef_theme::dark::C_BORDER),
             text: hex(chef_theme::dark::C_TEXT),
             text_2: hex(chef_theme::dark::C_TEXT_2),
+            highlight: rgba_hex(chef_theme::dark::C_HIGHLIGHT),
+            highlight_selected: rgba_hex(chef_theme::dark::C_HIGHLIGHT_SELECTED),
+            selection: accent_selection(chef_theme::dark::C_ACCENT),
         }
     } else {
         Palette {
@@ -105,6 +123,9 @@ pub fn palette(dark: bool) -> Palette {
             border: hex(chef_theme::light::C_BORDER),
             text: hex(chef_theme::light::C_TEXT),
             text_2: hex(chef_theme::light::C_TEXT_2),
+            highlight: rgba_hex(chef_theme::light::C_HIGHLIGHT),
+            highlight_selected: rgba_hex(chef_theme::light::C_HIGHLIGHT_SELECTED),
+            selection: accent_selection(chef_theme::light::C_ACCENT),
         }
     }
 }

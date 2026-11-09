@@ -233,9 +233,18 @@ impl TextBuffer {
     }
 }
 
+/// Đổi văn bản dán vào ô một dòng: mỗi đoạn xuống dòng (`\r\n`, `\n` hoặc `\r`) thành một khoảng trắng.
+/// Clipboard của Windows thường có `\r\n`, nên không được coi `\r` và `\n` là hai ký tự.
+pub fn single_line(text: &str) -> String {
+    text.split(['\r', '\n'])
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::TextBuffer;
+    use super::{TextBuffer, single_line};
 
     #[test]
     fn vietnamese_text_is_stored_and_counted_in_utf16() {
@@ -352,5 +361,46 @@ mod tests {
         let mut b = TextBuffer::new("ệ");
         b.move_to(1);
         assert_eq!(b.cursor(), 0);
+    }
+
+    #[test]
+    fn fast_typing_keeps_the_caret_at_the_end_and_the_text_exact() {
+        // Mỗi phím gõ là một lần chèn ở con trỏ; con trỏ phải luôn nằm cuối chữ vừa gõ.
+        let typed = "Tiếng Việt có dấu: ệ ư ơ ă đ";
+        let mut b = TextBuffer::new("");
+        for ch in typed.chars() {
+            b.insert(&ch.to_string());
+            assert_eq!(b.cursor(), b.content().len());
+            assert!(b.selected_range().is_empty());
+        }
+        assert_eq!(b.content(), typed);
+    }
+
+    #[test]
+    fn selecting_backwards_then_deleting_removes_exactly_that_range() {
+        let mut b = TextBuffer::new("chef pdf");
+        b.move_to("chef pdf".len());
+        b.select_to("chef ".len());
+        assert_eq!(b.selected_text(), "pdf");
+        b.replace_text(None, "");
+        assert_eq!(b.content(), "chef ");
+        assert_eq!(b.cursor(), "chef ".len());
+    }
+
+    #[test]
+    fn pasted_vietnamese_in_precomposed_form_is_kept_as_is() {
+        // Dán chuỗi NFC (dạng dựng sẵn, như clipboard của Windows) vào giữa câu.
+        let mut b = TextBuffer::new("ab  cd");
+        b.move_to(3);
+        b.replace_text(None, &single_line("Thanh toán\r\n"));
+        assert_eq!(b.content(), "ab Thanh toán cd");
+        assert_eq!(b.cursor(), "ab Thanh toán".len());
+    }
+
+    #[test]
+    fn single_line_turns_every_line_break_into_one_space() {
+        assert_eq!(single_line("a\r\nb\nc\rd"), "a b c d");
+        assert_eq!(single_line("\r\n"), "");
+        assert_eq!(single_line("không xuống dòng"), "không xuống dòng");
     }
 }

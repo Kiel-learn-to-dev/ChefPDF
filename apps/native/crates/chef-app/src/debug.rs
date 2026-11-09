@@ -42,6 +42,120 @@ pub fn set_viewer_stats(cached: usize, pending: usize) {
     CACHED.store(cached as u64, std::sync::atomic::Ordering::Relaxed);
     PENDING.store(pending as u64, std::sync::atomic::Ordering::Relaxed);
 }
+
+/// Tên action được phép gửi qua lệnh `action`. Luồng GPUI đổi tên thành action thật (main.rs).
+pub const ACTION_NAMES: &[&str] = &[
+    "selectall",
+    "selectleft",
+    "selectright",
+    "left",
+    "right",
+    "home",
+    "end",
+    "backspace",
+    "delete",
+    "copy",
+    "cut",
+    "paste",
+    "submit",
+    "submitback",
+    "cancel",
+    "focussearch",
+    "selectalltext",
+    "copyselection",
+    "zoomin",
+    "zoomout",
+    "zoomreset",
+    "nextpage",
+    "prevpage",
+    "togglefullscreen",
+    "togglenight",
+];
+
+/// Hàng đợi action chờ luồng GPUI chạy. Đường đi: pipe -> hàng đợi -> `window.dispatch_action`,
+/// nên tổ hợp phím như Shift+mũi tên được kiểm đúng đường keymap (PostMessage không đặt được Shift).
+static ACTIONS: std::sync::Mutex<std::collections::VecDeque<String>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+
+/// Lấy các action đang chờ (gọi từ luồng GPUI).
+pub fn take_actions() -> Vec<String> {
+    match ACTIONS.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// (zoom, vị trí cuộn, chiều cao vùng nhìn, vừa chiều rộng, trang đầu, lớp chữ).
+type ViewState = (f32, f32, f32, bool, usize, &'static str);
+
+/// Trạng thái khung nhìn, do viewer ghi mỗi lần vẽ: zoom, vị trí cuộn, chiều cao vùng nhìn, chế độ
+/// vừa chiều rộng, và trang đầu đang thấy.
+static VIEW: std::sync::Mutex<Option<ViewState>> = std::sync::Mutex::new(None);
+
+/// `kind` là lớp chữ của tài liệu (Có chữ, Scan, Hỗn hợp), hoặc "" khi chưa biết.
+/// Chế độ đọc ban đêm đang bật (mục `view.night` của lệnh `state`).
+static NIGHT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_night(on: bool) {
+    NIGHT.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn set_view(
+    zoom: f32,
+    scroll_y: f32,
+    viewport_h: f32,
+    fit_width: bool,
+    first_page: usize,
+    kind: &'static str,
+) {
+    if let Ok(mut view) = VIEW.lock() {
+        *view = Some((zoom, scroll_y, viewport_h, fit_width, first_page, kind));
+    }
+}
+
+fn view_json() -> String {
+    match VIEW.lock().ok().and_then(|guard| *guard) {
+        Some((zoom, scroll_y, viewport_h, fit_width, first_page, kind)) => format!(
+            "{{\"zoom\":{zoom:.4},\"scrollY\":{scroll_y:.2},\"viewportH\":{viewport_h:.2},\"fitWidth\":{fit_width},\"firstPage\":{first_page},\"kind\":{},\"night\":{}}}",
+            json_str(kind),
+            NIGHT.load(std::sync::atomic::Ordering::Relaxed)
+        ),
+        None => "null".into(),
+    }
+}
+
+/// (cụm tìm, tổng khớp, khớp đang chọn, còn quét).
+type FindState = (String, usize, Option<usize>, bool);
+
+/// Trạng thái tìm, do viewer ghi mỗi lần vẽ: cụm tìm, tổng khớp, khớp đang chọn, còn quét không.
+static FIND: std::sync::Mutex<Option<FindState>> = std::sync::Mutex::new(None);
+
+pub fn set_find(query: &str, total: usize, current: Option<usize>, scanning: bool) {
+    if let Ok(mut find) = FIND.lock() {
+        *find = Some((query.to_string(), total, current, scanning));
+    }
+}
+
+fn find_json() -> String {
+    match FIND.lock().ok().and_then(|guard| guard.clone()) {
+        Some((query, total, current, scanning)) => format!(
+            "{{\"query\":{},\"total\":{total},\"current\":{},\"scanning\":{scanning}}}",
+            json_str(&query),
+            current.map_or("null".to_string(), |k| k.to_string())
+        ),
+        None => "null".into(),
+    }
+}
+
+/// Nội dung và vùng chọn của ô nhập, do luồng GPUI ghi sau mỗi lần xử lý action.
+static INPUT: std::sync::Mutex<Option<(String, usize, usize)>> = std::sync::Mutex::new(None);
+
+pub fn set_input(text: &str, selected: std::ops::Range<usize>) {
+    if let Ok(mut input) = INPUT.lock() {
+        *input = Some((text.to_string(), selected.start, selected.end));
+    }
+}
+
 const BCRYPT_USE_SYSTEM_PREFERRED_RNG: u32 = 0x0000_0002;
 
 #[repr(C)]
@@ -111,6 +225,11 @@ unsafe extern "system" {
 const WM_KEYDOWN: u32 = 0x0100;
 const WM_KEYUP: u32 = 0x0101;
 const WM_CHAR: u32 = 0x0102;
+const WM_MOUSEMOVE: u32 = 0x0200;
+const WM_LBUTTONDOWN: u32 = 0x0201;
+const WM_LBUTTONUP: u32 = 0x0202;
+/// Cờ MK_LBUTTON của wParam: nút trái đang giữ (khi kéo).
+const MK_LBUTTON: usize = 0x0001;
 
 #[link(name = "bcrypt")]
 unsafe extern "system" {
@@ -187,6 +306,35 @@ fn screenshot(hwnd: isize, path: &str) -> Result<String, String> {
     ))
 }
 
+/// Chuỗi JSON có dấu nháy kép: escape `"`, `\` và ký tự điều khiển, giữ nguyên Unicode.
+fn json_str(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+fn input_json() -> String {
+    match INPUT.lock().ok().and_then(|guard| guard.clone()) {
+        Some((text, start, end)) => format!(
+            "{{\"text\":{},\"selStart\":{start},\"selEnd\":{end}}}",
+            json_str(&text)
+        ),
+        None => "null".into(),
+    }
+}
+
 fn state(hwnd: isize) -> String {
     let mut rect = WinRect {
         left: 0,
@@ -199,14 +347,17 @@ fn state(hwnd: isize) -> String {
     // SAFETY: chỉ đọc trạng thái hiển thị của cửa sổ.
     let visible = unsafe { IsWindowVisible(hwnd) } != 0;
     format!(
-        "{{\"visible\":{visible},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{}}}",
+        "{{\"visible\":{visible},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{},\"input\":{},\"find\":{},\"view\":{}}}",
         rect.left,
         rect.top,
         rect.right,
         rect.bottom,
         RENDERS.load(std::sync::atomic::Ordering::Relaxed),
         CACHED.load(std::sync::atomic::Ordering::Relaxed),
-        PENDING.load(std::sync::atomic::Ordering::Relaxed)
+        PENDING.load(std::sync::atomic::Ordering::Relaxed),
+        input_json(),
+        find_json(),
+        view_json()
     )
 }
 
@@ -251,6 +402,38 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             }
             Err(_) => "{\"ok\":false,\"error\":\"mã phím không hợp lệ\"}".into(),
         },
+        // Chuột trái trong tọa độ client (pixel vật lý): `mouse down|move|up <x> <y>`.
+        "mouse" => {
+            let mut parts = arg.split_whitespace();
+            let kind = parts.next().unwrap_or("");
+            let x = parts.next().and_then(|v| v.parse::<i32>().ok());
+            let y = parts.next().and_then(|v| v.parse::<i32>().ok());
+            let (msg, wparam) = match kind {
+                "down" => (WM_LBUTTONDOWN, MK_LBUTTON),
+                "move" => (WM_MOUSEMOVE, MK_LBUTTON),
+                "up" => (WM_LBUTTONUP, 0),
+                _ => return "{\"ok\":false,\"error\":\"mouse cần down, move hoặc up\"}".into(),
+            };
+            match (x, y) {
+                (Some(x), Some(y)) => {
+                    let lparam = (((y as u32 & 0xFFFF) << 16) | (x as u32 & 0xFFFF)) as isize;
+                    // SAFETY: gửi thông điệp vào hàng đợi của cửa sổ GPUI còn sống.
+                    unsafe { PostMessageW(hwnd, msg, wparam, lparam) };
+                    "{\"ok\":true}".into()
+                }
+                _ => "{\"ok\":false,\"error\":\"mouse cần tọa độ x y\"}".into(),
+            }
+        }
+        // Đưa một action vào hàng đợi; luồng GPUI sẽ chạy nó (xem ACTION_NAMES).
+        "action" => {
+            if !ACTION_NAMES.contains(&arg) {
+                return format!("{{\"ok\":false,\"error\":\"action không hỗ trợ: {arg}\"}}");
+            }
+            if let Ok(mut queue) = ACTIONS.lock() {
+                queue.push_back(arg.to_string());
+            }
+            "{\"ok\":true}".into()
+        }
         _ => format!("{{\"ok\":false,\"error\":\"lệnh không hỗ trợ: {cmd}\"}}"),
     }
 }
@@ -346,7 +529,7 @@ pub fn start(hwnd: isize) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::dispatch;
+    use super::{dispatch, json_str, take_actions};
 
     #[test]
     fn wrong_token_is_rejected_before_any_command_runs() {
@@ -368,5 +551,28 @@ mod tests {
     fn screenshot_without_path_is_not_a_valid_command() {
         let reply = dispatch("dung_token screenshot", "dung_token", 0);
         assert!(reply.contains("lệnh không hỗ trợ"), "trả lời: {reply}");
+    }
+
+    #[test]
+    fn json_escapes_quotes_and_controls_but_keeps_vietnamese() {
+        assert_eq!(
+            json_str("nói \"xin chào\"\n\\"),
+            "\"nói \\\"xin chào\\\"\\n\\\\\""
+        );
+        assert_eq!(json_str("\u{1}"), "\"\\u0001\"");
+        assert_eq!(json_str("Tiếng Việt"), "\"Tiếng Việt\"");
+    }
+
+    #[test]
+    fn known_action_is_queued_and_unknown_one_is_refused() {
+        let reply = dispatch("dung_token action selectleft", "dung_token", 0);
+        assert_eq!(reply, "{\"ok\":true}");
+        let reply = dispatch("dung_token action nhay_mua", "dung_token", 0);
+        assert!(
+            reply.contains("action không hỗ trợ: nhay_mua"),
+            "trả lời: {reply}"
+        );
+        assert_eq!(take_actions(), vec!["selectleft".to_string()]);
+        assert!(take_actions().is_empty());
     }
 }

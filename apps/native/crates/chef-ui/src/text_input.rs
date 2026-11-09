@@ -8,13 +8,13 @@ use std::ops::Range;
 
 use gpui::{
     App, Bounds, ClipboardItem, Context, CursorStyle, Element, ElementId, ElementInputHandler,
-    Entity, EntityInputHandler, FocusHandle, Focusable, GlobalElementId, KeyBinding, LayoutId,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point, Render,
-    ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle, Window, actions, div,
-    fill, hsla, point, prelude::*, px, relative, size,
+    Entity, EntityInputHandler, EventEmitter, FocusHandle, Focusable, GlobalElementId, KeyBinding,
+    LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
+    Render, ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle, Window,
+    actions, div, fill, point, prelude::*, px, relative, size,
 };
 
-use crate::text_buffer::TextBuffer;
+use crate::text_buffer::{TextBuffer, single_line};
 
 actions!(
     text_input,
@@ -30,9 +30,23 @@ actions!(
         End,
         Paste,
         Cut,
-        Copy
+        Copy,
+        Submit,
+        SubmitBack,
+        Cancel
     ]
 );
+
+/// Sự kiện của ô nhập để phần khác của app phản ứng: nội dung đổi, Enter, Shift+Enter, Esc.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextInputEvent {
+    Changed,
+    Submit,
+    SubmitBack,
+    Cancel,
+}
+
+impl EventEmitter<TextInputEvent> for TextInput {}
 
 /// Gắn phím tắt cho ô nhập. Gọi một lần khi khởi động app.
 pub fn bind_keys(cx: &mut App) {
@@ -49,6 +63,9 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("ctrl-v", Paste, Some("TextInput")),
         KeyBinding::new("ctrl-c", Copy, Some("TextInput")),
         KeyBinding::new("ctrl-x", Cut, Some("TextInput")),
+        KeyBinding::new("enter", Submit, Some("TextInput")),
+        KeyBinding::new("shift-enter", SubmitBack, Some("TextInput")),
+        KeyBinding::new("escape", Cancel, Some("TextInput")),
     ]);
 }
 
@@ -76,6 +93,17 @@ impl TextInput {
     /// Nội dung hiện tại (để phần khác của app đọc, ví dụ ô tìm kiếm).
     pub fn text(&self) -> &str {
         self.buffer.content()
+    }
+
+    /// Đặt nội dung từ bên ngoài (ví dụ xóa khi bấm Esc). Không phát sự kiện Changed.
+    pub fn set_text(&mut self, text: &str, cx: &mut Context<Self>) {
+        self.buffer = TextBuffer::new(text);
+        cx.notify();
+    }
+
+    /// Vùng chọn tính bằng byte UTF-8 (con trỏ là vùng rỗng). Dùng cho kênh debug và kiểm thử.
+    pub fn selected_range(&self) -> Range<usize> {
+        self.buffer.selected_range()
     }
 
     fn move_to(&mut self, offset: usize, cx: &mut Context<Self>) {
@@ -128,23 +156,39 @@ impl TextInput {
     }
 
     fn backspace(&mut self, _: &Backspace, window: &mut Window, cx: &mut Context<Self>) {
-        if !self.buffer.backspace() {
+        if self.buffer.backspace() {
+            cx.emit(TextInputEvent::Changed);
+        } else {
             window.play_system_bell();
         }
         cx.notify();
     }
 
     fn delete(&mut self, _: &Delete, window: &mut Window, cx: &mut Context<Self>) {
-        if !self.buffer.delete() {
+        if self.buffer.delete() {
+            cx.emit(TextInputEvent::Changed);
+        } else {
             window.play_system_bell();
         }
         cx.notify();
     }
 
+    fn submit(&mut self, _: &Submit, _: &mut Window, cx: &mut Context<Self>) {
+        cx.emit(TextInputEvent::Submit);
+    }
+
+    fn submit_back(&mut self, _: &SubmitBack, _: &mut Window, cx: &mut Context<Self>) {
+        cx.emit(TextInputEvent::SubmitBack);
+    }
+
+    fn cancel(&mut self, _: &Cancel, _: &mut Window, cx: &mut Context<Self>) {
+        cx.emit(TextInputEvent::Cancel);
+    }
+
     fn paste(&mut self, _: &Paste, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-            // Ô một dòng: xuống dòng đổi thành khoảng trắng.
-            self.replace_text_in_range(None, &text.replace('\n', " "), window, cx);
+            // Ô một dòng: mỗi đoạn xuống dòng thành một khoảng trắng.
+            self.replace_text_in_range(None, &single_line(&text), window, cx);
         }
     }
 
@@ -262,6 +306,7 @@ impl EntityInputHandler for TextInput {
     ) {
         let range = range_utf16.map(|r| self.buffer.range_from_utf16(&r));
         self.buffer.replace_text(range, new_text);
+        cx.emit(TextInputEvent::Changed);
         cx.notify();
     }
 
@@ -281,6 +326,7 @@ impl EntityInputHandler for TextInput {
             start..end
         });
         self.buffer.replace_and_mark(range, new_text, new_selected);
+        cx.emit(TextInputEvent::Changed);
         cx.notify();
     }
 
@@ -399,7 +445,7 @@ impl Element for TextElement {
         let style = window.text_style();
 
         let (display, color) = if content.is_empty() {
-            (input.placeholder.clone(), hsla(0., 0., 0., 0.35))
+            (input.placeholder.clone(), style.color.opacity(0.5))
         } else {
             (content, style.color)
         };
@@ -540,6 +586,9 @@ impl Render for TextInput {
             .on_action(cx.listener(Self::paste))
             .on_action(cx.listener(Self::cut))
             .on_action(cx.listener(Self::copy))
+            .on_action(cx.listener(Self::submit))
+            .on_action(cx.listener(Self::submit_back))
+            .on_action(cx.listener(Self::cancel))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))

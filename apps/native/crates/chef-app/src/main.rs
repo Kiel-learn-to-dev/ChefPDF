@@ -11,12 +11,14 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use gpui::{App, Bounds, Window, WindowBounds, WindowOptions, prelude::*, px, size};
+use gpui::{Action, App, Bounds, Window, WindowBounds, WindowOptions, prelude::*, px, size};
 use gpui_platform::application;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 mod capture;
 mod debug;
+mod find;
+mod night;
 mod theme;
 mod viewer;
 
@@ -91,6 +93,40 @@ fn show_offscreen(hwnd: isize, scale: f32) -> Result<(), String> {
     Ok(())
 }
 
+/// Đổi tên action của kênh debug (debug::ACTION_NAMES) thành action của ô nhập.
+fn action_for(name: &str) -> Option<Box<dyn Action>> {
+    use chef_ui::text_input as t;
+    let action: Box<dyn Action> = match name {
+        "selectall" => Box::new(t::SelectAll),
+        "selectleft" => Box::new(t::SelectLeft),
+        "selectright" => Box::new(t::SelectRight),
+        "left" => Box::new(t::Left),
+        "right" => Box::new(t::Right),
+        "home" => Box::new(t::Home),
+        "end" => Box::new(t::End),
+        "backspace" => Box::new(t::Backspace),
+        "delete" => Box::new(t::Delete),
+        "copy" => Box::new(t::Copy),
+        "cut" => Box::new(t::Cut),
+        "paste" => Box::new(t::Paste),
+        "submit" => Box::new(t::Submit),
+        "submitback" => Box::new(t::SubmitBack),
+        "cancel" => Box::new(t::Cancel),
+        "focussearch" => Box::new(viewer::FocusSearch),
+        "selectalltext" => Box::new(viewer::SelectAllText),
+        "copyselection" => Box::new(viewer::CopySelection),
+        "zoomin" => Box::new(viewer::ZoomIn),
+        "zoomout" => Box::new(viewer::ZoomOut),
+        "zoomreset" => Box::new(viewer::ZoomReset),
+        "nextpage" => Box::new(viewer::NextPage),
+        "prevpage" => Box::new(viewer::PrevPage),
+        "togglefullscreen" => Box::new(viewer::ToggleFullscreen),
+        "togglenight" => Box::new(viewer::ToggleNight),
+        _ => return None,
+    };
+    Some(action)
+}
+
 /// Thư mục chứa exe: pdfium.dll được build copy vào đây (build.rs).
 fn exe_dir() -> PathBuf {
     std::env::current_exe()
@@ -109,6 +145,7 @@ fn main() {
 
     application().run(move |cx: &mut App| {
         chef_ui::text_input::bind_keys(cx);
+        viewer::bind_keys(cx);
         let handle = match chef_pdf::render::spawn(exe_dir()) {
             Ok(h) => h,
             Err(e) => {
@@ -176,6 +213,29 @@ fn main() {
             })
             .detach();
             debug::start(hwnd).expect("không bật được kênh debug");
+
+            // Chỉ E2E: chạy action từ kênh debug trên luồng GPUI (đúng đường keymap) và ghi trạng
+            // thái ô tìm kiếm để lệnh `state` đọc được (R1.22).
+            cx.spawn(async move |cx| {
+                loop {
+                    cx.background_executor()
+                        .timer(Duration::from_millis(16))
+                        .await;
+                    let alive = window.update(cx, |viewer, window, cx| {
+                        for name in debug::take_actions() {
+                            if let Some(action) = action_for(&name) {
+                                window.dispatch_action(action, cx);
+                            }
+                        }
+                        let input = viewer.search().read(cx);
+                        debug::set_input(input.text(), input.selected_range());
+                    });
+                    if alive.is_err() {
+                        break;
+                    }
+                }
+            })
+            .detach();
 
             // Chỉ để đo (R1.08): ép vẽ lại mỗi 16 ms trong CHEF_E2E_SPIN_MS mili giây.
             if let Some(ms) = std::env::var("CHEF_E2E_SPIN_MS")

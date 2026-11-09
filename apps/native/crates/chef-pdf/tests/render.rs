@@ -174,3 +174,83 @@ fn missing_file_returns_an_error_not_a_panic() {
     let r = rx.recv().unwrap();
     assert!(r.result.is_err());
 }
+
+fn page_text(h: &render::RenderHandle, doc: u64, index: usize) -> chef_pdf::text::PageText {
+    let (tx, rx) = channel::<Reply<chef_pdf::text::PageText>>();
+    h.send(Job::PageText {
+        id: h.next_id(),
+        doc,
+        index,
+        reply: tx,
+    })
+    .unwrap();
+    rx.recv().unwrap().result.expect("đọc chữ trang thất bại")
+}
+
+#[test]
+fn page_text_boxes_lie_inside_the_page_and_read_in_order() {
+    let Some(pdf) = test_pdf() else { return };
+    let h = handle();
+    let doc = open(&h, pdf);
+    let text = page_text(&h, doc, 0);
+    assert!(text.chars.len() > 20, "trang có {} ký tự", text.chars.len());
+    for cb in &text.chars {
+        let r = cb.rect;
+        assert!(r.left <= r.right && r.top <= r.bottom, "hộp ngược: {r:?}");
+        assert!(r.left > -1.0 && r.right < 600.0, "hộp ngoài trang: {r:?}");
+        assert!(r.top > -1.0 && r.bottom < 850.0, "hộp ngoài trang: {r:?}");
+    }
+    // Dòng đầu tiên có chữ nằm phía trên dòng sau (gốc trên trái).
+    let first = text.chars.iter().find(|c| !c.ch.is_whitespace()).unwrap();
+    let last = text
+        .chars
+        .iter()
+        .rev()
+        .find(|c| !c.ch.is_whitespace())
+        .unwrap();
+    assert!(first.rect.top <= last.rect.top);
+}
+
+#[test]
+fn accent_free_search_finds_vietnamese_on_a_real_page() {
+    let Some(pdf) = test_pdf() else { return };
+    let h = handle();
+    let doc = open(&h, pdf);
+    let text = page_text(&h, doc, 0);
+    // Lấy một từ tiếng Việt có dấu từ chính trang, rồi tìm lại bằng bản không dấu.
+    let word: String = text
+        .chars
+        .iter()
+        .map(|c| c.ch)
+        .collect::<String>()
+        .split_whitespace()
+        .find(|w| !w.is_ascii())
+        .expect("trang không có từ tiếng Việt")
+        .to_string();
+    let plain = chef_pdf::search::fold_query(&word)
+        .into_iter()
+        .collect::<String>();
+    let hits = chef_pdf::search::find(&text.chars, &plain);
+    assert!(!hits.is_empty(), "không tìm thấy '{plain}'");
+    let rects = chef_pdf::search::rects(&text.chars, hits[0].clone());
+    assert!(!rects.is_empty());
+}
+
+#[test]
+fn scanned_page_has_no_text_boxes_and_no_error() {
+    // scan1.pdf là một ảnh không có lớp chữ (tạo bằng Pillow, xem TASKS_RUST R2.25a).
+    let p = std::env::temp_dir().join("chef-perf").join("scan1.pdf");
+    if !p.exists() {
+        eprintln!("bỏ qua: không có PDF scan tại {}", p.display());
+        return;
+    }
+    let h = handle();
+    let doc = open(&h, p);
+    let text = page_text(&h, doc, 0);
+    assert!(
+        text.chars.is_empty(),
+        "trang scan có {} ký tự",
+        text.chars.len()
+    );
+    assert!(chef_pdf::search::find(&text.chars, "abc").is_empty());
+}

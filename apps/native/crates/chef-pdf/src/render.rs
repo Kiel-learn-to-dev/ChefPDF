@@ -13,6 +13,7 @@ use std::thread;
 use pdfium_render::prelude::{PdfDocument, PdfRenderConfig};
 
 use crate::bind;
+use crate::text::PageText;
 
 /// Ảnh một trang, BGRA, từ trên xuống. `bgra.len() == width * height * 4`.
 #[derive(Debug, Clone, PartialEq)]
@@ -58,6 +59,13 @@ pub enum Job {
         width: u32,
         height: u32,
         reply: Sender<Reply<PageImage>>,
+    },
+    /// Chữ và hộp từng ký tự của một trang (R2.25a). Trang scan trả danh sách rỗng.
+    PageText {
+        id: u64,
+        doc: DocId,
+        index: usize,
+        reply: Sender<Reply<PageText>>,
     },
     Close {
         id: u64,
@@ -166,6 +174,19 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                 reply,
             } => {
                 let result = render_page(&docs, doc, index, width, height);
+                let _ = reply.send(Reply { id, result });
+            }
+            Job::PageText {
+                id,
+                doc,
+                index,
+                reply,
+            } => {
+                let result = docs
+                    .get(&doc)
+                    .ok_or_else(|| format!("không có tài liệu {doc}"))
+                    .and_then(|d| d.pages().get(index as i32).map_err(|e| e.to_string()))
+                    .and_then(|p| crate::text::read_page(&p));
                 let _ = reply.send(Reply { id, result });
             }
             Job::Close { id, doc, reply } => {
