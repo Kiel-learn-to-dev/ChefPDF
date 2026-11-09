@@ -86,8 +86,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.01
 - **File:** `apps/native/Cargo.toml`, `apps/native/crates/*/Cargo.toml`, `apps/native/build.rs`
 - **Tính năng:** —
-- **Ghi chú:** workspace 9 crate, build xanh; build.rs chỉ sao chép pdfium.dll, chưa nhúng assets/ vào exe (tiêu chí 3 chưa làm)
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-09) assets/ nhúng vào exe: build.rs sinh `OUT_DIR/assets.rs` (`include_bytes!` từng tệp), `assets::Embedded` là `AssetSource` của GPUI (`with_assets`). 3 test: font đọc lại đúng TTF, icon là SVG, list 153 icon. fmt và clippy `-D warnings` xanh; `cargo deny check` còn lỗi advisories (R1.03), không do thay đổi này
+- **Trạng thái:** ✅
 
 ### R1.03 · Cấu hình cargo-deny · XS
 - **Mô tả:** `deny.toml` với danh sách giấy phép cho phép (Apache-2.0, MIT, BSD-3-Clause, ISC, OFL-1.1, Unicode) và cấm rõ AGPL, GPL, Ghostscript, MuPDF, PyMuPDF, iText.
@@ -200,7 +200,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.06
 - **File:** `apps/native/assets/fonts/`, `apps/native/crates/chef-ui/src/fonts.rs`
 - **Tính năng:** —
-- **Ghi chú:** TTF 400/500/600 + OFL, đủ glyph tiếng Việt (đã kiểm cmap). Chưa nạp qua add_fonts của GPUI để so ảnh với Electron
+- **Ghi chú:** (2026-11-09) Nạp 3 TTF qua `add_fonts` (`assets::register_fonts`). Ảnh probe: ba độ đậm khác nhau, chữ có dấu không thiếu glyph. Còn lại: so ảnh với Electron ở 13 px (cần R1.21). Định dạng ghi ở BLUEPRINT_RUST §6.4
 - **Trạng thái:** 🔄
 
 ### R1.14 · Script xuất 153 icon Lucide · S
@@ -220,7 +220,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.14
 - **File:** `apps/native/crates/chef-ui/src/icon.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Probe `CHEF_E2E_PROBE=1`: 10 icon ở 16 px và 18 px, nét 2 hiển thị liền trong ảnh. GPUI `paint_svg` tô bằng `text_color`, không cần `currentColor`; kết quả ghi ở BLUEPRINT_RUST §6.3 và §6.9. Còn lại: so với Electron (R1.21)
+- **Trạng thái:** 🔄
 
 ### R1.16 · Probe bóng nhiều lớp và vòng focus · S
 - **Mô tả:** dựng `--shadow-md` và `--focus-ring` bằng `BoxShadow` (spread, blur, nhiều bóng). Kiểm thứ tự vẽ của vòng focus (2px surface rồi 4px focus).
@@ -229,7 +230,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.11, R1.06
 - **File:** `apps/native/crates/chef-ui/src/shadow.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) BoxShadow đạt: `shadow-md` và vòng focus vẽ đúng thứ tự (khe 2 px, viền 2 px). Phát hiện: blur_radius của GPUI là σ, CSS là blur/2; blur 0 không vẽ, nên vòng cứng dùng 0,5 px. Còn lại: so với Electron ở vùng mờ (R1.21). API ghi ở BLUEPRINT_RUST §6.9
+- **Trạng thái:** 🔄
 
 ### R1.17 · Probe layout: flex, grid auto-fit, ellipsis, aspect-ratio · M
 - **Mô tả:** dựng bốn mẫu lấy từ CSS hiện có: `docTools.css` (`repeat(auto-fit, minmax(220px,1fr))`), `TaskDialog.css` (`minmax(0,1fr) 300px`), ellipsis ở `app.css:80`, `signTemplate.css:186` (`aspect-ratio: 260/100`).
@@ -238,7 +240,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.06
 - **File:** `apps/native/crates/chef-ui/src/layout_probe.rs`, `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Probe: auto-fit không có trong GPUI, thay bằng số cột tính từ chiều rộng (3, 4, 6 cột ở 800, 1184, 1484 px); ellipsis một dòng đạt; `minmax(0,1fr) 300px` đạt; aspect-ratio 260/100 đạt. Còn lại: so với Electron ở ba cỡ (R1.21). Kết quả ở BLUEPRINT_RUST §6.9
+- **Trạng thái:** 🔄
 
 ### R1.18 · Probe số chữ cố định và khoảng cách chữ · XS
 - **Mô tả:** kiểm `font-variant-numeric: tabular-nums` (12 chỗ dùng) và `letter-spacing` (6 chỗ).
@@ -247,7 +250,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.13
 - **File:** `apps/native/crates/chef-ui/src/text.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) GPUI áp `tnum` qua `font_features` (kiểm bằng Constantia: cột thẳng). Be Vietnam Pro không có GSUB `tnum` (fontTools), nên 12 chỗ `tabular-nums` không có tác dụng ở cả hai bản. Cách bù (vẽ từng chữ số trong ô cố định) chưa cần. Ghi ở BLUEPRINT_RUST §6.9
+- **Trạng thái:** ✅
 
 ### R1.19 · Probe trạng thái hover, active, focus-visible, con trỏ · XS
 - **Mô tả:** dựng một nút với `.hover()`, `.active()`, focus handle và `.cursor_pointer()`.
@@ -256,7 +260,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.16
 - **File:** `apps/native/crates/chef-ui/src/button_probe.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Bốn trạng thái đổi đúng màu: hover và active qua `mouse move` và `mouse down`; focus-visible cần lần nhập gần nhất là bàn phím (kiểm bằng `key 65`). Token hover và active là RGBA trong suốt. Còn lại: con trỏ tay chưa đo (WGC không chụp con trỏ)
+- **Trạng thái:** 🔄
 
 ### R1.20 · Probe thanh cuộn tùy biến · XS
 - **Mô tả:** kiểm cách đổi style thanh cuộn (3 chỗ dùng `scrollbar` trong CSS hiện có). Nếu GPUI không cho đổi, ghi lựa chọn: vẽ thanh cuộn riêng hoặc giữ mặc định.
@@ -265,7 +270,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.06
 - **File:** `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09) Kết luận: GPUI core không vẽ thanh cuộn và không có API đổi màu (`scrollbar_width` chỉ chừa chỗ). Thanh cuộn của dự án vẽ riêng trong chef-ui, khi có chỗ dùng đầu tiên. Ghi ở BLUEPRINT_RUST §6.9
+- **Trạng thái:** ✅
 
 ### R1.21 · Chụp tham chiếu Electron cho ba màn hình mẫu · S
 - **Mô tả:** chụp ba màn hình (Start, viewer, một hộp thoại) của bản Electron 1.3.0 ở DPR 1 (`--force-device-scale-factor=1`) và DPR 1,75 (DPR của máy này), hai theme. Ghi vào thư mục ngoài repo.
@@ -274,7 +280,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** —
 - **File:** `tests/visual/native-refs/manifest.json`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Trạng thái:** ✅
 
 ### M1.3 IME (rủi ro cao nhất)
 
@@ -532,7 +538,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.19, R1.16
 - **File:** `apps/native/crates/chef-ui/src/button.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09p) Lỗi tìm được bằng E2E click chuột: chuyển màu bằng `with_animation` có khóa theo `generation`, mà đổi khóa đổi id phần tử, nên GPUI mất trạng thái nhấn và không phát `on_click`. Đã thay bằng nội suy thủ công theo `--ease` (`changed_at`, `request_animation_frame`), cây phần tử giữ nguyên. E2E `e2e-native-button` 0 lỗi (thêm nút mở hộp thoại vào thứ tự Tab).
+- **Trạng thái:** ✅
 
 ### R2.04 · Ô nhập, checkbox, switch · M
 - **Mô tả:** ô nhập có nhãn (`form-labels`), checkbox với trạng thái không xác định, switch bật bằng Space và Enter (hành vi Radix `checkbox`, `switch`).
@@ -541,7 +548,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.03
 - **File:** `apps/native/crates/chef-ui/src/form.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09p) Checkbox và switch đo bounds (lớp bọc `on_children_prepainted`), nên E2E bấm chuột được. Bấm chuột đổi trạng thái đã kiểm trong `e2e-native-form` (thêm vào sau kiểm bàn phím). Lỗi click nút (D82) không liên quan: hai điều khiển này không dùng animation.
+- **Trạng thái:** ✅
 
 ### R2.05 · Radio, slider, toggle group · M
 - **Mô tả:** radio group (mũi tên chọn), slider (mũi tên, PageUp/PageDown, Home/End), toggle group (roving focus).
@@ -596,7 +604,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-ui/src/dialog.rs`
 - **E2E:** `ui-audit` (màn hình hộp thoại)
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09p) `chef-ui/src/dialog.rs` (khung `.dlg-overlay` và `.dlg`), `motion.rs` (giảm chuyển động). Tab vòng trong `tab_order` (GPUI ở commit đã ghim không có `tab_group`, nên tự làm); Esc đóng qua action `Dismiss` (ngữ cảnh `ChefDialog`), ô nhập gửi `Cancel` và khung nhận (TextInput gọi `cx.propagate()`); bấm ra ngoài đóng qua `on_mouse_down_out`, lớp phủ `occlude`; đóng trả tiêu điểm về `return_focus`. Mở: lớp phủ và khung mờ dần và dịch 6 px trong 160 ms theo `--ease`, không co 0,985 như CSS (lệch). Tiêu chí 3: cờ lấy từ `SPI_GETCLIENTAREAANIMATION`, biến `CHEF_E2E_REDUCED_MOTION` ghi đè cho E2E; kiểm bằng `state.reducedMotion` và test đơn vị, chưa đo bằng pixel. Chưa làm: `ui-audit` (R2.01/R2.02). E2E `e2e-native-dialog` 26 kiểm tra đạt ở cả hai chế độ. Trang thử có nút `dialog-open`.
+- **Trạng thái:** ✅
 
 ### R2.11 · Tooltip với trễ 450 ms và 200 ms · S
 - **Mô tả:** hiện tooltip sau 450 ms, bỏ trễ 200 ms khi đã có tooltip hiện (`App.tsx` dùng `delayDuration={450}`, `skipDelayDuration={200}`).
@@ -625,7 +634,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.02
 - **File:** `apps/native/crates/chef-ui/src/i18n.rs`, `apps/native/assets/i18n/`
 - **Tính năng:** A4 (ngôn ngữ)
-- **Trạng thái:** ⬜
+- **Trạng thái:** ✅
 
 ### R2.14 · Cài đặt: giao diện, ngôn ngữ, thư mục mặc định · M
 - **Mô tả:** hộp thoại Cài đặt đọc và ghi `settings.json` ở đường dẫn userData chung (D73). Ba mục: giao diện, ngôn ngữ, thư mục mặc định. Các mục khác để M9.
@@ -635,7 +644,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-app/src/settings.rs`
 - **E2E:** `ui-audit` (màn hình cài đặt)
 - **Tính năng:** A4 (giao diện, thư mục mặc định)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09p) Phần lưu trữ xong: `chef-app/src/settings.rs`, đọc và ghi `settings.json` cùng file với Electron. Chỉ đổi `theme`, `language`, `defaultSaveDir`; khóa khác và khóa chưa biết được giữ nguyên (test trên file kiểu Electron). Ghi qua file tạm rồi đổi tên; file hỏng thì báo lỗi, không ghi đè. Thư mục userData: `CHEF_USER_DATA_DIR`, rồi chế độ E2E dùng thư mục tạm, rồi `%APPDATA%\Chef PDF`. 13 test đạt. Khi ghi, đọc lại file và chỉ vá các khóa đã đổi, nên thay đổi do Electron ghi sau lúc đọc không bị mất (có test). Electron đang chạy giữ cài đặt trong bộ nhớ và sẽ ghi đè thay đổi của Rust ở lần ghi kế tiếp; phía Rust không sửa được, nên việc đổi cài đặt chỉ an toàn khi Electron đã đóng. Chưa làm: hộp thoại. Theme là nhóm nút chọn một (R2.05) và ngôn ngữ là select (R2.08), cả hai chưa có; áp theme lúc chạy và nối ngôn ngữ vào chuỗi giao diện cũng chưa làm.
+- **Trạng thái:** 🔄
 
 ### R2.15 · Thanh tab tài liệu · M
 - **Mô tả:** mở nhiều tab, đóng, chuyển bằng chuột và Ctrl+Tab. Tab nền bỏ bitmap trang (R3 của BLUEPRINT_RUST §2.2).

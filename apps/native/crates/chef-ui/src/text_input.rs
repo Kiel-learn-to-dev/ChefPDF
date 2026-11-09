@@ -183,6 +183,8 @@ impl TextInput {
 
     fn cancel(&mut self, _: &Cancel, _: &mut Window, cx: &mut Context<Self>) {
         cx.emit(TextInputEvent::Cancel);
+        // Để Cancel đi tiếp lên khung hộp thoại (dialog.rs), khung đó cũng đóng khi Esc ở ô nhập.
+        cx.propagate();
     }
 
     fn paste(&mut self, _: &Paste, window: &mut Window, cx: &mut Context<Self>) {

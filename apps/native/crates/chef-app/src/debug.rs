@@ -70,6 +70,8 @@ pub const ACTION_NAMES: &[&str] = &[
     "prevpage",
     "togglefullscreen",
     "togglenight",
+    "focusnext",
+    "focusprev",
 ];
 
 /// Hàng đợi action chờ luồng GPUI chạy. Đường đi: pipe -> hàng đợi -> `window.dispatch_action`,
@@ -347,7 +349,7 @@ fn state(hwnd: isize) -> String {
     // SAFETY: chỉ đọc trạng thái hiển thị của cửa sổ.
     let visible = unsafe { IsWindowVisible(hwnd) } != 0;
     format!(
-        "{{\"visible\":{visible},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{},\"input\":{},\"find\":{},\"view\":{}}}",
+        "{{\"visible\":{visible},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{},\"input\":{},\"find\":{},\"view\":{},\"controls\":{},\"reducedMotion\":{}}}",
         rect.left,
         rect.top,
         rect.right,
@@ -357,8 +359,39 @@ fn state(hwnd: isize) -> String {
         PENDING.load(std::sync::atomic::Ordering::Relaxed),
         input_json(),
         find_json(),
-        view_json()
+        view_json(),
+        controls_json(),
+        chef_ui::motion::reduced()
     )
+}
+
+/// Các điều khiển của khung gần nhất (chef-ui `a11y`, D81): id, vai trò, tên, trạng thái, vị trí.
+fn controls_json() -> String {
+    let (scale, controls) = chef_ui::a11y::snapshot();
+    let items: Vec<String> = controls
+        .iter()
+        .map(|c| {
+            let bounds = match c.bounds {
+                Some([x, y, w, h]) => format!("[{x},{y},{w},{h}]"),
+                None => "null".into(),
+            };
+            let checked = c.checked.map_or("null".to_string(), json_str);
+            let value = c.value.as_deref().map_or("null".to_string(), json_str);
+            format!(
+                "{{\"id\":{},\"role\":{},\"name\":{},\"disabled\":{},\"focused\":{},\"hovered\":{},\"checked\":{},\"value\":{},\"bounds\":{}}}",
+                json_str(&c.id),
+                json_str(c.role),
+                json_str(&c.name),
+                c.disabled,
+                c.focused,
+                c.hovered,
+                checked,
+                value,
+                bounds
+            )
+        })
+        .collect();
+    format!("{{\"scale\":{scale},\"controls\":[{}]}}", items.join(","))
 }
 
 /// Xử lý một dòng lệnh đã qua kiểm token.

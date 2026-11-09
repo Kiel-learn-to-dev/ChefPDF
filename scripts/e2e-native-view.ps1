@@ -52,7 +52,8 @@ function Near([string]$name, [double]$actual, [double]$expected, [double]$tol) {
 try {
     Start-Sleep -Milliseconds 800
     $v0 = View
-    Expect "starts at the top, fit to width" ("$($v0.scrollY)|$($v0.firstPage)|$($v0.fitWidth)") "0|0|True"
+    # scrollY là số thập phân trong JSON ("0.00"); PowerShell 7 giữ kiểu decimal và in "0.00", nên ép kiểu trước khi so.
+    Expect "starts at the top, fit to width" ("$([double]$v0.scrollY)|$($v0.firstPage)|$($v0.fitWidth)") "0|0|True"
     $z0 = [double]$v0.zoom
     $pageStep = 841.9 * $z0 + 16
 

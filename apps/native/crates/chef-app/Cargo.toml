@@ -19,6 +19,8 @@ chef-pdf = { path = "../chef-pdf" }
 chef-viewer = { path = "../chef-viewer" }
 chef-theme = { path = "../chef-theme" }
 chef-ui = { path = "../chef-ui" }
+# Đọc và ghi settings.json (TASKS_RUST R2.14). Cùng phiên bản với chef-ui.
+serde_json = "1"
 # Cùng phiên bản 0.57 mà Cargo.lock đã có (qua gpui). Dùng để chụp cửa sổ bằng
 # Windows.Graphics.Capture (chỉ dùng trong kênh debug, R1.07/R1.08).
 windows = { version = "0.57", features = [

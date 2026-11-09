@@ -159,7 +159,7 @@ Phần này là trọng tâm của yêu cầu giữ hình họa. Nguồn sự th
 
 **Bóng và focus ring:**
 - `--shadow-xs` đến `--shadow-lg` và `--c-page-shadow` là danh sách nhiều bóng. Ánh xạ sang danh sách `BoxShadow` (offset, blur, spread, màu). Trường `spread_radius` và `blur_radius` có trong API (đã thấy trong fork rgpui; **kiểm ở M1** trên `gpui` đã ghim).
-- `--focus-ring: 0 0 0 2px surface, 0 0 0 4px focus` là hai bóng lan (spread) với màu khác nhau. Có thể ánh xạ thành hai bóng nếu thứ tự vẽ đúng. **Kiểm ở M1** bằng so sánh ảnh.
+- `--focus-ring: 0 0 0 2px surface, 0 0 0 4px focus` là hai bóng lan (spread) với màu khác nhau. Ánh xạ thành hai bóng đã đạt thứ tự vẽ (§6.9), với `blur_radius` 0,5 px thay cho 0 (blur 0 không vẽ). Đối chiếu với Electron còn mở (R1.21).
 
 ### 6.2 Bảng ánh xạ CSS sang GPUI
 
@@ -168,26 +168,26 @@ Mỗi dòng cần kiểm trên commit đã ghim trước khi M2. Cột "Đã th�
 | CSS trong dự án | Số lần | Hướng xử lý trong GPUI | Trạng thái |
 |---|---|---|---|
 | `display: flex`, gap, căn lề | nhiều | Layout của GPUI (dựa trên Taffy) | Kiểm ở M1 |
-| `grid-template-columns` (`minmax`, `repeat(auto-fit, minmax())`, `max-content`) | 52 | Taffy hỗ trợ grid; `auto-fit` cần kiểm | **Kiểm ở M1** |
-| `text-overflow: ellipsis` | nhiều | Hỗ trợ một dòng; kiểm nhiều dòng | Kiểm ở M1 |
+| `grid-template-columns` (`minmax`, `repeat(auto-fit, minmax())`, `max-content`) | 52 | GPUI không có `auto-fit`; cách khác: số cột tính từ chiều rộng khung (§6.9) | Cách khác (R1.17) |
+| `text-overflow: ellipsis` | nhiều | `truncate()` cho một dòng đạt (§6.9); nhiều dòng là `line_clamp`, chưa kiểm | Đạt một dòng (R1.17) |
 | `@keyframes` | 7 (`fade-in`, `dialog-in`, `toast-in`, `spin`, `indeterminate`, `thumb-shimmer`, `tedit-blink`) | Animation của GPUI, hoặc giá trị nội suy theo thời gian trong `render` | **Kiểm ở M1** |
 | `transition` | 11 | Animation có thời lượng và đường cong. Đường cong `cubic-bezier(0.2,0,0,1)` cần hàm tự viết | Kiểm ở M1 |
 | `@media` (thu về một cột) | 13 | Rẽ nhánh theo chiều rộng cửa sổ trong code | Đã biết |
-| `aspect-ratio: 260 / 100` | 1 (`signTemplate.css`) | Ép tỷ lệ trong layout | Kiểm ở M1 |
+| `aspect-ratio: 260 / 100` | 1 (`signTemplate.css`) | `aspect_ratio(260/100)` | Đạt (R1.17) |
 | `repeating-linear-gradient` | 1 (`overlay.css`, thước kẻ) | Vẽ các vạch bằng quad | Đã biết |
 | `filter: invert(1) hue-rotate(180deg)` | 1 (`Viewer.css`, đọc trang tối) | GPUI không có filter CSS. Đảo màu bitmap trong Rust trước khi upload, hoặc để pdfium render ngược | **Quyết định ở M2** |
 | `filter: grayscale(0.6)` | 1 (`StartScreen.css`, ảnh mờ) | Tiền xử lý ảnh hoặc shader; không dùng nếu không đáng | Quyết định ở M2 |
 | `transform: translate(-50%, -50%)` | 33 | Căn giữa bằng layout hoặc offset | Đã biết |
-| `:hover` | nhiều | `.hover()` | Kiểm ở M1 |
-| `:active` | nhiều | `.active()` | Kiểm ở M1 |
-| `:focus-visible` | 12 | Focus handle; vòng focus bằng bóng ở §6.1 | Kiểm ở M1 |
-| `cursor: pointer` | 24 | `.cursor_pointer()` | Kiểm ở M1 |
+| `:hover` | nhiều | `.hover()` | Đạt (R1.19) |
+| `:active` | nhiều | `.active()` | Đạt (R1.19) |
+| `:focus-visible` | 12 | `focus_visible()` chỉ hiện khi lần nhập gần nhất là bàn phím (§6.9) | Đạt (R1.19) |
+| `cursor: pointer` | 24 | `.cursor_pointer()` | Chưa đo con trỏ (R1.19) |
 | `user-select: none` | 11 | Chọn chữ tắt cho chrome giao diện | Kiểm ở M1 |
-| `font-variant-numeric` | 12 | Chữ số cố định độ rộng (`tnum`). Kiểm có hỗ trợ OpenType feature không | **Kiểm ở M1** |
+| `font-variant-numeric` | 12 | `tnum` qua `font_features` đạt; Be Vietnam Pro không có `tnum` (§6.9) | Đạt, font không hỗ trợ (R1.18) |
 | `letter-spacing` | 6 | Hỗ trợ theo phần tử | Kiểm ở M1 |
 | `text-transform: uppercase` | 2 | Chuyển trong code | Đã biết |
 | `::before`, `::after` | 7 | Phần tử con giả trong code | Đã biết |
-| `scrollbar` (tùy biến) | 3 | Thanh cuộn theo style của dự án. GPUI có thể không cho đổi style | **Kiểm ở M1**, rủi ro vừa |
+| `scrollbar` (tùy biến) | 3 | GPUI không vẽ thanh cuộn, không có API màu: vẽ riêng trong chef-ui (§6.9) | Vẽ riêng (R1.20) |
 | `backdrop-filter`, `clip-path`, `mix-blend-mode`, `position: sticky`, `writing-mode` | 0 | Không cần | — |
 | Khung cửa sổ | `--titlebar-h` không dùng | Cửa sổ dùng khung gốc của Windows (`window.ts` không đặt `frame: false`). **Giữ khung gốc** | Đã biết |
 | Thanh tab, thanh công cụ, thanh trạng thái | `--tabsbar-h 38`, `--toolbar-h 46`, `--statusbar-h 28` | Các hằng số trong code, đúng số hiện tại | Đã biết |
@@ -199,14 +199,14 @@ Mỗi dòng cần kiểm trên commit đã ghim trước khi M2. Cột "Đã th�
 - Đếm bằng script đọc import, gồm import nhiều dòng và alias `as`: **153 tên duy nhất** (đếm bằng grep trước đó chỉ ra 103, vì bỏ sót import nhiều dòng).
 - **Lucide là ISC.**
 - Script `scripts/export-icons.mjs` đọc import, lấy SVG tương ứng từ gói `lucide` (không lấy từ `lucide-react`), và xuất vào `assets/icons/`. Icon được nhúng vào exe để giảm số file.
-- **Kiểu nét:** Lucide dùng `stroke="currentColor"`, `fill="none"`, độ dày nét 2 trên viewBox 24. GPUI vẽ SVG như mặt nạ đơn sắc. **Kiểm ở M1:** renderer có giữ nét không, và nét 2 ở 16–18 px có đủ rõ không. Nếu không, chuyển nét thành path đầy.
+- **Kiểu nét:** Lucide dùng `stroke="currentColor"`, `fill="none"`, độ dày nét 2 trên viewBox 24. GPUI vẽ SVG như mặt nạ đơn sắc tô bằng `text_color` (`paint_svg`), nên không cần `currentColor`; icon nhiều màu không làm được bằng `svg()`. Nét 2 ở 16 và 18 px hiển thị liền trong ảnh probe (§6.9).
 - Kích thước dùng trong giao diện: đọc từ CSS hiện tại, không đoán.
 
 ### 6.4 Font: Be Vietnam Pro
 
 - Giao diện đang nạp qua `@fontsource/be-vietnam-pro` (`main.tsx`, các độ đậm 400, 500, 600). Gói này **chỉ có woff và woff2**.
 - **Hướng xử lý:** lấy TTF của Be Vietnam Pro từ nguồn gốc (OFL-1.1), giữ đủ tập Latin và Latin-Extended (có ký tự tiếng Việt). Đổi woff2 sang TTF bằng `fontTools` nếu cần. OFL cho phép chuyển định dạng.
-- **Kiểm ở M1:** DirectWrite (backend Windows của GPUI) nạp TTF; woff chưa rõ, nên không dùng.
+- **Đã kiểm ở M1 (R1.13):** DirectWrite nạp TTF 400, 500, 600 qua `add_fonts` (nhúng vào exe bằng build.rs, R1.02); ba độ đậm hiển thị khác nhau và chữ có dấu không thiếu glyph. woff không dùng. So với Electron còn mở (R1.21).
 - **Font mono:** `--font-mono` dùng `Cascadia Code`, `Consolas`, có sẵn trên Windows.
 - Chữ trên Windows (DirectWrite) và trên Chromium có khác nhau nhỏ về kết xuất. Chấp nhận, không ép khớp từng điểm ảnh.
 
@@ -216,6 +216,8 @@ Mỗi dòng cần kiểm trên commit đã ghim trước khi M2. Cột "Đã th�
 - Có **30 chỗ dùng `{{…}}`** (nội suy) và **20 cặp khóa `_one`/`_other`** (số nhiều). Cần một bộ thay thế nhỏ tương thích hai cú pháp này. Cả tiếng Việt và tiếng Anh đều chỉ có `one` và `other` trong dự án này.
 - Chọn ngôn ngữ theo cài đặt, như hiện nay.
 - Test `i18n.test.ts` có thể dùng làm kiểm tra: mọi khóa trong `vi.json` và `en.json` phải có trong bản Rust.
+
+- **Đã làm (R2.13):** `crates/chef-ui/src/i18n.rs`. Hai file JSON được nhúng bằng `include_str!` từ `assets/i18n/` (không đi qua build.rs). Đối chiếu với i18next bằng bộ golden sinh từ chính thư viện của dự án (`scripts/gen-native-i18n-golden.mjs`), không viết tay kỳ vọng. Trong en.json có 20 cặp `_one`/`_other`; vi.json không có hậu tố số nhiều, nên tiếng Việt luôn dùng khóa thường.
 
 ### 6.6 Thành phần giao diện
 
@@ -244,6 +246,9 @@ Dự án dùng **14 primitive Radix**. gpui-component có giao diện riêng, n�
 - Bộ trạng thái chuẩn cho mỗi điều khiển: bình thường, hover (`--c-hover`), active (`--c-active`), focus (`--focus-ring`), disabled (`--c-text-disabled`), lỗi (`--c-danger-soft`).
 - Thời lượng: `--dur-fast` (100 ms) và `--dur` (160 ms), đường cong `--ease`. Nằm trong khoảng 150–300 ms của skill, trừ 100 ms cho thay đổi nhỏ.
 - **Giảm chuyển động:** media query `prefers-reduced-motion` trong `components.css:828` là có thật. Đọc cài đặt "hiệu ứng hoạt hình" của Windows (`SPI_GETCLIENTAREAANIMATION`) và tắt animation khi bật.
+- **Hộp thoại (R2.10, `chef-ui/src/dialog.rs`):** khung `.dlg-overlay` và `.dlg` được dựng lại từ CSS. Đã làm: lớp phủ tô `--c-overlay` và chặn chuột xuống trang bên dưới; bấm ra ngoài đóng; Tab vòng trong hộp thoại; Esc đóng; đóng trả tiêu điểm về nút đã mở; nút đóng ở góc phải.
+- **Lệch so với CSS (đã chấp nhận):** (a) `dialog-in` không co `scale(0,985)`, chỉ mờ dần và dịch lên 6 px trong 160 ms theo `--ease`. Khung không có co vì GPUI không có transform theo tỉ lệ cho một phần tử có nội dung chữ; hiệu ứng nhìn thấy được vẫn là mờ và dịch. (b) lớp phủ `dlg-overlay` cũng mờ dần trong cùng 160 ms, như `fade-in` của CSS. (c) Tab vòng trong không dùng `tab_group` vì GPUI ở commit đã ghim không có API này; khung tự chuyển tiêu điểm qua danh sách `tab_order`.
+- **Giảm chuyển động (D83):** `chef-ui/src/motion.rs` đọc `SPI_GETCLIENTAREAANIMATION` mỗi lần dựng hộp thoại. Biến `CHEF_E2E_REDUCED_MOTION=1|0` ghi đè để E2E kiểm được cả hai đường. Khi giảm chuyển động, hộp thoại vẽ trạng thái cuối ngay. Phần đo pixel chưa làm.
 
 ### 6.8 Kiểm tra độ trung thực hình họa (chuẩn so sánh)
 
@@ -277,6 +282,24 @@ Dự án dùng **14 primitive Radix**. gpui-component có giao diện riêng, n�
 | Dark: `--c-text-3` #858c99 trên #1d2027 | 4,82:1 | 4,5 | Đạt |
 
 Đây là phát hiện trên giao diện hiện tại. Bản Rust giữ nguyên, chủ dự án quyết định có đổi không.
+
+### 6.9 Kết quả probe hình họa (M1, R1.13–R1.20)
+
+Trang thử: `CHEF_E2E=1 CHEF_E2E_PROBE=1` (`apps/native/crates/chef-app/src/probe.rs`), đặt ngoài màn hình, chụp bằng lệnh `screenshot`. **Chưa so với Electron:** cần ảnh tham chiếu của R1.21.
+
+- **Bóng (R1.16):** shader của GPUI (`gpui_windows/src/shaders.hlsl`, `shadow_fragment`) dùng `blur_radius` làm σ của hàm Gauss. CSS dùng σ = blur/2, nên bóng CSS `B px` tương ứng `B/2` trong GPUI. `blur_radius = 0` cho ra NaN và không vẽ gì, nên vòng focus cứng dùng 0,5 px. Vòng `0 0 0 2px surface, 0 0 0 4px focus` đã vẽ đúng: khe 2 px màu nền, viền 2 px màu focus.
+- **Chữ số cố định (R1.18):** GPUI chuyển `font_features` xuống DirectWrite, kiểm bằng Constantia (có `tnum`, chữ số mặc định không đều): cột `tnum` thẳng hàng. **Be Vietnam Pro không có `tnum`** (kiểm bằng fontTools: không có trong GSUB), nên `tabular-nums` của 12 chỗ trong CSS không có tác dụng ở cả hai bản. Nếu một cột số cần thẳng hàng, cách bù là vẽ mỗi chữ số trong một ô cố định; chưa cần làm.
+- **Icon (R1.15):** `svg()` tô bằng `text_color`; xem §6.3.
+- **Trạng thái nút (R1.19):** hover và active đổi đúng màu (kiểm bằng lệnh debug `mouse move` và `mouse down`). Token hover và active là RGBA trong suốt, nên phải dùng `rgba_hex`, không dùng `hex` (`hex` bỏ alpha, nút thành màu tối). `focus_visible()` chỉ áp khi tiêu điểm đang có và lần nhập gần nhất là bàn phím (`window.last_input_was_keyboard`). Con trỏ tay chưa đo: WGC không chụp con trỏ.
+- **Bố cục (R1.17):** `grid` của GPUI chỉ có số cột cố định (`grid_cols`), không có `auto-fit` hay `minmax(220px, 1fr)`. Cách đã chọn: số cột = ⌊(W + gap) / (220 + gap)⌋, tính từ chiều rộng khung. Đo ở ba khung: 3 cột (800 px), 4 cột (1184 px), 6 cột (1484 px). `truncate()` cắt một dòng đúng (glyph cắt trông như ba dấu chấm; so với `…` của Electron ở R1.21). `flex_1().min_w_0()` cho `minmax(0, 1fr) 300px`. `aspect_ratio(260/100)` giữ 260×100.
+- **Thanh cuộn (R1.20):** GPUI core không vẽ thanh cuộn; `scrollbar_width` chỉ chừa chỗ và không có API màu. Thanh cuộn của dự án (`scrollbar-color` trong `base.css`) phải vẽ riêng trong chef-ui khi có chỗ dùng đầu tiên.
+
+Những điều phát hiện khi làm R2.10 (áp dụng cho mọi thành phần sau này):
+
+- **Không có `tab_group` ở commit đã ghim.** Vòng Tab trong một khu (hộp thoại, menu, bảng lệnh) phải tự làm bằng danh sách `FocusHandle` theo thứ tự hiển thị (`dialog::next_index`, `dialog::step`).
+- **Action handler ở pha bubble tự dừng truyền.** `app.rs:1942`: mặc định một listener của action đã dừng việc đi lên các phần tử cha. Muốn cha cũng nhận thì gọi `cx.propagate()`. `TextInput::cancel` làm vậy để Esc trong ô nhập vẫn tới khung hộp thoại. Esc khác trong tương lai (toàn màn hình, thanh tìm) cần kiểm không bị gọi hai lần.
+- **Đổi khóa `with_animation` đổi id phần tử, làm mất trạng thái nhấn và click.** Nút dùng khóa theo `generation` nên mouse down làm đổi id, và GPUI không phát `on_click` ở mouse up. Chỉ thấy khi bấm chuột thật (E2E `e2e-native-dialog`). Cách làm: giữ phần tử ổn định, nội suy màu thủ công (D82). Menu, tab và toast phải theo cách này nếu chuyển màu.
+- **Click chuột tọa độ logic:** kênh debug nhận tọa độ vật lý, nên E2E nhân `bounds` với `scale` của `state.controls` (xem `e2e-native-dialog.ps1`).
 
 ## 7. Dữ liệu, cài đặt & bảo mật
 
