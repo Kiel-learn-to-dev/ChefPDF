@@ -39,15 +39,26 @@ pub fn start(
         request["sessionId"] = json!(session_id);
     }
     let reply = sup.request("ops.run", &request)?;
-    reply
+    let job_id = reply
         .get("jobId")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .ok_or_else(|| CallError::Rpc(json!({ "message": "ops.run không trả jobId" })))
+        .ok_or_else(|| CallError::Rpc(json!({ "message": "ops.run không trả jobId" })))?;
+    // Lõi không tự tắt khi còn job này, cho đến khi `wait_job` thấy job kết thúc (R3.03).
+    sup.job_started(&job_id);
+    Ok(job_id)
 }
 
-/// Chờ job `job_id` kết thúc, tối đa `timeout`.
-pub fn wait_job(events: &Receiver<Event>, job_id: &str, timeout: Duration) -> JobEnd {
+/// Chờ job `job_id` kết thúc, tối đa `timeout`. Khi job kết thúc (không tính hết giờ), bỏ đánh dấu job đang chạy.
+pub fn wait_job(sup: &Supervisor, job_id: &str, timeout: Duration) -> JobEnd {
+    let end = wait_job_events(sup.events(), job_id, timeout);
+    if end != JobEnd::TimedOut {
+        sup.job_finished(job_id);
+    }
+    end
+}
+
+fn wait_job_events(events: &Receiver<Event>, job_id: &str, timeout: Duration) -> JobEnd {
     let deadline = Instant::now() + timeout;
     loop {
         let left = deadline.saturating_duration_since(Instant::now());
@@ -215,7 +226,7 @@ mod tests {
     }
 
     fn expect_finished(sup: &Supervisor, job_id: &str) -> Value {
-        match wait_job(sup.events(), job_id, Duration::from_secs(60)) {
+        match wait_job(sup, job_id, Duration::from_secs(60)) {
             JobEnd::Finished(result) => result,
             other => panic!("job phải kết thúc tốt, được {other:?}"),
         }
@@ -318,6 +329,85 @@ mod tests {
         assert_eq!(rotate_and_pages(&python, &out), (180, 1));
         // File gốc không đổi.
         assert_eq!(rotate_and_pages(&python, &pdf), (0, 1));
+        sup.shutdown(Duration::from_secs(5));
+    }
+
+    #[test]
+    fn cancel_stops_a_running_job_and_leaves_the_revision_alone() {
+        // Thao tác đủ chậm (nhân đôi 4000 trang) để hủy được giữa chừng.
+        let Some(python) = python() else {
+            eprintln!("bỏ qua: không có core/.venv");
+            return;
+        };
+        let sandbox = Sandbox::new("cancel");
+        let pdf = sandbox.0.join("big.pdf");
+        make_pdf(&python, &pdf, 4000);
+        let mut sup = start_core(&sandbox);
+        let session = open_session(&sup, &pdf);
+
+        let job = start(
+            &sup,
+            "page.duplicate",
+            Some(&session),
+            &json!({ "pages": (0..4000).collect::<Vec<u32>>() }),
+        )
+        .expect("ops.run");
+        std::thread::sleep(Duration::from_millis(30));
+        cancel(&sup, &job).expect("jobs.cancel");
+        assert_eq!(
+            wait_job(&sup, &job, Duration::from_secs(60)),
+            JobEnd::Cancelled
+        );
+
+        // Hủy không tạo revision: vẫn ở rev 0, không có bước hoàn tác.
+        let state = sup
+            .request("session.state", &json!({ "sessionId": session }))
+            .expect("session.state");
+        assert_eq!(state["revision"], 0);
+        assert_eq!(state["canUndo"], false);
+        sup.shutdown(Duration::from_secs(5));
+    }
+
+    #[test]
+    fn undo_history_is_capped_at_fifty_revisions_and_rev0_is_kept() {
+        // 55 thao tác: lịch sử giữ tối đa 50 revision, nên chỉ hoàn tác được 49 bước; rev-0000 vẫn còn.
+        let Some(python) = python() else {
+            eprintln!("bỏ qua: không có core/.venv");
+            return;
+        };
+        let sandbox = Sandbox::new("cap");
+        let pdf = sandbox.0.join("one.pdf");
+        make_pdf(&python, &pdf, 1);
+        let mut sup = start_core(&sandbox);
+        let session = open_session(&sup, &pdf);
+        for _ in 0..55 {
+            let job = start(
+                &sup,
+                "page.rotate",
+                Some(&session),
+                &json!({ "pages": [0], "angle": 90 }),
+            )
+            .expect("ops.run");
+            expect_finished(&sup, &job);
+        }
+        let mut undos = 0;
+        loop {
+            let state = sup
+                .request("session.state", &json!({ "sessionId": session }))
+                .expect("session.state");
+            if state["canUndo"] == false {
+                break;
+            }
+            undo(&sup, &session).expect("session.undo");
+            undos += 1;
+        }
+        assert_eq!(undos, 49, "lịch sử phải giữ tối đa 50 revision");
+        let rev0 = sandbox
+            .0
+            .join("data/sessions")
+            .join(&session)
+            .join("rev-0000.pdf");
+        assert!(rev0.exists(), "rev-0000 phải luôn được giữ");
         sup.shutdown(Duration::from_secs(5));
     }
 }

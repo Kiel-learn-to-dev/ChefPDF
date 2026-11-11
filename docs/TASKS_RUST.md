@@ -923,7 +923,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Chuyển từ R3.02 (2026-11-11):** E2E `integration` (phần lõi) và kiểm "kill app → không còn PID lõi" bằng bảng tiến trình. Hai kiểm này cần app nối lõi, nên làm ở đây.
 - **File:** `apps/native/crates/chef-rpc/src/supervisor.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) Ở tầng supervisor: `Supervisor::lazy` không khởi động lõi cho đến yêu cầu đầu (test: không có sự kiện, không có tiến trình trước yêu cầu). Lõi tự tắt khi rảnh quá `idle_stop` (mặc định 600 giây, tức 10 phút) và báo `stopped` (D89); test dùng 800 ms. Lý do giữ lõi: job (`job:<id>`) và phiên mở (`session:<id>`), vì `system.shutdown` xóa thư mục phiên (CONTRACTS §4) nên tắt khi còn phiên sẽ mất revision chưa lưu. `chef-app/session.rs` gọi `session_opened`. Test: tự tắt rồi khởi động lại theo yêu cầu, lõi có job hoặc phiên không tự tắt. Chưa làm: tiêu chí 1 (mở, cuộn, chọn chữ không tạo tiến trình lõi) cần app nối lõi; `session_closed` chưa có đường gọi vì R3.14 chưa xong, nên phiên không đóng thì lõi không bao giờ tự tắt.
+- **Trạng thái:** 🔄
 
 ### M3.1 Phiên và revision
 
@@ -973,8 +974,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-rpc/src/ops.rs`
 - **E2E:** `integration`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-11) Làm trước R3.06 (lát cắt, xem nhật ký): `ops::start` (ops.run), `wait_job` (job.finished, job.failed, job.cancelled), `cancel` (jobs.cancel). 4 test với lõi thật: page.rotate chạy như job; rev-0001 có `/Rotate 90` ở trang 0 và vẫn 2 trang; góc 45 bị từ chối `INVALID_PARAMS` với khóa `errors.INVALID_PARAMS`. Chưa đạt tiêu chí 2: `cancel` đã viết nhưng chưa có test hủy giữa chừng, vì chưa có thao tác đủ chậm. Chưa có E2E `integration`.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-11) Làm trước R3.06 (lát cắt, xem nhật ký): `ops::start` (ops.run), `wait_job` (job.finished, job.failed, job.cancelled), `cancel` (jobs.cancel). 4 test với lõi thật: page.rotate chạy như job; rev-0001 có `/Rotate 90` ở trang 0 và vẫn 2 trang; góc 45 bị từ chối `INVALID_PARAMS` với khóa `errors.INVALID_PARAMS`. (2026-11-11, bổ sung) Tiêu chí 2 đạt: `page.duplicate` trên 4000 trang, hủy sau 30 ms cho `job.cancelled`, revision vẫn 0 và không có bước hoàn tác (test `cancel_stops_a_running_job_and_leaves_the_revision_alone`). Chưa có E2E `integration`: chuyển sang lúc app nối lõi (R3.03).
+- **Trạng thái:** ✅
 
 ### R3.09 · Panel tiến trình (JobPanel) · S
 - **Mô tả:** danh sách job đang chạy và vừa xong, thanh tiến độ, nút hủy, lỗi từng job. Thay `JobPanel.css`. Vòng quay `spin` và thanh `indeterminate` (keyframes trong `components.css`).
@@ -1003,7 +1004,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/undo.rs`
 - **E2E:** `keyboard`
 - **Tính năng:** A6
-- **Ghi chú:** (2026-11-11) `ops::undo` và `ops::redo` (chef-rpc): test sau page.rotate: revision 1 → undo → 0 (canRedo đúng) → redo → 1. Chưa làm: giới hạn 50 revision (tiêu chí 2), nút mờ khi không còn gì để hoàn tác (tiêu chí 3, UI), Ctrl+Z và Ctrl+Y (keymap và E2E `keyboard`).
+- **Ghi chú:** (2026-11-11) `ops::undo` và `ops::redo` (chef-rpc): test sau page.rotate: revision 1 → undo → 0 (canRedo đúng) → redo → 1. (2026-11-11, bổ sung) Giới hạn 50 revision (tiêu chí 2) đạt: 55 thao tác, hoàn tác đúng 49 bước rồi `canUndo` là false, rev-0000 còn (test `undo_history_is_capped_at_fifty_revisions_and_rev0_is_kept`). Chưa làm: nút mờ khi không còn gì để hoàn tác (tiêu chí 3, UI), Ctrl+Z và Ctrl+Y (keymap và E2E `keyboard`).
 - **Trạng thái:** 🔄
 
 ### R3.12 · Lưu và Lưu thành · S

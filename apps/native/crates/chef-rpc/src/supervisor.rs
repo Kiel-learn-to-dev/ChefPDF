@@ -1,26 +1,34 @@
-//! Giám sát tiến trình lõi (TASKS_RUST R3.02, CONTRACTS §2): khởi động, `system.ping`, khởi động lại khi lõi
-//! chết với lùi dần, và phát `core-status` (`starting`, `ready`, `crashed`, `restarting`). Chỉ Windows.
+//! Giám sát tiến trình lõi (TASKS_RUST R3.02, R3.03; CONTRACTS §2): khởi động, `system.ping`, khởi động lại khi
+//! lõi chết với lùi dần, và phát `core-status`. Chỉ Windows.
 //!
-//! Supervisor không tự khởi động lõi khi mở app: người gọi quyết định khi nào cần (R3.03). Khi lõi chết,
-//! mọi yêu cầu đang chờ nhận lỗi ngay (xem `client.rs`), còn yêu cầu mới chờ tới `ready_wait`.
+//! Chế độ lười (`Supervisor::lazy`, R3.03): lõi chưa chạy cho đến yêu cầu đầu tiên. Khi rảnh (không có yêu cầu
+//! và không có job trong `idle_stop`), lõi tự tắt và báo `stopped`; yêu cầu sau đó khởi động lại lõi. `stopped`
+//! là trạng thái riêng của bản Rust, ngoài bốn trạng thái của CONTRACTS §2 (D89).
+//!
+//! Khi lõi chết, mọi yêu cầu đang chờ nhận lỗi ngay (xem `client.rs`), còn yêu cầu mới chờ tới `ready_wait`.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-use crate::client::{CallError, Client, Notification};
+use crate::client::{CallError, Client, ExitInfo, Notification};
 
-/// Trạng thái lõi, đúng tên trong CONTRACTS §2.
+/// Khoảng kiểm tra thời gian rảnh khi lõi đang chạy.
+const IDLE_POLL: Duration = Duration::from_millis(100);
+
+/// Trạng thái lõi. Bốn trạng thái đầu đúng tên trong CONTRACTS §2; `Stopped` là riêng của bản Rust (D89).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoreStatus {
     Starting,
     Ready,
     Crashed,
     Restarting,
+    Stopped,
 }
 
 impl CoreStatus {
@@ -30,6 +38,7 @@ impl CoreStatus {
             CoreStatus::Ready => "ready",
             CoreStatus::Crashed => "crashed",
             CoreStatus::Restarting => "restarting",
+            CoreStatus::Stopped => "stopped",
         }
     }
 }
@@ -64,6 +73,8 @@ pub struct SupervisorConfig {
     pub stable_after: Duration,
     /// Số lần chết liên tiếp mà không sống đủ `stable_after` trước khi ngừng khởi động lại.
     pub max_failed_starts: u32,
+    /// Lõi tự tắt sau khi rảnh (không yêu cầu, không job) quá khoảng này. `None` là không tự tắt.
+    pub idle_stop: Option<Duration>,
     /// Nhận nhật ký: dòng stderr của lõi và thông báo của giám sát.
     pub log: Arc<dyn Fn(&str) + Send + Sync>,
 }
@@ -79,6 +90,7 @@ impl SupervisorConfig {
             backoff_max: Duration::from_secs(30),
             stable_after: Duration::from_secs(60),
             max_failed_starts: 5,
+            idle_stop: Some(Duration::from_secs(600)),
             log,
         }
     }
@@ -93,6 +105,14 @@ struct State {
     stopping: bool,
     /// Luồng giám sát đã kết thúc (dừng theo yêu cầu, hoặc đã ngừng khởi động lại).
     finished: bool,
+    /// Có cần lõi chạy. Chế độ lười bắt đầu là `false`; yêu cầu hoặc job đặt lại thành `true`.
+    want_start: bool,
+    /// Lần cuối có yêu cầu hoặc job. Mốc để tính thời gian rảnh.
+    last_activity: Instant,
+    /// Lý do giữ lõi chạy: job đang chạy (`job:<id>`) và phiên đang mở (`session:<id>`). Lõi không tự tắt khi
+    /// còn lý do nào. Phiên giữ lõi vì `system.shutdown` xóa thư mục phiên (CONTRACTS §4): tắt khi còn phiên
+    /// sẽ mất các revision chưa lưu.
+    busy: HashSet<String>,
 }
 
 struct Shared {
@@ -124,15 +144,31 @@ pub struct Supervisor {
 }
 
 impl Supervisor {
-    /// Bắt đầu giám sát ở luồng nền. Lõi được khởi động ngay.
+    /// Bắt đầu giám sát và khởi động lõi ngay.
     pub fn start(config: SupervisorConfig) -> Supervisor {
+        Supervisor::spawn(config, true)
+    }
+
+    /// Giám sát nhưng chưa khởi động lõi: lõi chạy từ yêu cầu đầu tiên (R3.03).
+    pub fn lazy(config: SupervisorConfig) -> Supervisor {
+        Supervisor::spawn(config, false)
+    }
+
+    fn spawn(config: SupervisorConfig, eager: bool) -> Supervisor {
         let shared = Arc::new(Shared {
             state: Mutex::new(State {
                 client: None,
                 ready: false,
-                status: CoreStatus::Starting,
+                status: if eager {
+                    CoreStatus::Starting
+                } else {
+                    CoreStatus::Stopped
+                },
                 stopping: false,
                 finished: false,
+                want_start: eager,
+                last_activity: Instant::now(),
+                busy: HashSet::new(),
             }),
             changed: Condvar::new(),
         });
@@ -157,10 +193,41 @@ impl Supervisor {
         lock(&self.shared).status
     }
 
-    /// Gửi yêu cầu. Chờ tới `ready_wait` để lõi sẵn sàng. Gọi từ luồng nền, không từ luồng UI.
+    /// Gửi yêu cầu. Chờ tới `ready_wait` để lõi sẵn sàng; nếu lõi đang tắt, yêu cầu này khởi động lại lõi.
+    /// Gọi từ luồng nền, không từ luồng UI.
     pub fn request(&self, method: &str, params: &Value) -> Result<Value, CallError> {
         let client = self.wait_ready()?;
         client.call(method, params)
+    }
+
+    /// Ghi nhận một job vừa bắt đầu: lõi không tự tắt khi còn job.
+    pub fn job_started(&self, job_id: &str) {
+        self.set_busy(format!("job:{job_id}"), true);
+    }
+
+    /// Ghi nhận một job đã kết thúc (thành công, lỗi, hoặc bị hủy).
+    pub fn job_finished(&self, job_id: &str) {
+        self.set_busy(format!("job:{job_id}"), false);
+    }
+
+    /// Ghi nhận một phiên vừa mở: lõi phải chạy để giữ revision của phiên (R3.03).
+    pub fn session_opened(&self, session_id: &str) {
+        self.set_busy(format!("session:{session_id}"), true);
+    }
+
+    /// Ghi nhận một phiên đã đóng. Khi không còn phiên và job nào, lõi rảnh và có thể tự tắt.
+    pub fn session_closed(&self, session_id: &str) {
+        self.set_busy(format!("session:{session_id}"), false);
+    }
+
+    fn set_busy(&self, key: String, busy: bool) {
+        let mut state = lock(&self.shared);
+        if busy {
+            state.busy.insert(key);
+        } else {
+            state.busy.remove(&key);
+        }
+        state.last_activity = Instant::now();
     }
 
     /// PID của các tiến trình lõi hiện tại (gồm tiến trình con). Rỗng khi lõi không chạy.
@@ -208,6 +275,11 @@ impl Supervisor {
     fn wait_ready(&self) -> Result<Arc<Client>, CallError> {
         let deadline = Instant::now() + self.ready_wait;
         let mut state = lock(&self.shared);
+        state.last_activity = Instant::now();
+        if !state.want_start && !state.stopping && !state.finished {
+            state.want_start = true;
+            self.shared.changed.notify_all();
+        }
         loop {
             if state.ready
                 && let Some(client) = &state.client
@@ -243,18 +315,33 @@ fn run_monitor(config: SupervisorConfig, shared: Arc<Shared>, events: Sender<Eve
     shared.changed.notify_all();
 }
 
-/// Vòng khởi động và khởi động lại. Thoát khi được yêu cầu dừng, hoặc khi lõi chết quá nhiều lần liên tiếp.
+/// Kết quả của một lượt chạy lõi.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RunOutcome {
+    /// Lõi thoát (do lỗi, bị dừng, hoặc không khởi động được).
+    Exited,
+    /// Lõi tự tắt vì rảnh. Không tính là lỗi, không khởi động lại theo lùi dần.
+    IdleStopped,
+}
+
+/// Vòng chạy, nằm chờ và khởi động lại. Thoát khi được yêu cầu dừng, hoặc khi lõi chết quá nhiều lần liên tiếp.
 fn supervise(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) {
     let mut failed_starts = 0u32;
     loop {
-        if lock(shared).stopping {
+        if !wait_until_wanted(shared) {
             return;
         }
         publish(shared, events, CoreStatus::Starting);
         let started = Instant::now();
-        run_once(config, shared, events);
+        let outcome = run_once(config, shared, events);
         if lock(shared).stopping {
             return;
+        }
+        if outcome == RunOutcome::IdleStopped {
+            (config.log)("lõi đã tự tắt vì rảnh");
+            publish(shared, events, CoreStatus::Stopped);
+            failed_starts = 0;
+            continue;
         }
         publish(shared, events, CoreStatus::Crashed);
         if started.elapsed() >= config.stable_after {
@@ -276,6 +363,20 @@ fn supervise(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>)
         if wait_backoff(shared, delay) {
             return;
         }
+    }
+}
+
+/// Chờ đến khi cần lõi chạy. Trả `false` nếu đang dừng.
+fn wait_until_wanted(shared: &Shared) -> bool {
+    let mut state = lock(shared);
+    loop {
+        if state.stopping {
+            return false;
+        }
+        if state.want_start {
+            return true;
+        }
+        state = wait_for(shared, state, Duration::from_secs(3600));
     }
 }
 
@@ -307,8 +408,9 @@ fn wait_backoff(shared: &Shared, delay: Duration) -> bool {
     }
 }
 
-/// Một lượt chạy: spawn, ping, rồi chờ lõi thoát. Khi trở về, mọi trạng thái của lượt đã được xóa.
-fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) {
+/// Một lượt chạy: spawn, ping, rồi chờ lõi thoát hoặc tự tắt vì rảnh. Khi trở về, mọi trạng thái của lượt đã
+/// được xóa.
+fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) -> RunOutcome {
     let args: Vec<&str> = config.command.args.iter().map(String::as_str).collect();
     let env = [
         ("PYTHONUNBUFFERED", "1"),
@@ -328,11 +430,11 @@ fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) 
         Ok(client) => Arc::new(client),
         Err(err) => {
             (config.log)(&format!("không khởi động được lõi: {err}"));
-            return;
+            return RunOutcome::Exited;
         }
     };
     let Some(exit) = client.take_exit_watch() else {
-        return;
+        return RunOutcome::Exited;
     };
 
     // Thông báo của lõi chuyển thành sự kiện; vòng này kết thúc khi pipe của lõi đóng.
@@ -360,20 +462,23 @@ fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) 
     if !stored {
         client.terminate_tree();
         let _ = exit.recv();
-        return;
+        return RunOutcome::Exited;
     }
-    match client.call_with_timeout("system.ping", &json!({}), config.startup_timeout) {
-        Ok(_) => {
-            lock(shared).ready = true;
-            shared.changed.notify_all();
-            publish(shared, events, CoreStatus::Ready);
-        }
-        Err(err) => {
-            (config.log)(&format!("ping khi khởi động lỗi: {err:?}; dừng lõi"));
-            client.terminate_tree();
-        }
-    }
-    let code = exit.recv().ok().and_then(|info| info.code);
+
+    let (code, idle) =
+        match client.call_with_timeout("system.ping", &json!({}), config.startup_timeout) {
+            Ok(_) => {
+                lock(shared).ready = true;
+                shared.changed.notify_all();
+                publish(shared, events, CoreStatus::Ready);
+                wait_while_ready(config, shared, &client, &exit)
+            }
+            Err(err) => {
+                (config.log)(&format!("ping khi khởi động lỗi: {err:?}; dừng lõi"));
+                client.terminate_tree();
+                (exit.recv().ok().and_then(|info| info.code), false)
+            }
+        };
     {
         let mut state = lock(shared);
         state.client = None;
@@ -381,6 +486,59 @@ fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) 
     }
     shared.changed.notify_all();
     (config.log)(&format!("lõi đã thoát (mã {code:?})"));
+    if idle {
+        RunOutcome::IdleStopped
+    } else {
+        RunOutcome::Exited
+    }
+}
+
+/// Chờ lõi thoát. Nếu rảnh quá `idle_stop`, tự tắt lõi. Trả (mã thoát, có tự tắt vì rảnh).
+fn wait_while_ready(
+    config: &SupervisorConfig,
+    shared: &Shared,
+    client: &Client,
+    exit: &Receiver<ExitInfo>,
+) -> (Option<i32>, bool) {
+    let Some(idle) = config.idle_stop else {
+        return (exit.recv().ok().and_then(|info| info.code), false);
+    };
+    loop {
+        match exit.recv_timeout(IDLE_POLL) {
+            Ok(info) => return (info.code, false),
+            Err(RecvTimeoutError::Disconnected) => return (None, false),
+            Err(RecvTimeoutError::Timeout) => {
+                if idle_expired(shared, idle) {
+                    (config.log)("lõi rảnh quá lâu; tự tắt");
+                    return (stop_idle(client, exit), true);
+                }
+            }
+        }
+    }
+}
+
+/// Kiểm rảnh và đánh dấu tắt trong cùng một khóa: yêu cầu đến sau đó sẽ khởi động lại lõi.
+fn idle_expired(shared: &Shared, idle: Duration) -> bool {
+    let mut state = lock(shared);
+    if state.stopping || !state.busy.is_empty() || state.last_activity.elapsed() < idle {
+        return false;
+    }
+    state.want_start = false;
+    state.ready = false;
+    true
+}
+
+/// Tắt lõi đang rảnh: `system.shutdown`, chờ 3 giây, rồi dừng cả cây nếu còn sống.
+fn stop_idle(client: &Client, exit: &Receiver<ExitInfo>) -> Option<i32> {
+    let grace = Duration::from_secs(3);
+    let _ = client.call_with_timeout("system.shutdown", &json!({}), grace);
+    match exit.recv_timeout(grace) {
+        Ok(info) => info.code,
+        Err(_) => {
+            client.terminate_tree();
+            exit.recv().ok().and_then(|info| info.code)
+        }
+    }
 }
 
 fn publish(shared: &Shared, events: &Sender<Event>, status: CoreStatus) {
@@ -423,6 +581,8 @@ mod tests {
         };
         let mut config = SupervisorConfig::new(command, log);
         config.backoff_initial = Duration::from_millis(50);
+        // Trong test, lõi không tự tắt trừ khi test tự đặt.
+        config.idle_stop = None;
         Some(config)
     }
 
@@ -623,6 +783,131 @@ mod tests {
                 "shutdown treo ở vòng {round}"
             );
         }
+    }
+
+    #[test]
+    fn lazy_core_starts_only_on_the_first_request() {
+        let Some(config) = real_core_config("lazy", quiet_log()) else {
+            return;
+        };
+        let mut sup = Supervisor::lazy(config);
+        assert_eq!(sup.status(), CoreStatus::Stopped);
+        assert!(
+            sup.events()
+                .recv_timeout(Duration::from_millis(800))
+                .is_err(),
+            "chưa có yêu cầu thì không được có sự kiện nào"
+        );
+        assert!(
+            sup.process_ids().is_empty(),
+            "chưa có yêu cầu thì không có tiến trình lõi"
+        );
+
+        let pong = sup.request("system.ping", &json!({})).expect("ping");
+        assert!(
+            pong.is_object() || pong.is_string() || pong.is_null(),
+            "{pong}"
+        );
+        assert_eq!(
+            statuses_until(&sup, CoreStatus::Ready, 1),
+            vec![CoreStatus::Starting, CoreStatus::Ready]
+        );
+        sup.shutdown(Duration::from_secs(5));
+    }
+
+    #[test]
+    fn idle_core_stops_by_itself_and_comes_back_on_the_next_request() {
+        let Some(mut config) = real_core_config("idle", quiet_log()) else {
+            return;
+        };
+        config.idle_stop = Some(Duration::from_millis(800));
+        let mut sup = Supervisor::start(config);
+        start_ready(&sup);
+        let old_pids = sup.process_ids();
+        assert!(!old_pids.is_empty());
+
+        assert_eq!(
+            statuses_until(&sup, CoreStatus::Stopped, 1),
+            vec![CoreStatus::Stopped],
+            "lõi rảnh phải tự tắt và báo stopped"
+        );
+        assert_eq!(sup.status(), CoreStatus::Stopped);
+        for pid in old_pids {
+            assert!(!process_alive(pid), "pid {pid} còn sống sau khi tự tắt");
+        }
+        assert!(sup.process_ids().is_empty());
+
+        let pong = sup
+            .request("system.ping", &json!({}))
+            .expect("ping sau khi tự tắt");
+        assert!(
+            pong.is_object() || pong.is_string() || pong.is_null(),
+            "{pong}"
+        );
+        assert_eq!(
+            statuses_until(&sup, CoreStatus::Ready, 1),
+            vec![CoreStatus::Starting, CoreStatus::Ready]
+        );
+        sup.shutdown(Duration::from_secs(5));
+    }
+
+    #[test]
+    fn running_job_keeps_the_core_alive_until_it_ends() {
+        let Some(mut config) = real_core_config("busy", quiet_log()) else {
+            return;
+        };
+        config.idle_stop = Some(Duration::from_millis(300));
+        let mut sup = Supervisor::start(config);
+        start_ready(&sup);
+
+        sup.job_started("job-dang-chay");
+        std::thread::sleep(Duration::from_millis(1200));
+        assert_eq!(
+            sup.status(),
+            CoreStatus::Ready,
+            "còn job thì không được tự tắt"
+        );
+        while let Ok(event) = sup.events().try_recv() {
+            assert!(
+                !matches!(event, Event::Status(CoreStatus::Stopped)),
+                "không được báo stopped khi còn job"
+            );
+        }
+
+        sup.job_finished("job-dang-chay");
+        assert_eq!(
+            statuses_until(&sup, CoreStatus::Stopped, 1),
+            vec![CoreStatus::Stopped],
+            "hết job và đã rảnh thì phải tự tắt"
+        );
+        sup.shutdown(Duration::from_secs(5));
+    }
+
+    #[test]
+    fn open_session_keeps_the_core_alive_until_it_is_closed() {
+        // system.shutdown xóa thư mục phiên, nên lõi không được tự tắt khi còn phiên mở.
+        let Some(mut config) = real_core_config("session-busy", quiet_log()) else {
+            return;
+        };
+        config.idle_stop = Some(Duration::from_millis(300));
+        let mut sup = Supervisor::start(config);
+        start_ready(&sup);
+
+        sup.session_opened("phien-1");
+        std::thread::sleep(Duration::from_millis(1200));
+        assert_eq!(
+            sup.status(),
+            CoreStatus::Ready,
+            "còn phiên thì không được tự tắt"
+        );
+
+        sup.session_closed("phien-1");
+        assert_eq!(
+            statuses_until(&sup, CoreStatus::Stopped, 1),
+            vec![CoreStatus::Stopped],
+            "đóng hết phiên và job thì phải tự tắt"
+        );
+        sup.shutdown(Duration::from_secs(5));
     }
 
     #[test]

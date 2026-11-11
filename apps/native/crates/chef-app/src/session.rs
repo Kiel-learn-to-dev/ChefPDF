@@ -58,6 +58,8 @@ pub fn open(
             kind: "INTERNAL".into(),
         })?
         .to_string();
+    // Phiên đang mở giữ lõi chạy, để revision không mất khi lõi tự tắt (R3.03).
+    supervisor.session_opened(&session_id);
     Ok(OpenedSession {
         session_id,
         state,
