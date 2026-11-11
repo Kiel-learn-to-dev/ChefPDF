@@ -20,10 +20,21 @@ use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 mod assets;
 mod capture;
 mod debug;
+mod dialogs;
 mod find;
+mod logging;
 mod night;
+mod password;
 mod probe;
+mod properties;
 mod settings;
+mod settings_dialog;
+// Dùng khi app nối lõi (R3.03); đến lúc đó chỉ test gọi.
+#[cfg(windows)]
+#[allow(dead_code)]
+mod session;
+#[allow(dead_code)]
+mod source_guard;
 mod theme;
 mod viewer;
 
@@ -37,6 +48,10 @@ const MIN_SIZE: (f32, f32) = (800.0, 560.0);
 
 /// Kích thước cửa sổ khi chạy bình thường (pixel logic).
 const DEFAULT_SIZE: (f32, f32) = (1200.0, 860.0);
+
+/// Chiều cao cửa sổ trang thử (E2E). Trang thử cao hơn cửa sổ thường, nên các khu ở cuối trang (menu,
+/// ô chọn, hộp thoại) phải nằm trong khung để E2E bấm được bằng chuột.
+const PROBE_HEIGHT: f32 = 1600.0;
 
 const SW_SHOWNOACTIVATE: i32 = 4;
 const SWP_NOZORDER: u32 = 0x0004;
@@ -107,7 +122,7 @@ fn open_probe_offscreen(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
         .unwrap_or(DEFAULT_SIZE.0);
     let bounds = Bounds {
         origin: gpui::point(px(OFFSCREEN_ORIGIN.0 as f32), px(OFFSCREEN_ORIGIN.1 as f32)),
-        size: size(px(width), px(DEFAULT_SIZE.1)),
+        size: size(px(width), px(PROBE_HEIGHT)),
     };
     let window = cx
         .open_window(
@@ -129,7 +144,7 @@ fn open_probe_offscreen(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
         .expect("cập nhật cửa sổ thất bại")
         .expect("không lấy được HWND");
     cx.spawn(async move |_| {
-        show_offscreen(hwnd, scale, (width, DEFAULT_SIZE.1))
+        show_offscreen(hwnd, scale, (width, PROBE_HEIGHT))
             .expect("đưa cửa sổ ra ngoài màn hình thất bại");
     })
     .detach();
@@ -190,6 +205,9 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "togglenight" => Box::new(viewer::ToggleNight),
         "focusnext" => Box::new(chef_ui::button::FocusNext),
         "focusprev" => Box::new(chef_ui::button::FocusPrev),
+        "opensettings" => Box::new(viewer::OpenSettings),
+        "openfile" => Box::new(viewer::OpenFile),
+        "openproperties" => Box::new(viewer::OpenProperties),
         _ => return None,
     };
     Some(action)
@@ -204,6 +222,8 @@ fn exe_dir() -> PathBuf {
 }
 
 fn main() {
+    logging::init(&settings::user_data_dir());
+    logging::info("khởi động");
     // Tham số đầu tiên không bắt đầu bằng "-" là đường dẫn PDF.
     let pdf = std::env::args()
         .skip(1)
@@ -217,6 +237,9 @@ fn main() {
             chef_ui::text_input::bind_keys(cx);
             chef_ui::button::bind_keys(cx);
             chef_ui::dialog::bind_keys(cx);
+            chef_ui::choice::bind_keys(cx);
+            chef_ui::menu::bind_keys(cx);
+            chef_ui::tabs::bind_keys(cx);
             viewer::bind_keys(cx);
             assets::register_fonts(cx);
             let handle = match chef_pdf::render::spawn(exe_dir()) {

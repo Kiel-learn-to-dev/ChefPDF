@@ -53,8 +53,9 @@ fn defaults() -> Map<String, Value> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Theme {
+    #[default]
     System,
     Light,
     Dark,
@@ -79,8 +80,9 @@ impl Theme {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Language {
+    #[default]
     Vi,
     En,
 }

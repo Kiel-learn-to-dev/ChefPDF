@@ -1,0 +1,1265 @@
+{
+ "generated": "2026-11-09",
+ "source": "Electron 1.3.0 (ui-audit.spec.ts, UI_AUDIT_CLEAN_DIR)",
+ "commit": "9fdcc66",
+ "dpr": 1,
+ "viewport": "mặc định của ui-audit",
+ "themes": [
+  "light",
+  "dark"
+ ],
+ "screens_per_theme": 104,
+ "images_total": 208,
+ "playwright_tests_in_run": 92,
+ "note": "Ảnh lưu ngoài repo (%TEMP%\\chef-visual-refs). Chỉ manifest nằm trong repo. Ảnh không có khung đỏ.",
+ "images": [
+  {
+   "file": "about.png",
+   "theme": "light",
+   "bytes": 40653,
+   "sha256": "344ff3bfb6c024a7cd58e21ddd87b1cd38359bdb223d11b1d4fdbb9ca544be2c"
+  },
+  {
+   "file": "dialog_adjust.png",
+   "theme": "light",
+   "bytes": 119709,
+   "sha256": "4a128341581615a44fdf92f7ec1dd1b8ede5108991090e28f9b81657784bc7ee"
+  },
+  {
+   "file": "dialog_backgroundRemove.png",
+   "theme": "light",
+   "bytes": 96276,
+   "sha256": "b35e8f846e82d7fb633e37d769303a4be4f85bbd5f987a1752edefbc8ab54599"
+  },
+  {
+   "file": "dialog_batchCrop.png",
+   "theme": "light",
+   "bytes": 108767,
+   "sha256": "e77445c90ba3300c536a32c3fb0395dcceb72feefeb3d4525584cbe012a73dcf"
+  },
+  {
+   "file": "dialog_batchExport.png",
+   "theme": "light",
+   "bytes": 99909,
+   "sha256": "06056fce7a27203eaca5ebd941bb29da602a2f849dafad6f809a5008927c0714"
+  },
+  {
+   "file": "dialog_batchSign.png",
+   "theme": "light",
+   "bytes": 121115,
+   "sha256": "e1b40f4a80b4376016598f8fe084bcc0cdc1858818f8663ac01a146541b09e1a"
+  },
+  {
+   "file": "dialog_capture.png",
+   "theme": "light",
+   "bytes": 94990,
+   "sha256": "a34931daa940f55caa4756558e5ed0e8f690a429096fd6d69e5f875882bb362c"
+  },
+  {
+   "file": "dialog_certs.png",
+   "theme": "light",
+   "bytes": 104726,
+   "sha256": "c90c918153afca48e5aa05ab28c7aac49aa18db7347ff7a284094f8681e5b07c"
+  },
+  {
+   "file": "dialog_color.png",
+   "theme": "light",
+   "bytes": 102739,
+   "sha256": "89fddd16367c4f4ea6918f80d41dfa096e09a8a30ac7f5c715878ab1c497f45a"
+  },
+  {
+   "file": "dialog_color_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 107094,
+   "sha256": "611ffa62d4f36399b7543906be64a8c290784751eaa6a17b2676577eb9e4b8f7"
+  },
+  {
+   "file": "dialog_compress.png",
+   "theme": "light",
+   "bytes": 109305,
+   "sha256": "2a54dcfb52b4f67836aeb0aadb9d5c0c7025cfd2a1c80b3890cc7b2b0f2bb7ff"
+  },
+  {
+   "file": "dialog_compress_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 114179,
+   "sha256": "97c28e0df97f98a5e9e726e117dfe0d9ce2c1b1953820ddd18b7c730f5ad7e03"
+  },
+  {
+   "file": "dialog_cropReview.png",
+   "theme": "light",
+   "bytes": 103752,
+   "sha256": "6b2f1594226ad009b6aa11cfb8ff4c184ae0217b934cf646d0cab120a97dd178"
+  },
+  {
+   "file": "dialog_dewarp.png",
+   "theme": "light",
+   "bytes": 101881,
+   "sha256": "7b3777b4d8efe83b5b50e5963b177764843da473f25c01f517087f4cdd7c50c1"
+  },
+  {
+   "file": "dialog_docTools.png",
+   "theme": "light",
+   "bytes": 107342,
+   "sha256": "5c065d64376b02436d0c26b8817bfe62921e8d6e92024c57359a2b507e31ee43"
+  },
+  {
+   "file": "dialog_documentExport.png",
+   "theme": "light",
+   "bytes": 108479,
+   "sha256": "624a72342c35797fd5c27ed8c8f513939b70b454370cbc1d37ae7e2435d5b4bb"
+  },
+  {
+   "file": "dialog_erase.png",
+   "theme": "light",
+   "bytes": 106829,
+   "sha256": "b31141787a65594d95dacdaecc10b087ea4c2bc07cd79ee0ec5e964e0a593494"
+  },
+  {
+   "file": "dialog_findReplace.png",
+   "theme": "light",
+   "bytes": 99387,
+   "sha256": "64a47eb5b8dcdad3388cbf27d8c255dd4ee3c755ca3bafb8a651fafd816c7a3a"
+  },
+  {
+   "file": "dialog_finger.png",
+   "theme": "light",
+   "bytes": 102854,
+   "sha256": "18e1a2be4a6c91fe4e63a20a7b9ca33dc709c6033cef12e8903c5234638cd6f8"
+  },
+  {
+   "file": "dialog_forms.png",
+   "theme": "light",
+   "bytes": 88925,
+   "sha256": "d70505772be5812136032ed4ee96d6897b2a13ddec9e58d559b2d7661fff4aca"
+  },
+  {
+   "file": "dialog_imagesToPdf.png",
+   "theme": "light",
+   "bytes": 95831,
+   "sha256": "48e5321d726dab7142a9499b112277a9e6ef4e6e054821d866d0e39d6633ad9d"
+  },
+  {
+   "file": "dialog_initials.png",
+   "theme": "light",
+   "bytes": 97296,
+   "sha256": "6ef42b9d49172318cf58348e37f5653f482c4c877682d5bcb701f303b3e67292"
+  },
+  {
+   "file": "dialog_initials_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 105657,
+   "sha256": "24ba9916d3037db362d86eea6f91a36bada2033d49734fe70c1f899a048e2966"
+  },
+  {
+   "file": "dialog_insertBlank.png",
+   "theme": "light",
+   "bytes": 90044,
+   "sha256": "adf8d59ce499c93017c2c48d89d923a54f5767ab8bebb4b5527446c88624e183"
+  },
+  {
+   "file": "dialog_insertFromFile.png",
+   "theme": "light",
+   "bytes": 93457,
+   "sha256": "bfd1416d8a95ec96cd378602d8e2fc11fc98f19ac6ec913e0820f7881a5a7504"
+  },
+  {
+   "file": "dialog_insertImages.png",
+   "theme": "light",
+   "bytes": 96393,
+   "sha256": "8cb68e06c8d193a6f9275aba0df08cb8c090058a158a49f16934cd8b1fbbe22a"
+  },
+  {
+   "file": "dialog_inspect.png",
+   "theme": "light",
+   "bytes": 109752,
+   "sha256": "69f7bb517a5b3f42ed8167ae6d5f299c100a014b7a573866e67104030c497e00"
+  },
+  {
+   "file": "dialog_layoutReview.png",
+   "theme": "light",
+   "bytes": 89999,
+   "sha256": "bee915db936110d76c72f86702f52bdf2665e18a76108af6bd24f4e514b026b9"
+  },
+  {
+   "file": "dialog_linkDialog.png",
+   "theme": "light",
+   "bytes": 86637,
+   "sha256": "8da84e6249735c01aa9e30c08ca2f7f1e1a09a8f96e693eb6b8f6bfa4446c844"
+  },
+  {
+   "file": "dialog_merge.png",
+   "theme": "light",
+   "bytes": 110484,
+   "sha256": "3621132788b87c242f0d49d74fde2e3a78e30f0f0839a4cce87e4455456355ec"
+  },
+  {
+   "file": "dialog_overlayBates.png",
+   "theme": "light",
+   "bytes": 110607,
+   "sha256": "c5162b86f0a9d5b578d08cab9a4b316293a799727c0658dad90668dcc45c4377"
+  },
+  {
+   "file": "dialog_overlayCode.png",
+   "theme": "light",
+   "bytes": 114089,
+   "sha256": "b92fcd5385e86bab7043cadd277996d336235e7eab6616e185df8218775feeb8"
+  },
+  {
+   "file": "dialog_overlayCode_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 112952,
+   "sha256": "60a72153dacac96541dd23c8b23673c787d5d9fff7d6f0a941d3ee102e5fa986"
+  },
+  {
+   "file": "dialog_overlayHeaderFooter.png",
+   "theme": "light",
+   "bytes": 109625,
+   "sha256": "13b92b5f29c57bdcf8bdafea2a36b52523fa3db9616e97120d3822701f068faa"
+  },
+  {
+   "file": "dialog_overlayHeaderFooter_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 110994,
+   "sha256": "ac0e098cc928f2ce3e3729709c434281f169ddf42350a8f39f8209db2f61e00b"
+  },
+  {
+   "file": "dialog_overlayImage.png",
+   "theme": "light",
+   "bytes": 105666,
+   "sha256": "b45821970c0b3102d837d11157d39ff6a96ff5eee5d6ee1586663b5339c4db79"
+  },
+  {
+   "file": "dialog_overlayImage_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 105377,
+   "sha256": "edecad968e0f4d56d2974a2dcaddc7d88f7b0bd5c8ff72044ddb9ff1fc2be95e"
+  },
+  {
+   "file": "dialog_overlayLetterhead.png",
+   "theme": "light",
+   "bytes": 97068,
+   "sha256": "f397be4f6cd043f571a31970cc9a63b470728bc927160d1cfc75662d0933a3f0"
+  },
+  {
+   "file": "dialog_overlayLetterhead_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 106065,
+   "sha256": "f9db44a5766babc041fe35515e2c4dc1c9cd6fbf081d8763cd55772659965ce3"
+  },
+  {
+   "file": "dialog_overlayManager.png",
+   "theme": "light",
+   "bytes": 97954,
+   "sha256": "0ae5b58d82de9d0078e6507f130115f9afb1b70df332f6332f45755fdd5bd706"
+  },
+  {
+   "file": "dialog_overlayPageNumbers.png",
+   "theme": "light",
+   "bytes": 112719,
+   "sha256": "bcb92d3eb94030859b82c1372e2059f5054570d5f2bc89c586b4f589332b5435"
+  },
+  {
+   "file": "dialog_overlayPageNumbers_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 109340,
+   "sha256": "49a4a0dd6e3426c976593a51661017eb2f5537fb46967f7bef1c7224973d6a3a"
+  },
+  {
+   "file": "dialog_overlayText.png",
+   "theme": "light",
+   "bytes": 100157,
+   "sha256": "d05e9aaa9d3518cf6ca85ce200f269326a29c444acb72574a76c36a3d40e62f7"
+  },
+  {
+   "file": "dialog_overlayText_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 100817,
+   "sha256": "9bf65a8e102077a495ea6d9f887f7c7438c0a6f9ceed8a646f87fc8c1fa2db19"
+  },
+  {
+   "file": "dialog_overlayWatermark.png",
+   "theme": "light",
+   "bytes": 104450,
+   "sha256": "b68da04478467158f389cb5785373bee38f18d5c495ca35fa5f7832703be7861"
+  },
+  {
+   "file": "dialog_overlayWatermark_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 107142,
+   "sha256": "80731bb28a71156ad136ffa84764f4a9cb64427945a69555ff480797d0e82dae"
+  },
+  {
+   "file": "dialog_pageBlank.png",
+   "theme": "light",
+   "bytes": 99120,
+   "sha256": "dd341cbcf3f94af0c882dc9e4c1609f2759eefb99dfb57c2ffca8b9d474131b7"
+  },
+  {
+   "file": "dialog_pageBlank_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 103655,
+   "sha256": "8a6afe5590cf5cfde9f4a7222edeccb31176f1ae0844b5654d8b6e4262804fcf"
+  },
+  {
+   "file": "dialog_pageCrop.png",
+   "theme": "light",
+   "bytes": 103091,
+   "sha256": "00a6cf441c107f5638271fa78997c043fbc758dce8696c21a85f9fbb9e0f6723"
+  },
+  {
+   "file": "dialog_pageGridSplit.png",
+   "theme": "light",
+   "bytes": 104428,
+   "sha256": "74f9efadcef7eb024c16761292bd9620ec6e2cf734a68593d5fd721d1d0c451c"
+  },
+  {
+   "file": "dialog_pageReplace.png",
+   "theme": "light",
+   "bytes": 95684,
+   "sha256": "bbf2854b803e01c02aeaf29e62a75c46dd16fd2097b1ff6febb21b2b06ffd9d8"
+  },
+  {
+   "file": "dialog_pdfToImages.png",
+   "theme": "light",
+   "bytes": 102143,
+   "sha256": "9641c5ca4f216b2f76b0023a9b801c81c35ac44cfb1bd3778b4c9b70f0b62cc3"
+  },
+  {
+   "file": "dialog_pdfToImages_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 106310,
+   "sha256": "f95db39aa771b7998f7c992b3dd7094c130e3300ea5ba91bd0d3b1d6353e6be5"
+  },
+  {
+   "file": "dialog_preflight.png",
+   "theme": "light",
+   "bytes": 123791,
+   "sha256": "e93630912acc264e6b8acea1f6913c27797fecbe04f6a78affb4dfeb0aecb3f4"
+  },
+  {
+   "file": "dialog_print.png",
+   "theme": "light",
+   "bytes": 93905,
+   "sha256": "3d7c224676e12a6522f43cdc5aee4a5c1751610c73cef10b8b69c2b43e27f3ca"
+  },
+  {
+   "file": "dialog_properties.png",
+   "theme": "light",
+   "bytes": 102526,
+   "sha256": "e0bc97fcc7f4c50d4617e811acbd59637179a2d90b4880baa39c6c9a5e8d641e"
+  },
+  {
+   "file": "dialog_recovery.png",
+   "theme": "light",
+   "bytes": 87683,
+   "sha256": "94250bf91f93352eddf9c73f1b7674099a99d55989aa24be499d3fbff9ed0825"
+  },
+  {
+   "file": "dialog_redact.png",
+   "theme": "light",
+   "bytes": 128496,
+   "sha256": "66cb241e4230404bc6744a263ab8d476305476b23c8f1f98a31caa3b925980a7"
+  },
+  {
+   "file": "dialog_removeSimilar.png",
+   "theme": "light",
+   "bytes": 110091,
+   "sha256": "36bd7ee3e6f6dfe29f58452b57284b0a639def7e48bb46a5f3f2f287ec17ce74"
+  },
+  {
+   "file": "dialog_rename.png",
+   "theme": "light",
+   "bytes": 107000,
+   "sha256": "402c110df070da5eaaaf9217b073314773d6cf4ff90483f58b10dfae2cf2145c"
+  },
+  {
+   "file": "dialog_repair.png",
+   "theme": "light",
+   "bytes": 102575,
+   "sha256": "47f14e5026d966d2d5b11b5ea4df6438516bf3ef21f6f8b69c40e37c1dbb7c0e"
+  },
+  {
+   "file": "dialog_scan.png",
+   "theme": "light",
+   "bytes": 108602,
+   "sha256": "87e6eaf17ecce8e294ac75a94547fadaff3a07ebd40d78ed85dd821b90d219fb"
+  },
+  {
+   "file": "dialog_seam.png",
+   "theme": "light",
+   "bytes": 113920,
+   "sha256": "d58fd91573172c02627118c63a7d5cadf4ac22ce85651caae1d63ea9daf09fc4"
+  },
+  {
+   "file": "dialog_seam_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 114047,
+   "sha256": "71e8647e26a242cd22edea67f41fe2256b3daca8838fb00cc8bcbca3ce3642c2"
+  },
+  {
+   "file": "dialog_security.png",
+   "theme": "light",
+   "bytes": 144083,
+   "sha256": "c1aef24a6b59267d53e08b657f9b9da979c8a8ba1c084024b7624274bdffb18b"
+  },
+  {
+   "file": "dialog_settings.png",
+   "theme": "light",
+   "bytes": 112013,
+   "sha256": "16aed118cae712af25d92596036100e05caf5303308e6733696777cf5aa07f12"
+  },
+  {
+   "file": "dialog_shortcuts.png",
+   "theme": "light",
+   "bytes": 125559,
+   "sha256": "fb04fca24f89bfd73ba6b733e02a5732153d6aacff69751b7cc13137b588ae3a"
+  },
+  {
+   "file": "dialog_sigLibrary.png",
+   "theme": "light",
+   "bytes": 93583,
+   "sha256": "b0d1725a66d29e876412c7bbd16e28d379e457329d4ff91d8108a18d5622d829"
+  },
+  {
+   "file": "dialog_signDoc.png",
+   "theme": "light",
+   "bytes": 128315,
+   "sha256": "d4a7c246ca6cd64ba37941c35bdc22a20ee860086aa0c38323375612c0057b44"
+  },
+  {
+   "file": "dialog_signTemplates.png",
+   "theme": "light",
+   "bytes": 122850,
+   "sha256": "9463b5789abdeecd0323228067823d558be07742cb11394a81105395a78890b2"
+  },
+  {
+   "file": "dialog_smartSplit.png",
+   "theme": "light",
+   "bytes": 111637,
+   "sha256": "a35612fa82c24c765b1f7a4d6512d4b2d189a150ed623728f07a136934723ceb"
+  },
+  {
+   "file": "dialog_smartSplit_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 115549,
+   "sha256": "aa82d63fb7e02557fc389e05a966544a6ac2f64b738e65e0d60b83d0bbb4c1f3"
+  },
+  {
+   "file": "dialog_spine.png",
+   "theme": "light",
+   "bytes": 104317,
+   "sha256": "96974c843f36cfbfd916fe978c4e6c00b9b8591a6481acd140d10e44ef53e483"
+  },
+  {
+   "file": "dialog_split.png",
+   "theme": "light",
+   "bytes": 117394,
+   "sha256": "e1908eaf9bbf87d014c2a06eb1d6f0c301583a3a780ea31da182ceadbb827046"
+  },
+  {
+   "file": "dialog_split_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 116810,
+   "sha256": "626d8ffd5dfd24409b73cc515b515594473a5b29565ba22400932962323b1abd"
+  },
+  {
+   "file": "dialog_stamp.png",
+   "theme": "light",
+   "bytes": 109110,
+   "sha256": "dbc7c13a02b3fe617c68b8a5237ba22b5dcf3551b76493694e2165106dd973ec"
+  },
+  {
+   "file": "dialog_stamp_adv0_N_ng_cao.png",
+   "theme": "light",
+   "bytes": 106982,
+   "sha256": "ce84d5f7190d69afa9b53a075a28d836f3ef2780c5aca1b2e8a29075951873ce"
+  },
+  {
+   "file": "dialog_toc.png",
+   "theme": "light",
+   "bytes": 101174,
+   "sha256": "8feb1cb56d0a63b72b52c5bf0c98e11ccccd770e207077e06cd2c10213999c9c"
+  },
+  {
+   "file": "dialog_tokenWizard.png",
+   "theme": "light",
+   "bytes": 90230,
+   "sha256": "9a0c12464b4fffb22057cb8d18a868dd22fcf4399e430f8fbd0e4c4f58e8c6f0"
+  },
+  {
+   "file": "dialog_trust.png",
+   "theme": "light",
+   "bytes": 92570,
+   "sha256": "e40e545f9ddf91ad865032b402b10339d216ad90bc98064c87c3ce34396dd8be"
+  },
+  {
+   "file": "dialog_verifyBatch.png",
+   "theme": "light",
+   "bytes": 113292,
+   "sha256": "957f73650571bf7e9330a036a0ed2f4775daeea769b250a5b227a875c59cfca8"
+  },
+  {
+   "file": "dialog_watch.png",
+   "theme": "light",
+   "bytes": 114493,
+   "sha256": "85150fb8835126c864751ffaf490b5fbb13d4e257e5bc72a1d5035a0b35f716b"
+  },
+  {
+   "file": "dialog_watermarkRemove.png",
+   "theme": "light",
+   "bytes": 109361,
+   "sha256": "6e3450bee6716cd90709b64af5ed5352d01711b63bb2cfa2ff0297cb4501360d"
+  },
+  {
+   "file": "dialog_web2pdf.png",
+   "theme": "light",
+   "bytes": 110071,
+   "sha256": "54c8c1d7b9a79b8d0f76720c678962dd073e1df06f048152d81635c87ead3225"
+  },
+  {
+   "file": "dialog_workflow.png",
+   "theme": "light",
+   "bytes": 117843,
+   "sha256": "e208613333ccc6d4bb14a5e132266177f646c5bbd9e4963d35224b4235a758f7"
+  },
+  {
+   "file": "edit_paragraph.png",
+   "theme": "light",
+   "bytes": 90751,
+   "sha256": "da72e79e5da2d7c84d1a4e1ab38613b06a5c08b3cd03f7c93acce1c47a147378"
+  },
+  {
+   "file": "edit_textEdit.png",
+   "theme": "light",
+   "bytes": 92871,
+   "sha256": "d015dd9a8f67ddcec42a95bb8acbe7b1b58e9d206f9a653479ac3bc3fc046db9"
+  },
+  {
+   "file": "main_annotate.png",
+   "theme": "light",
+   "bytes": 53613,
+   "sha256": "77e1ad613c271af05eb957a0aa31ba75a3a57e680c180f9d59b9f6db738b485d"
+  },
+  {
+   "file": "main_edit.png",
+   "theme": "light",
+   "bytes": 52838,
+   "sha256": "5c8a3e86564af8bb2bd972742f34ac6a4e6ec1c0b53a609cb71f29f80f3d700f"
+  },
+  {
+   "file": "main_export.png",
+   "theme": "light",
+   "bytes": 52023,
+   "sha256": "653ffb45129015cb238b3d3b19f5bcd2e8818bab8b87e179c799a1b642fecd8d"
+  },
+  {
+   "file": "main_forms.png",
+   "theme": "light",
+   "bytes": 47201,
+   "sha256": "20a9d5d4b7923872491ff3b54e8eb5c46ac3bc2820df2d38f7c14185e8e54520"
+  },
+  {
+   "file": "main_pages.png",
+   "theme": "light",
+   "bytes": 62124,
+   "sha256": "eae714aac8eb5308f2ea9b3f165a2b5f32a08888c2f2e3dc783046fcaa22847b"
+  },
+  {
+   "file": "main_sign.png",
+   "theme": "light",
+   "bytes": 53315,
+   "sha256": "d3bd9255497f0602791070b7c34235b48e9d4da8380ff75433270bec66746c8b"
+  },
+  {
+   "file": "main_view.png",
+   "theme": "light",
+   "bytes": 51572,
+   "sha256": "99b0c1aca270307c7014463449fe127354ae751b3970fce5a183480bdf199e32"
+  },
+  {
+   "file": "main_view_sidebar_layers.png",
+   "theme": "light",
+   "bytes": 60202,
+   "sha256": "cbd6bc4b1018d6c58f5971f9998857c86647bdab2db861f9c518b935cbd762c5"
+  },
+  {
+   "file": "main_view_sidebar_notes.png",
+   "theme": "light",
+   "bytes": 67712,
+   "sha256": "323320a95530573c0577ea5e2a296304d6c4fd6619cee4a4f9b7697451829692"
+  },
+  {
+   "file": "main_view_sidebar_outline.png",
+   "theme": "light",
+   "bytes": 54111,
+   "sha256": "202e72fbb3746b16a0daa45ee8e7005b0b9b613dc58bb3e7af285225d74529e2"
+  },
+  {
+   "file": "main_view_sidebar_signatures.png",
+   "theme": "light",
+   "bytes": 53933,
+   "sha256": "08833bb0c3979788e9c8f05d85f75217efd0bed888ae179e460c903341f75797"
+  },
+  {
+   "file": "main_view_sidebar_thumbnails.png",
+   "theme": "light",
+   "bytes": 51572,
+   "sha256": "99b0c1aca270307c7014463449fe127354ae751b3970fce5a183480bdf199e32"
+  },
+  {
+   "file": "main_workflow.png",
+   "theme": "light",
+   "bytes": 48549,
+   "sha256": "ca6ab63d08483d4982668a4ed4d9ba0cdb86afc19aaad5d299cd684b388f70e0"
+  },
+  {
+   "file": "overlay_findbar.png",
+   "theme": "light",
+   "bytes": 73885,
+   "sha256": "6c6f3eca16633d4c4ce018a58bbb031b831b2951fbd6cb1ae7dbb4e63bb957bd"
+  },
+  {
+   "file": "overlay_jobPanel.png",
+   "theme": "light",
+   "bytes": 77882,
+   "sha256": "c67b22dc3c46679b667878bc995f1ed49418c6cadeaaa83caea14d080a900bef"
+  },
+  {
+   "file": "overlay_palette.png",
+   "theme": "light",
+   "bytes": 109098,
+   "sha256": "30634683acb5e72a45f50e1893264e200f656ea1d9684e13209066c8e48deb48"
+  },
+  {
+   "file": "start.png",
+   "theme": "light",
+   "bytes": 83316,
+   "sha256": "b29cd6d3c317ce9e46a98780c14751aa58d0f2ae25c2ea312c9393cbc1c559bd"
+  },
+  {
+   "file": "about.png",
+   "theme": "dark",
+   "bytes": 41038,
+   "sha256": "bfc5cd4af60a244cc64e16f71cb3274fd77d29c002120b6b8ce7b72406321a56"
+  },
+  {
+   "file": "dialog_adjust.png",
+   "theme": "dark",
+   "bytes": 117141,
+   "sha256": "57d68c76b58dc220c75444632a0bbc4dfd7430a57e8554b67f1c60c4c4220259"
+  },
+  {
+   "file": "dialog_backgroundRemove.png",
+   "theme": "dark",
+   "bytes": 93545,
+   "sha256": "16d0b708101b63b18f5086bfe0eb8d57046ed88c128de4452b44dba26e1de214"
+  },
+  {
+   "file": "dialog_batchCrop.png",
+   "theme": "dark",
+   "bytes": 106010,
+   "sha256": "d5a85afba915ca31a6c601fdf91a9ea43d97c785822038c5b01ebd2743f432fe"
+  },
+  {
+   "file": "dialog_batchExport.png",
+   "theme": "dark",
+   "bytes": 97600,
+   "sha256": "3d989740c52ec50886e7fedade4de15f2c8fbd4c54422ae1f21639a7e6a5ba94"
+  },
+  {
+   "file": "dialog_batchSign.png",
+   "theme": "dark",
+   "bytes": 118254,
+   "sha256": "fae8b6ebbcc898a29b1a63f242528c89fd8865ef8f6e10139a99b0b109fac66a"
+  },
+  {
+   "file": "dialog_capture.png",
+   "theme": "dark",
+   "bytes": 91942,
+   "sha256": "8687f714067555d78aa66cda92b88d1312afff8701714eb73488c6bf748f5963"
+  },
+  {
+   "file": "dialog_certs.png",
+   "theme": "dark",
+   "bytes": 101644,
+   "sha256": "9278a01aac5d995335d68605c9a02e36dc06d5decd1a2c5e89f1dbf6b5c527fb"
+  },
+  {
+   "file": "dialog_color.png",
+   "theme": "dark",
+   "bytes": 99668,
+   "sha256": "b25fde0c5239c752a7fbed8cf08597c0df4354a1413363e4761acd1fa69b5023"
+  },
+  {
+   "file": "dialog_color_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 104456,
+   "sha256": "b6e1b34884879f3ca5da9bef8769a22ee83cc7f2446b3b1c2231ae22f54a3301"
+  },
+  {
+   "file": "dialog_compress.png",
+   "theme": "dark",
+   "bytes": 107275,
+   "sha256": "2e0187fa9b153d7a1d8f2509f58be73c1be0adcab280edd57dd9c6f7d4065ebf"
+  },
+  {
+   "file": "dialog_compress_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 111627,
+   "sha256": "3c6260fe8d32594d18a8bcc3f561f616eceb111bff6746e6fa0e7653717b8b77"
+  },
+  {
+   "file": "dialog_cropReview.png",
+   "theme": "dark",
+   "bytes": 100652,
+   "sha256": "df535cc31af6787ae6db071ce58cb2fdb2654484a64f0288631e011054e36617"
+  },
+  {
+   "file": "dialog_dewarp.png",
+   "theme": "dark",
+   "bytes": 98509,
+   "sha256": "175c98e23bc88d7eb4eb53eb44dc18de3c54c512cabbd0dedd49ec4684fd8e4a"
+  },
+  {
+   "file": "dialog_docTools.png",
+   "theme": "dark",
+   "bytes": 104894,
+   "sha256": "4cfb2cbae6f426dc495a28cc50bd48a1c2ce8114063eab79c727b4f416be090c"
+  },
+  {
+   "file": "dialog_documentExport.png",
+   "theme": "dark",
+   "bytes": 105754,
+   "sha256": "5dc62a3c4eea13e89c6037f8f65a717f8adad697bc2a054dcb4fcf23582f3b94"
+  },
+  {
+   "file": "dialog_erase.png",
+   "theme": "dark",
+   "bytes": 103973,
+   "sha256": "5596b62f5f3c9aa967db0f01b80bbdd8eb7dd939287d2aa8f3c9d1a2d350e471"
+  },
+  {
+   "file": "dialog_findReplace.png",
+   "theme": "dark",
+   "bytes": 96563,
+   "sha256": "aa1537a4277f3ea0a22bbb16b5530d54e1c21bd8561f46fc83dcd7257d57533e"
+  },
+  {
+   "file": "dialog_finger.png",
+   "theme": "dark",
+   "bytes": 99532,
+   "sha256": "9c09a8b4e40c0a166b0f4ec3d71aeec00b77b38c4810742236feb90510d90d2a"
+  },
+  {
+   "file": "dialog_forms.png",
+   "theme": "dark",
+   "bytes": 85668,
+   "sha256": "f8d80cf53dacb808029e7219233dc8411559177b08e9aff7ec3dfed6de86eeef"
+  },
+  {
+   "file": "dialog_imagesToPdf.png",
+   "theme": "dark",
+   "bytes": 93137,
+   "sha256": "ad6a639148186fbc23a3b92a39e908a5d2cabbae8749230fd6135bd3798db528"
+  },
+  {
+   "file": "dialog_initials.png",
+   "theme": "dark",
+   "bytes": 95131,
+   "sha256": "4297983715500f5d45f69389b0a9d280d5edae870f37d9c9708f368087fadc4f"
+  },
+  {
+   "file": "dialog_initials_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 103228,
+   "sha256": "f8c8139e83a7213ea2eaac5a839e1397c8637a3b09628a27439cd7195cf1c258"
+  },
+  {
+   "file": "dialog_insertBlank.png",
+   "theme": "dark",
+   "bytes": 88608,
+   "sha256": "9dfc68b72789ab6a76049af4c40d605001ff1cf2920297befc7cb0f7fa644e1d"
+  },
+  {
+   "file": "dialog_insertFromFile.png",
+   "theme": "dark",
+   "bytes": 91748,
+   "sha256": "d4b50b30f68148e6e57afe6697ccb62de85e6d754805a386210f29c6b2bcd082"
+  },
+  {
+   "file": "dialog_insertImages.png",
+   "theme": "dark",
+   "bytes": 94546,
+   "sha256": "c93eef6005766ef5b3337de837eb629e47e4ab649918dc9b91dce0b30155454c"
+  },
+  {
+   "file": "dialog_inspect.png",
+   "theme": "dark",
+   "bytes": 106341,
+   "sha256": "fd49e72caf1ced0242d921f6fe0aae83126c8836399d99482c252452cac8e726"
+  },
+  {
+   "file": "dialog_layoutReview.png",
+   "theme": "dark",
+   "bytes": 86599,
+   "sha256": "316cfc0bce64ef631fa5d43535c88d6f0c318581b90b476c2f7ce72e3df1896c"
+  },
+  {
+   "file": "dialog_linkDialog.png",
+   "theme": "dark",
+   "bytes": 83908,
+   "sha256": "b65eca074204b41746198c7b96cdc8124edd7507344ec0676682073e9d75134b"
+  },
+  {
+   "file": "dialog_merge.png",
+   "theme": "dark",
+   "bytes": 107051,
+   "sha256": "3bb5df00a24ac75984831c2e86f56c25e0a507c07316274b39f234b02f15a697"
+  },
+  {
+   "file": "dialog_overlayBates.png",
+   "theme": "dark",
+   "bytes": 107844,
+   "sha256": "ef83df400f38bac4a7f47732dba482840b905ca55d8f2e9d0462d665b5a64675"
+  },
+  {
+   "file": "dialog_overlayCode.png",
+   "theme": "dark",
+   "bytes": 111117,
+   "sha256": "fc19cf157d7d5fa7600c3b211368a0823bb88542e08d74cd42132906b42a8f93"
+  },
+  {
+   "file": "dialog_overlayCode_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 109778,
+   "sha256": "a31c5056587276eba9344a8ca18d475e9d7aa683e239c7ccbf58a79075dabff2"
+  },
+  {
+   "file": "dialog_overlayHeaderFooter.png",
+   "theme": "dark",
+   "bytes": 106917,
+   "sha256": "ad2911f26bdc2f31e71867f74b87c1ca0465bb31f4b63c9e572c2a7485eab9d0"
+  },
+  {
+   "file": "dialog_overlayHeaderFooter_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 108379,
+   "sha256": "fcd813b47bd421998f329c7e5108215f2ef7e95970ff4e90317440c4cc814da0"
+  },
+  {
+   "file": "dialog_overlayImage.png",
+   "theme": "dark",
+   "bytes": 102781,
+   "sha256": "32740408e09b3fc83ec39e3f062b7ebe71a3ac35569ed5e63be388789fdf3757"
+  },
+  {
+   "file": "dialog_overlayImage_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 102289,
+   "sha256": "2eb8f538d93e89845a3ea1a88ee79efe63c21d74f52cd934cc3f8f048a3ad044"
+  },
+  {
+   "file": "dialog_overlayLetterhead.png",
+   "theme": "dark",
+   "bytes": 94324,
+   "sha256": "0e4cb286afe592d5a3d6c698e390603b1503360198c876d6e67cc7fca0380c69"
+  },
+  {
+   "file": "dialog_overlayLetterhead_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 103255,
+   "sha256": "1797d8932f0b347cc6776a5afde03ef9f07f02c7a94bc9ed73b1c565d7a33043"
+  },
+  {
+   "file": "dialog_overlayManager.png",
+   "theme": "dark",
+   "bytes": 94831,
+   "sha256": "b7fdf0d70b1540b7fa3aa8db1e2d6fe51f35e46008a4d5a34e915251dcdc8695"
+  },
+  {
+   "file": "dialog_overlayPageNumbers.png",
+   "theme": "dark",
+   "bytes": 109891,
+   "sha256": "f8d533fe7fd73fe6b151cef522678a5bd5fc892b52a52f5e33f305556825d860"
+  },
+  {
+   "file": "dialog_overlayPageNumbers_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 106377,
+   "sha256": "4e4d4c287997591aeb3ad1e5c4adec31aef07894783e3494fbef27210fe0d3d1"
+  },
+  {
+   "file": "dialog_overlayText.png",
+   "theme": "dark",
+   "bytes": 97288,
+   "sha256": "512bf846976abe9cb6ff04210ff7e754c85a6e7662c70ecb22baca33b6f99fca"
+  },
+  {
+   "file": "dialog_overlayText_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 97602,
+   "sha256": "867d84f10884be67c0280954fb96d42c094b501d825785c322819aefc3e89cd9"
+  },
+  {
+   "file": "dialog_overlayWatermark.png",
+   "theme": "dark",
+   "bytes": 101713,
+   "sha256": "48623775b6819c209867390f89aca103de31c104459dc9a9033d0b45cbc0e503"
+  },
+  {
+   "file": "dialog_overlayWatermark_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 103959,
+   "sha256": "51f624485047bdbedac6c13196a21b58c811a6a6268b2b30e172ca4496349712"
+  },
+  {
+   "file": "dialog_pageBlank.png",
+   "theme": "dark",
+   "bytes": 96295,
+   "sha256": "7726bbc05710f782f38b90127244d75594afe44e42749e21277bb69438910c4d"
+  },
+  {
+   "file": "dialog_pageBlank_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 100614,
+   "sha256": "56ccece78926d3eb7d5dfebad6a6e842eeea3565de47ed541898e6a54f2ce10f"
+  },
+  {
+   "file": "dialog_pageCrop.png",
+   "theme": "dark",
+   "bytes": 100442,
+   "sha256": "41448731e32f2017614389bb44e6f349c80d99e95ee68f39efd82871ee01497f"
+  },
+  {
+   "file": "dialog_pageGridSplit.png",
+   "theme": "dark",
+   "bytes": 101872,
+   "sha256": "056538a4dacee52c8b6eab5df4f65df1c1fac311536188d9f693f340aafeb779"
+  },
+  {
+   "file": "dialog_pageReplace.png",
+   "theme": "dark",
+   "bytes": 92891,
+   "sha256": "02e493ecac4d8269f28263a6da45daa18dafda872630a640df4d9e3a0686a039"
+  },
+  {
+   "file": "dialog_pdfToImages.png",
+   "theme": "dark",
+   "bytes": 99361,
+   "sha256": "701d7bec5c0a30dd2b0d7f297a95428acd53e9398d8e6d26bb2f90f26a3a18b2"
+  },
+  {
+   "file": "dialog_pdfToImages_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 103420,
+   "sha256": "db04c2952da93e6ebeb2e95d2b751a0a99dc6efbeb15fc8ba59f8d371991e938"
+  },
+  {
+   "file": "dialog_preflight.png",
+   "theme": "dark",
+   "bytes": 121632,
+   "sha256": "6360ae95c4abb4ab4fbe22ecaff0e847dbb64e8b352e8ae9dacd8278a0dda9f5"
+  },
+  {
+   "file": "dialog_print.png",
+   "theme": "dark",
+   "bytes": 92660,
+   "sha256": "cb9c24c0cbf6b5c31a5f59c164ef9ee1f0c6676decf3ca45a85157072077669d"
+  },
+  {
+   "file": "dialog_properties.png",
+   "theme": "dark",
+   "bytes": 98958,
+   "sha256": "9bd7a720f0b132628a4ab311ae4878a9ee0931c4a757df6f16f0ded02958c508"
+  },
+  {
+   "file": "dialog_recovery.png",
+   "theme": "dark",
+   "bytes": 85025,
+   "sha256": "ca2b7334e07b65f67670d90a2425727faa2f9aca3091a59aafa0596193ae88a2"
+  },
+  {
+   "file": "dialog_redact.png",
+   "theme": "dark",
+   "bytes": 124892,
+   "sha256": "656e91348636e116df509c8653367a9ac84393332896c678a1c5054bbf25cb9e"
+  },
+  {
+   "file": "dialog_removeSimilar.png",
+   "theme": "dark",
+   "bytes": 107462,
+   "sha256": "6a517a80f4fc6461008b00d8d7d851e6a8e4dbc567981e071a048062f2ed8022"
+  },
+  {
+   "file": "dialog_rename.png",
+   "theme": "dark",
+   "bytes": 103695,
+   "sha256": "82d916d952a48cebf95510b2c684ad7430b47b9fb9b7507e02a0183021e905e1"
+  },
+  {
+   "file": "dialog_repair.png",
+   "theme": "dark",
+   "bytes": 101230,
+   "sha256": "1b8ff708de835d9c1c4f1c20ea34e22b05dfe2698edec580a85b02d7cbf74c60"
+  },
+  {
+   "file": "dialog_scan.png",
+   "theme": "dark",
+   "bytes": 105638,
+   "sha256": "2ef6aa12a2db2151ada92e98a2baa971d3c39257c3f47df06bc95b09aeebd710"
+  },
+  {
+   "file": "dialog_seam.png",
+   "theme": "dark",
+   "bytes": 110937,
+   "sha256": "2dd302244e80965d52aeba0c4968e99722d84f625b488fca645ce531e6fc9122"
+  },
+  {
+   "file": "dialog_seam_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 111056,
+   "sha256": "e71126e7fcb4c07a66028b2ef2261911957d84a8d56d02fd5976a5a866c6e5b0"
+  },
+  {
+   "file": "dialog_security.png",
+   "theme": "dark",
+   "bytes": 140716,
+   "sha256": "9da8ccc405fa2b0c31cac837ca65d72b888497cca5d54b1de444ac00e5217fc5"
+  },
+  {
+   "file": "dialog_settings.png",
+   "theme": "dark",
+   "bytes": 108419,
+   "sha256": "69c8323b2319500e3fa0c1125a85f04e0c9395ba316604a08984affe66274d1e"
+  },
+  {
+   "file": "dialog_shortcuts.png",
+   "theme": "dark",
+   "bytes": 122704,
+   "sha256": "afd1a2c85c3f6abbd04c6b846035ece476b5f30c9cf372f58782e81550dc81f5"
+  },
+  {
+   "file": "dialog_sigLibrary.png",
+   "theme": "dark",
+   "bytes": 90565,
+   "sha256": "fe3462834ec6e34640ae8078c3656c281e48a1738924a4d766060788843fc38e"
+  },
+  {
+   "file": "dialog_signDoc.png",
+   "theme": "dark",
+   "bytes": 124655,
+   "sha256": "c4b440b54ca88db20e475b8c6e253f6539222f221ede5b7fac4b74f1e0509522"
+  },
+  {
+   "file": "dialog_signTemplates.png",
+   "theme": "dark",
+   "bytes": 120665,
+   "sha256": "e37e73f14549a7b3750d9b763ce1e1cd6a16cf09b21d87701d2c047d18601c9f"
+  },
+  {
+   "file": "dialog_smartSplit.png",
+   "theme": "dark",
+   "bytes": 108871,
+   "sha256": "be631cd7083b3b44c8968fbb4f671b66ec5cec9f831034ad2a26688a354c8335"
+  },
+  {
+   "file": "dialog_smartSplit_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 112617,
+   "sha256": "228cb8f0ff9f335a94b3c910113894a6a40449c23015411d48ffece8c1c352e2"
+  },
+  {
+   "file": "dialog_spine.png",
+   "theme": "dark",
+   "bytes": 101162,
+   "sha256": "50691853a926669e45ee2ece96103eed7631c7fa802224062c07aa5a22990594"
+  },
+  {
+   "file": "dialog_split.png",
+   "theme": "dark",
+   "bytes": 114741,
+   "sha256": "5fc0822a1b4b27452536d669a4f3b5ea27ab958b0a77b5dcc1f5dd9c2aba9241"
+  },
+  {
+   "file": "dialog_split_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 114194,
+   "sha256": "acf71ea3597502b0e0818980ed5659db5f1c0ae2daf673ce0e989fc66a9d6740"
+  },
+  {
+   "file": "dialog_stamp.png",
+   "theme": "dark",
+   "bytes": 105755,
+   "sha256": "f407facb0dd55500a52e057387bf2b4e523a41c86fa8f2be5710a5f33fc39cba"
+  },
+  {
+   "file": "dialog_stamp_adv0_N_ng_cao.png",
+   "theme": "dark",
+   "bytes": 104086,
+   "sha256": "f5405b017358f5438d61e582b040c62521481bbc2a00293c32a0d529cd6b3cfa"
+  },
+  {
+   "file": "dialog_toc.png",
+   "theme": "dark",
+   "bytes": 98015,
+   "sha256": "4575b01e673cdbfc79a17d10ae3f6238f4187921ec4fa6191e9f24736f5b24b6"
+  },
+  {
+   "file": "dialog_tokenWizard.png",
+   "theme": "dark",
+   "bytes": 87300,
+   "sha256": "e490d9f4e12731d21786453d391dbf3f14b38ea1f97feb13af8df4ea358ff9ea"
+  },
+  {
+   "file": "dialog_trust.png",
+   "theme": "dark",
+   "bytes": 89844,
+   "sha256": "ab4cc0982d0da2cc7fb6300dd08c7aab05757e45a56365e9b7baeec7388ce6d9"
+  },
+  {
+   "file": "dialog_verifyBatch.png",
+   "theme": "dark",
+   "bytes": 110134,
+   "sha256": "206aa7719a26a9528e2c908bbc718b690a7331b0beb0b60183b587e52a4c3c3d"
+  },
+  {
+   "file": "dialog_watch.png",
+   "theme": "dark",
+   "bytes": 112511,
+   "sha256": "4c9ae2f3a00b6ec6a90e407543eee904bb091c392f88071dd336131197cd4aa3"
+  },
+  {
+   "file": "dialog_watermarkRemove.png",
+   "theme": "dark",
+   "bytes": 106533,
+   "sha256": "a18fd6213f7893b5280a8b95ddbf6fe57124207a289adf421163297ac4244be0"
+  },
+  {
+   "file": "dialog_web2pdf.png",
+   "theme": "dark",
+   "bytes": 107428,
+   "sha256": "070faf5b0cfb54d2d3cde3d1d43e709a344bfb8ac2c6f16c33e40114fd4db4be"
+  },
+  {
+   "file": "dialog_workflow.png",
+   "theme": "dark",
+   "bytes": 114280,
+   "sha256": "fe9d2214e9c4bce7f93658e5bda213a165bf458d38da430794d4ee6fd4ea47dc"
+  },
+  {
+   "file": "edit_paragraph.png",
+   "theme": "dark",
+   "bytes": 90889,
+   "sha256": "d2599d6644c168196a6e8da31550f44635eaa99dfb4ac66d0f9a7f8ab8ce91f0"
+  },
+  {
+   "file": "edit_textEdit.png",
+   "theme": "dark",
+   "bytes": 93208,
+   "sha256": "a8cfd1becb7c21f3f4a5fb94348c609363fdb64e5677df3aae2017a3e496ad6b"
+  },
+  {
+   "file": "main_annotate.png",
+   "theme": "dark",
+   "bytes": 53866,
+   "sha256": "b3e7a60dbddc3675e7927ce110d7aad8c9b9f0f16766ddd3edc3c51dbfcd8b6f"
+  },
+  {
+   "file": "main_edit.png",
+   "theme": "dark",
+   "bytes": 53016,
+   "sha256": "e692d07b647f32b5b8c223c60940163c56018742a1fec2d9a44befae15c95aa1"
+  },
+  {
+   "file": "main_export.png",
+   "theme": "dark",
+   "bytes": 52154,
+   "sha256": "df0056b00b29d359a5a6dbd5a7522b28165d6fba598b34f48585eab17303af73"
+  },
+  {
+   "file": "main_forms.png",
+   "theme": "dark",
+   "bytes": 47458,
+   "sha256": "a3497f9c08d3a85b3b66646ea65bf6416aca255c52d1408fc90a0b730863b574"
+  },
+  {
+   "file": "main_pages.png",
+   "theme": "dark",
+   "bytes": 62626,
+   "sha256": "4b0e75f7cd99e1a618e7e4e22e805479d0eac08e7aedc05407ea869d18d835d0"
+  },
+  {
+   "file": "main_sign.png",
+   "theme": "dark",
+   "bytes": 53727,
+   "sha256": "8d128df7940dd4c2552e25b514a46f78fa91b1ba6cba0a297e7b45724ee9d2e8"
+  },
+  {
+   "file": "main_view.png",
+   "theme": "dark",
+   "bytes": 51675,
+   "sha256": "fd50dcd195a2f3124ab0403f76e6ff84a3ae019a3cf16870204d04c5f3f01461"
+  },
+  {
+   "file": "main_view_sidebar_layers.png",
+   "theme": "dark",
+   "bytes": 60062,
+   "sha256": "4511e992a07a7d9a2ac3df089f3fc17dd630ce6d583aafc4e9019f5756126ed1"
+  },
+  {
+   "file": "main_view_sidebar_notes.png",
+   "theme": "dark",
+   "bytes": 67504,
+   "sha256": "37a0645b179b94cd615d9393e770afe4bddf760224596685398c86bc5f494ed9"
+  },
+  {
+   "file": "main_view_sidebar_outline.png",
+   "theme": "dark",
+   "bytes": 54198,
+   "sha256": "e6c6f2f2a73760c7a2f6841846a42606c1b2e96273af5274f3f694451533ca18"
+  },
+  {
+   "file": "main_view_sidebar_signatures.png",
+   "theme": "dark",
+   "bytes": 54005,
+   "sha256": "ec1babafb9581616b6f870b882c1d62ad9edb58ed34149c92adb9af658cde320"
+  },
+  {
+   "file": "main_view_sidebar_thumbnails.png",
+   "theme": "dark",
+   "bytes": 51677,
+   "sha256": "520a2b60f3a560682ca8452c445044fc75c55c8bad480551c576a62186a09032"
+  },
+  {
+   "file": "main_workflow.png",
+   "theme": "dark",
+   "bytes": 48814,
+   "sha256": "6eeb988941f54955e576bc3c68a1df43cc88f8129f93468fa428a621e6b6b1c6"
+  },
+  {
+   "file": "overlay_findbar.png",
+   "theme": "dark",
+   "bytes": 74511,
+   "sha256": "8cd2ba3206e9e50c3615d4500efeb54a50b8574f1687c78115112a1c8ca6c21d"
+  },
+  {
+   "file": "overlay_jobPanel.png",
+   "theme": "dark",
+   "bytes": 78369,
+   "sha256": "3559f1336235f16127edbfeb15f15945ba15cf9048b4e8bc4b27dbbee2b10570"
+  },
+  {
+   "file": "overlay_palette.png",
+   "theme": "dark",
+   "bytes": 106582,
+   "sha256": "72f100509ef34d1302e903362a584d6d1fc91919b271462c2a3293706b5b7cef"
+  },
+  {
+   "file": "start.png",
+   "theme": "dark",
+   "bytes": 83058,
+   "sha256": "81c4fdefa69ffa4ee0ea71553cab5cca25a58d70cf86862b21ffe788df7ccf8c"
+  }
+ ]
+}

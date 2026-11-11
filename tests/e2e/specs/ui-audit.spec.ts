@@ -169,6 +169,12 @@ async function measureNow(page: Page, r: ScreenResult, name: string): Promise<vo
   r.findings = res.groups;
   r.scanned = res.scanned;
   r.controls = res.controls;
+  // Ảnh sạch (không khung đỏ) cho bộ tham chiếu R2.01: ghi ra thư mục ngoài repo khi có UI_AUDIT_CLEAN_DIR.
+  const cleanDir = process.env.UI_AUDIT_CLEAN_DIR;
+  if (cleanDir) {
+    fs.mkdirSync(cleanDir, { recursive: true });
+    await page.screenshot({ path: path.join(cleanDir, shotName(name)) });
+  }
   await drawMarks(page, r.findings);
   r.shot = await shoot(page, name);
   await clearMarks(page);

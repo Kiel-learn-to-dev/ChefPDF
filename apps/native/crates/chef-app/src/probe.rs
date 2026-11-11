@@ -3,17 +3,25 @@
 //! kiểm tra, chụp bằng kênh debug (`screenshot`) rồi so với bản Electron.
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use chef_theme::{Rgba, dark, light};
 use gpui::{
     App, BoxShadow, ClickEvent, Context, Div, Entity, FocusHandle, Focusable, FontFeatures,
-    FontWeight, Hsla, IntoElement, Render, Window, div, point, prelude::*, px, rgb, rgba, svg,
+    FontWeight, Hsla, IntoElement, MouseButton, Render, SharedString, Window, div, point,
+    prelude::*, px, rgb, rgba, svg,
 };
 
-use chef_ui::button::{Button, Size, Variant};
+use chef_ui::button::{Button, Size, Variant, ring};
+use chef_ui::choice::{RadioGroup, RadioItem, Slider, ToggleGroup, ToggleItem};
 use chef_ui::dialog::{Dialog, Width};
 use chef_ui::form::{CheckState, Checkbox, Switch, TextField};
+use chef_ui::menu::{Menu, MenuEntry};
+use chef_ui::select::Select;
+use chef_ui::tabs::{TabItem, Tabs};
 use chef_ui::text_input::TextInput;
+use chef_ui::toast::Toast;
+use chef_ui::tooltip::Tooltip;
 
 use crate::theme::{hex, is_dark, mode_from_env, rgba_hex};
 
@@ -113,6 +121,26 @@ pub struct Probe {
     dialog_keep: CheckState,
     dialog_cancel: FocusHandle,
     dialog_ok: FocusHandle,
+    /// Khu R2.05: nhóm chọn một (3 mục), nhóm nút bật (3 mục) và thanh trượt.
+    radio_focus: Vec<FocusHandle>,
+    radio_sel: Option<usize>,
+    toggle_focus: Vec<FocusHandle>,
+    toggle_sel: usize,
+    slider_focus: FocusHandle,
+    slider_value: f32,
+    /// Khu R2.06 và R2.08: ô chọn, và menu chuột phải mở tại vị trí chuột.
+    select_sel: usize,
+    context_at: Option<(f32, f32)>,
+    /// Tiêu điểm: ba mục của menu chuột phải, rồi vùng bấm chuột phải.
+    context_focus: Vec<FocusHandle>,
+    context_picked: Option<usize>,
+    /// Khu R2.09, R2.11, R2.12: thẻ chuyển, hai nút có tooltip, và thông báo.
+    tabs_sel: usize,
+    tabs_focus: Vec<FocusHandle>,
+    tip_focus: Vec<FocusHandle>,
+    toast_button: FocusHandle,
+    toasts: Vec<ToastItem>,
+    toast_seq: usize,
 }
 
 impl Probe {
@@ -132,6 +160,22 @@ impl Probe {
             dialog_keep: CheckState::Checked,
             dialog_cancel: cx.focus_handle(),
             dialog_ok: cx.focus_handle(),
+            radio_focus: (0..3).map(|_| cx.focus_handle()).collect(),
+            radio_sel: Some(0),
+            toggle_focus: (0..3).map(|_| cx.focus_handle()).collect(),
+            toggle_sel: 0,
+            slider_focus: cx.focus_handle(),
+            slider_value: 50.0,
+            select_sel: 0,
+            context_at: None,
+            context_focus: (0..7).map(|_| cx.focus_handle()).collect(),
+            context_picked: None,
+            tabs_sel: 0,
+            tabs_focus: (0..3).map(|_| cx.focus_handle()).collect(),
+            tip_focus: (0..2).map(|_| cx.focus_handle()).collect(),
+            toast_button: cx.focus_handle(),
+            toasts: Vec::new(),
+            toast_seq: 0,
         }
     }
 
@@ -140,6 +184,137 @@ impl Probe {
         self.dialog_open = true;
         window.focus(&self.dialog_close, cx);
         cx.notify();
+    }
+
+    /// R2.06: mở menu chuột phải tại (x, y) và đưa tiêu điểm vào mục đầu.
+    fn open_context(&mut self, x: f32, y: f32, window: &mut Window, cx: &mut Context<Self>) {
+        self.context_at = Some((x, y));
+        self.context_picked = None;
+        // Sau khi GPUI đặt tiêu điểm theo chuột (vùng bấm chuột phải có track_focus), mới chuyển vào menu.
+        let first = self.context_focus[0].clone();
+        window.defer(cx, move |window, cx| window.focus(&first, cx));
+        cx.notify();
+    }
+
+    /// R2.12: thêm một thông báo và hẹn gỡ nó sau TOAST_MS.
+    fn push_toast(&mut self, cx: &mut Context<Self>) {
+        let id = self.toast_seq;
+        self.toast_seq += 1;
+        self.toasts.push(ToastItem {
+            id,
+            text: format!("Thông báo {}", id + 1).into(),
+            close: cx.focus_handle(),
+        });
+        cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(Duration::from_millis(TOAST_MS))
+                .await;
+            this.update(cx, |probe, cx| {
+                probe.dismiss_toast(id);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+        cx.notify();
+    }
+
+    /// R2.12: gỡ thông báo có mã `id` (hết hạn hoặc bấm đóng).
+    fn dismiss_toast(&mut self, id: usize) {
+        self.toasts.retain(|t| t.id != id);
+    }
+
+    /// R2.12: lớp thông báo ở góc dưới phải của cửa sổ, xếp chồng theo thứ tự thêm.
+    fn toast_layer(&self, c: &Colors, cx: &mut Context<Self>) -> Option<Div> {
+        if self.toasts.is_empty() {
+            return None;
+        }
+        let entity = cx.entity();
+        let toasts = self.toasts.iter().map(|t| {
+            let entity = entity.clone();
+            let id = t.id;
+            Toast::new(
+                format!("probe-toast-{}", t.id),
+                t.text.clone(),
+                t.close.clone(),
+            )
+            .dark(c.dark)
+            .on_close(move |_, cx| {
+                entity.update(cx, |probe, cx| {
+                    probe.dismiss_toast(id);
+                    cx.notify();
+                });
+            })
+        });
+        Some(
+            div()
+                .absolute()
+                .bottom(px(16.))
+                .right(px(16.))
+                .flex()
+                .flex_col()
+                .gap(px(8.))
+                .children(toasts),
+        )
+    }
+
+    /// R2.06: đóng menu chuột phải và trả tiêu điểm về vùng bấm chuột phải.
+    fn close_context(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.context_at = None;
+        window.focus(&self.context_focus[3], cx);
+        cx.notify();
+    }
+
+    /// R2.06: menu chuột phải. Ba mục; "Xóa" bị khóa để kiểm mũi tên bỏ qua mục khóa.
+    fn context_menu(&self, x: f32, y: f32, cx: &mut Context<Self>) -> Menu {
+        let entity = cx.entity();
+        let pick = entity.clone();
+        let dismiss = entity;
+        Menu::new(
+            "probe-context",
+            "Menu chuột phải",
+            vec![
+                MenuEntry::new("probe-context-open", self.context_focus[0].clone(), "Mở"),
+                MenuEntry::new(
+                    "probe-context-copy",
+                    self.context_focus[1].clone(),
+                    "Sao chép",
+                )
+                .shortcut("Ctrl+C"),
+                MenuEntry::new("probe-context-delete", self.context_focus[2].clone(), "Xóa")
+                    .disabled(true),
+                // R2.07: mục có menu con. Mục con hiện ngay dưới mục cha khi mở.
+                MenuEntry::new(
+                    "probe-context-more",
+                    self.context_focus[4].clone(),
+                    "Chuyển đến",
+                )
+                .submenu(vec![
+                    MenuEntry::new(
+                        "probe-context-first",
+                        self.context_focus[5].clone(),
+                        "Đầu tệp",
+                    ),
+                    MenuEntry::new(
+                        "probe-context-last",
+                        self.context_focus[6].clone(),
+                        "Cuối tệp",
+                    ),
+                ]),
+            ],
+        )
+        .at(x, y)
+        .width(200.0)
+        .dark(is_dark(mode_from_env()))
+        .on_select(move |index, window, cx| {
+            pick.update(cx, |this, cx| {
+                this.context_picked = Some(index);
+                this.close_context(window, cx);
+            });
+        })
+        .on_dismiss(move |window, cx| {
+            dismiss.update(cx, |this, cx| this.close_context(window, cx));
+        })
     }
 
     /// R2.10: đóng hộp thoại và trả tiêu điểm về nút đã mở.
@@ -209,6 +384,230 @@ impl Probe {
                     })),
             )
     }
+}
+
+/// R2.05: nhóm chọn một, nhóm nút bật và thanh trượt. Trạng thái nằm ở `Probe`.
+fn choice_section(c: &Colors, probe: &Probe, cx: &mut Context<Probe>) -> Div {
+    let radio_items = ["Vừa chiều rộng", "Vừa trang", "100%"]
+        .iter()
+        .enumerate()
+        .map(|(i, label)| {
+            RadioItem::new(
+                format!("probe-radio-{i}"),
+                probe.radio_focus[i].clone(),
+                *label,
+            )
+        })
+        .collect();
+    let toggle_items = ["Sáng", "Tối", "Hệ thống"]
+        .iter()
+        .enumerate()
+        .map(|(i, label)| {
+            ToggleItem::new(
+                format!("probe-toggle-{i}"),
+                probe.toggle_focus[i].clone(),
+                *label,
+            )
+        })
+        .collect();
+    let entity = cx.entity();
+    let (radio_entity, toggle_entity, slider_entity) = (entity.clone(), entity.clone(), entity);
+    section(
+        "R2.05 · nhóm chọn một, nhóm nút bật, thanh trượt (mũi tên, Home, End, PageUp, PageDown)",
+        c,
+    )
+    .flex_row()
+    .flex_wrap()
+    .gap(px(24.))
+    .child(
+        RadioGroup::new("probe-radio", "Chế độ xem", radio_items)
+            .selected(probe.radio_sel)
+            .dark(c.dark)
+            .on_change(move |next, _, cx| {
+                radio_entity.update(cx, |this, cx| {
+                    this.radio_sel = Some(next);
+                    cx.notify();
+                });
+            }),
+    )
+    .child(
+        ToggleGroup::new("probe-toggle", "Giao diện", toggle_items)
+            .selected(probe.toggle_sel)
+            .dark(c.dark)
+            .on_change(move |next, _, cx| {
+                toggle_entity.update(cx, |this, cx| {
+                    this.toggle_sel = next;
+                    cx.notify();
+                });
+            }),
+    )
+    .child(
+        Slider::new(
+            "probe-slider",
+            "Độ rộng",
+            probe.slider_focus.clone(),
+            probe.slider_value,
+        )
+        .range(0.0, 100.0, 5.0)
+        .dark(c.dark)
+        .on_change(move |next, _, cx| {
+            slider_entity.update(cx, |this, cx| {
+                this.slider_value = next;
+                cx.notify();
+            });
+        }),
+    )
+}
+
+/// R2.09, R2.11, R2.12: thanh thẻ, hai nút có tooltip và nút tạo thông báo.
+fn components_section(c: &Colors, probe: &Probe, cx: &mut Context<Probe>) -> Div {
+    let entity = cx.entity();
+    let tab_entity = entity.clone();
+    let tabs = Tabs::new(
+        "probe-tabs",
+        "Khu xem",
+        vec![
+            TabItem::new("probe-tab-0", probe.tabs_focus[0].clone(), "Tài liệu"),
+            TabItem::new("probe-tab-1", probe.tabs_focus[1].clone(), "Chữ ký"),
+            TabItem::new("probe-tab-2", probe.tabs_focus[2].clone(), "Trang"),
+        ],
+    )
+    .selected(probe.tabs_sel)
+    .dark(c.dark)
+    .on_change(move |index, _, cx| {
+        tab_entity.update(cx, |probe, cx| {
+            probe.tabs_sel = index;
+            cx.notify();
+        });
+    });
+    let open_tip = Tooltip::new(
+        "probe-tip-a",
+        "Mở tệp (Ctrl+O)",
+        Button::new("probe-tip-a-btn", probe.tip_focus[0].clone())
+            .variant(Variant::Secondary)
+            .label("Mở")
+            .dark(c.dark),
+    )
+    .focus(probe.tip_focus[0].clone())
+    .dark(c.dark);
+    let save_tip = Tooltip::new(
+        "probe-tip-b",
+        "Lưu (Ctrl+S)",
+        Button::new("probe-tip-b-btn", probe.tip_focus[1].clone())
+            .variant(Variant::Secondary)
+            .label("Lưu")
+            .dark(c.dark),
+    )
+    .focus(probe.tip_focus[1].clone())
+    .dark(c.dark);
+    section(
+        "R2.09 · thẻ chuyển (mũi tên, Home, End); R2.11 · tooltip; R2.12 · thông báo",
+        c,
+    )
+    .flex_col()
+    .gap(px(16.))
+    .child(tabs)
+    .child(
+        div()
+            .flex()
+            .flex_row()
+            .gap(px(16.))
+            .child(open_tip)
+            .child(save_tip)
+            .child(
+                Button::new("probe-toast", probe.toast_button.clone())
+                    .variant(Variant::Primary)
+                    .label("Hiện thông báo")
+                    .dark(c.dark)
+                    .on_click(
+                        cx.listener(|this: &mut Probe, _: &ClickEvent, _, cx| this.push_toast(cx)),
+                    ),
+            ),
+    )
+}
+
+/// Thông báo đang hiện: mã, nội dung và tiêu điểm của nút đóng.
+struct ToastItem {
+    id: usize,
+    text: SharedString,
+    close: FocusHandle,
+}
+
+/// Thời gian thông báo tự ẩn (mili giây).
+const TOAST_MS: u64 = 3000;
+
+/// R2.06 và R2.08: ô chọn một mục và vùng bấm chuột phải. Menu chuột phải dựng ở `Probe::render`.
+fn menu_section(c: &Colors, probe: &Probe, window: &Window, cx: &mut Context<Probe>) -> Div {
+    let entity = cx.entity();
+    let options: Vec<SharedString> = ["Tiếng Việt", "English", "Français"]
+        .iter()
+        .map(|s| SharedString::from(*s))
+        .collect();
+    let select_entity = entity.clone();
+    let area_entity = entity;
+    let area_focus = probe.context_focus[3].clone();
+    section(
+        "R2.06 · menu chuột phải; R2.08 · ô chọn (mũi tên, Enter, Esc, gõ chữ đầu)",
+        c,
+    )
+    .flex_row()
+    .flex_wrap()
+    .gap(px(24.))
+    .child(
+        Select::new("probe-select", "Ngôn ngữ", options)
+            .selected(probe.select_sel)
+            .width(220.0)
+            .dark(c.dark)
+            .on_change(move |index, _, cx| {
+                select_entity.update(cx, |this, cx| {
+                    this.select_sel = index;
+                    cx.notify();
+                });
+            }),
+    )
+    .child({
+        // Vùng chuột phải: đăng ký và đo vị trí để E2E bấm đúng chỗ (D81).
+        chef_ui::a11y::register(chef_ui::a11y::Registered {
+            id: "probe-context-area".into(),
+            role: "region",
+            name: "Vùng chuột phải".into(),
+            disabled: false,
+            focused: probe.context_focus[3].is_focused(window),
+            hovered: false,
+            checked: None,
+            value: None,
+            bounds: None,
+        });
+        div()
+            .flex_none()
+            .child(
+                div()
+                    .id("probe-context-area")
+                    .track_focus(&area_focus)
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .w(px(260.))
+                    .h(px(60.))
+                    .border_1()
+                    .border_color(rgba(c.border))
+                    .rounded(px(8.))
+                    .text_color(rgba(c.text_2))
+                    .focus_visible(|s| s.shadow(vec![ring(c.surface, 2.0), ring(c.focus, 4.0)]))
+                    .child("Bấm chuột phải vào đây")
+                    .on_mouse_down(MouseButton::Right, move |event, window, cx| {
+                        let at = event.position;
+                        area_entity.update(cx, |this, cx| {
+                            this.open_context(at.x.as_f32(), at.y.as_f32(), window, cx);
+                        });
+                    }),
+            )
+            .on_children_prepainted(|bounds, _, _| {
+                if let Some(b) = bounds.first() {
+                    chef_ui::a11y::set_bounds("probe-context-area", *b);
+                }
+            })
+    })
 }
 
 /// R2.10: nút mở hộp thoại mẫu. Hộp thoại được dựng ở `Probe::render` khi đang mở.
@@ -540,6 +939,7 @@ impl Render for Probe {
         chef_ui::a11y::begin_frame(window.scale_factor());
         crate::debug::count_render();
         let c = Colors::new(is_dark(mode_from_env()));
+        let context = self.context_at.map(|(x, y)| self.context_menu(x, y, cx));
         chef_ui::button::focus_nav(div())
             .size_full()
             .bg(rgb(c.bg))
@@ -556,7 +956,13 @@ impl Render for Probe {
             .child(shadow_section(&c))
             .child(layout_section(&c, window.viewport_size().width.as_f32()))
             .child(tnum_section(&c))
+            .child(choice_section(&c, self, cx))
+            .child(menu_section(&c, self, window, cx))
+            .child(components_section(&c, self, cx))
             .child(dialog_section(&c, self, cx))
             .children(self.dialog_open.then(|| self.dialog(&c, cx)))
+            // Menu chuột phải nằm trong lớp phủ tuyệt đối ở gốc cửa sổ, để vị trí là tọa độ cửa sổ.
+            .children(context.map(|menu| div().absolute().top(px(0.)).left(px(0.)).child(menu)))
+            .children(self.toast_layer(&c, cx))
     }
 }

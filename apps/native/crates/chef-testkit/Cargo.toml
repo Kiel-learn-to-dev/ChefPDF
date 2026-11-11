@@ -9,3 +9,6 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+# Đọc PNG và BMP để so ảnh ui-audit (R2.02). MIT hoặc Apache-2.0, đã có trong Cargo.lock qua gpui.
+image = { version = "0.25", default-features = false, features = ["png", "bmp"] }
+serde_json = "1"

@@ -23,7 +23,13 @@ use gpui::{
 use image::{Frame, RgbaImage};
 
 use crate::find::Find;
+use crate::password;
+use crate::properties;
+use crate::settings::{self, Language as SettingLanguage, Settings, Theme as SettingTheme};
+use crate::settings_dialog;
 use crate::theme::{self, Mode};
+use chef_ui::i18n;
+use zeroize::Zeroize;
 
 actions!(
     viewer,
@@ -37,7 +43,10 @@ actions!(
         NextPage,
         PrevPage,
         ToggleFullscreen,
-        ToggleNight
+        ToggleNight,
+        OpenSettings,
+        OpenFile,
+        OpenProperties
     ]
 );
 
@@ -55,6 +64,9 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("pagedown", NextPage, Some("Viewer")),
         KeyBinding::new("pageup", PrevPage, Some("Viewer")),
         KeyBinding::new("f11", ToggleFullscreen, Some("Viewer")),
+        KeyBinding::new("ctrl-,", OpenSettings, Some("Viewer")),
+        KeyBinding::new("ctrl-o", OpenFile, Some("Viewer")),
+        KeyBinding::new("ctrl-d", OpenProperties, Some("Viewer")),
     ]);
 }
 
@@ -105,11 +117,26 @@ const POLL_MS: u64 = 16;
 /// Bước cuộn cho một nấc bánh xe khi thiết bị báo theo dòng, pixel.
 const LINE_PX: f32 = 40.0;
 
+/// Cài đặt đang hiển thị: từ settings.json, hoặc mặc định khi file không đọc được.
+#[derive(Clone, Default)]
+struct Prefs {
+    theme: SettingTheme,
+    language: SettingLanguage,
+    save_dir: Option<String>,
+}
+
 pub struct Viewer {
     handle: RenderHandle,
     search: Entity<TextInput>,
-    /// Giữ đăng ký sự kiện của ô tìm: bỏ thì không còn nhận sự kiện.
+    /// Giữ đăng ký sự kiện của ô tìm và ô thư mục: bỏ thì không còn nhận sự kiện.
     _subscriptions: Vec<Subscription>,
+    /// settings.json đã đọc. None khi file không đọc được: thay đổi chỉ còn trong phiên này.
+    settings: Option<Settings>,
+    settings_error: Option<String>,
+    prefs: Prefs,
+    settings_open: bool,
+    settings_handles: settings_dialog::Handles,
+    dir_input: Entity<TextInput>,
     find: Find,
     /// Tiêu điểm của khung viewer. Bấm vào trang đưa tiêu điểm về đây để Ctrl+A, Ctrl+C hoạt động.
     focus: FocusHandle,
@@ -120,6 +147,20 @@ pub struct Viewer {
     dragging: bool,
     mode: Mode,
     doc: Option<DocId>,
+    /// Đường dẫn tệp đang mở, để hộp thoại Thuộc tính đọc dung lượng.
+    doc_path: Option<PathBuf>,
+    /// Hộp thoại Thuộc tính (Ctrl+D): số liệu đã đọc lúc mở, và tiêu điểm nút đóng.
+    props_open: bool,
+    props_view: Option<properties::View>,
+    props_close: FocusHandle,
+    /// Hộp nhập mật khẩu (R2.26): file đang chờ mật khẩu, ô nhập, và trạng thái lần thử trước.
+    password_open: bool,
+    password_path: Option<PathBuf>,
+    password_wrong: bool,
+    password_input: Entity<TextInput>,
+    password_handles: password::Handles,
+    /// Đặt tiêu điểm vào ô mật khẩu ở khung kế tiếp (sau khi hộp thoại hiện).
+    password_focus_pending: bool,
     layout: Option<Layout>,
     /// Vừa chiều rộng khi true (mặc định). Ctrl+=, Ctrl+− tắt chế độ này; Ctrl+0 bật lại.
     fit_width: bool,
@@ -170,17 +211,81 @@ impl Viewer {
             &search,
             |this: &mut Viewer, _, event: &TextInputEvent, cx| this.on_search_event(*event, cx),
         );
+        // Cài đặt: đọc settings.json trong userData (hoặc thư mục thử nghiệm). Lỗi đọc không làm sập app.
+        let (settings, settings_error) = match Settings::load(&settings::user_data_dir()) {
+            Ok(s) => (Some(s), None),
+            Err(e) => (None, Some(e.to_string())),
+        };
+        let prefs = match &settings {
+            Some(s) => Prefs {
+                theme: s.theme(),
+                language: s.language(),
+                save_dir: s.default_save_dir().map(str::to_string),
+            },
+            None => Prefs::default(),
+        };
+        i18n::set_language(i18n::Lang::from_code(prefs.language.as_str()));
+        let dir_input =
+            cx.new(|cx| TextInput::new(cx, i18n::t("settings.defaultSaveDirPlaceholder")));
+        let dir_text = prefs.save_dir.clone().unwrap_or_default();
+        dir_input.update(cx, |input, cx| input.set_text(&dir_text, cx));
+        let dir_subscription = cx.subscribe(
+            &dir_input,
+            |this: &mut Viewer, input, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Submit) {
+                    let text = input.read(cx).text().to_string();
+                    this.set_save_dir_setting(text, cx);
+                }
+            },
+        );
+        let password_input = cx.new(|cx| TextInput::new(cx, i18n::t("password.label")));
+        let password_subscription = cx.subscribe(
+            &password_input,
+            |this: &mut Viewer, _, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Submit) {
+                    this.submit_password(cx);
+                }
+            },
+        );
+        let focus = cx.focus_handle();
+        let focus_for_password = focus.clone();
+        let settings_handles = settings_dialog::Handles {
+            theme: (0..3).map(|_| cx.focus_handle()).collect(),
+            close: cx.focus_handle(),
+            return_to: focus.clone(),
+        };
         let mut viewer = Viewer {
             handle,
             search,
-            _subscriptions: vec![subscription],
+            _subscriptions: vec![subscription, dir_subscription, password_subscription],
+            settings,
+            settings_error,
+            prefs: prefs.clone(),
+            settings_open: false,
+            settings_handles,
+            dir_input,
             find: Find::default(),
-            focus: cx.focus_handle(),
+            focus,
             texts: HashMap::new(),
             text_pending: HashMap::new(),
             selection: None,
             dragging: false,
-            mode: theme::mode_from_env(),
+            mode: theme::effective_mode(prefs.theme),
+            doc_path: None,
+            props_open: false,
+            props_view: None,
+            props_close: cx.focus_handle(),
+            password_open: false,
+            password_path: None,
+            password_wrong: false,
+            password_input: password_input.clone(),
+            password_handles: password::Handles {
+                input: password_input.read(cx).focus_handle(cx),
+                close: cx.focus_handle(),
+                open: cx.focus_handle(),
+                return_to: focus_for_password.clone(),
+            },
+            password_focus_pending: false,
             doc: None,
             layout: None,
             fit_width: true,
@@ -194,15 +299,192 @@ impl Viewer {
             kind: None,
         };
         match path {
-            Some(p) => {
-                if let Err(e) = viewer.load(p) {
-                    viewer.message = Some(e);
-                }
-            }
+            Some(p) => viewer.open_path(p),
             None => viewer.message = Some("Cách dùng: chef-app <tệp.pdf>".into()),
         }
         viewer.start_poll(cx);
         viewer
+    }
+
+    /// Ghi settings.json. Lỗi ghi hiện ở thông báo, không làm sập app.
+    fn save_settings(&mut self) {
+        let result = self.settings.as_mut().map(|settings| settings.save());
+        if let Some(Err(e)) = result {
+            self.message = Some(format!("Không lưu được cài đặt: {e}"));
+        }
+    }
+
+    /// Đổi giao diện từ hộp thoại: có hiệu lực ngay và được ghi.
+    pub(crate) fn set_theme_setting(&mut self, theme: SettingTheme, cx: &mut Context<Self>) {
+        self.prefs.theme = theme;
+        self.mode = theme::effective_mode(theme);
+        if let Some(settings) = self.settings.as_mut() {
+            settings.set_theme(theme);
+        }
+        self.save_settings();
+        cx.notify();
+    }
+
+    /// Đổi ngôn ngữ từ hộp thoại: chuỗi giao diện đổi ngay và được ghi.
+    pub(crate) fn set_language_setting(
+        &mut self,
+        language: SettingLanguage,
+        cx: &mut Context<Self>,
+    ) {
+        self.prefs.language = language;
+        i18n::set_language(i18n::Lang::from_code(language.as_str()));
+        if let Some(settings) = self.settings.as_mut() {
+            settings.set_language(language);
+        }
+        self.save_settings();
+        cx.notify();
+    }
+
+    /// Đặt thư mục lưu mặc định từ ô nhập (Enter). Chuỗi rỗng là bỏ thư mục mặc định.
+    pub(crate) fn set_save_dir_setting(&mut self, text: String, cx: &mut Context<Self>) {
+        let dir = text.trim();
+        let value = (!dir.is_empty()).then(|| dir.to_string());
+        if let Some(settings) = self.settings.as_mut() {
+            settings.set_default_save_dir(value.as_deref());
+        }
+        self.prefs.save_dir = value;
+        self.save_settings();
+        cx.notify();
+    }
+
+    /// Mở một file. Nếu file cần mật khẩu thì hỏi mật khẩu (R2.26); lỗi khác hiện ở thông báo.
+    fn open_path(&mut self, path: PathBuf) {
+        match self.load(path.clone(), None) {
+            Ok(()) => {}
+            Err(e) if e == chef_pdf::render::PASSWORD_REQUIRED => {
+                self.password_path = Some(path);
+                self.password_wrong = false;
+                self.password_open = true;
+                self.password_focus_pending = true;
+            }
+            Err(e) => {
+                // Không ghi đường dẫn tài liệu vào nhật ký: chỉ sự kiện.
+                crate::logging::error("mở tệp lỗi");
+                self.message = Some(e);
+            }
+        }
+    }
+
+    /// Enter trong ô mật khẩu: thử mở bằng mật khẩu đã nhập, rồi xóa mật khẩu khỏi bộ nhớ.
+    fn submit_password(&mut self, cx: &mut Context<Self>) {
+        let Some(path) = self.password_path.clone() else {
+            return;
+        };
+        let mut typed = self.password_input.read(cx).text().to_string();
+        self.password_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        let result = self.load(path, Some(typed.clone()));
+        typed.zeroize();
+        match result {
+            Ok(()) => self.close_password_state(),
+            Err(e) if e == chef_pdf::render::PASSWORD_WRONG => {
+                self.password_wrong = true;
+                self.password_focus_pending = true;
+            }
+            Err(e) => {
+                self.close_password_state();
+                self.message = Some(e);
+            }
+        }
+        cx.notify();
+    }
+
+    fn close_password_state(&mut self) {
+        self.password_open = false;
+        self.password_path = None;
+        self.password_wrong = false;
+        self.password_focus_pending = false;
+    }
+
+    /// Đóng hộp nhập mật khẩu mà không mở file: xóa ô nhập và trả tiêu điểm.
+    fn close_password(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.close_password_state();
+        self.password_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    /// Ctrl+O: hộp chọn PDF của Windows, bắt đầu từ thư mục mặc định trong cài đặt. Mở tệp đầu tiên
+    /// được chọn (nhiều tệp cần thẻ, R2.15). Hủy thì không làm gì và không báo lỗi.
+    fn open_file_dialog(&mut self, _cx: &mut Context<Self>) {
+        let dir = self.prefs.save_dir.as_deref().map(std::path::Path::new);
+        let picked = crate::dialogs::open_pdfs(dir);
+        if let Some(path) = picked.into_iter().next() {
+            self.open_path(path);
+        }
+    }
+
+    /// Ctrl+D: đọc thuộc tính của tài liệu đang mở rồi mở hộp thoại Thuộc tính (R2.27).
+    fn open_properties(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(doc) = self.doc else {
+            return;
+        };
+        let props = match self.call(|id, reply| Job::Properties { id, doc, reply }) {
+            Ok(props) => props,
+            Err(e) => {
+                self.message = Some(e);
+                return;
+            }
+        };
+        let (name, size) = match self.doc_path.as_ref() {
+            Some(path) => (
+                path.file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                std::fs::metadata(path).map(|m| m.len()).unwrap_or(0),
+            ),
+            None => (String::new(), 0),
+        };
+        let page_no = self
+            .layout
+            .as_ref()
+            .map(|l| *l.visible(self.scroll_y, self.viewport.1).start() + 1)
+            .unwrap_or(1);
+        let page_pt = props.first_page_pt;
+        self.props_view = Some(properties::View {
+            file_name: name,
+            location: self.doc_path.as_ref().map(|p| p.display().to_string()),
+            file_size: size,
+            version: props.version,
+            page_count: props.page_count,
+            page_pt,
+            page_no,
+            metadata: props.metadata,
+        });
+        self.props_open = true;
+        window.focus(&self.props_close, cx);
+        cx.notify();
+    }
+
+    /// Đóng hộp thoại Thuộc tính và trả tiêu điểm về khung viewer.
+    fn close_properties(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.props_open = false;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    /// Mở hộp thoại Cài đặt (Ctrl+,). Tiêu điểm vào nút của chế độ đang chọn.
+    fn open_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let text = self.prefs.save_dir.clone().unwrap_or_default();
+        self.dir_input
+            .update(cx, |input, cx| input.set_text(&text, cx));
+        self.settings_open = true;
+        let selected = settings_dialog::theme_index(self.prefs.theme);
+        window.focus(&self.settings_handles.theme[selected], cx);
+        cx.notify();
+    }
+
+    /// Đóng hộp thoại Cài đặt và trả tiêu điểm về khung viewer.
+    pub(crate) fn close_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.settings_open = false;
+        window.focus(&self.focus, cx);
+        cx.notify();
     }
 
     /// Gửi một job và chờ trả lời. Dùng cho thao tác mở và đọc kích thước (nhanh).
@@ -219,11 +501,11 @@ impl Viewer {
         reply.result
     }
 
-    fn load(&mut self, path: PathBuf) -> Result<(), String> {
+    fn load(&mut self, path: PathBuf, password: Option<String>) -> Result<(), String> {
         let doc = self.call(|id, reply| Job::Open {
             id,
             path: path.clone(),
-            password: None,
+            password,
             reply,
         })?;
         let count = self.call(|id, reply| Job::PageCount { id, doc, reply })?;
@@ -238,6 +520,7 @@ impl Viewer {
         }
         self.kind = self.sample_kind(doc, count);
         self.doc = Some(doc);
+        self.doc_path = Some(path);
         self.layout = Some(Layout::new(sizes, PAGE_GAP, 1.0));
         Ok(())
     }
@@ -638,12 +921,92 @@ fn to_render_image(page: PageImage) -> Result<(Arc<RenderImage>, usize), String>
 impl Render for Viewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         crate::debug::count_render();
+        // Đầu khung: xóa danh sách điều khiển của khung trước, để lệnh `state` không đọc bản cũ.
+        chef_ui::a11y::begin_frame(window.scale_factor());
         let vp = window.viewport_size();
         self.viewport = (vp.width.as_f32(), vp.height.as_f32());
         for old in self.to_drop.drain(..) {
             let _ = window.drop_image(old);
         }
         let palette = theme::palette(theme::is_dark(self.mode));
+        crate::debug::set_message(self.message.as_deref());
+        let entity = cx.entity();
+        if self.password_focus_pending {
+            self.password_focus_pending = false;
+            // Hộp thoại dựng ở khung này, nên tiêu điểm đặt sau khi khung vẽ xong (defer). Trong E2E cửa sổ
+            // không active nên tiêu điểm lập trình không giữ; E2E bấm vào ô trước (xem e2e-native-password).
+            let focus = self.password_input.read(cx).focus_handle(cx);
+            window.defer(cx, move |window, cx| {
+                window.focus(&focus, cx);
+                window.refresh();
+            });
+        }
+        crate::debug::set_password(self.password_open, self.password_wrong);
+        let password_dialog = if self.password_open {
+            let name = self
+                .password_path
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            let dismiss_entity = entity.clone();
+            let open_entity = entity.clone();
+            Some(password::build(
+                &name,
+                self.password_wrong,
+                theme::is_dark(self.mode),
+                &self.password_input,
+                &self.password_handles,
+                move |window, cx| {
+                    dismiss_entity.update(cx, |this, cx| this.close_password(window, cx));
+                },
+                move |_window, cx| {
+                    open_entity.update(cx, |this, cx| this.submit_password(cx));
+                },
+            ))
+        } else {
+            None
+        };
+        let props_dialog = if self.props_open {
+            self.props_view.as_ref().map(|view| {
+                crate::debug::set_properties(Some(properties::to_json(view)));
+                let close_entity = entity.clone();
+                properties::build(
+                    view,
+                    theme::is_dark(self.mode),
+                    self.props_close.clone(),
+                    self.focus.clone(),
+                    move |window, cx| {
+                        close_entity.update(cx, |this, cx| this.close_properties(window, cx));
+                    },
+                )
+            })
+        } else {
+            crate::debug::set_properties(None);
+            None
+        };
+        crate::debug::set_settings(
+            self.prefs.theme.as_str(),
+            self.prefs.language.as_str(),
+            self.prefs.save_dir.as_deref(),
+            self.settings_open,
+        );
+        let settings_dialog = self.settings_open.then(|| {
+            let snapshot = settings_dialog::Snapshot {
+                theme: self.prefs.theme,
+                language: self.prefs.language,
+                dark: theme::is_dark(self.mode),
+                read_error: self.settings_error.clone(),
+            };
+            settings_dialog::build(
+                &cx.entity(),
+                &snapshot,
+                &self.settings_handles,
+                &self.dir_input,
+                window,
+                cx,
+            )
+        });
         let scanning = self.scanning();
         let label = if self.find.is_active() {
             self.counter_label(scanning)
@@ -714,6 +1077,16 @@ impl Render for Viewer {
                 this.toggle_night();
                 cx.notify();
             }))
+            .on_action(cx.listener(|this, _: &OpenSettings, window, cx| {
+                this.open_settings(window, cx);
+            }))
+            .on_action(cx.listener(|this, _: &OpenFile, _window, cx| {
+                this.open_file_dialog(cx);
+                cx.notify();
+            }))
+            .on_action(cx.listener(|this, _: &OpenProperties, window, cx| {
+                this.open_properties(window, cx);
+            }))
             .on_scroll_wheel(cx.listener(|this, ev: &ScrollWheelEvent, _window, cx| {
                 let dy = ev.delta.pixel_delta(px(LINE_PX)).y.as_f32();
                 this.scroll_by(dy);
@@ -724,15 +1097,20 @@ impl Render for Viewer {
         let scale = window.scale_factor();
         let Some(layout) = self.layout.as_mut() else {
             let text = self.message.clone().unwrap_or_default();
-            return root.child(toolbar).child(
-                div()
-                    .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .text_color(rgb(palette.text_2))
-                    .child(text),
-            );
+            return root
+                .child(toolbar)
+                .child(
+                    div()
+                        .size_full()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .text_color(rgb(palette.text_2))
+                        .child(text),
+                )
+                .children(settings_dialog)
+                .children(props_dialog)
+                .children(password_dialog);
         };
         if self.fit_width && vw > 0.0 {
             let fit = layout.fit_width_zoom(vw, MARGIN);
@@ -956,6 +1334,11 @@ impl Render for Viewer {
                     )
                     .child(self.kind.map_or("", |k| k.label())),
             );
-        root.child(toolbar).child(content).child(footer)
+        root.child(toolbar)
+            .child(content)
+            .child(footer)
+            .children(settings_dialog)
+            .children(props_dialog)
+            .children(password_dialog)
     }
 }

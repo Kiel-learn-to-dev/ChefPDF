@@ -50,11 +50,17 @@ try {
     Start-Sleep -Seconds 2
     Set-Clipboard -Value "trống"
 
+    # Tọa độ viết theo pixel logic ở tỉ lệ 175%. Đổi sang vật lý theo tỉ lệ hiện tại của cửa sổ, để
+    # chạy được trên mọi tỉ lệ hiển thị.
+    $ref = 1.75
+    $scale = [double](Send 'state' | ConvertFrom-Json).scale
+    function Phys([double]$lx, [double]$ly) { return ("{0} {1}" -f [int]($lx / $ref * $scale), [int]($ly / $ref * $scale)) }
+
     # 1. Kéo chuột từ "T" của "Trang 1" đến sau "định", rồi Ctrl+C.
-    Send "mouse down 250 195" | Out-Null
+    Send ("mouse down " + (Phys 250 195)) | Out-Null
     Start-Sleep -Milliseconds 100
-    1..8 | ForEach-Object { Send ("mouse move " + (250 + $_ * 50) + " 195") | Out-Null; Start-Sleep -Milliseconds 40 }
-    Send "mouse up 640 195" | Out-Null
+    1..8 | ForEach-Object { Send ("mouse move " + (Phys (250 + $_ * 50) 195)) | Out-Null; Start-Sleep -Milliseconds 40 }
+    Send ("mouse up " + (Phys 640 195)) | Out-Null
     Start-Sleep -Milliseconds 300
     Send "action copyselection" | Out-Null
     Start-Sleep -Milliseconds 300

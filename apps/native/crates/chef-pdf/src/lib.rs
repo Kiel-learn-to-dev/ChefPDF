@@ -1,6 +1,7 @@
 //! Xem PDF bằng pdfium (TASKS_RUST M1.4). Mọi lệnh pdfium chạy trên một luồng render (render.rs),
 //! vì pdfium không an toàn luồng (BLUEPRINT_RUST §2.1). UI chỉ gửi yêu cầu và nhận ảnh BGRA.
 
+pub mod props;
 pub mod render;
 pub mod search;
 pub mod text;

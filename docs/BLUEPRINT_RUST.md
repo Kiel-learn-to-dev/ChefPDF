@@ -65,7 +65,7 @@
 | RPC writer | Ghi stdin, có khóa | Gộp yêu cầu theo `id` |
 | Supervisor | Khởi động, `system.ping`, khởi động lại khi lõi chết | Theo `CONTRACTS.md` §2 |
 
-- Lõi khởi động với cờ **không tạo cửa sổ console** (`CREATE_NO_WINDOW`). Electron hiện làm việc này ở đâu chưa đối chiếu; kiểm ở M1.
+- Lõi khởi động với cờ **không tạo cửa sổ console** (`CREATE_NO_WINDOW`). Electron hiện làm việc này ở đâu chưa đối chiếu; kiểm ở M3 (TASKS R3.02).
 - Bitmap được pdfium render sang **BGRA**, khớp với định dạng GPUI dùng trên DirectX. Chưa xác minh việc tải lên không sao chép thừa; kiểm ở M1.
 
 ### 2.2 Thiết kế tiết kiệm RAM
@@ -94,7 +94,7 @@ Các giá trị dưới đây là **giá trị khởi điểm**, không phải n
 - Sau khi cuộn 350 màn hình (mỗi bước 150 ms): `nativeMB` = 100,3 MB; `cached` = 2 trang; không có yêu cầu nào chờ. Chính sách full-scale chỉ cho trang nhìn thấy ±1 (R2) đã giữ cache nhỏ.
 - Bản release (LTO) cho cùng kết quả ở đường E2E (151 lần vẽ, cache 2).
 - `coreMB` = 0: chưa có lõi nào được khởi động trong kịch bản này (lõi lười, §4). Chưa đo cùng kịch bản với Electron có lõi (R1.38), nên chưa so sánh tổng. Số Electron đã có (1351 MB ở 350 màn hình) là chỉ riêng tiến trình Electron.
-- Working set không thấy bộ nhớ VRAM của GPU (texture nằm trên GPU, không tính vào working set). Đo số texture cần DXGI (QueryVideoMemoryInfo), chưa làm (R1.35 còn mở).
+- Working set không thấy bộ nhớ VRAM của GPU (texture nằm trên GPU, không tính vào working set). Đo bằng bộ đếm GPU của Windows theo tiến trình (`\GPU Process Memory(pid_*)\Dedicated Usage`), chưa làm (R1.35 còn mở); chỉ dùng DXGI nếu bộ đếm tăng theo số trang đã cuộn.
 
 ## 3. Lõi xử lý: mô hình thao tác (Operation)
 
@@ -299,6 +299,9 @@ Những điều phát hiện khi làm R2.10 (áp dụng cho mọi thành phần 
 - **Không có `tab_group` ở commit đã ghim.** Vòng Tab trong một khu (hộp thoại, menu, bảng lệnh) phải tự làm bằng danh sách `FocusHandle` theo thứ tự hiển thị (`dialog::next_index`, `dialog::step`).
 - **Action handler ở pha bubble tự dừng truyền.** `app.rs:1942`: mặc định một listener của action đã dừng việc đi lên các phần tử cha. Muốn cha cũng nhận thì gọi `cx.propagate()`. `TextInput::cancel` làm vậy để Esc trong ô nhập vẫn tới khung hộp thoại. Esc khác trong tương lai (toàn màn hình, thanh tìm) cần kiểm không bị gọi hai lần.
 - **Đổi khóa `with_animation` đổi id phần tử, làm mất trạng thái nhấn và click.** Nút dùng khóa theo `generation` nên mouse down làm đổi id, và GPUI không phát `on_click` ở mouse up. Chỉ thấy khi bấm chuột thật (E2E `e2e-native-dialog`). Cách làm: giữ phần tử ổn định, nội suy màu thủ công (D82). Menu, tab và toast phải theo cách này nếu chuyển màu.
+- **Bấm ngoài và popup:** khung bao nút và danh sách (select) không được coi bấm vào danh sách là bấm ngoài. Danh sách vẽ bằng `deferred` (lớp trên) và báo vùng của nó sau bố cục (`on_layout`); khung chỉ đóng khi bấm ngoài cả nút lẫn vùng danh sách.
+- **Đăng ký điều khiển đến lúc layout, không phải lúc `render` của view.** Thành phần `RenderOnce` (Button, Select, Tabs…) chạy `render` trong pha layout, sau khi `render` của view đã trả về, nên không có điểm kết thúc khung đáng tin. Registry (`a11y.rs`) dùng hai bộ đệm: khung trước được công bố khi khung mới bắt đầu, hoặc khi đã yên 30 ms (kể cả khung rỗng). Không làm vậy thì lệnh `state` đọc khung vẽ dở và E2E lúc thì thiếu điều khiển.
+- **Tooltip tự làm, không dùng của GPUI:** GPUI không chỉnh được trễ 450/200 ms. Thời gian chờ được chốt khi kích hoạt, không tính lại theo khung (tính lại làm 200 ms bị nhảy lên 450 ms giữa chừng).
 - **Click chuột tọa độ logic:** kênh debug nhận tọa độ vật lý, nên E2E nhân `bounds` với `scale` của `state.controls` (xem `e2e-native-dialog.ps1`).
 
 ## 7. Dữ liệu, cài đặt & bảo mật
@@ -363,12 +366,14 @@ Các thư mục Electron (`apps/desktop`, `apps/ui`) và `core/` không đổi, 
 - Nguồn: JSON Schema đã có trong `packages/contracts/src/generated` (sinh từ Pydantic).
 - Công cụ đề xuất: **typify** (Rust), sinh struct và enum từ JSON Schema. Giấy phép cần xác minh trước khi thêm (§9).
 - CI chạy lại codegen và so sánh với file đã commit (cùng cơ chế với contracts TS).
+- **Kết quả probe (TASKS R1.42, 2026-11-09):** typify **0.10.0-alpha.3** không dùng được với rustc 1.94 của dự án (yêu cầu rustc 1.97). Dùng **typify 0.4** (ổn định, kéo schemars 0.8). Nguồn thử là `core/chef_core/layout/schema.json` (JSON Schema 2020-12 có `prefixItems`, typify 0.4 vẫn sinh được). `build.rs` của `chef-contracts` sinh `layout_types.rs` lúc build; test đọc `Paragraph` theo schema và từ chối khi thiếu `bbox`. Giấy phép (typify và các gói kéo theo) đạt `cargo deny check licenses bans sources`.
+- Hạn chế: schema của lõi hiện là file riêng (`core/chef_core/layout/schema.json`), chưa phải toàn bộ `packages/contracts`. Khi nối toàn bộ contracts, cần kiểm lại `oneOf`/`anyOf` và kiểu số.
 
 ## 9. Công nghệ & thư viện
 
 | Thành phần | Gói | Giấy phép | Xác minh |
 |---|---|---|---|
-| Khung giao diện | `gpui` (repo Zed), **ghim commit** | Apache-2.0 (theo nguồn bên thứ ba) | Đọc `LICENSE` trong repo Zed, kiểm ở M1 |
+| Khung giao diện | `gpui` (repo Zed), **ghim v0.233.10 (350f338)** | **Apache-2.0** (đã đọc `Cargo.toml` của crate, TASKS R1.01) | Đã xác nhận cho crate `gpui`; đồ thị phụ thuộc xem kết quả cargo-deny bên dưới |
 | Bộ widget (tùy chọn) | `gpui-component` | **Apache-2.0** (đã đọc `LICENSE-APACHE` trên `main`, 2026-11-08; GitHub ghi "Other" vì có hai file giấy phép) | Không dùng để giữ giao diện (§6.6) |
 | PDF engine | `pdfium` (Google) | **BSD-3-Clause** (đã đọc `LICENSE` upstream trên chromium/pdfium, 2026-11-08) | Đã xác nhận |
 | Bọc pdfium | `pdfium-render` 0.9.5, `default-features = false`, feature `pdfium_8125` + `thread_safe` | **MIT OR Apache-2.0** (đã đọc `Cargo.toml` và `LICENSE.md`, 2026-11-08) | Đã xác nhận |
@@ -410,7 +415,7 @@ Các thư mục Electron (`apps/desktop`, `apps/ui`) và `core/` không đổi, 
 ### 10.2 Debug channel
 
 - Named pipe `\\.\pipe\chef-native-<pid>-<token>`. Chỉ bật khi `CHEF_E2E=1` hoặc build debug. Không có trong bản phát hành.
-- Lệnh: `state` (trạng thái tab, tài liệu, chế độ), `open` (đường dẫn), `op` (opId + params, qua lõi thật), `click` (theo id phần tử ổn định), `key`, `screenshot` (ảnh cửa sổ, hiện là BMP qua PrintWindow; xem §10.3), `wait` (điều kiện).
+- Lệnh: `state` (trạng thái tab, tài liệu, chế độ), `open` (đường dẫn), `op` (opId + params, qua lõi thật), `click` (theo id phần tử ổn định), `key`, `screenshot` (ảnh cửa sổ, hiện là BMP, chụp bằng Windows.Graphics.Capture; xem §10.3), `wait` (điều kiện).
 - Mọi điều khiển có `id` ổn định, giống `data-testid` của bản web.
 - Mục đích giống `window.__chefUi` (D40): đọc trạng thái mà không đoán từ ảnh.
 
@@ -433,7 +438,7 @@ Các thư mục Electron (`apps/desktop`, `apps/ui`) và `core/` không đổi, 
 ### 10.5 CI
 
 - Job mới **Native (Windows)**: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo deny check`, kiểm tra codegen (theme, icon, contracts), build release.
-- Chặn merge từ M1 trở đi (theo nguyên tắc "Windows phải xanh", PLAN_V1 mục 1). Linux và macOS vẫn không chặn.
+- **Chưa chặn merge** (TASKS R1.05: job không nằm trong required checks; job cũng chưa chạy vì chưa đẩy lên remote). Trong lúc đó cổng kiểm là cục bộ: fmt, clippy, test và script gộp E2E native (TASKS R2.33). Việc đặt job thành required do chủ dự án quyết ở Điểm kiểm M1. Linux và macOS không chặn.
 
 ## 11. Build, phát hành & cập nhật
 
@@ -452,7 +457,7 @@ Các thư mục Electron (`apps/desktop`, `apps/ui`) và `core/` không đổi, 
 
 ## 13. Các mốc
 
-Thứ tự theo rủi ro. Mỗi mốc có **Demo** và **báo cáo RAM**. Số task và ước lượng để sau M1, khi đã có tốc độ thực tế.
+Thứ tự theo rủi ro. Từ 2026-11-11 (D86) thứ tự làm không đi thẳng theo số mốc: lát cắt dọc của M3 (một thao tác thật qua lõi, gồm đổi viewer sang rev file của §4) làm trước phần còn lại của M2; xem [PLAN_RUST.md](PLAN_RUST.md). Mỗi mốc có **Demo** và **báo cáo RAM**. Số task và ước lượng để sau M1, khi đã có tốc độ thực tế.
 
 | Mốc | Nội dung | Việc rủi ro được giải quyết | Demo nghiệm thu |
 |---|---|---|---|
@@ -468,7 +473,7 @@ Thứ tự theo rủi ro. Mỗi mốc có **Demo** và **báo cáo RAM**. Số t
 
 ### 13.1 IME: đường đi đã biết
 
-- **Trạng thái:** chưa có xác nhận GPUI xử lý composition TSF cho Telex trên Windows. Đây là việc kiểm ở M1.
+- **Trạng thái (R1.23, 2026-11-09):** "một phần". `gpui_windows` xử lý `WM_IME_STARTCOMPOSITION` và `WM_IME_COMPOSITION` qua IMM32 (`ImmGetCompositionStringW`); không thấy đường TSF. Chưa xác nhận bằng bộ gõ thật: MAN-1 (R1.26, R1.27) là việc đầu tiên trong thứ tự làm tiếp (D86).
 - **Nếu không đạt:** đường đi đã biết là **hiện thực TSF composition trong lớp nền Windows** của GPUI đã ghim (phần đọc và đặt composition string, vị trí ứng viên, underline). Việc này nằm trong M1 như một mục việc, không phải điểm dừng. Ước lượng công sức chỉ làm sau khi M1 đo được mức độ thiếu.
 - Trường nhập văn bản dùng trong toàn app (Sửa chữ, khung ghi chú, ô tìm kiếm) đều cần đường này.
 

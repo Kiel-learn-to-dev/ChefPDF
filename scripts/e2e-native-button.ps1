@@ -47,14 +47,14 @@ function Expect([string]$name, $actual, $expected) {
     else { $script:fails++; Write-Output "FAIL $name : got [$actual] want [$expected]" }
 }
 
-$ids = @("probe-primary", "probe-secondary", "probe-ghost", "probe-danger", "probe-disabled", "probe-icon", "dialog-open")
+$ids = @("probe-primary", "probe-secondary", "probe-ghost", "probe-danger", "probe-disabled", "probe-icon", "probe-toggle-0", "probe-toggle-1", "probe-toggle-2", "probe-tip-a-btn", "probe-tip-b-btn", "probe-toast", "dialog-open")
 
 try {
     Start-Sleep -Milliseconds 800
     $state = Send 'state' | ConvertFrom-Json
     $scale = $state.controls.scale
     $b = $state.controls.controls | Where-Object { $_.role -eq 'button' }
-    Expect "seven buttons registered" $b.Count 7
+    Expect "thirteen buttons registered (nhóm nút bật, nút tooltip và nút thông báo là nút)" $b.Count 13
     Expect "ids are stable" (($b | ForEach-Object { $_.id }) -join ",") ($ids -join ",")
     foreach ($item in $b) {
         if ([string]::IsNullOrEmpty($item.name)) { $script:fails++; Write-Output "FAIL name empty for $($item.id)" }
@@ -65,7 +65,7 @@ try {
     Expect "primary holds focus at start" (Find $b "probe-primary").focused $true
 
     # Tab: qua các nút, bỏ qua nút vô hiệu, rồi sang checkbox và switch của khu biểu mẫu, rồi nút mở hộp thoại (R2.10), rồi vòng về đầu.
-    $order = @("probe-secondary", "probe-ghost", "probe-danger", "probe-icon", "probe-check", "probe-mixed", "probe-switch", "dialog-open", "probe-primary")
+    $order = @("probe-secondary", "probe-ghost", "probe-danger", "probe-icon", "probe-check", "probe-mixed", "probe-switch", "probe-radio-0", "probe-toggle-0", "probe-slider", "probe-select", "probe-tab-0", "probe-tip-a-btn", "probe-tip-b-btn", "probe-toast", "dialog-open", "probe-primary")
     foreach ($expected in $order) {
         Send "key 9" | Out-Null
         Start-Sleep -Milliseconds 200

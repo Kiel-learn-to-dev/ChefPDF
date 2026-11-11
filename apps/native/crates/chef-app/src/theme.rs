@@ -21,6 +21,18 @@ pub fn mode_from_env() -> Mode {
     }
 }
 
+/// Chế độ theo cài đặt `theme` (settings.json). Biến `CHEF_THEME` nếu có thì ưu tiên (E2E).
+pub fn effective_mode(setting: crate::settings::Theme) -> Mode {
+    if std::env::var_os("CHEF_THEME").is_some() {
+        return mode_from_env();
+    }
+    match setting {
+        crate::settings::Theme::System => Mode::System,
+        crate::settings::Theme::Light => Mode::Light,
+        crate::settings::Theme::Dark => Mode::Dark,
+    }
+}
+
 /// Theme tối đang được chọn? Với System, hỏi hệ điều hành.
 pub fn is_dark(mode: Mode) -> bool {
     match mode {

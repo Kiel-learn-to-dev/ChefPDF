@@ -10,7 +10,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 
-use pdfium_render::prelude::{PdfDocument, PdfRenderConfig};
+use pdfium_render::prelude::{PdfDocument, PdfRenderConfig, PdfiumError, PdfiumInternalError};
+
+/// Mã lỗi khi file cần mật khẩu mà chưa có (R2.26). Viewer nhận mã này để hỏi mật khẩu.
+pub const PASSWORD_REQUIRED: &str = "PASSWORD_REQUIRED";
+/// Mã lỗi khi mật khẩu đã nhập không đúng (R2.26).
+pub const PASSWORD_WRONG: &str = "PASSWORD_WRONG";
 
 use crate::bind;
 use crate::text::PageText;
@@ -44,6 +49,12 @@ pub enum Job {
         id: u64,
         doc: DocId,
         reply: Sender<Reply<usize>>,
+    },
+    /// Thuộc tính tài liệu (R2.27): phiên bản, số trang, khổ trang đầu, metadata.
+    Properties {
+        id: u64,
+        doc: DocId,
+        reply: Sender<Reply<crate::props::DocProps>>,
     },
     /// Kích thước trang tính bằng point (1/72 inch): (rộng, cao).
     PageSize {
@@ -134,9 +145,10 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                 password,
                 reply,
             } => {
+                let had_password = password.is_some();
                 let result = pdfium
                     .load_pdf_from_file(&path, password.as_deref())
-                    .map_err(|e| format!("mở {} lỗi: {e}", path.display()))
+                    .map_err(|e| open_error(&path, &e, had_password))
                     .map(|doc| {
                         let key = next_doc;
                         next_doc += 1;
@@ -150,6 +162,13 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
                     .map(|d| d.pages().len() as usize);
+                let _ = reply.send(Reply { id, result });
+            }
+            Job::Properties { id, doc, reply } => {
+                let result = docs
+                    .get(&doc)
+                    .ok_or_else(|| format!("không có tài liệu {doc}"))
+                    .map(crate::props::read);
                 let _ = reply.send(Reply { id, result });
             }
             Job::PageSize {
@@ -229,4 +248,20 @@ fn render_page(
         height,
         bgra,
     })
+}
+
+/// Chuyển lỗi mở của pdfium thành thông báo. Lỗi mật khẩu thành mã riêng, không kèm mật khẩu.
+fn open_error(path: &std::path::Path, e: &PdfiumError, had_password: bool) -> String {
+    if matches!(
+        e,
+        PdfiumError::PdfiumLibraryInternalError(PdfiumInternalError::PasswordError)
+    ) {
+        return if had_password {
+            PASSWORD_WRONG
+        } else {
+            PASSWORD_REQUIRED
+        }
+        .to_string();
+    }
+    format!("mở {} lỗi: {e}", path.display())
 }

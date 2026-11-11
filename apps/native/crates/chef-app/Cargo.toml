@@ -11,6 +11,8 @@ workspace = true
 [dependencies]
 gpui.workspace = true
 gpui_platform.workspace = true
+# Lõi Python qua JSON-RPC (TASKS_RUST R3.01–R3.05). Chỉ có trên Windows.
+chef-rpc = { path = "../chef-rpc" }
 # Cùng phiên bản 0.6 mà gpui dùng, để lấy HWND của cửa sổ.
 raw-window-handle = "0.6"
 # Cùng phiên bản 0.25 mà gpui dùng (image::Frame của RenderImage).
@@ -21,6 +23,8 @@ chef-theme = { path = "../chef-theme" }
 chef-ui = { path = "../chef-ui" }
 # Đọc và ghi settings.json (TASKS_RUST R2.14). Cùng phiên bản với chef-ui.
 serde_json = "1"
+# Xóa mật khẩu khỏi bộ nhớ sau khi dùng (TASKS_RUST R2.26). Đã có trong Cargo.lock (Apache-2.0 hoặc MIT).
+zeroize = "1"
 # Cùng phiên bản 0.57 mà Cargo.lock đã có (qua gpui). Dùng để chụp cửa sổ bằng
 # Windows.Graphics.Capture (chỉ dùng trong kênh debug, R1.07/R1.08).
 windows = { version = "0.57", features = [

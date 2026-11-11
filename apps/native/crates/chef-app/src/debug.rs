@@ -72,6 +72,9 @@ pub const ACTION_NAMES: &[&str] = &[
     "togglenight",
     "focusnext",
     "focusprev",
+    "opensettings",
+    "openfile",
+    "openproperties",
 ];
 
 /// Hàng đợi action chờ luồng GPUI chạy. Đường đi: pipe -> hàng đợi -> `window.dispatch_action`,
@@ -221,6 +224,7 @@ unsafe extern "system" {
 unsafe extern "system" {
     fn GetWindowRect(hwnd: isize, rect: *mut WinRect) -> i32;
     fn IsWindowVisible(hwnd: isize) -> i32;
+    fn GetDpiForWindow(hwnd: isize) -> u32;
     fn PostMessageW(hwnd: isize, msg: u32, wparam: usize, lparam: isize) -> i32;
 }
 
@@ -230,8 +234,11 @@ const WM_CHAR: u32 = 0x0102;
 const WM_MOUSEMOVE: u32 = 0x0200;
 const WM_LBUTTONDOWN: u32 = 0x0201;
 const WM_LBUTTONUP: u32 = 0x0202;
+const WM_RBUTTONDOWN: u32 = 0x0204;
+const WM_RBUTTONUP: u32 = 0x0205;
 /// Cờ MK_LBUTTON của wParam: nút trái đang giữ (khi kéo).
 const MK_LBUTTON: usize = 0x0001;
+const MK_RBUTTON: usize = 0x0002;
 
 #[link(name = "bcrypt")]
 unsafe extern "system" {
@@ -337,6 +344,78 @@ fn input_json() -> String {
     }
 }
 
+/// Trạng thái cài đặt của viewer (theme, ngôn ngữ, thư mục, hộp thoại đang mở), dạng JSON.
+/// Viewer ghi mỗi lần vẽ.
+/// Trạng thái hộp nhập mật khẩu (mở, lần thử trước sai). Viewer ghi mỗi lần vẽ.
+static PASSWORD: std::sync::Mutex<(bool, bool)> = std::sync::Mutex::new((false, false));
+
+pub fn set_password(open: bool, wrong: bool) {
+    if let Ok(mut current) = PASSWORD.lock() {
+        *current = (open, wrong);
+    }
+}
+
+fn password_json() -> String {
+    let (open, wrong) = PASSWORD.lock().map(|p| *p).unwrap_or((false, false));
+    format!("{{\"open\":{open},\"wrong\":{wrong}}}")
+}
+
+/// Số liệu hộp thoại Thuộc tính khi đang mở (JSON), hoặc None. Viewer ghi mỗi lần vẽ.
+static PROPERTIES: std::sync::Mutex<Option<serde_json::Value>> = std::sync::Mutex::new(None);
+
+pub fn set_properties(value: Option<serde_json::Value>) {
+    if let Ok(mut current) = PROPERTIES.lock() {
+        *current = value;
+    }
+}
+
+fn properties_json() -> String {
+    match PROPERTIES.lock().ok().and_then(|p| p.clone()) {
+        Some(value) => value.to_string(),
+        None => "null".into(),
+    }
+}
+
+static MESSAGE: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+/// Thông báo đang hiện của viewer (lỗi mở, lỗi lưu), hoặc None. Viewer ghi mỗi lần vẽ.
+pub fn set_message(message: Option<&str>) {
+    if let Ok(mut current) = MESSAGE.lock() {
+        *current = message.map(str::to_string);
+    }
+}
+
+fn message_json() -> String {
+    match MESSAGE.lock().ok().and_then(|m| m.clone()) {
+        Some(text) => json_str(&text),
+        None => "null".into(),
+    }
+}
+
+static SETTINGS: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+pub fn set_settings(theme: &str, language: &str, save_dir: Option<&str>, open: bool) {
+    let dir = match save_dir {
+        Some(d) => json_str(d),
+        None => "null".into(),
+    };
+    let text = format!(
+        "{{\"theme\":{},\"language\":{},\"defaultSaveDir\":{dir},\"open\":{open}}}",
+        json_str(theme),
+        json_str(language)
+    );
+    if let Ok(mut current) = SETTINGS.lock() {
+        *current = text;
+    }
+}
+
+fn settings_json() -> String {
+    match SETTINGS.lock() {
+        Ok(current) if !current.is_empty() => current.clone(),
+        _ => "{}".into(),
+    }
+}
+
 fn state(hwnd: isize) -> String {
     let mut rect = WinRect {
         left: 0,
@@ -348,8 +427,12 @@ fn state(hwnd: isize) -> String {
     let ok = unsafe { GetWindowRect(hwnd, &mut rect) } != 0;
     // SAFETY: chỉ đọc trạng thái hiển thị của cửa sổ.
     let visible = unsafe { IsWindowVisible(hwnd) } != 0;
+    // Tỉ lệ hiển thị của cửa sổ (96 DPI là 1,0). E2E dùng để đổi tọa độ logic sang vật lý.
+    // SAFETY: chỉ đọc DPI của cửa sổ còn sống; 0 nếu không lấy được.
+    let dpi = unsafe { GetDpiForWindow(hwnd) };
+    let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"visible\":{visible},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{},\"input\":{},\"find\":{},\"view\":{},\"controls\":{},\"reducedMotion\":{}}}",
+        "{{\"visible\":{visible},\"scale\":{scale},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{},\"input\":{},\"find\":{},\"view\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"logLines\":{}}}",
         rect.left,
         rect.top,
         rect.right,
@@ -361,7 +444,12 @@ fn state(hwnd: isize) -> String {
         find_json(),
         view_json(),
         controls_json(),
-        chef_ui::motion::reduced()
+        chef_ui::motion::reduced(),
+        settings_json(),
+        message_json(),
+        properties_json(),
+        password_json(),
+        crate::logging::recent().len()
     )
 }
 
@@ -445,6 +533,8 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
                 "down" => (WM_LBUTTONDOWN, MK_LBUTTON),
                 "move" => (WM_MOUSEMOVE, MK_LBUTTON),
                 "up" => (WM_LBUTTONUP, 0),
+                "rdown" => (WM_RBUTTONDOWN, MK_RBUTTON),
+                "rup" => (WM_RBUTTONUP, 0),
                 _ => return "{\"ok\":false,\"error\":\"mouse cần down, move hoặc up\"}".into(),
             };
             match (x, y) {

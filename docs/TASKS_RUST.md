@@ -2,7 +2,7 @@
 
 > **Mục tiêu phiên bản 1.4 = bản Rust đầu tiên, ngang với 1.3.0 Electron (D77).** "Xong 1.4" là đủ 165 mã tính năng trong phạm vi và có bản build chạy thử. Bảng M1–M9 là cách chia việc, không phải phiên bản.
 >
-> **Phiên bản 0.1 (2026-11-08).** Đi kèm [BLUEPRINT_RUST.md](BLUEPRINT_RUST.md) (thiết kế, cùng số mục với BLUEPRINT.md) và [PLAN_RUST.md](PLAN_RUST.md) (thứ tự mốc). **File này là nguồn trạng thái duy nhất cho việc vỏ Rust.** PLAN_RUST chỉ trỏ về đây.
+> **Phiên bản 0.2 (2026-11-11; 0.1 ngày 2026-11-08).** Bản 0.2 đổi thứ tự làm (D86, mục "Thứ tự làm tiếp"), gỡ phụ thuộc giả và vòng, thêm R1.43 và R2.33; chi tiết ở "Thay đổi sau khi chốt". Đi kèm [BLUEPRINT_RUST.md](BLUEPRINT_RUST.md) (thiết kế, cùng số mục với BLUEPRINT.md) và [PLAN_RUST.md](PLAN_RUST.md) (thứ tự mốc). **File này là nguồn trạng thái duy nhất cho việc vỏ Rust.** PLAN_RUST chỉ trỏ về đây.
 > **Cập nhật cột "Trạng thái" mỗi khi xong một task.** ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ tạm dừng · ❌ bỏ
 > **Mã task:** `R<mốc>.<số>`, ví dụ `R1.07` là task 7 của M1. Mốc M5 chia thành 5a–5f và đánh số liền `R5.01…R5.45`. Mã `T<mốc>.<số>` trong [TASKS.md](TASKS.md) không bị ảnh hưởng.
 > **Kích thước:** XS (1 file), S (1–2), M (3–5), L (5–8). Không có XL: task lớn hơn đã được tách. **Điểm (points) để trống (—)** đến khi xong M1, theo BLUEPRINT_RUST §14.
@@ -28,6 +28,7 @@ Checkpoint sau mỗi 2–3 task và cuối mỗi mốc là **điểm kiểm** đ
 | CH-R1 | **Chuyển trang web sang PDF** (`web2pdfRender.ts` dùng `printToPDF` của Chromium, bản Rust không có Chromium). Chọn một: (a) giữ một tiến trình Electron nhỏ, chỉ chạy khi dùng tính năng này; (b) dùng WebView2 có sẵn của Windows qua CDP; (c) bỏ tính năng, ghi vào "Thay đổi sau khi chốt" của FEATURES | R5.16 (❌) | **Đã chốt (c), 2026-11-09:** bỏ tính năng, ghi FEATURES M5 và D78 |
 | CH-R2 | Độ tương phản của token (D72): có đổi màu `--c-text-3`, `--c-success`, `--c-warning` khi chữ không đạt 4,5:1 không | Không chặn; quyết định ở M9 | Giữ nguyên, ghi nhận |
 | CH-R3 | Lọc `invert` của trang đọc tối và `grayscale` của màn hình Start (BLUEPRINT_RUST §6.2) | R2.28 (đã có đề xuất) | Đảo màu bitmap trong Rust; bỏ grayscale nếu không đáng **Đã chốt (2026-11-09): đảo màu trên CPU, D79; grayscale quyết ở R2.16.** |
+| CH-R4 | `cargo deny check` đỏ ở mục advisories: 10 cảnh báo unmaintained từ upstream gpui (async-std, instant, paste, pin-utils, proc-macro-error2, rustybuzz, ttf-parser, zbus_names, zvariant, zvariant_derive). Không có lỗ hổng bảo mật, chỉ là crate không còn bảo trì. Thêm `[advisories] ignore` theo RUSTSEC id (có lý do từng mục), hay giữ đỏ đến khi gpui đổi phụ thuộc? | Không chặn tính năng; DoD (c) yêu cầu deny xanh | Đề xuất: thêm ignore có lý do cho từng id, ghi NOTES; không sửa `deny.toml` trước khi chủ dự án chốt |
 
 ## Việc thủ công của chủ dự án
 
@@ -35,7 +36,7 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 
 | Mã | Việc | Task | Vì sao không tự động hóa được |
 |---|---|---|---|
-| MAN-1 | Gõ Telex bằng bộ gõ Windows và bằng Unikey/EVKey trong khung ghi chú; báo đúng/sai dấu, có mất ký tự không | R1.26, R1.27, R7.09 | Cần bộ gõ thật của máy chủ dự án |
+| MAN-1 | Gõ Telex bằng bộ gõ Windows và bằng Unikey/EVKey trong ô "Tìm trong tài liệu" của viewer (Ctrl+F, ô nhập R1.22; app chưa có khung ghi chú); báo đúng/sai dấu, có mất ký tự không. **Lần đầu (R1.26, R1.27) làm ngay:** ô nhập R1.22 đã có, kết quả quyết định có phải làm R1.24 và R1.25 không | R1.26, R1.27, R7.09 | Cần bộ gõ thật của máy chủ dự án |
 | MAN-2 | Ký thật bằng token Viettel-CA; mở bằng Adobe Reader và Foxit kiểm tra chữ ký | R6.18, R6.19 | Token vật lý, phần mềm đọc PDF bên ngoài |
 | MAN-3 | Chụp bằng điện thoại qua mã QR (cùng Wi-Fi) | R8.07, R8.08 | Điện thoại thật |
 | MAN-4 | Đồng ý dùng cửa sổ hiện khi R1.08 và R1.09 đều không đạt (quy tắc E2E nền trong memory) | R1.10 | Quyết định về cách chạy kiểm thử |
@@ -46,8 +47,8 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 
 | Mốc | Tên | Số task | XS | S | M | L | Điểm |
 |---|---|---|---|---|---|---|---|
-| M1 | Khung & rủi ro | 42 | 9 | 20 | 11 | 2 | — |
-| M2 | Xem đầy đủ | 33 | 1 | 10 | 21 | 0 | — |
+| M1 | Khung & rủi ro | 43 | 9 | 21 | 11 | 2 | — |
+| M2 | Xem đầy đủ | 34 | 2 | 10 | 21 | 0 | — |
 | M3 | Phiên và thao tác | 15 | 0 | 7 | 7 | 0 | — |
 | M4 | Trang và chú thích | 25 | 0 | 7 | 15 | 2 | — |
 | M5 | Hộp thoại và xử lý | 69 | 0 | 17 | 45 | 1 | — |
@@ -55,9 +56,19 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 | M7 | Sửa chữ và đoạn | 13 | 2 | 0 | 10 | 0 | — |
 | M8 | Chụp và xử lý ảnh | 23 | 0 | 1 | 21 | 0 | — |
 | M9 | Hoàn thiện | 17 | 1 | 6 | 8 | 0 | — |
-| **Tổng** | | **267** | 14 | 75 | 157 | 7 | — |
+| **Tổng** | | **269** | 15 | 76 | 157 | 7 | — |
 
-Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14).
+Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
+
+## Thứ tự làm tiếp (chốt 2026-11-11, D86)
+
+Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi theo rủi ro còn lại, không theo số mốc. Điểm kiểm cuối mốc không chặn việc của mốc sau.
+
+1. **MAN-1 ngay (R1.26, R1.27).** Khoảng 10 phút của chủ dự án. IME là rủi ro cao nhất và là việc duy nhất quyết định có phải làm R1.24, R1.25 (hai task L). Nếu đạt: R1.24 và R1.25 chuyển ❌.
+2. **Lát cắt dọc M3, trước phần còn lại của M2:** R3.02 → R3.04 → R3.05 → R3.06 → R3.08 (chỉ `page.rotate`) → R3.11 → R3.12. Lý do: khoảng 170 task của M4–M8 phụ thuộc chuỗi này, và R3.06 (đổi viewer từ file gốc sang rev file) là rủi ro kiến trúc lớn nhất chưa kiểm. Demo của lát cắt: mở file, xoay một trang, viewer giữ vị trí, hoàn tác, lưu; chỉ xem thì không có tiến trình `chef-core`.
+3. **Gom đuôi M1 rồi làm Điểm kiểm M1:** R2.33 (script chạy gộp E2E), R1.43 (so probe với Electron, đóng R1.13, R1.15, R1.16, R1.17, R1.19), R1.37 và R1.38 (cần lõi chạy từ bước 2 để có `coreMB`), R1.35 (bộ đếm GPU), R1.12 (tiêu chí 2), R1.32 (tiêu chí 3). R1.05 chờ chủ dự án cho phép đẩy lên remote; không chặn điểm kiểm.
+4. **Phần còn lại của M2:** R2.15, R2.22, R2.17, R2.16, R2.18, R2.20 và các task 🔄 (R2.02, R2.19, R2.21, R2.26, R2.28, R2.30, R2.31), rồi R2.32.
+5. **Phần còn lại của M3:** R3.03, R3.07, R3.09, R3.13, R3.14, rồi R3.15. Sau đó M4 đến M9 theo thứ tự cũ.
 
 ---
 
@@ -96,8 +107,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.02
 - **File:** `apps/native/deny.toml`
 - **Tính năng:** —
-- **Ghi chú:** deny.toml: licenses, bans, sources đạt. Còn: 10 cảnh báo advisories (unmaintained, từ upstream gpui) chưa xử lý; chưa thử crate GPL bị từ chối
-- **Trạng thái:** 🔄
+- **Ghi chú:** deny.toml: licenses, bans, sources đạt. Còn: 10 cảnh báo advisories (unmaintained, từ upstream gpui) chưa xử lý; chưa thử crate GPL bị từ chối (2026-11-09w) cargo deny check licenses xanh; crate giả GPL-3.0 bị từ chối (exit 4, thử trong workspace tạm). Advisories còn 10 cảnh báo upstream, chưa xử lý (xem R1.05).
+- **Trạng thái:** ✅
 
 ### R1.04 · Đọc giấy phép các thư viện chưa rõ · XS
 - **Mô tả:** đọc `LICENSE` trên GitHub của `pdfium-render`, `typify`, `gpui-component`, và xác nhận BSD-3-Clause của pdfium.
@@ -282,6 +293,16 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Tính năng:** —
 - **Trạng thái:** ✅
 
+### R1.43 · So các probe hình họa với Electron (gom đuôi) · S
+- **Mô tả:** một lần chạy đóng phần "so với Electron" còn mở của R1.13 (chữ 13 px), R1.15 (nét icon), R1.16 (bóng ở vùng mờ), R1.17 (layout ở ba chiều rộng, glyph ellipsis) và R1.19 (con trỏ tay). Dùng ảnh tham chiếu R1.21 và bộ so ảnh R2.02 (so theo ô). Con trỏ tay kiểm bằng `GetCursorInfo` qua kênh debug, vì WGC không chụp con trỏ.
+- **Tiêu chí:** (1) mỗi probe có kết quả "đạt / lệch (số ô lệch) / chấp nhận" ghi vào BLUEPRINT_RUST §6.9; (2) năm task trên được chuyển ✅, hoặc ghi rõ phần lệch chuyển sang task nào; (3) năm dòng còn "Kiểm ở M1" trong bảng §6.2 (flex, `@keyframes`, `transition`, `user-select`, `letter-spacing`) có kết quả.
+- **Kiểm chứng:** báo cáo `report.html` của R2.02 cho các cặp ảnh probe; MAN-5 xem ảnh.
+- **Phụ thuộc:** R1.21, R2.02
+- **File:** `apps/native/crates/chef-app/src/probe.rs`, `docs/BLUEPRINT_RUST.md`
+- **Tính năng:** —
+- **Ghi chú:** (2026-11-11) thêm ở bản 0.2 để năm task 🔄 không đóng lẻ từng cái.
+- **Trạng thái:** ⬜
+
 ### M1.3 IME (rủi ro cao nhất)
 
 ### R1.22 · Ô nhập một dòng cơ bản · M
@@ -332,7 +353,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Trạng thái:** ⬜
 
 ### R1.27 · Kiểm Unikey và EVKey trong khung ghi chú · XS
-- **Mô tả:** MAN-1, chạy trên máy chủ dự án với Unikey hoặc EVKey.
+- **Mô tả:** MAN-1, chạy trên máy chủ dự án với Unikey hoặc EVKey, gõ trong cùng ô "Tìm trong tài liệu" của viewer (Ctrl+F) như R1.26. Cách chạy: `cargo run -p chef-app -- "D:\ChefPDF\core\token-check-out\mau.pdf"` từ `apps\native`, không đặt `CHEF_E2E`.
 - **Tiêu chí:** (1) gõ Telex và VNI đúng; (2) kết quả ghi vào BLUEPRINT_RUST §13.1.
 - **Kiểm chứng:** ảnh chụp kết quả.
 - **Phụ thuộc:** R1.26
@@ -394,13 +415,13 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 
 ### R1.33 · Cache LRU tính theo MB · M
 - **Mô tả:** cache bitmap chung, trần cấu hình (khởi điểm 256 MB), bỏ mục ít dùng nhất khi vượt trần. Trang nền (tab khác) không giữ bitmap.
-- **Tiêu chí:** (1) test: vượt trần thì bỏ đúng mục ít dùng; (2) tổng byte không vượt trần; (3) đổi trần trong cài đặt có hiệu lực không cần khởi động lại.
+- **Tiêu chí:** (1) test: vượt trần thì bỏ đúng mục ít dùng; (2) tổng byte không vượt trần. (Tiêu chí 3 cũ, "đổi trần trong cài đặt có hiệu lực không cần khởi động lại", chuyển sang R9.01 ngày 2026-11-11: mục cài đặt này thuộc M9.)
 - **Kiểm chứng:** test đơn vị; đo RSS khi cuộn.
 - **Phụ thuộc:** R1.32
 - **File:** `apps/native/crates/chef-viewer/src/cache.rs`
 - **Tính năng:** —
-- **Ghi chú:** cache LRU theo byte, test đạt (trần 256 MB, không vượt trần trừ một mục lớn hơn trần). Chưa nối trần vào cài đặt (tiêu chí 3)
-- **Trạng thái:** 🔄
+- **Ghi chú:** cache LRU theo byte, test đạt (trần 256 MB, không vượt trần trừ một mục lớn hơn trần). (2026-11-11) Đóng: nối trần vào cài đặt chuyển sang R9.01 (tiêu chí 4).
+- **Trạng thái:** ✅
 
 ### R1.34 · Full-scale chỉ cho trang nhìn thấy ±1 · S
 - **Mô tả:** trang trong tập nhìn thấy ±1 được render full-scale. Trang xa được giải phóng hoặc giữ thumbnail nhỏ (R2).
@@ -409,17 +430,17 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.33
 - **File:** `apps/native/crates/chef-viewer/src/cache.rs`
 - **Tính năng:** —
-- **Ghi chú:** đo: sau cuộn 350 màn hình cache = 2 trang (≤ nhìn thấy + 2). Chưa làm tiêu chí 2 (thumbnail cap: để M2) và chưa ghi số vào §2.2 đầy đủ (đã ghi)
-- **Trạng thái:** 🔄
+- **Ghi chú:** đo: sau cuộn 350 màn hình cache = 2 trang (≤ nhìn thấy + 2); số đã ghi ở BLUEPRINT_RUST §2.2. (2026-11-11) Đóng: tiêu chí 2 (cap thumbnail) đã là tiêu chí 2 của R2.22, không kiểm ở đây.
+- **Trạng thái:** ✅
 
 ### R1.35 · Đo texture atlas của GPUI khi cuộn · M
 - **Mô tả:** đếm texture và bộ nhớ GPU của GPUI trước và sau khi cuộn 350 màn hình, và sau khi cache giải phóng bitmap. Ghi có giữ bản sao ngoài cache không (R9).
 - **Tiêu chí:** (1) có số liệu trước/sau; (2) texture được giải phóng khi bitmap bị loại, hoặc ghi lý do không được; (3) kết luận ghi vào BLUEPRINT_RUST §2.2.
-- **Kiểm chứng:** log số texture; đo RAM qua R1.37.
+- **Kiểm chứng:** bộ đếm GPU của Windows theo tiến trình (`Get-Counter "\GPU Process Memory(pid_<pid>*)\Dedicated Usage"` và `Shared Usage`) đọc trong `scripts/measure-native-memory.ps1` ở ba mốc của R1.37. Không viết mã DXGI riêng (đổi 2026-11-11): `nativeMB` đã thấp, chỉ cần một con số xác nhận texture không tăng theo số trang đã cuộn.
 - **Phụ thuộc:** R1.34, R1.37
-- **File:** `apps/native/crates/chef-viewer/src/cache.rs`, `docs/BLUEPRINT_RUST.md`
+- **File:** `scripts/measure-native-memory.ps1`, `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Ghi chú:** đo RAM tiến trình trước/sau cuộn (100,3 MB). Chưa đo số texture và VRAM (DXGI QueryVideoMemoryInfo); chưa kết luận GPUI có giữ bản sao ngoài cache
+- **Ghi chú:** đo RAM tiến trình trước/sau cuộn (100,3 MB). Chưa đo bộ nhớ GPU; chưa kết luận GPUI có giữ bản sao ngoài cache. Nếu bộ đếm GPU tăng theo số trang đã cuộn thì mới đào sâu bằng DXGI
 - **Trạng thái:** 🔄
 
 ### M1.5 Đo RAM
@@ -497,7 +518,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.04, R1.02
 - **File:** `apps/native/crates/chef-contracts/src/lib.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) chef-contracts/build.rs sinh struct Rust từ core/chef_core/layout/schema.json (typify 0.4; 0.10-alpha cần rustc 1.97, không dùng được). 2 test: Paragraph đọc đúng và từ chối thiếu bbox. cargo deny licenses/bans/sources đạt. Kết luận ở BLUEPRINT_RUST §8.3.
+- **Trạng thái:** ✅
 
 ---
 
@@ -511,22 +533,34 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 
 ### R2.01 · Chụp 104 màn hình ui-audit của Electron · S
 - **Mô tả:** chạy `ui-audit.spec.ts` trên bản Electron 1.3.0 với DPR 1, hai theme. Lưu ảnh ngoài repo, manifest SHA-256 trong `tests/visual/native-refs/`.
-- **Tiêu chí:** (1) 208 ảnh (104 × 2 theme); (2) manifest có băm và kích thước; (3) số màn hình khớp với số `test` trong spec.
+- **Tiêu chí:** (1) 208 ảnh (104 × 2 theme); (2) manifest có băm và kích thước; (3) đếm theo màn hình, không theo `test`: mỗi màn hình có đúng hai ảnh (light, dark). (Tiêu chí 3 đổi 2026-11-09x: một `test` chụp nhiều màn hình, nên số `test` không dùng làm chuẩn.)
 - **Kiểm chứng:** đếm ảnh; kiểm băm một mẫu.
 - **Phụ thuộc:** R1.21
 - **File:** `tests/visual/native-refs/manifest.json`, `tests/e2e/specs/ui-audit.spec.ts` (chỉ chạy)
 - **E2E:** `ui-audit`, `ui-audit-selftest`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) Đã chụp 208 ảnh sạch (104 màn hình × 2 theme, DPR 1) ngoài repo ở %TEMP%\chef-visual-refs\ui-audit-{light,dark} bằng UI_AUDIT_CLEAN_DIR trong ui-audit.spec.ts (92/92 test đạt). Manifest SHA-256 và kích thước: tests/visual/native-refs/ui-audit-manifest.json. (2026-11-09x) Tiêu chí (3) đếm theo màn hình: manifest có 104 tên file, mỗi tên đúng hai lần (light, dark), 208 băm SHA-256 và 208 kích thước. Đã kiểm bằng lệnh đếm trên manifest.
+- **Trạng thái:** ✅
 
 ### R2.02 · Bộ so ảnh ui-audit · M
 - **Mô tả:** so từng màn hình giữa ảnh Rust và ảnh tham chiếu theo vùng (SSIM hoặc so sánh theo lưới), xuất báo cáo JSON và HTML với ảnh chồng nhau. Ngưỡng ghi trong file cấu hình.
-- **Tiêu chí:** (1) báo cáo liệt kê màn hình vượt ngưỡng; (2) so ảnh giống nhau cho điểm tối đa; (3) chữ khác antialias không làm vượt ngưỡng ở một mẫu đã biết.
-- **Kiểm chứng:** test với ảnh giống, ảnh lệch 1 px, ảnh đổi màu.
+- **Tiêu chí:** (1) báo cáo liệt kê màn hình vượt ngưỡng; (2) so ảnh giống nhau cho điểm tối đa; (3) chữ khác antialias không làm vượt ngưỡng ở một mẫu đã biết; (4) ảnh tham chiếu (R1.21, R2.01) nằm ở thư mục cố định ngoài repo, không ở `%TEMP%` (Windows có thể tự dọn), đường dẫn đọc từ biến môi trường `CHEF_VISUAL_REFS` có mặc định, và băm khớp manifest sau khi chuyển (thêm 2026-11-11).
+- **Kiểm chứng:** test với ảnh giống, ảnh lệch 1 px, ảnh đổi màu; kiểm băm toàn bộ manifest sau khi chuyển thư mục.
 - **Phụ thuộc:** R2.01, R1.31
 - **File:** `apps/native/crates/chef-testkit/src/visual.rs`
 - **E2E:** `ui-audit-selftest`
 - **Tính năng:** —
+- **Ghi chú:** (2026-11-09x) `chef-testkit/src/visual.rs`: so theo ô 16 px (trung bình chênh lệch kênh vượt 6,0 thì ô lệch; màn hình đạt khi tỉ lệ ô lệch ≤ 2% và cùng kích thước). Ngưỡng đọc từ JSON (`config_from_json`), báo cáo `report.json` và `report.html` (ảnh Electron, ảnh Rust, ảnh chênh lệch đỏ). 7 test: giống hệt cho điểm 1; lệch 1 px chữ bị bắt; khử răng cưa nhẹ không vượt ngưỡng; đổi màu bị bắt; kích thước khác không đạt; đọc cấu hình và báo lỗi giá trị sai; chạy cả quy trình ghi file. Chưa xong: (3) chưa có cặp ảnh Rust/Electron thật để kiểm "chữ khác antialias không vượt ngưỡng" (cần ảnh chụp màn hình Rust, chưa có driver ui-audit phía Rust); E2E `ui-audit-selftest` chưa viết. Lưu ý cho lúc có ảnh thật: ngưỡng là tỉ lệ trên tổng số ô, nên một nhãn lệch 1 px (khoảng 4 ô trên ảnh 1200×800, tức 0,1%) lọt qua 2%. Khi đó thêm ngưỡng tuyệt đối (số ô lệch tối đa) vào `Config`; `badTiles` đã có trong JSON.
+- **Trạng thái:** 🔄
+
+### R2.33 · Script chạy gộp E2E native · XS
+- **Mô tả:** `scripts/e2e-native-all.ps1` chạy lần lượt mọi `scripts/e2e-native-*.ps1` ở nền (cửa sổ ngoài màn hình, không dùng chuột thật), in bảng tổng (tên, số kiểm tra, số lỗi, thời gian) và thoát khác 0 khi có lỗi. Là cổng kiểm cục bộ cho định nghĩa "xong" mục (a) trong lúc job CI (R1.05) chưa chạy.
+- **Tiêu chí:** (1) tự tìm script theo mẫu tên, thêm script mới không phải sửa danh sách; (2) một script lỗi không dừng các script sau, và mã thoát cuối khác 0; (3) không chiếm chuột và không hiện cửa sổ (quy tắc E2E nền).
+- **Kiểm chứng:** chạy với bộ hiện có (16 script); thử một script cố ý lỗi.
+- **Phụ thuộc:** R1.07
+- **File:** `scripts/e2e-native-all.ps1`
+- **Tính năng:** —
+- **Ghi chú:** (2026-11-11) thêm ở bản 0.2.
 - **Trạng thái:** ⬜
 
 ### M2.1 Thư viện thành phần (thay Radix)
@@ -558,7 +592,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.04
 - **File:** `apps/native/crates/chef-ui/src/form.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09s) `chef-ui/src/choice.rs`: `RadioGroup` (`.radio-row`), `ToggleGroup` (`.segmented`), `Slider` (`.slider`). Roving focus: một điểm dừng Tab, là mục đang chọn hoặc mục đầu. Radio: mũi tên chuyển và chọn, có vòng lại. Nhóm nút bật: mũi tên chỉ chuyển tiêu điểm. Thanh trượt: mũi tên một bước, PageUp, PageDown và Shift+mũi tên mười bước, Home, End. Lệch: bấm chuột để đặt giá trị và kéo thanh trượt chưa làm (tiêu chí không yêu cầu; cần cho hộp thoại cài đặt nếu dùng chuột). Hàm thuần có test; E2E `e2e-native-choice` 0 lỗi. Trang thử có ba khu này (probe-radio-*, probe-toggle-*, probe-slider).
+- **Trạng thái:** ✅
 
 ### R2.06 · Menu và menu chuột phải cơ bản · M
 - **Mô tả:** menu bật lên, mũi tên lên và xuống, Enter chọn, Esc đóng, mục bị khóa không chọn được (hành vi Radix `dropdown-menu`, `context-menu`).
@@ -567,7 +602,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.03
 - **File:** `apps/native/crates/chef-ui/src/menu.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09t) `chef-ui/src/menu.rs`: `Menu` (`.menu`, `.menu__item`), mũi tên qua mục dùng được (mục khóa bỏ qua, có vòng lại), Enter chọn, Esc đóng qua `MenuDismiss`, bấm ra ngoài đóng, phím tắt căn phải, dấu chọn cho menu chọn một. Trang thử có menu chuột phải tại vị trí chuột (`rdown` đã thêm vào kênh debug). Trả tiêu điểm về vùng mở qua `window.defer`, vì GPUI đặt tiêu điểm theo chuột sau listener. E2E `e2e-native-menu` 0 lỗi.
+- **Trạng thái:** ✅
 
 ### R2.07 · Menu: submenu, typeahead, phím tắt hiển thị · S
 - **Mô tả:** gõ chữ đầu để nhảy tới mục, submenu bằng mũi tên phải, phím tắt căn phải như bản Electron.
@@ -576,7 +612,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.06
 - **File:** `apps/native/crates/chef-ui/src/menu.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09t) Đã có: typeahead (gõ chữ đầu nhảy tới mục tiếp theo, có vòng lại, bỏ mục khóa; hàm thuần có test), phím tắt căn phải ("Ctrl+C"). (2026-11-09x) Submenu: `MenuEntry::submenu`, mũi tên phải, Enter hoặc bấm mở; mục con hiện ngay dưới mục cha, thụt vào; mũi tên trái hoặc Esc ở mục con đóng menu con và trả tiêu điểm về mục cha; Esc ở mục gốc đóng menu. Đạt tiêu chí 2. Lệch so với Electron: menu con là khối nội tuyến, không bật ra bên cạnh (flyout), vì bấm vào menu con không được đóng menu cha và chưa có cách đo vùng flyout qua `a11y`. Mũi tên trong menu con đi qua danh sách phẳng, nên mũi tên xuống ở mục con cuối vòng về mục đầu của menu. E2E `e2e-native-menu` 54 kiểm tra đạt, 0 lỗi. Tiêu chí 3: phím tắt đi vào trường `value` của mục (a11y, cùng cách select đưa giá trị ra), E2E kiểm "Ctrl+C" trên mục Sao chép. E2E `e2e-native-menu` 55 kiểm tra, 0 lỗi.
+- **Trạng thái:** ✅
 
 ### R2.08 · Select · M
 - **Mô tả:** chọn một trong danh sách, mở và đóng bằng bàn phím, typeahead (hành vi Radix `select`).
@@ -585,7 +622,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.06
 - **File:** `apps/native/crates/chef-ui/src/select.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09t) `chef-ui/src/select.rs`: nút hiện mục đang chọn, bấm hoặc Enter mở danh sách (là `Menu` của R2.06), Enter chọn, Esc đóng và trả tiêu điểm, gõ chữ đầu tới mục (typeahead), bấm nút mở và đóng. Bấm ra ngoài đóng; khung bao nút và danh sách lo việc đó, nên bấm nút không bị coi là bấm ngoài (lưu ý từ advisor đã xử lý). Lệch: mũi tên lên và xuống trên nút đang đóng chưa mở danh sách (Radix có). Trạng thái giữ trong keyed state theo id. E2E `e2e-native-menu` 0 lỗi.
+- **Trạng thái:** ✅
 
 ### R2.09 · Tabs thành phần · S
 - **Mô tả:** tab với roving focus, mũi tên trái và phải, Home và End (hành vi Radix `tabs`).
@@ -594,7 +632,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.03
 - **File:** `apps/native/crates/chef-ui/src/tabs.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09v) `chef-ui/src/tabs.rs`: một điểm dừng Tab (thẻ đang chọn), mũi tên trái và phải chuyển và chọn có vòng lại, Home và End về đầu và cuối, gạch chân accent cho thẻ đang chọn. Lệch: không có thẻ tắt được (Radix không có mặc định này). E2E `e2e-native-components` 0 lỗi.
+- **Trạng thái:** ✅
 
 ### R2.10 · Khung hộp thoại · M
 - **Mô tả:** bẫy tiêu điểm trong hộp thoại, Esc đóng, nhấn nền đóng, trả tiêu điểm về nút đã mở, hiệu ứng `dialog-in` (160 ms). Tôn trọng giảm chuyển động (BLUEPRINT_RUST §6.7).
@@ -614,7 +653,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.03
 - **File:** `apps/native/crates/chef-ui/src/tooltip.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09v) `chef-ui/src/tooltip.rs`, không dùng tooltip của GPUI (không chỉnh được trễ). Thời gian chờ được chốt lúc kích hoạt: 450 ms; 200 ms khi đã có tooltip hiện hoặc vừa đóng một tooltip trong 200 ms. Hiện theo chuột hoặc tiêu điểm bàn phím. Đo bằng E2E: khoảng 470 ms khi di chuột lần đầu, khoảng 250 ms khi chuyển sang nút khác, khoảng 450 ms khi có tiêu điểm bàn phím (đo từ lúc gửi phím Tab, sau 600 ms nghỉ để không rơi vào quy tắc 200 ms). Hàm thuần có 2 test. E2E `e2e-native-components` 0 lỗi.
+- **Trạng thái:** ✅
 
 ### R2.12 · Toast · S
 - **Mô tả:** thông báo góc dưới, `toast-in`, tự ẩn, đóng bằng nút. Dùng chung cho Start và viewer.
@@ -623,7 +663,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.03
 - **File:** `apps/native/crates/chef-ui/src/toast.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09v) `chef-ui/src/toast.rs` và trang thử: xếp chồng ở góc dưới phải, nút đóng, tự ẩn sau 3 s, role status cho truy cập. Lệch: hoạt ảnh `toast-in` chưa làm; thời gian ẩn là hằng số trong trang thử, chưa đọc từ cài đặt. E2E `e2e-native-components` 0 lỗi. (2026-11-09w) Toast có hoạt ảnh toast-in (160 ms, --ease, trượt 8 px và hiện dần; không chạy khi giảm chuyển động). Xếp chồng, nút đóng, tự ẩn 3 s đều kiểm trong e2e-native-components (0 lỗi).
+- **Trạng thái:** ✅
 
 ### M2.2 Chuỗi, cài đặt, tab
 
@@ -644,8 +685,9 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-app/src/settings.rs`
 - **E2E:** `ui-audit` (màn hình cài đặt)
 - **Tính năng:** A4 (giao diện, thư mục mặc định)
-- **Ghi chú:** (2026-11-09p) Phần lưu trữ xong: `chef-app/src/settings.rs`, đọc và ghi `settings.json` cùng file với Electron. Chỉ đổi `theme`, `language`, `defaultSaveDir`; khóa khác và khóa chưa biết được giữ nguyên (test trên file kiểu Electron). Ghi qua file tạm rồi đổi tên; file hỏng thì báo lỗi, không ghi đè. Thư mục userData: `CHEF_USER_DATA_DIR`, rồi chế độ E2E dùng thư mục tạm, rồi `%APPDATA%\Chef PDF`. 13 test đạt. Khi ghi, đọc lại file và chỉ vá các khóa đã đổi, nên thay đổi do Electron ghi sau lúc đọc không bị mất (có test). Electron đang chạy giữ cài đặt trong bộ nhớ và sẽ ghi đè thay đổi của Rust ở lần ghi kế tiếp; phía Rust không sửa được, nên việc đổi cài đặt chỉ an toàn khi Electron đã đóng. Chưa làm: hộp thoại. Theme là nhóm nút chọn một (R2.05) và ngôn ngữ là select (R2.08), cả hai chưa có; áp theme lúc chạy và nối ngôn ngữ vào chuỗi giao diện cũng chưa làm.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-09p) Phần lưu trữ xong: `chef-app/src/settings.rs`, đọc và ghi `settings.json` cùng file với Electron. Chỉ đổi `theme`, `language`, `defaultSaveDir`; khóa khác và khóa chưa biết được giữ nguyên (test trên file kiểu Electron). Ghi qua file tạm rồi đổi tên; file hỏng thì báo lỗi, không ghi đè. Thư mục userData: `CHEF_USER_DATA_DIR`, rồi chế độ E2E dùng thư mục tạm, rồi `%APPDATA%\Chef PDF`. 13 test đạt. Khi ghi, đọc lại file và chỉ vá các khóa đã đổi, nên thay đổi do Electron ghi sau lúc đọc không bị mất (có test). Electron đang chạy giữ cài đặt trong bộ nhớ và sẽ ghi đè thay đổi của Rust ở lần ghi kế tiếp; phía Rust không sửa được, nên việc đổi cài đặt chỉ an toàn khi Electron đã đóng. Chưa làm: hộp thoại. Theme là nhóm nút chọn một (R2.05, đã có). Ngôn ngữ là select (R2.08, đã có); áp theme lúc chạy và nối ngôn ngữ vào chuỗi giao diện cũng chưa làm.
+- **Ghi chú:** (2026-11-09u) Hộp thoại Cài đặt mở bằng Ctrl+, (`chef-app/src/settings_dialog.rs`). Ba mục: giao diện (nhóm nút chọn, R2.05), ngôn ngữ (ô chọn, R2.08), thư mục lưu mặc định (ô nhập; Enter ghi). Thay đổi áp dụng ngay và ghi file ngay, như bản Electron. Viewer đọc settings.json lúc khởi động; file hỏng thì chỉ áp trong phiên, không ghi đè (E2E). Chuỗi giao diện của hộp thoại đổi theo ngôn ngữ. Lệch: chọn thư mục bằng hộp thoại Windows là R2.30; đổi giao diện được kiểm qua `state.settings`, chưa đo pixel. E2E `e2e-native-settings` 0 lỗi, gồm khởi động lại và file hỏng.
+- **Trạng thái:** ✅
 
 ### R2.15 · Thanh tab tài liệu · M
 - **Mô tả:** mở nhiều tab, đóng, chuyển bằng chuột và Ctrl+Tab. Tab nền bỏ bitmap trang (R3 của BLUEPRINT_RUST §2.2).
@@ -778,7 +820,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.10, R1.28
 - **File:** `apps/native/crates/chef-pdf/src/password.rs`
 - **Tính năng:** B6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) Mở file khóa hỏi mật khẩu (hộp thoại), sai mật khẩu báo lại và giữ hộp, đúng thì mở; Esc đóng không mở gì; mật khẩu không xuất hiện trong nhật ký (e2e-native-password, 0 lỗi). Chưa: tiêu chí 'đóng tab xóa mật khẩu' (chưa có thẻ tài liệu, R2.15); ô nhập lưu chữ dạng thường nên bộ đệm TextInput chưa được xóa bằng zeroize (chỉ chuỗi do viewer giữ được xóa). Ô nhập không che chữ.
+- **Trạng thái:** 🔄
 
 ### R2.27 · Thuộc tính tài liệu · S
 - **Mô tả:** hiện tiêu đề, tác giả, số trang, khổ giấy, phiên bản PDF, dung lượng từ pdfium và file. Phần lấy từ lõi để M3.
@@ -787,10 +830,11 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.10, R1.28
 - **File:** `apps/native/crates/chef-app/src/properties.rs`
 - **Tính năng:** B7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) Hộp thoại Thuộc tính (Ctrl+D): tên, vị trí, dung lượng, phiên bản PDF, số trang, khổ trang hiện tại và 8 thẻ metadata lấy từ pdfium. E2E e2e-native-properties khớp pypdfium2 trên PDF mẫu (scripts/gen-native-props-fixture.py): phiên bản, số trang, khổ A4, metadata. Lệch: ngày PDF hiển thị dd/mm/yyyy hh:mm theo giờ ghi trong file (không đổi múi giờ như Intl của Electron); font, chữ ký, mã hóa thuộc M3.
+- **Trạng thái:** ✅
 
 ### R2.28 · Đọc ban đêm và đảo màu trang · M
-- **Mô tả:** chế độ đọc ban đêm đảo màu bitmap trang trong Rust (thay `invert(1) hue-rotate(180deg)` của `Viewer.css`). Ghi quyết định D75 (CH-R3).
+- **Mô tả:** chế độ đọc ban đêm đảo màu bitmap trang trong Rust (thay `invert(1) hue-rotate(180deg)` của `Viewer.css`). Ghi quyết định D79 (CH-R3).
 - **Tiêu chí:** (1) màu đảo khớp bản Electron ở ảnh mẫu, sai lệch nhỏ hơn ngưỡng R2.02; (2) không tăng cache quá 10% so với bình thường; (3) D75 ghi trong NOTES.
 - **Kiểm chứng:** ui-audit; đo cache.
 - **Phụ thuộc:** R2.02, R1.33
@@ -817,7 +861,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.14
 - **File:** `apps/native/crates/chef-app/src/dialogs.rs`
 - **Tính năng:** A5 (hộp chọn file)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09v) `chef-app/src/dialogs.rs`: `GetOpenFileNameW` và `GetSaveFileNameW` của comdlg32 (không thêm thư viện), bộ lọc PDF trước, chọn nhiều tệp (phân tích vùng kết quả có test), thư mục bắt đầu lấy từ `defaultSaveDir`. Ctrl+O trong viewer mở tệp đầu tiên được chọn (nhiều tệp cần thẻ, R2.15). Hủy không báo lỗi (E2E `e2e-native-dialogs`: hộp thoại hiện và tự đóng bằng đường hủy có kiểm soát). Chưa kiểm tự động: chọn tệp thật và việc thư mục mặc định được áp dụng, cần kiểm tay. Lưu PDF (`save_pdf`) có sẵn nhưng chưa dùng.
+- **Trạng thái:** 🔄
 
 ### R2.31 · Phím tắt viewer · S
 - **Mô tả:** bảng phím tắt của viewer: Ctrl+O, Ctrl+F, Ctrl+K, Ctrl+Tab, Ctrl+=, Ctrl+−, Ctrl+0, PageUp, PageDown, F11. Theo D67.
@@ -844,7 +889,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 
 **Mục tiêu:** nối bản Rust với lõi Python qua JSON-RPC, chạy lõi lười (chỉ khi có thao tác sửa), mô hình phiên của BLUEPRINT_RUST §4, undo, lưu, khôi phục sau crash.
 **Demo:** mở file, chỉ xem thì không có tiến trình `chef-core`; xoay một trang thì lõi khởi động, viewer chuyển sang rev file, giữ vị trí cuộn; undo và lưu đúng; kill app giữa chừng rồi khôi phục.
-**Đầu vào:** M2 (viewer và tab), R1.38 (số Electron).
+**Đầu vào:** viewer cuộn liên tục (R2.19) và hộp thoại (R2.10). Không chờ điểm kiểm M2 (đổi 2026-11-11, D86).
+**Thứ tự:** lát cắt dọc đi trước: R3.02 → R3.04 → R3.05 → R3.06 → R3.08 (chỉ `page.rotate`) → R3.11 → R3.12, làm trước phần còn lại của M2. Sau lát cắt mới làm R3.03, R3.07, R3.09, R3.13, R3.14. Khi R3.02 xong, chạy lại R1.37 và R1.38 để có `coreMB`.
 
 ### M3.0 RPC và tiến trình lõi
 
@@ -855,7 +901,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.02
 - **File:** `apps/native/crates/chef-rpc/src/client.rs`, `apps/native/crates/chef-rpc/src/framing.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) chef-rpc: framing.rs (một object JSON mỗi dòng, id tăng dần, phân biệt phản hồi và thông báo) và client.rs (luồng đọc nền, khớp phản hồi theo id, thời gian chờ, kênh thông báo, dòng hỏng được bỏ qua và đếm). 11 test: lõi giả qua pipe (khớp id, dòng hỏng, thông báo, lỗi RPC, hết giờ, đóng) và system.ping tới lõi Python thật (core/.venv). cargo clippy sạch.
+- **Trạng thái:** ✅
 
 ### R3.02 · Giám sát lõi: spawn, Job Object, ping, khởi động lại · M
 - **Mô tả:** khởi động `chef-core` với `CREATE_NO_WINDOW` (BLUEPRINT_RUST §2.1), gắn vào Job Object để tự chết khi app thoát. Gửi `system.ping`. Khởi động lại khi chết và phát `core-status` (`starting`, `ready`, `crashed`, `restarting`).
@@ -865,13 +912,15 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-rpc/src/supervisor.rs`
 - **E2E:** `integration`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) `chef-rpc/src/job.rs`, `client.rs`, `supervisor.rs`. Phát hiện: `core/.venv/Scripts/python.exe` là launcher, Python base là tiến trình con (PID 484 → 17400, đo bằng CIM). Kill launcher không dừng lõi, nên Client của R3.01 để lại tiến trình mồ côi. Cách làm (D88): spawn `CREATE_SUSPENDED` và `CREATE_NO_WINDOW`, gán vào Job `KILL_ON_JOB_CLOSE`, resume các luồng (không race). Luồng chờ thoát terminate job để pipe đóng, nên yêu cầu đang chờ nhận `Closed` ngay. Stderr đọc liên tục (không làm treo lõi). Lùi dần 500 ms đến 30 s; ngừng sau 5 lần chết liên tiếp không sống đủ 60 s. Test (23 test chef-rpc, hai lần lặp đều xanh): ping lõi thật; dừng xong không PID nào còn sống; giết cả cây, giết riêng launcher, giết riêng python.exe con: mỗi lần đều chuỗi `crashed → restarting → starting → ready` và mọi PID lượt cũ chết (kể cả PID không bị giết); shutdown ngay sau start không treo (hồi quy, 20 vòng; cửa sổ race hẹp nên không chắc chắn tái hiện lỗi cũ); lõi không có cửa sổ console hiện (`GetConsoleWindow`); lùi dần và ngừng sau giới hạn. **Phát hiện khi kiểm:** job của lõi còn chứa `conhost.exe` (do `CREATE_NO_WINDOW`), nên chọn PID theo tên image, không lấy PID đầu tiên. Chuyển sang R3.03: E2E `integration` (phần lõi) và kiểm "kill app → không còn PID lõi" (cần app nối lõi).
+- **Trạng thái:** ✅
 
 ### R3.03 · Khởi động lười và tự tắt · S
 - **Mô tả:** lõi chỉ khởi động khi có thao tác cần nó. Tự tắt sau 10 phút không dùng (R5, chỉnh được). Chỉ đọc file thì không có tiến trình lõi.
 - **Tiêu chí:** (1) mở, cuộn và chọn chữ không tạo tiến trình `chef-core` (kiểm bảng tiến trình); (2) sau 10 phút rảnh lõi tắt; (3) thao tác tiếp theo khởi động lại lõi không mất dữ liệu.
 - **Kiểm chứng:** E2E thời gian ngắn (cấu hình 10 giây khi test); bảng tiến trình.
-- **Phụ thuộc:** R3.02, R2.32
+- **Phụ thuộc:** R3.02 (bỏ R2.32 ngày 2026-11-11: điểm kiểm M2 không phải phụ thuộc kỹ thuật)
+- **Chuyển từ R3.02 (2026-11-11):** E2E `integration` (phần lõi) và kiểm "kill app → không còn PID lõi" bằng bảng tiến trình. Hai kiểm này cần app nối lõi, nên làm ở đây.
 - **File:** `apps/native/crates/chef-rpc/src/supervisor.rs`
 - **Tính năng:** —
 - **Trạng thái:** ⬜
@@ -885,7 +934,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R2.10
 - **File:** `apps/native/crates/chef-app/src/source_guard.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) `source_guard.rs`: vân tay gồm kích thước, mtime và FNV-1a 64 bit của 64 KB đầu và cuối; `check` trả `Same`, `Changed`, `Missing` hoặc `Unreadable`. 6 test đạt (đổi đầu, đổi cuối, đổi kích thước, xóa, vùng giữa không băm). Chuỗi cảnh báo tiếng Việt, nút "Xem lại" và "Mở lại" ở `source_guard::text`, chưa vào i18n (D87). Còn để đạt ✅: tiêu chí 1 đòi cảnh báo trước khi tạo phiên, nên hộp thoại phải được gọi ở đường tạo phiên (R3.05). Module có `#[allow(dead_code)]` đến lúc đó.
+- **Trạng thái:** 🔄
 
 ### R3.05 · session.open lần thao tác đầu · M
 - **Mô tả:** thao tác sửa đầu tiên gọi `session.open` với đường dẫn file gốc và mật khẩu (nếu có, lấy từ bộ nhớ), lõi tạo `rev-0000.pdf` và `meta.json` (CONTRACTS §4). Mật khẩu không ghi ra đĩa.
@@ -894,7 +944,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R3.02, R3.04, R2.26
 - **File:** `apps/native/crates/chef-app/src/session.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) `session.rs`: `open` kiểm vân tay (R3.04), rồi gọi `session.open`; map `PASSWORD_REQUIRED`, `PASSWORD_INVALID`. 4 test với lõi thật và PDF mã hóa tạo bằng pikepdf: mở không mật khẩu tạo `rev-0000.pdf` và `meta.json`; thiếu hoặc sai mật khẩu báo đúng kind; đúng mật khẩu mở được, và mật khẩu không xuất hiện trong mọi file của userData lẫn nhật ký lõi; file gốc đổi thì không tạo thư mục phiên. Hạn chế: chuỗi mật khẩu qua RPC có bản sao trong `Value` và dòng JSON, không zeroize được. Tiêu chí 1 kiểm ở mức hàm; đường UI gọi hàm này là R3.06/R3.08.
+- **Trạng thái:** ✅
 
 ### R3.06 · Chuyển viewer sang rev file, giữ vị trí · M
 - **Mô tả:** sau mỗi revision mới, viewer mở lại từ rev file và giữ vị trí cuộn, zoom, chọn chữ. `changedPages` của kết quả thao tác quyết định trang nào xóa bitmap. Đây là rủi ro đã nêu ở BLUEPRINT_RUST §4.
@@ -915,14 +966,15 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Trạng thái:** ⬜
 
 ### R3.08 · ops.list và ops.run với job runner · M
-- **Mô tả:** gọi `ops.list` lấy danh sách, `ops.run` với `Params` kiểu Rust, nhận `jobId`, theo dõi tiến độ, hủy bằng `jobs.cancel`.
+- **Mô tả:** gọi `ops.list` lấy danh sách, `ops.run` với `Params` kiểu Rust, nhận `jobId`, theo dõi tiến độ, hủy bằng `jobs.cancel`. Trong lát cắt dọc chỉ cần `Params` của `page.rotate`, sinh bằng đường typify của R1.42 (hoặc viết tay một struct, thay bằng bản sinh khi R3.07 xong). Codegen cho mọi operation (R3.07) không chặn task này; nó chặn R5.02.
 - **Tiêu chí:** (1) chạy một operation đơn giản (`page.rotate`) và thấy trang đổi; (2) hủy giữa chừng đưa job về trạng thái hủy; (3) lỗi `invalid_params` hiện thông báo tiếng Việt.
 - **Kiểm chứng:** E2E `integration`; test lõi giả.
-- **Phụ thuộc:** R3.07, R3.06
+- **Phụ thuộc:** R3.06, R1.42 (bỏ R3.07 ngày 2026-11-11)
 - **File:** `apps/native/crates/chef-rpc/src/ops.rs`
 - **E2E:** `integration`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) Làm trước R3.06 (lát cắt, xem nhật ký): `ops::start` (ops.run), `wait_job` (job.finished, job.failed, job.cancelled), `cancel` (jobs.cancel). 4 test với lõi thật: page.rotate chạy như job; rev-0001 có `/Rotate 90` ở trang 0 và vẫn 2 trang; góc 45 bị từ chối `INVALID_PARAMS` với khóa `errors.INVALID_PARAMS`. Chưa đạt tiêu chí 2: `cancel` đã viết nhưng chưa có test hủy giữa chừng, vì chưa có thao tác đủ chậm. Chưa có E2E `integration`.
+- **Trạng thái:** 🔄
 
 ### R3.09 · Panel tiến trình (JobPanel) · S
 - **Mô tả:** danh sách job đang chạy và vừa xong, thanh tiến độ, nút hủy, lỗi từng job. Thay `JobPanel.css`. Vòng quay `spin` và thanh `indeterminate` (keyframes trong `components.css`).
@@ -940,7 +992,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R3.01, R2.13
 - **File:** `apps/native/crates/chef-rpc/src/errors.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) chef-rpc/src/errors.rs: ERROR_KINDS (27 kind) khớp ErrorKinds của packages/contracts/src/rpc.ts (test đọc file TS gốc), kind_of trả UNKNOWN cho kind lạ hoặc thiếu kind, message_key ra errors.<KIND>. Test: mọi kind và UNKNOWN có chuỗi trong i18n bằng đúng chuỗi của bản Electron. cargo clippy sạch.
+- **Trạng thái:** ✅
 
 ### R3.11 · Hoàn tác và làm lại · S
 - **Mô tả:** Ctrl+Z và Ctrl+Y gọi `session.undo` và `session.redo`, rồi áp dụng như R3.06.
@@ -950,7 +1003,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-app/src/undo.rs`
 - **E2E:** `keyboard`
 - **Tính năng:** A6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) `ops::undo` và `ops::redo` (chef-rpc): test sau page.rotate: revision 1 → undo → 0 (canRedo đúng) → redo → 1. Chưa làm: giới hạn 50 revision (tiêu chí 2), nút mờ khi không còn gì để hoàn tác (tiêu chí 3, UI), Ctrl+Z và Ctrl+Y (keymap và E2E `keyboard`).
+- **Trạng thái:** 🔄
 
 ### R3.12 · Lưu và Lưu thành · S
 - **Mô tả:** `session.save` ghi nguyên tử (ghi tạm, fsync, đổi tên), trả trạng thái `dirty: false` và cảnh báo nếu có. Lưu thành ghi ra file mới.
@@ -960,7 +1014,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **File:** `apps/native/crates/chef-app/src/save.rs`
 - **E2E:** `scan-save-reopen`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) `ops::save(path)` (chef-rpc): file lưu có `/Rotate 180` và 1 trang (đọc bằng pikepdf), trạng thái `dirty: false`, file gốc không đổi. Chưa làm: mở lại bằng pdfium (tiêu chí 1, nửa pdfium); ghi nguyên tử và kiểm lỗi giữa chừng (tiêu chí 2); cảnh báo mật khẩu owner (tiêu chí 3); lưu đè file gốc khi không có `path`.
+- **Trạng thái:** 🔄
 
 ### R3.13 · Khôi phục khi crash · M
 - **Mô tả:** khi mở app, tìm phiên chưa đóng sạch (không có dấu đóng) và đề nghị khôi phục hoặc bỏ. Dùng `session/recovery.py` của lõi.
@@ -1275,7 +1330,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 
 ### R5.02 · Renderer hộp thoại từ JSON Schema · M
 - **Mô tả:** sinh form từ `Params` của operation: chuỗi, số, bool, enum, khoảng trang, danh sách file. Nhãn và mô tả lấy từ `vi.json`. Mục đích là giảm số hộp thoại viết tay (BLUEPRINT_RUST §6).
-- **Tiêu chí:** (1) form sinh ra cho ba operation mẫu khớp với hộp thoại viết tay tương ứng; (2) kiểu sai bị chặn trước khi chạy; (3) thêm một operation mới không cần viết giao diện.
+- **Tiêu chí:** (1) form sinh ra cho ba operation mẫu khớp với hộp thoại viết tay tương ứng; (2) kiểu sai bị chặn trước khi chạy; (3) thêm một operation mới không cần viết giao diện; (4) có bảng phân loại mọi hộp thoại xử lý trong 104 màn hình ui-audit: "sinh từ schema" (đạt ngưỡng so ảnh R2.02), "schema + phần viết tay" (xem trước, danh sách kéo thả), hoặc "viết tay hoàn toàn", để giữ yêu cầu hình họa của BLUEPRINT_RUST §6; (5) theo bảng đó, rà lại kích thước R5.03–R5.68 (task chỉ còn nối schema và E2E thì xuống S) và ghi vào "Thay đổi sau khi chốt" (4 và 5 thêm 2026-11-11).
 - **Kiểm chứng:** test với ba operation; so với hộp thoại cũ.
 - **Phụ thuộc:** R5.01, R3.07
 - **File:** `apps/native/crates/chef-ui/src/schema_form.rs`
@@ -1595,7 +1650,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Mô tả:** kiểu "1", "Trang 1/10", "- 1 -", số La Mã; chọn vị trí; bỏ trang đầu; bắt đầu từ số bất kỳ. Preset theo Nghị định 30/2020/NĐ-CP (giữa lề trên, không đánh số trang đầu).
 - **Tiêu chí:** (1) bốn kiểu đúng; (2) preset NĐ30 không đánh số trang đầu; (3) bắt đầu từ số đã đặt.
 - **Kiểm chứng:** E2E `stamps2`; test.
-- **Phụ thuộc:** R5.34
+- **Phụ thuộc:** R5.30 (đổi từ R5.34 ngày 2026-11-11: không dùng mã của header/footer)
 - **File:** `apps/native/crates/chef-app/src/page_numbers.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F8
@@ -1605,7 +1660,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Mô tả:** mã tài liệu liên tục qua nhiều file (HS-000001…), tiền tố, số bắt đầu, chọn trang. Dùng `overlay_bates.py`.
 - **Tiêu chí:** (1) số liên tục qua hai file; (2) tiền tố và độ dài đúng; (3) chạy lại không đánh số lại trang đã đánh.
 - **Kiểm chứng:** E2E `stamps2`; test hai file.
-- **Phụ thuộc:** R5.35
+- **Phụ thuộc:** R5.30 (đổi từ R5.35 ngày 2026-11-11: Bates dùng `overlay_bates.py` riêng)
 - **File:** `apps/native/crates/chef-app/src/bates.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F9
@@ -2331,13 +2386,14 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R7.07, R1.27
 - **File:** `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) gộp vào R7.09: hai task là cùng một lần MAN-1 trong khung nháp. Giữ mã để không đổi số.
+- **Trạng thái:** ❌
 
 ### R7.09 · Gõ tiếng Việt trong khung nháp (MAN-1, bản đoạn) · XS
-- **Mô tả:** MAN-1 cho sửa đoạn: gõ nhiều dòng, xuống dòng, dấu tiếng Việt, qua bộ gõ Windows và Unikey hoặc EVKey. Đây là điểm kiểm IME lần hai, trong môi trường phức tạp hơn R1.26.
-- **Tiêu chí:** (1) gõ nhiều dòng đúng dấu; (2) không mất ký tự khi xuống dòng; (3) ghi kết quả vào BLUEPRINT_RUST §13.1.
+- **Mô tả:** MAN-1 cho cả hai khung nháp, làm trong một lần: khung Thêm văn bản (R7.07) và khung sửa đoạn (R7.04). Gõ Telex và VNI, nhiều dòng, xuống dòng, dấu tiếng Việt, qua bộ gõ Windows và Unikey hoặc EVKey. Đây là điểm kiểm IME lần hai, trong môi trường phức tạp hơn R1.26. (2026-11-11: nhận phần của R7.08.)
+- **Tiêu chí:** (1) gõ đúng dấu trong cả hai khung, kể cả nhiều dòng; (2) không mất ký tự khi xuống dòng; (3) ghi kết quả vào BLUEPRINT_RUST §13.1.
 - **Kiểm chứng:** MAN-1 kèm ảnh chụp.
-- **Phụ thuộc:** R7.04, R7.08
+- **Phụ thuộc:** R7.04, R7.07, R1.27
 - **File:** `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
 - **Trạng thái:** ⬜
@@ -2497,7 +2553,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Mô tả:** xóa nét bút bi, bút dạ quang, con dấu theo màu. Chọn màu bằng ống hút. Dùng chung công cụ tách màu với R8.12.
 - **Tiêu chí:** (1) bút dạ quang vàng biến mất khỏi chữ đen; (2) chọn màu bằng ống hút đúng; (3) chữ đen giữ nguyên.
 - **Kiểm chứng:** E2E `erase`; so ảnh.
-- **Phụ thuộc:** R8.12
+- **Phụ thuộc:** R8.01 (sửa 2026-11-11: trước ghi R8.12, tạo phụ thuộc vòng với R8.12; công cụ tách màu chung làm ở task này, R8.12 dùng lại)
 - **File:** `apps/native/crates/chef-app/src/color_remove.rs`
 - **E2E:** `erase`
 - **Tính năng:** L11
@@ -2630,7 +2686,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 
 ### R9.01 · Cài đặt đầy đủ và preset mặc định · M
 - **Mô tả:** phần còn lại của Cài đặt: preset mặc định cho nén, scan, đóng dấu; các mục mới như ngân sách cache (R1.33) và thời gian tự tắt lõi (R3.03), có giá trị mặc định.
-- **Tiêu chí:** (1) mọi mục cài đặt của bản Electron có trong bản Rust; (2) mục mới không làm hỏng file settings cũ; (3) preset áp dụng đúng.
+- **Tiêu chí:** (1) mọi mục cài đặt của bản Electron có trong bản Rust; (2) mục mới không làm hỏng file settings cũ; (3) preset áp dụng đúng; (4) đổi trần cache trong cài đặt có hiệu lực không cần khởi động lại (chuyển từ R1.33 ngày 2026-11-11).
 - **Kiểm chứng:** test đọc file settings của Electron; ui-audit.
 - **Phụ thuộc:** R2.14
 - **File:** `apps/native/crates/chef-app/src/settings.rs`
@@ -2718,7 +2774,8 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Phụ thuộc:** R1.02
 - **File:** `apps/native/crates/chef-app/src/logging.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-09w) chef-app/src/logging.rs: ghi <userData>/logs/chef-native.log, xoay vòng khi quá 512 KB (giữ 3 file cũ), bộ đệm RAM trần 64 KB. Test đơn vị: trần RAM, xoay vòng đúng số file, ghi và xoay khi đầy. E2E e2e-native-password quét nhật ký thật của các lượt chạy: không có mật khẩu. Lệch: mục mở thư mục nhật ký từ tab Giới thiệu chờ R9.06 (chưa có tab Giới thiệu).
+- **Trạng thái:** ✅
 
 ### R9.11 · Rà parity theo 165 mã tính năng · M
 - **Mô tả:** chạy script đối chiếu mã trong FEATURES với tasks (mục "Kiểm tra độ phủ" trong file này). Liệt kê mã chưa đạt, mã còn "một phần", và mã chuyển sang sau 1.0 nếu có quyết định.
@@ -2785,7 +2842,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 - **Mã tính năng trong phạm vi:** 165/165 có ít nhất một task. Phạm vi = các mã có mốc v0.1–v0.10, v1.0, v1.1 trong FEATURES.md (161 + 4). Không có mã ngoài phạm vi được gán nhầm. Nhóm P (so sánh tài liệu) và các mã "Sau 1.0", "Nâng cấp", "Ý tưởng" không thuộc phạm vi này.
 - **Spec E2E:** 63/63 có ít nhất một task. Hai spec `perf-heap` và `perf-layers` được đánh dấu "không áp dụng" ở R1.36 (đo Chromium).
 - **Cờ kiểm chứng trong BLUEPRINT_RUST:** 32 cờ (`Kiểm ở M…`, `Quyết định ở M…`) đều có task, bảng dưới.
-- **Task:** 267 (kể cả 14 điểm kiểm). Không có ID trùng.
+- **Task:** 269 (kể cả 14 điểm kiểm; thêm R1.43 và R2.33 ngày 2026-11-11). Không có ID trùng. Không còn phụ thuộc vòng (R8.11 ↔ R8.12 đã gỡ).
 
 **Feature → task** (mỗi mã trong phạm vi, theo mục FEATURES.md):
 
@@ -2845,7 +2902,7 @@ Trong tổng có 14 task "Điểm kiểm" (kích thước —). Phần lớn tas
 | §14 | Ước lượng sau M1 | Điểm kiểm M1 |
 | §15 | Thời gian học Rust/GPUI | Điểm kiểm M1 |
 
-**Việc thủ công (MAN) → task:** MAN-1 → R1.26, R1.27, R7.08, R7.09; MAN-2 → R6.18, R6.19; MAN-3 → R8.07, R8.08; MAN-4 → R1.10; MAN-5 → R2.02 và mỗi điểm kiểm; MAN-6 → R9.12.
+**Việc thủ công (MAN) → task:** MAN-1 → R1.26, R1.27, R7.09 (R7.08 đã gộp vào R7.09); MAN-2 → R6.18, R6.19; MAN-3 → R8.07, R8.08; MAN-4 → R1.10; MAN-5 → R2.02 và mỗi điểm kiểm; MAN-6 → R9.12.
 
 **Quyết định (CH) → task:** CH-R1 → R5.16; CH-R2 → R9.11; CH-R3 → R2.16, R2.28.
 
@@ -2857,10 +2914,24 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 | Ngày | ID | Thay đổi | Lý do |
 |---|---|---|---|
 | 2026-11-08 | — | Tạo file, phiên bản 0.1 | Phân rã BLUEPRINT_RUST và PLAN_RUST |
+| 2026-11-11 | — | Phiên bản 0.2: thêm mục "Thứ tự làm tiếp" (MAN-1 ngay, lát cắt dọc M3 trước phần còn lại của M2, gom đuôi M1) | D86. Rủi ro còn lại lớn nhất là IME và R3.06; khoảng 170 task của M4–M8 phụ thuộc chuỗi R3.02 → R3.08 |
+| 2026-11-11 | R3.03 | Bỏ phụ thuộc R2.32 | Điểm kiểm không phải phụ thuộc kỹ thuật |
+| 2026-11-11 | R3.08 | Bỏ phụ thuộc R3.07, thêm R1.42; lát cắt chỉ cần `Params` của `page.rotate` | Codegen đầy đủ chỉ chặn R5.02 |
+| 2026-11-11 | R1.43 (mới) | Gom phần "so với Electron" của R1.13, R1.15, R1.16, R1.17, R1.19 và năm dòng "Kiểm ở M1" còn lại của BLUEPRINT_RUST §6.2 | R1.21 đã xong; năm đuôi cùng một cách kiểm |
+| 2026-11-11 | R2.33 (mới) | Script chạy gộp E2E native | 16 script lẻ, CI (R1.05) chưa chạy |
+| 2026-11-11 | R1.33, R1.34 | Chuyển ✅; tiêu chí 3 của R1.33 sang R9.01 (tiêu chí 4); tiêu chí 2 của R1.34 đã có ở R2.22 | Phần còn lại thuộc mốc sau, giữ 🔄 ở M1 không có ích |
+| 2026-11-11 | R1.35 | Đo bằng bộ đếm GPU của Windows, không viết mã DXGI | `nativeMB` đã thấp; chỉ cần số xác nhận |
+| 2026-11-11 | R2.02 | Thêm tiêu chí 4: ảnh tham chiếu ra khỏi `%TEMP%` | Windows có thể tự dọn `%TEMP%` |
+| 2026-11-11 | R5.02 | Thêm tiêu chí 4 (bảng phân loại hộp thoại) và 5 (rà lại kích thước R5.03–R5.68) | Renderer từ schema là đòn bẩy của M5 (69 task), nhưng phải giữ hình họa |
+| 2026-11-11 | R5.35, R5.36 | Phụ thuộc đổi sang R5.30 | Chuỗi R5.34 → R5.35 → R5.36 là phụ thuộc giả. R5.37 giữ phụ thuộc R5.36 (tiêu chí 3 dùng Bates) |
+| 2026-11-11 | R7.08, R7.09 | R7.08 ❌, gộp vào R7.09 | Hai task là cùng một lần MAN-1 |
+| 2026-11-11 | R8.11 | Phụ thuộc đổi từ R8.12 sang R8.01 | Gỡ phụ thuộc vòng R8.11 ↔ R8.12 |
 
 ### Điểm kiểm M1 (cuối mốc)
 
 - [ ] Bảng RAM: `nativeMB` và `coreMB` cạnh số Electron (R1.38), có ghi tổng và chênh lệch
+- [ ] R1.43 xong: năm probe hình họa đã so với Electron; năm dòng "Kiểm ở M1" của BLUEPRINT_RUST §6.2 có kết quả
+- [ ] CH-R4 đã chốt (`cargo deny` advisories), để định nghĩa "xong" mục (c) đạt được
 - [ ] Danh sách "đã kiểm / chưa kiểm": IME (R1.26), cửa sổ ngoài màn hình (R1.08/R1.09), texture (R1.35), DPR (R1.21), font, icon, bóng, layout
 - [ ] Đọc lại M2–M9, sửa task theo kết quả đo, ghi thay đổi vào NOTES
 - [ ] Ước lượng điểm cho M2–M9 (BLUEPRINT_RUST §14), dựa trên số giờ thực tế của M1 và số task đã xong; ghi tốc độ học Rust/GPUI (BLUEPRINT_RUST §15)
