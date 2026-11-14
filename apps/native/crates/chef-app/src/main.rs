@@ -40,9 +40,7 @@ mod night;
 mod password;
 mod probe;
 mod properties;
-#[cfg(windows)]
 mod save;
-#[cfg(windows)]
 mod session;
 mod settings;
 mod settings_dialog;
@@ -52,7 +50,6 @@ mod start;
 mod tabs;
 mod tabs_host;
 mod theme;
-#[cfg(windows)]
 mod undo;
 mod viewer;
 

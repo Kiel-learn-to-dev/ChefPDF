@@ -8,9 +8,17 @@ pub mod framing;
 pub mod job;
 #[cfg(windows)]
 pub mod ops;
+#[cfg(not(windows))]
+#[path = "ops_stub.rs"]
+pub mod ops;
 #[cfg(windows)]
 pub mod supervisor;
+#[cfg(not(windows))]
+#[path = "supervisor_stub.rs"]
+mod supervisor;
 
 pub use client::{CallError, Client, ExitInfo, Notification};
 #[cfg(windows)]
 pub use supervisor::{CoreCommand, CoreStatus, Event, Supervisor, SupervisorConfig};
+#[cfg(not(windows))]
+pub use supervisor::{CoreStatus, Event, Supervisor};
