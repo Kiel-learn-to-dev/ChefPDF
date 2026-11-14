@@ -92,8 +92,7 @@ def test_a_missing_letter_takes_the_installed_font_of_the_same_family(
 
 
 def test_the_document_font_is_named_by_its_family_not_its_basefont() -> None:
-    """A message names the document's font as people know it: the installed family when there is one,
-    else the BaseFont without its subset tag and PS/MT suffixes (D66)."""
+    """Name the font by its installed family, or by BaseFont without subset and PS/MT suffixes (D66)."""
     from chef_core.text.fonts import old_font_label
 
     assert old_font_label("ABCDEF+NoSuchFontPS-BoldMT") == "NoSuchFont"

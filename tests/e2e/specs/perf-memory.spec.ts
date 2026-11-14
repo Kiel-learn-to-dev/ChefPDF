@@ -131,7 +131,9 @@ async function snapshot(l: Launched, label: string, cdp: Cdp | null): Promise<vo
       ws: m.memory.workingSetSize * 1024,
     })),
   );
-  const tree = descendants(processTable(), l.app.process().pid);
+  const pid = l.app.process().pid;
+  if (pid === undefined) throw new Error('Electron main process has no pid');
+  const tree = descendants(processTable(), pid);
   const core = tree.filter((p) => /python|chef-core/i.test(p.name));
   const byType = new Map<string, number>();
   for (const m of electron) byType.set(m.type, (byType.get(m.type) ?? 0) + m.ws);
@@ -222,7 +224,9 @@ test('one 1000-page document: open, scroll 350 screens, return to the top', asyn
   await page.waitForTimeout(3_000);
   await snapshot(launched, `after-scroll-${screens}`, cdp);
   const lt = await page.evaluate(
-    () => (window as unknown as { __longTasks: { count: number; max: number } }).__longTasks,
+    () =>
+      (window as unknown as { __longTasks: { count: number; max: number; total: number } })
+        .__longTasks,
   );
   console.log(
     `PERFMEM longtasks count=${lt.count} maxMs=${Math.round(lt.max)} totalMs=${Math.round(lt.total)} ` +
