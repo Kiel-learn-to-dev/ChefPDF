@@ -5,7 +5,8 @@
 .DESCRIPTION
   Scripts are discovered by name, so newly added e2e-native scripts join the suite automatically.
   Each test runs in a hidden child PowerShell process; the test scripts themselves use their
-  authenticated debug pipe and do not synthesize mouse input.
+  authenticated debug pipe and do not synthesize mouse input. OS input is opt-in for individual
+  scripts with CHEF_E2E_OS_INPUT=1; the aggregate runner always clears that flag in child processes.
 
   Use -SelfTest to validate discovery, continuation after a deliberate failure, output parsing,
   and the aggregate exit code without launching the Windows-only application.
@@ -87,8 +88,12 @@ function Invoke-E2EScript {
     $exitCode = 1
     $lines = @()
     $timedOut = $false
+    $previousOsInput = $env:CHEF_E2E_OS_INPUT
 
     try {
+        # The aggregate suite must remain background-safe even if its caller has opted into
+        # physical input for a separately run test.
+        $env:CHEF_E2E_OS_INPUT = $null
         $options = @{
             FilePath               = $PowerShellExe
             ArgumentList           = $argumentLine
@@ -112,6 +117,7 @@ function Invoke-E2EScript {
         $lines += "FAIL runner could not start $($ScriptFile.Name): $_"
         $exitCode = 1
     } finally {
+        $env:CHEF_E2E_OS_INPUT = $previousOsInput
         $clock.Stop()
     }
 

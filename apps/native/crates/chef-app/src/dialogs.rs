@@ -22,6 +22,7 @@ const OFN_ALLOWMULTISELECT: u32 = 0x0000_0200;
 
 /// Số ký tự tối đa của vùng nhận tên file khi chọn nhiều tệp.
 const FILE_BUFFER: usize = 65_536;
+static PDF_DEFAULT_EXTENSION: [u16; 4] = [b'p' as u16, b'd' as u16, b'f' as u16, 0];
 
 const WM_CLOSE: u32 = 0x0010;
 
@@ -115,25 +116,26 @@ pub fn open_pdfs(initial_dir: Option<&Path>) -> Vec<PathBuf> {
     let mut file = vec![0u16; FILE_BUFFER];
     let title = wide("Mở PDF");
     let dir = initial_dir_wide(initial_dir);
+    record_dialog_request(
+        "open",
+        dir.as_deref(),
+        file.len(),
+        std::ptr::null(),
+        open_flags(),
+    );
     let mut ofn = new_ofn(
         filter.as_mut_ptr(),
         file.as_mut_ptr(),
         file.len() as u32,
         title.as_ptr(),
         dir.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
-        OFN_EXPLORER
-            | OFN_FILEMUSTEXIST
-            | OFN_PATHMUSTEXIST
-            | OFN_ALLOWMULTISELECT
-            | OFN_HIDEREADONLY,
+        std::ptr::null(),
+        open_flags(),
     );
     spawn_e2e_closer();
     // SAFETY: mọi con trỏ trỏ tới vec và chuỗi còn sống trong lời gọi; kích thước vùng file khai đúng.
     let ok = unsafe { GetOpenFileNameW(&mut ofn) };
-    if ok == 0 {
-        return Vec::new();
-    }
-    parse_selection(&file)
+    open_result(ok, &file)
 }
 
 /// Chạy hộp thoại lưu một PDF, tên gợi ý là `suggested`. Trả về None khi hủy.
@@ -145,21 +147,78 @@ pub fn save_pdf(initial_dir: Option<&Path>, suggested: &str) -> Option<PathBuf> 
     }
     let title = wide("Lưu PDF");
     let dir = initial_dir_wide(initial_dir);
+    record_dialog_request(
+        "save",
+        dir.as_deref(),
+        file.len(),
+        PDF_DEFAULT_EXTENSION.as_ptr(),
+        save_flags(),
+    );
     let mut ofn = new_ofn(
         filter.as_mut_ptr(),
         file.as_mut_ptr(),
         file.len() as u32,
         title.as_ptr(),
         dir.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
-        OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY,
+        PDF_DEFAULT_EXTENSION.as_ptr(),
+        save_flags(),
     );
     spawn_e2e_closer();
     // SAFETY: như `open_pdfs`.
     let ok = unsafe { GetSaveFileNameW(&mut ofn) };
+    save_result(ok, &file)
+}
+
+fn record_dialog_request(
+    kind: &str,
+    initial_dir: Option<&[u16]>,
+    max_file: usize,
+    default_extension: *const u16,
+    flags: u32,
+) {
+    let initial_dir = initial_dir
+        .and_then(|path| path.strip_suffix(&[0]))
+        .map(String::from_utf16_lossy);
+    let default_extension = if default_extension.is_null() {
+        None
+    } else {
+        Some(String::from_utf16_lossy(
+            &PDF_DEFAULT_EXTENSION[..PDF_DEFAULT_EXTENSION.len() - 1],
+        ))
+    };
+    crate::debug::set_file_dialog_request(serde_json::json!({
+        "kind": kind,
+        "initialDir": initial_dir,
+        "filterIndex": 1,
+        "maxFile": max_file,
+        "allowMultiSelect": flags & OFN_ALLOWMULTISELECT != 0,
+        "defaultExtension": default_extension,
+        "flags": flags,
+    }));
+}
+
+fn open_flags() -> u32 {
+    OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY
+}
+
+fn save_flags() -> u32 {
+    OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY
+}
+
+fn open_result(ok: i32, file: &[u16]) -> Vec<PathBuf> {
     if ok == 0 {
-        return None;
+        Vec::new()
+    } else {
+        parse_selection(file)
     }
-    parse_selection(&file).into_iter().next()
+}
+
+fn save_result(ok: i32, file: &[u16]) -> Option<PathBuf> {
+    if ok == 0 {
+        None
+    } else {
+        parse_selection(file).into_iter().next()
+    }
 }
 
 fn new_ofn(
@@ -168,6 +227,7 @@ fn new_ofn(
     max_file: u32,
     title: *const u16,
     initial_dir: *const u16,
+    def_ext: *const u16,
     flags: u32,
 ) -> OpenFileNameW {
     OpenFileNameW {
@@ -187,7 +247,7 @@ fn new_ofn(
         flags,
         file_offset: 0,
         file_extension: 0,
-        def_ext: std::ptr::null(),
+        def_ext,
         cust_data: 0,
         hook: 0,
         template_name: std::ptr::null(),
@@ -267,6 +327,12 @@ mod tests {
     }
 
     #[test]
+    fn cancel_returns_no_selection_for_open_and_save() {
+        assert!(open_result(0, &[0, 0]).is_empty());
+        assert_eq!(save_result(0, &[0, 0]), None);
+    }
+
+    #[test]
     fn initial_dir_is_used_only_when_it_exists() {
         assert!(initial_dir_wide(Some(Path::new("Z:\\khong-co-thu-muc-nay"))).is_none());
         assert!(initial_dir_wide(None).is_none());
@@ -284,8 +350,49 @@ mod tests {
             file.len() as u32,
             title.as_ptr(),
             std::ptr::null(),
+            std::ptr::null(),
             OFN_PATHMUSTEXIST,
         );
         assert_eq!(ofn.max_file, file.len() as u32);
+    }
+
+    #[test]
+    fn open_dialog_defaults_to_pdf_filter_and_multiple_existing_files() {
+        let flags = open_flags();
+        assert_eq!(
+            new_ofn(
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                0,
+                std::ptr::null(),
+                std::ptr::null(),
+                std::ptr::null(),
+                flags
+            )
+            .filter_index,
+            1
+        );
+        assert_eq!(
+            flags & (OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_ALLOWMULTISELECT),
+            OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_ALLOWMULTISELECT
+        );
+    }
+
+    #[test]
+    fn save_dialog_uses_pdf_default_extension_and_overwrite_confirmation() {
+        let ofn = new_ofn(
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            0,
+            std::ptr::null(),
+            std::ptr::null(),
+            PDF_DEFAULT_EXTENSION.as_ptr(),
+            save_flags(),
+        );
+        // SAFETY: the pointer refers to all four elements of the static PDF_DEFAULT_EXTENSION.
+        let extension =
+            unsafe { std::slice::from_raw_parts(ofn.def_ext, PDF_DEFAULT_EXTENSION.len()) };
+        assert_eq!(extension, PDF_DEFAULT_EXTENSION.as_slice());
+        assert_ne!(ofn.flags & OFN_OVERWRITEPROMPT, 0);
     }
 }

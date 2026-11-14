@@ -6,7 +6,7 @@
 //! - Bình thường: cửa sổ hiện giữa màn hình, kích thước 1200×860, có viewer PDF.
 //! - E2E (`CHEF_E2E=1`): cửa sổ tạo ẩn rồi đưa ra ngoài màn hình bằng SetWindowPos (GPUI không
 //!   nhận tọa độ âm qua WindowOptions: nó thay bằng vị trí giữa màn hình chính). Kênh debug bật.
-//!   Không có bước nào hiện cửa sổ trên màn hình của người dùng ở đường này.
+//!   Riêng probe hình họa có thể hiện cửa sổ khi đặt thêm `CHEF_E2E_PROBE_VISIBLE=1` để đo cursor thật.
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -136,14 +136,20 @@ fn show_offscreen(_hwnd: isize, _scale: f32, _size: (f32, f32)) -> Result<(), St
 }
 
 /// Chỉ E2E (R1.13, R1.15–R1.19): mở trang thử hình họa ngoài màn hình và bật kênh debug.
-fn open_probe_offscreen(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
+fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
     // CHEF_E2E_PROBE_WIDTH: chiều rộng khung (pixel logic), để đo auto-fit ở nhiều cỡ (R1.17).
     let width = std::env::var("CHEF_E2E_PROBE_WIDTH")
         .ok()
         .and_then(|v| v.parse::<f32>().ok())
         .unwrap_or(DEFAULT_SIZE.0);
+    let visible = std::env::var("CHEF_E2E_PROBE_VISIBLE").as_deref() == Ok("1");
+    let origin = if visible {
+        gpui::point(px(96.), px(96.))
+    } else {
+        gpui::point(px(OFFSCREEN_ORIGIN.0 as f32), px(OFFSCREEN_ORIGIN.1 as f32))
+    };
     let bounds = Bounds {
-        origin: gpui::point(px(OFFSCREEN_ORIGIN.0 as f32), px(OFFSCREEN_ORIGIN.1 as f32)),
+        origin,
         size: size(px(width), px(PROBE_HEIGHT)),
     };
     let window = cx
@@ -151,7 +157,7 @@ fn open_probe_offscreen(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 window_min_size: min,
-                show: false,
+                show: visible,
                 ..Default::default()
             },
             |_, cx| cx.new(probe::Probe::new),
@@ -165,11 +171,13 @@ fn open_probe_offscreen(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
         .update(cx, |_, window, _| hwnd_of(window))
         .expect("cập nhật cửa sổ thất bại")
         .expect("không lấy được HWND");
-    cx.spawn(async move |_| {
-        show_offscreen(hwnd, scale, (width, PROBE_HEIGHT))
-            .expect("đưa cửa sổ ra ngoài màn hình thất bại");
-    })
-    .detach();
+    if !visible {
+        cx.spawn(async move |_| {
+            show_offscreen(hwnd, scale, (width, PROBE_HEIGHT))
+                .expect("đưa cửa sổ ra ngoài màn hình thất bại");
+        })
+        .detach();
+    }
     debug::start(hwnd).expect("không bật được kênh debug");
 }
 
@@ -357,16 +365,26 @@ fn main() {
                     cwd: core,
                 };
                 let log = Arc::new(|line: &str| logging::info(line));
-                Some(Arc::new(Mutex::new(Supervisor::lazy(
-                    SupervisorConfig::new(command, log),
-                ))))
+                let mut config = SupervisorConfig::new(command, log);
+                if e2e && let Ok(raw) = std::env::var("CHEF_E2E_IDLE_STOP_MS") {
+                    match raw.parse::<u64>() {
+                        Ok(ms) if (1..=60_000).contains(&ms) => {
+                            config.idle_stop = Some(std::time::Duration::from_millis(ms));
+                        }
+                        _ => {
+                            eprintln!("CHEF_E2E_IDLE_STOP_MS phải từ 1 đến 60000");
+                            std::process::exit(2);
+                        }
+                    }
+                }
+                Some(Arc::new(Mutex::new(Supervisor::lazy(config))))
             };
             #[cfg(not(windows))]
             let supervisor = None;
             let min = Some(size(px(MIN_SIZE.0), px(MIN_SIZE.1)));
 
             if e2e_probe {
-                open_probe_offscreen(cx, min);
+                open_probe_window(cx, min);
                 return;
             }
             if e2e {

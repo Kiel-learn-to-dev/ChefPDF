@@ -940,7 +940,8 @@ impl Render for Probe {
         crate::debug::count_render();
         let c = Colors::new(is_dark(mode_from_env()));
         let context = self.context_at.map(|(x, y)| self.context_menu(x, y, cx));
-        chef_ui::button::focus_nav(div())
+        let visual_only = std::env::var("CHEF_E2E_PROBE_VISUAL_ONLY").as_deref() == Ok("1");
+        let root = chef_ui::button::focus_nav(div())
             .size_full()
             .bg(rgb(c.bg))
             .text_color(rgb(c.text))
@@ -949,18 +950,25 @@ impl Render for Probe {
             .flex()
             .flex_col()
             .gap(px(16.))
-            .child(button_section(&c, &self.buttons))
-            .child(form_section(&c, self, cx))
-            .child(fonts_section(&c))
-            .child(icons_section(&c))
-            .child(shadow_section(&c))
-            .child(layout_section(&c, window.viewport_size().width.as_f32()))
-            .child(tnum_section(&c))
-            .child(choice_section(&c, self, cx))
-            .child(menu_section(&c, self, window, cx))
-            .child(components_section(&c, self, cx))
-            .child(dialog_section(&c, self, cx))
-            .children(self.dialog_open.then(|| self.dialog(&c, cx)))
+            .child(button_section(&c, &self.buttons));
+        let root = if visual_only {
+            root.child(fonts_section(&c))
+                .child(icons_section(&c))
+                .child(shadow_section(&c))
+                .child(layout_section(&c, window.viewport_size().width.as_f32()))
+        } else {
+            root.child(form_section(&c, self, cx))
+                .child(fonts_section(&c))
+                .child(icons_section(&c))
+                .child(shadow_section(&c))
+                .child(layout_section(&c, window.viewport_size().width.as_f32()))
+                .child(tnum_section(&c))
+                .child(choice_section(&c, self, cx))
+                .child(menu_section(&c, self, window, cx))
+                .child(components_section(&c, self, cx))
+                .child(dialog_section(&c, self, cx))
+        };
+        root.children(self.dialog_open.then(|| self.dialog(&c, cx)))
             // Menu chuột phải nằm trong lớp phủ tuyệt đối ở gốc cửa sổ, để vị trí là tọa độ cửa sổ.
             .children(context.map(|menu| div().absolute().top(px(0.)).left(px(0.)).child(menu)))
             .children(self.toast_layer(&c, cx))

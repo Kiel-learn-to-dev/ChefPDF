@@ -59,6 +59,10 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("shift-right", SelectRight, Some("TextInput")),
         KeyBinding::new("home", Home, Some("TextInput")),
         KeyBinding::new("end", End, Some("TextInput")),
+        // Keep viewer PageUp/PageDown navigation from escaping through a focused single-line
+        // input. In this context the keys move the caret to the start/end of the query.
+        KeyBinding::new("pageup", Home, Some("TextInput")),
+        KeyBinding::new("pagedown", End, Some("TextInput")),
         KeyBinding::new("ctrl-a", SelectAll, Some("TextInput")),
         KeyBinding::new("ctrl-v", Paste, Some("TextInput")),
         KeyBinding::new("ctrl-c", Copy, Some("TextInput")),

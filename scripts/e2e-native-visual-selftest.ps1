@@ -111,7 +111,7 @@ function Invoke-ReferenceResolverFixtureTest {
 Write-Host 'Running visual comparator self-test...'
 Push-Location (Join-Path $repoRoot 'apps/native')
 try {
-  cargo test -p chef-testkit visual::tests::selftest_acceptance_cases_and_report_config -- --exact --nocapture
+  cargo test -p chef-testkit
 } finally {
   Pop-Location
 }

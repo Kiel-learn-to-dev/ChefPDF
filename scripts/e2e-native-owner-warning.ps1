@@ -5,7 +5,8 @@
 .DESCRIPTION
   Creates an encrypted PDF with distinct user and owner passwords, opens it in an isolated native
   app process, rotates a page, then saves to a deterministic path. The authenticated debug pipe is
-  used for UI actions and state; the saved PDF is reopened independently with pikepdf.
+  used for UI actions and state; the saved PDF is reopened independently with pikepdf and rendered
+  again in a fresh native viewer/PDFium process using the user password.
   Requires Windows, chef-app.exe, core/.venv, and pdfium.dll. This script has not been run on Windows
   unless invoked there with a working native build and interactive app runtime.
 #>
@@ -27,6 +28,7 @@ $oldE2E = $env:CHEF_E2E
 $oldUserData = $env:CHEF_USER_DATA_DIR
 $oldSaveAs = $env:CHEF_E2E_SAVE_AS_PATH
 $proc = $null
+$reopen = $null
 $passed = $false
 $script:pipe = $null
 $script:token = $null
@@ -58,13 +60,15 @@ function State() { return (Send 'state' | ConvertFrom-Json) }
 function WaitFor([scriptblock]$Predicate, [string]$What, [int]$Seconds = 45) {
     $deadline = [DateTime]::UtcNow.AddSeconds($Seconds)
     while ([DateTime]::UtcNow -lt $deadline) {
-        if ($proc -and $proc.HasExited) {
-            throw "chef-app exited ($($proc.ExitCode)) while waiting for $What. Log: $(Get-Content $log -Raw -ErrorAction SilentlyContinue)"
+        $activeProcess = if ($null -ne $reopen) { $reopen } else { $proc }
+        $activeLog = if ($null -ne $reopen) { $reopenLog } else { $log }
+        if ($activeProcess -and $activeProcess.HasExited) {
+            throw "chef-app exited ($($activeProcess.ExitCode)) while waiting for $What. Log: $(Get-Content $activeLog -Raw -ErrorAction SilentlyContinue)"
         }
         if (& $Predicate) { return }
         Start-Sleep -Milliseconds 200
     }
-    throw "Timed out waiting for $What. Log: $(Get-Content $log -Raw -ErrorAction SilentlyContinue)"
+    throw "Timed out waiting for $What. Log: $(Get-Content $activeLog -Raw -ErrorAction SilentlyContinue)"
 }
 
 function Click-Control([string]$Id) {
@@ -153,13 +157,61 @@ try {
     if ($sourcePdf.pages -ne 1 -or $sourcePdf.rotation -ne 0 -or -not $sourcePdf.encrypted) {
         throw "Original source integrity check failed: $($sourcePdf | ConvertTo-Json -Compress)"
     }
+    Send 'quit' | Out-Null
+    if (-not $proc.WaitForExit(5000)) {
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+        if (-not $proc.WaitForExit(5000)) { throw 'Original app process did not exit before native reopen.' }
+    }
+    $proc = $null
+
+    # Independently reopen the encrypted output in Chef PDF's native viewer/PDFium, not only pikepdf.
+    $reopenLog = Join-Path $work 'reopen.log'
+    $env:CHEF_E2E = '1'
+    $env:CHEF_USER_DATA_DIR = Join-Path $work 'reopen-userdata'
+    Remove-Item Env:CHEF_E2E_SAVE_AS_PATH -ErrorAction SilentlyContinue
+    try {
+        $reopen = Start-Process -FilePath $Exe -ArgumentList ('"' + $saved + '"') -PassThru `
+            -RedirectStandardError $reopenLog -WindowStyle Hidden
+    } finally {
+        Restore-Env 'CHEF_E2E' $oldE2E
+        Restore-Env 'CHEF_USER_DATA_DIR' $oldUserData
+        Restore-Env 'CHEF_E2E_SAVE_AS_PATH' $oldSaveAs
+    }
+    WaitFor {
+        if (-not (Test-Path -LiteralPath $reopenLog)) { return $false }
+        $text = Get-Content -LiteralPath $reopenLog -Raw
+        $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
+        $script:token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
+        if (-not $script:pipe -or -not $script:token) { return $false }
+        try { return (State).password.open -eq $true } catch { return $false }
+    } 'native viewer password prompt for saved encrypted PDF'
+    Click-Control 'password-input'
+    Send "char $secret" | Out-Null
+    Start-Sleep -Milliseconds 120
+    Send 'key 13' | Out-Null
+    WaitFor {
+        $snapshot = State
+        ($null -ne $snapshot.view) -and ($snapshot.password.open -eq $false) -and
+        ($null -ne $snapshot.cachedPageImages.PSObject.Properties['0']) -and
+        ([int]$snapshot.cached -eq 1) -and ([int]$snapshot.pending -eq 0) -and (-not $snapshot.message)
+    } 'saved encrypted PDF renders through native PDFium'
+    Send 'quit' | Out-Null
+    if (-not $reopen.WaitForExit(5000)) {
+        Stop-Process -Id $reopen.Id -Force -ErrorAction SilentlyContinue
+        if (-not $reopen.WaitForExit(5000)) { throw 'Reopened app process did not exit.' }
+    }
+    $reopen = $null
     Write-Output "PASS R3.12 owner-password warning: $warning"
-    Write-Output 'PASS R3.12 Save As produced a readable encrypted PDF with the rotation and preserved the source bytes.'
+    Write-Output 'PASS R3.12 Save As produced an encrypted PDF readable by pikepdf and native PDFium, with rotation and unchanged source bytes.'
     $passed = $true
 } finally {
     if ($proc -and -not $proc.HasExited) {
         if ($script:pipe -and $script:token) { try { Send 'quit' | Out-Null } catch {} }
         if (-not $proc.WaitForExit(3000)) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+    }
+    if ($reopen -and -not $reopen.HasExited) {
+        if ($script:pipe -and $script:token) { try { Send 'quit' | Out-Null } catch {} }
+        if (-not $reopen.WaitForExit(3000)) { Stop-Process -Id $reopen.Id -Force -ErrorAction SilentlyContinue }
     }
     Restore-Env 'CHEF_E2E' $oldE2E
     Restore-Env 'CHEF_USER_DATA_DIR' $oldUserData

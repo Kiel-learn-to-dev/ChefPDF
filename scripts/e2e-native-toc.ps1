@@ -4,6 +4,7 @@
   entry and confirm the viewer navigates to its destination page.
 .DESCRIPTION
   Windows only. Requires chef-app.exe, pdfium.dll, Python/pikepdf via uv, and the debug pipe.
+  Set CHEF_E2E_OS_INPUT=1 to opt into real Windows mouse clicks; default uses the debug pipe.
 #>
 param([string]$Exe)
 $ErrorActionPreference = 'Stop'
@@ -62,13 +63,50 @@ try {
     function State() { return (Send 'state' | ConvertFrom-Json) }
     function WaitFor([scriptblock]$predicate, [string]$what) {
         $end = (Get-Date).AddSeconds(45)
-        while ((Get-Date) -lt $end) { if (& $predicate) { return }; Start-Sleep -Milliseconds 250 }
+        while ((Get-Date) -lt $end) {
+            if ($proc -and $proc.HasExited) { throw "chef-app exited ($($proc.ExitCode)) while waiting for $what. Log: $log" }
+            if (& $predicate) { return }
+            Start-Sleep -Milliseconds 250
+        }
         throw "Timed out waiting for $what"
     }
+    if (-not ('ChefTocWindowInput' -as [type])) {
+        Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public struct ChefTocPoint { public int X; public int Y; }
+public static class ChefTocWindowInput {
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref ChefTocPoint point);
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, int data, UIntPtr extra);
+}
+'@
+    }
     function Click-Client([double]$x, [double]$y, [double]$scale) {
-        $px = [int][math]::Round($x * $scale); $py = [int][math]::Round($y * $scale)
-        Send "mouse down $px $py" | Out-Null
-        Send "mouse up $px $py" | Out-Null
+        if ($env:CHEF_E2E_OS_INPUT -ne '1') {
+            $px = [int][math]::Round($x * $scale); $py = [int][math]::Round($y * $scale)
+            Send "mouse down $px $py" | Out-Null
+            Send "mouse up $px $py" | Out-Null
+            return
+        }
+        $snapshot = State
+        $hwnd = [IntPtr]::new([long]$snapshot.hwnd)
+        [void][ChefTocWindowInput]::ShowWindow($hwnd, 9) # SW_RESTORE
+        [void][ChefTocWindowInput]::SetWindowPos($hwnd, [IntPtr]::Zero, 100, 100, 1280, 900, 0x0040) # SWP_SHOWWINDOW
+        Start-Sleep -Milliseconds 200
+        [void][ChefTocWindowInput]::SetForegroundWindow($hwnd)
+        WaitFor { (State).foreground } 'toc window foreground'
+        $point = [ChefTocPoint]::new()
+        $point.X = [int][math]::Round($x * $scale)
+        $point.Y = [int][math]::Round($y * $scale)
+        if (-not [ChefTocWindowInput]::ClientToScreen($hwnd, [ref]$point)) { throw 'ClientToScreen failed for sidebar click' }
+        [void][ChefTocWindowInput]::SetCursorPos($point.X, $point.Y)
+        Start-Sleep -Milliseconds 60
+        [ChefTocWindowInput]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)
+        [ChefTocWindowInput]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
     }
 
     WaitFor { $s = State; $s.view -and $s.view.firstPage -eq 0 -and $s.sidebarThumbnails -gt 0 } 'first page and rendered thumbnails'
@@ -85,6 +123,7 @@ try {
     WaitFor { $s = State; $s.view.firstPage -eq 8 } 'bookmark click navigates to PDF page 9'
     Write-Output 'PASS clicking the PDF outline entry navigates to page 9'
     Send 'quit' | Out-Null
+    if (-not $proc.WaitForExit(5000)) { throw 'chef-app did not exit after quit.' }
 }
 finally {
     $env:CHEF_E2E = $oldE2E

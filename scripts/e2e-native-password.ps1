@@ -13,15 +13,20 @@ param([string]$Exe, [string]$Pdf)
 
 $ErrorActionPreference = "Stop"
 if (-not $Exe) { $Exe = Join-Path $PSScriptRoot "..\apps\native\target\debug\chef-app.exe" }
-if (-not $Pdf) { $Pdf = Join-Path $env:TEMP "chef-perf\locked.pdf" }
 $repo = Resolve-Path (Join-Path $PSScriptRoot "..")
+$work = Join-Path $env:TEMP ("chef-native-password-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force $work | Out-Null
+if (-not $Pdf) { $Pdf = Join-Path $work "locked.pdf" }
 $secret = "thu123"
+$script:passwordRunArtifacts = [System.Collections.Generic.List[object]]::new()
 
 if (-not (Test-Path $Pdf)) {
     New-Item -ItemType Directory -Force -Path (Split-Path $Pdf) | Out-Null
     Push-Location (Join-Path $repo "core")
-    & uv run --no-project python (Join-Path $PSScriptRoot "gen-native-password-fixture.py") $Pdf | Out-Null
-    Pop-Location
+    try {
+        & uv run --no-project python (Join-Path $PSScriptRoot "gen-native-password-fixture.py") $Pdf | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "password PDF fixture generation failed with exit code $LASTEXITCODE" }
+    } finally { Pop-Location }
 }
 
 $script:fails = 0
@@ -33,13 +38,20 @@ function ExpectTrue([string]$name, [bool]$cond, [string]$detail) {
     if ($cond) { Write-Output "PASS $name" }
     else { $script:fails++; Write-Output "FAIL $name : $detail" }
 }
+function File-Contains([string]$Path, [string]$Value) {
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    return [System.Text.Encoding]::Latin1.GetString($bytes).Contains($Value)
+}
 
 function Run-App([string]$Path, [scriptblock]$Steps) {
     $oldE2E = $env:CHEF_E2E
     $oldUserData = $env:CHEF_USER_DATA_DIR
     $env:CHEF_E2E = "1"
-    $env:CHEF_USER_DATA_DIR = Join-Path $env:TEMP ("chef-e2e-userdata-password-" + [guid]::NewGuid().ToString("N"))
-    $log = Join-Path $env:TEMP ("chef-password-" + [guid]::NewGuid().ToString("N") + ".txt")
+    $runId = [guid]::NewGuid().ToString("N")
+    $userData = Join-Path $work ("userdata-" + $runId)
+    New-Item -ItemType Directory -Force $userData | Out-Null
+    $env:CHEF_USER_DATA_DIR = $userData
+    $log = Join-Path $work ("run-" + $runId + ".stderr.txt")
     $proc = $null
     try {
         $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Path + '"') -PassThru -RedirectStandardError $log -WindowStyle Hidden
@@ -50,21 +62,27 @@ function Run-App([string]$Path, [scriptblock]$Steps) {
     }
     $ctx = $null
     try {
-        Start-Sleep -Seconds 5
-        $text = Get-Content $log -Raw
+        $deadline = (Get-Date).AddSeconds(45)
+        while ((Get-Date) -lt $deadline) {
+            if ($proc.HasExited) { throw "chef-app exited ($($proc.ExitCode)) before its debug pipe was ready. Log: $log" }
+            if ((Test-Path -LiteralPath $log) -and (Get-Content -LiteralPath $log -Raw) -match 'CHEF_DEBUG_TOKEN=') { break }
+            Start-Sleep -Milliseconds 200
+        }
+        if (-not (Test-Path -LiteralPath $log)) { throw "chef-app did not create its stderr log: $log" }
+        $text = Get-Content -LiteralPath $log -Raw
         $pipe = [regex]::Match($text, 'chef-native-\d+').Value
         $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
+        if (-not $pipe -or -not $tok) { throw "debug pipe/token did not become ready. Log: $log" }
         $ctx = @{ pipe = $pipe; tok = $tok; log = $log; proc = $proc }
+        $ctx.userData = $userData
+        $script:passwordRunArtifacts.Add($ctx)
         & $Steps $ctx
     }
     finally {
         $env:CHEF_E2E = $oldE2E
         $env:CHEF_USER_DATA_DIR = $oldUserData
         if ($ctx) { try { Send $ctx "quit" | Out-Null } catch {} }
-        if ($proc) {
-            Start-Sleep -Milliseconds 300
-            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
-        }
+        if ($proc -and -not $proc.HasExited -and -not $proc.WaitForExit(5000)) { Stop-Process -Id $proc.Id -Force }
     }
 }
 
@@ -124,14 +142,29 @@ Run-App $Pdf {
     ExpectTrue "closing the tab releases the source password" ($s.password.sourceHeld -eq $false) "mật khẩu nguồn còn sau khi đóng thẻ"
     ExpectTrue "closing the tab leaves the password buffer empty" ($s.password.bufferEmpty -eq $true) "buffer mật khẩu còn sau khi đóng thẻ"
 }
-$logText = Get-ChildItem (Join-Path $env:TEMP "chef-password-*.txt") | Sort-Object LastWriteTime | Select-Object -Last 1 | Get-Content -Raw
-ExpectTrue "the password never reaches the log" (-not $logText.Contains($secret)) "mật khẩu xuất hiện trong nhật ký"
-# Nhật ký thật của các lượt chạy (userData thử nghiệm): không được chứa mật khẩu.
-$logFiles = Get-ChildItem -Path $env:TEMP -Directory -Filter "chef-e2e-userdata-*" -ErrorAction SilentlyContinue |
-    ForEach-Object { Get-ChildItem -Path (Join-Path $_.FullName "logs") -Filter "chef-native.log*" -ErrorAction SilentlyContinue }
-ExpectTrue "app log files exist for the password runs" ($logFiles.Count -gt 0) "không có file nhật ký"
-$leaked = $logFiles | Where-Object { (Get-Content $_.FullName -Raw).Contains($secret) }
-ExpectTrue "no app log file contains the password" ($leaked.Count -eq 0) "nhật ký có mật khẩu"
+$stderrLogs = @($script:passwordRunArtifacts | Where-Object { Test-Path -LiteralPath $_.log })
+ExpectTrue "each password run has an isolated stderr log" ($stderrLogs.Count -eq 3) "không đủ ba log riêng trong $work"
+$stderrLeaks = @($stderrLogs | Where-Object { File-Contains -Path $_.log -Value $secret })
+ExpectTrue "the password never reaches stderr logs" ($stderrLeaks.Count -eq 0) "mật khẩu xuất hiện trong stderr log"
+$userDataFiles = @(
+    foreach ($artifact in $script:passwordRunArtifacts) {
+        if (Test-Path -LiteralPath $artifact.userData) {
+            Get-ChildItem -LiteralPath $artifact.userData -File -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+)
+ExpectTrue "app log directories exist for every password run" (@($script:passwordRunArtifacts | Where-Object { Test-Path -LiteralPath (Join-Path $_.userData 'logs') }).Count -eq 3) "không đủ thư mục log trong $work"
+$appLogFiles = @(
+    foreach ($artifact in $script:passwordRunArtifacts) {
+        $logDirectory = Join-Path $artifact.userData 'logs'
+        if (Test-Path -LiteralPath $logDirectory) {
+            Get-ChildItem -LiteralPath $logDirectory -File -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+)
+ExpectTrue "app log files exist for the password runs" ($appLogFiles.Count -ge 3) "không đủ log file trong $work"
+$diskLeaks = @($userDataFiles + $appLogFiles | Where-Object { File-Contains -Path $_.FullName -Value $secret })
+ExpectTrue "the password is absent from all app data files" ($diskLeaks.Count -eq 0) "mật khẩu xuất hiện trong dữ liệu app"
 
 # ---- Lượt 2: Esc đóng hộp mà không mở gì ----
 Run-App $Pdf {
@@ -175,3 +208,4 @@ Run-App $Pdf {
 
 Write-Output ("FAILS: " + $script:fails)
 if ($script:fails -gt 0) { exit 1 }
+Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

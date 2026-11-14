@@ -28,9 +28,10 @@ pub fn count_render() {}
 pub fn set_tabs(_: serde_json::Value) {}
 pub fn set_start_recents(_: Vec<String>) {}
 pub fn set_tab_message(_: Option<&str>) {}
+pub fn set_file_dialog_request(_: serde_json::Value) {}
 pub fn set_palette_state(_: serde_json::Value) {}
 pub fn set_theme_dark(_: bool) {}
-pub fn set_viewer_stats(_: usize, _: usize) {}
+pub fn set_viewer_stats(_: usize, _: usize, _: usize) {}
 pub fn set_viewer_cache_images(_: impl IntoIterator<Item = (usize, usize)>) {}
 pub fn set_cache_invalidation(_: serde_json::Value) {}
 pub fn set_source_warning(_: Option<(&str, &str)>) {}

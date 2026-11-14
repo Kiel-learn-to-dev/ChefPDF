@@ -120,6 +120,12 @@ mod tests {
     fn known_kind_is_read_and_unknown_kind_falls_back() {
         let known = json!({"code": -32000, "message": "x", "data": {"kind": "PASSWORD_REQUIRED"}});
         assert_eq!(kind_of(&known), "PASSWORD_REQUIRED");
+        let invalid_params = json!({"code": -32602, "message": "Invalid params", "data": {"kind": "INVALID_PARAMS"}});
+        assert_eq!(kind_of(&invalid_params), "INVALID_PARAMS");
+        assert_eq!(
+            message_key(kind_of(&invalid_params)),
+            "errors.INVALID_PARAMS"
+        );
         let strange = json!({"code": -32000, "message": "x", "data": {"kind": "KHONG_CO"}});
         assert_eq!(kind_of(&strange), UNKNOWN);
         assert_eq!(kind_of(&json!({"code": -32000})), UNKNOWN);

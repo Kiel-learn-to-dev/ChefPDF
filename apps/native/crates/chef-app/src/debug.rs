@@ -5,7 +5,7 @@
 //! bị từ chối. Không mở cổng mạng (cùng nguyên tắc với JSON-RPC, CONTRACTS §3).
 //!
 //! Lệnh:
-//! - `state`: JSON các trạng thái của cửa sổ (hiện hay không, hình chữ nhật).
+//! - `state`: JSON các trạng thái của cửa sổ (hiện hay không, hình chữ nhật, cursor hệ thống).
 //! - `screenshot <đường dẫn.bmp>`: chụp nội dung cửa sổ bằng PrintWindow, ghi BMP 32-bit.
 //! - `quit`: thoát tiến trình.
 //!
@@ -146,6 +146,8 @@ static START_RECENTS: std::sync::LazyLock<std::sync::Mutex<String>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new("[]".into()));
 static TAB_MESSAGE: std::sync::LazyLock<std::sync::Mutex<String>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new("null".into()));
+static FILE_DIALOG: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("null".into()));
 static PALETTE: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
     std::sync::Mutex::new("{\"open\":false,\"query\":\"\",\"selected\":0,\"results\":[]}".into())
 });
@@ -170,6 +172,16 @@ pub fn set_tab_message(message: Option<&str>) {
     }
 }
 
+/// Last native file-dialog request, exposed only in isolated E2E sessions.
+pub fn set_file_dialog_request(request: serde_json::Value) {
+    if std::env::var_os("CHEF_E2E").as_deref() != Some(std::ffi::OsStr::new("1")) {
+        return;
+    }
+    if let Ok(mut current) = FILE_DIALOG.lock() {
+        *current = request.to_string();
+    }
+}
+
 pub fn set_palette_state(state: serde_json::Value) {
     if let Ok(mut current) = PALETTE.lock() {
         *current = state.to_string();
@@ -188,6 +200,7 @@ pub fn count_render() {
 
 /// Số trang đang có ảnh trong cache và số yêu cầu render đang chờ, do viewer cập nhật.
 static CACHED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static CACHED_BYTES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 static PENDING: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 static CACHED_PAGE_IMAGES: std::sync::LazyLock<std::sync::Mutex<String>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new("{}".into()));
@@ -199,8 +212,9 @@ static SIDEBAR_THUMBNAILS: std::sync::atomic::AtomicU64 = std::sync::atomic::Ato
 static SIDEBAR_OUTLINE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 static SIDEBAR_BOOKMARKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-pub fn set_viewer_stats(cached: usize, pending: usize) {
+pub fn set_viewer_stats(cached: usize, pending: usize, cached_bytes: usize) {
     CACHED.store(cached as u64, std::sync::atomic::Ordering::Relaxed);
+    CACHED_BYTES.store(cached_bytes as u64, std::sync::atomic::Ordering::Relaxed);
     PENDING.store(pending as u64, std::sync::atomic::Ordering::Relaxed);
 }
 
@@ -466,6 +480,20 @@ struct WinRect {
 }
 
 #[repr(C)]
+struct WinPoint {
+    x: i32,
+    y: i32,
+}
+
+#[repr(C)]
+struct CursorInfo {
+    cb_size: u32,
+    flags: u32,
+    cursor: isize,
+    screen_pos: WinPoint,
+}
+
+#[repr(C)]
 #[allow(non_snake_case)]
 struct BitmapInfoHeader {
     biSize: u32,
@@ -521,7 +549,12 @@ unsafe extern "system" {
     fn GetForegroundWindow() -> isize;
     fn GetDpiForWindow(hwnd: isize) -> u32;
     fn PostMessageW(hwnd: isize, msg: u32, wparam: usize, lparam: isize) -> i32;
+    fn GetCursorInfo(info: *mut CursorInfo) -> i32;
+    fn LoadCursorW(instance: isize, name: *const u16) -> isize;
 }
+
+const IDC_ARROW: u16 = 32512;
+const IDC_HAND: u16 = 32649;
 
 const WM_KEYDOWN: u32 = 0x0100;
 const WM_KEYUP: u32 = 0x0101;
@@ -736,7 +769,8 @@ fn state(hwnd: isize) -> String {
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarOutline\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"palette\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarOutline\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
+        cursor_json(),
         THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
         rect.top,
@@ -745,6 +779,7 @@ fn state(hwnd: isize) -> String {
         RENDERS.load(std::sync::atomic::Ordering::Relaxed),
         render_timing_json(),
         CACHED.load(std::sync::atomic::Ordering::Relaxed),
+        CACHED_BYTES.load(std::sync::atomic::Ordering::Relaxed),
         CACHED_PAGE_IMAGES
             .lock()
             .map(|images| images.clone())
@@ -775,6 +810,10 @@ fn state(hwnd: isize) -> String {
             .lock()
             .map(|message| message.clone())
             .unwrap_or_else(|_| "null".into()),
+        FILE_DIALOG
+            .lock()
+            .map(|request| request.clone())
+            .unwrap_or_else(|_| "null".into()),
         PALETTE
             .lock()
             .map(|palette| palette.clone())
@@ -787,6 +826,36 @@ fn state(hwnd: isize) -> String {
         password_json(),
         scroll_progress_json(),
         crate::logging::recent().len()
+    )
+}
+
+/// Cursor thật của Windows tại vị trí con trỏ hệ thống; hữu ích cho probe đang hiển thị.
+fn cursor_json() -> String {
+    let mut info = CursorInfo {
+        cb_size: size_of::<CursorInfo>() as u32,
+        flags: 0,
+        cursor: 0,
+        screen_pos: WinPoint { x: 0, y: 0 },
+    };
+    // SAFETY: info có đúng layout/size Win32 và là con trỏ ghi hợp lệ.
+    let ok = unsafe { GetCursorInfo(&mut info) } != 0;
+    if !ok {
+        return "{\"ok\":false,\"type\":\"unavailable\"}".into();
+    }
+    // MAKEINTRESOURCEW: hai ID hệ thống là con trỏ số nguyên nhỏ, không phải chuỗi.
+    let arrow = unsafe { LoadCursorW(0, IDC_ARROW as usize as *const u16) };
+    let hand = unsafe { LoadCursorW(0, IDC_HAND as usize as *const u16) };
+    let cursor_type = if info.cursor == hand {
+        "hand"
+    } else if info.cursor == arrow {
+        "arrow"
+    } else {
+        "other"
+    };
+    let showing = info.flags & 0x0000_0001 != 0;
+    format!(
+        "{{\"ok\":true,\"type\":\"{cursor_type}\",\"visible\":{showing},\"x\":{},\"y\":{}}}",
+        info.screen_pos.x, info.screen_pos.y
     )
 }
 

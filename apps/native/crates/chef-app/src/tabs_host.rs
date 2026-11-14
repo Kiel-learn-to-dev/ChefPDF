@@ -291,11 +291,15 @@ impl DocumentHost {
             self.close_message = None;
             if let Some(viewer) = self.viewers.get(&id) {
                 viewer.update(cx, |viewer, cx| viewer.focus_search(window, cx));
-                let (cached, pending) = {
+                let (cached, pending, cached_bytes) = {
                     let viewer = viewer.read(cx);
-                    (viewer.tab_cached_pages(), viewer.tab_pending_pages())
+                    (
+                        viewer.tab_cached_pages(),
+                        viewer.tab_pending_pages(),
+                        viewer.tab_cached_bytes(),
+                    )
                 };
-                crate::debug::set_viewer_stats(cached, pending);
+                crate::debug::set_viewer_stats(cached, pending, cached_bytes);
             }
             crate::debug::set_tabs(self.tabs_debug(cx));
             cx.notify();
@@ -412,9 +416,13 @@ impl DocumentHost {
             && let Some(viewer) = self.viewers.get(&active)
         {
             let viewer = viewer.read(cx);
-            crate::debug::set_viewer_stats(viewer.tab_cached_pages(), viewer.tab_pending_pages());
+            crate::debug::set_viewer_stats(
+                viewer.tab_cached_pages(),
+                viewer.tab_pending_pages(),
+                viewer.tab_cached_bytes(),
+            );
         } else {
-            crate::debug::set_viewer_stats(0, 0);
+            crate::debug::set_viewer_stats(0, 0, 0);
         }
         crate::debug::set_tabs(self.tabs_debug(cx));
         cx.notify();
@@ -634,31 +642,53 @@ impl Render for DocumentHost {
             let id = tab.id();
             let selected = Some(id) == self.tabs.active_id();
             let title = format!("{}{}", tab.title(), if tab.is_dirty() { " •" } else { "" });
+            let tab_control_id = format!("doc-tab-{}", id.get());
+            chef_ui::a11y::register(chef_ui::a11y::Registered {
+                id: tab_control_id.clone(),
+                role: "tab",
+                name: title.clone(),
+                disabled: false,
+                focused: false,
+                hovered: false,
+                checked: None,
+                value: None,
+                bounds: None,
+            });
             let activate = cx.listener(move |this, _, window, cx| this.activate(id, window, cx));
             let close = cx.listener(move |this, _, window, cx| {
                 cx.stop_propagation();
                 this.close_tab(id, window, cx)
             });
+            let tab_control_key = tab_control_id.clone();
             strip = strip.child(
                 div()
-                    .id(format!("doc-tab-{}", id.get()))
-                    .flex()
-                    .flex_row()
-                    .items_center()
-                    .gap(px(4.0))
-                    .px(px(8.0))
-                    .py(px(4.0))
-                    .cursor_pointer()
-                    .bg(rgb(if selected { 0xffffff } else { 0xe5e5e5 }))
-                    .child(title)
+                    .flex_none()
                     .child(
                         div()
-                            .id(format!("doc-tab-close-{}", id.get()))
-                            .px(px(4.0))
-                            .child("×")
-                            .on_click(close),
+                            .id(tab_control_id)
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .gap(px(4.0))
+                            .px(px(8.0))
+                            .py(px(4.0))
+                            .cursor_pointer()
+                            .bg(rgb(if selected { 0xffffff } else { 0xe5e5e5 }))
+                            .child(title)
+                            .child(
+                                div()
+                                    .id(format!("doc-tab-close-{}", id.get()))
+                                    .px(px(4.0))
+                                    .child("×")
+                                    .on_click(close),
+                            )
+                            .on_click(activate),
                     )
-                    .on_click(activate),
+                    .on_children_prepainted(move |bounds, _, _| {
+                        if let Some(bounds) = bounds.first() {
+                            chef_ui::a11y::set_bounds(&tab_control_key, *bounds);
+                        }
+                    }),
             );
         }
         strip = strip.child(

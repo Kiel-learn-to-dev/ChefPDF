@@ -2072,6 +2072,10 @@ impl Viewer {
         self.cache.len()
     }
 
+    pub fn tab_cached_bytes(&self) -> usize {
+        self.cache.total_bytes()
+    }
+
     pub fn tab_pending_pages(&self) -> usize {
         self.pending.len()
     }
@@ -2093,7 +2097,7 @@ impl Viewer {
         for image in self.to_drop.drain(..) {
             let _ = window.drop_image(image);
         }
-        crate::debug::set_viewer_stats(0, 0);
+        crate::debug::set_viewer_stats(0, 0, 0);
     }
 
     pub fn tab_close_target(&self) -> Option<(Arc<Mutex<Supervisor>>, String)> {
@@ -3149,7 +3153,11 @@ impl Render for Viewer {
         crate::debug::set_sidebar_thumbnail_count(self.thumbnail_cache.len());
         crate::debug::set_sidebar_state(self.sidebar_outline, self.bookmarks.len());
 
-        crate::debug::set_viewer_stats(self.cache.len(), self.pending.len());
+        crate::debug::set_viewer_stats(
+            self.cache.len(),
+            self.pending.len(),
+            self.cache.total_bytes(),
+        );
         crate::debug::set_viewer_cache_images(
             self.cache
                 .entries()
@@ -3526,6 +3534,31 @@ impl Render for Viewer {
 #[cfg(test)]
 mod zoom_rotation_tests {
     use super::*;
+
+    #[test]
+    fn invalid_params_rpc_error_maps_to_the_vietnamese_ui_message() {
+        struct RestoreLanguage(i18n::Lang);
+        impl Drop for RestoreLanguage {
+            fn drop(&mut self) {
+                i18n::set_language(self.0);
+            }
+        }
+
+        let restore = RestoreLanguage(i18n::language());
+        i18n::set_language(i18n::Lang::Vi);
+        let error = CallError::Rpc(serde_json::json!({
+            "code": -32602,
+            "message": "Invalid params",
+            "data": { "kind": "INVALID_PARAMS" }
+        }));
+
+        assert_eq!(
+            call_error_text(error),
+            "Thiết lập chưa hợp lệ.",
+            "viewer must show the localized invalid-parameters message"
+        );
+        drop(restore);
+    }
 
     #[test]
     fn view_rotation_maps_text_points_and_rectangles_consistently() {

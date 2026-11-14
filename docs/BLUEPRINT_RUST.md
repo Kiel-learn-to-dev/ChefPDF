@@ -290,7 +290,7 @@ Trang thử: `CHEF_E2E=1 CHEF_E2E_PROBE=1` (`apps/native/crates/chef-app/src/pro
 - **Bóng (R1.16):** shader của GPUI (`gpui_windows/src/shaders.hlsl`, `shadow_fragment`) dùng `blur_radius` làm σ của hàm Gauss. CSS dùng σ = blur/2, nên bóng CSS `B px` tương ứng `B/2` trong GPUI. `blur_radius = 0` cho ra NaN và không vẽ gì, nên vòng focus cứng dùng 0,5 px. Vòng `0 0 0 2px surface, 0 0 0 4px focus` đã vẽ đúng: khe 2 px màu nền, viền 2 px màu focus.
 - **Chữ số cố định (R1.18):** GPUI chuyển `font_features` xuống DirectWrite, kiểm bằng Constantia (có `tnum`, chữ số mặc định không đều): cột `tnum` thẳng hàng. **Be Vietnam Pro không có `tnum`** (kiểm bằng fontTools: không có trong GSUB), nên `tabular-nums` của 12 chỗ trong CSS không có tác dụng ở cả hai bản. Nếu một cột số cần thẳng hàng, cách bù là vẽ mỗi chữ số trong một ô cố định; chưa cần làm.
 - **Icon (R1.15):** `svg()` tô bằng `text_color`; xem §6.3.
-- **Trạng thái nút (R1.19):** hover và active đổi đúng màu (kiểm bằng lệnh debug `mouse move` và `mouse down`). Token hover và active là RGBA trong suốt, nên phải dùng `rgba_hex`, không dùng `hex` (`hex` bỏ alpha, nút thành màu tối). `focus_visible()` chỉ áp khi tiêu điểm đang có và lần nhập gần nhất là bàn phím (`window.last_input_was_keyboard`). Con trỏ tay chưa đo: WGC không chụp con trỏ.
+- **Trạng thái nút (R1.19):** hover và active đổi đúng màu (kiểm bằng lệnh debug `mouse move` và `mouse down`). Token hover và active là RGBA trong suốt, nên phải dùng `rgba_hex`, không dùng `hex` (`hex` bỏ alpha, nút thành màu tối). `focus_visible()` chỉ áp khi tiêu điểm đang có và lần nhập gần nhất là bàn phím (`window.last_input_was_keyboard`). `state.cursor` đọc loại cursor Win32 hiện tại và tọa độ màn hình; phải hiện probe và đưa con trỏ hệ thống thật lên nút để kiểm `hand`. Chưa đo vì WGC không chụp con trỏ và E2E mặc định đặt cửa sổ ngoài màn hình.
 - **Bố cục (R1.17):** `grid` của GPUI chỉ có số cột cố định (`grid_cols`), không có `auto-fit` hay `minmax(220px, 1fr)`. Cách đã chọn: số cột = ⌊(W + gap) / (220 + gap)⌋, tính từ chiều rộng khung. Đo ở ba khung: 3 cột (800 px), 4 cột (1184 px), 6 cột (1484 px). `truncate()` cắt một dòng đúng (glyph cắt trông như ba dấu chấm; so với `…` của Electron ở R1.21). `flex_1().min_w_0()` cho `minmax(0, 1fr) 300px`. `aspect_ratio(260/100)` giữ 260×100.
 - **Thanh cuộn (R1.20):** GPUI core không vẽ thanh cuộn; `scrollbar_width` chỉ chừa chỗ và không có API màu. Thanh cuộn của dự án (`scrollbar-color` trong `base.css`) phải vẽ riêng trong chef-ui khi có chỗ dùng đầu tiên.
 
@@ -438,7 +438,7 @@ Các thư mục Electron (`apps/desktop`, `apps/ui`) và `core/` không đổi, 
 ### 10.5 CI
 
 - Job mới **Native (Windows)**: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo deny check`, kiểm tra codegen (theme, icon, contracts), build release.
-- **Chưa chặn merge** (TASKS R1.05: job không nằm trong required checks; job cũng chưa chạy vì chưa đẩy lên remote). Trong lúc đó cổng kiểm là cục bộ: fmt, clippy, test và script gộp E2E native (TASKS R2.33). Việc đặt job thành required do chủ dự án quyết ở Điểm kiểm M1. Linux và macOS không chặn.
+- **Chưa chặn merge** (TASKS R1.05: workflow riêng đã chạy ở commit cũ, nhưng chưa xác minh branch protection hoặc có run xanh trên HEAD hiện tại). Trong lúc package build được tạm hoãn theo yêu cầu, cổng kiểm khả dụng cục bộ là fmt, clippy, test và script gộp E2E native (TASKS R2.33). Việc đặt job thành required do chủ dự án quyết ở Điểm kiểm M1. Linux và macOS không chặn.
 
 ## 11. Build, phát hành & cập nhật
 
