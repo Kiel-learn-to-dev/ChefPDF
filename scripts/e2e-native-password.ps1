@@ -35,23 +35,36 @@ function ExpectTrue([string]$name, [bool]$cond, [string]$detail) {
 }
 
 function Run-App([string]$Path, [scriptblock]$Steps) {
-    Get-Process chef-app -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.Id -Force }
+    $oldE2E = $env:CHEF_E2E
+    $oldUserData = $env:CHEF_USER_DATA_DIR
     $env:CHEF_E2E = "1"
+    $env:CHEF_USER_DATA_DIR = Join-Path $env:TEMP ("chef-e2e-userdata-password-" + [guid]::NewGuid().ToString("N"))
     $log = Join-Path $env:TEMP ("chef-password-" + [guid]::NewGuid().ToString("N") + ".txt")
-    $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Path + '"') -PassThru -RedirectStandardError $log -WindowStyle Hidden
-    $env:CHEF_E2E = $null
-    Start-Sleep -Seconds 5
-    $text = Get-Content $log -Raw
-    $pipe = [regex]::Match($text, 'chef-native-\d+').Value
-    $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
-    $ctx = @{ pipe = $pipe; tok = $tok; log = $log; proc = $proc }
+    $proc = $null
     try {
+        $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Path + '"') -PassThru -RedirectStandardError $log -WindowStyle Hidden
+    }
+    finally {
+        $env:CHEF_E2E = $oldE2E
+        $env:CHEF_USER_DATA_DIR = $oldUserData
+    }
+    $ctx = $null
+    try {
+        Start-Sleep -Seconds 5
+        $text = Get-Content $log -Raw
+        $pipe = [regex]::Match($text, 'chef-native-\d+').Value
+        $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
+        $ctx = @{ pipe = $pipe; tok = $tok; log = $log; proc = $proc }
         & $Steps $ctx
     }
     finally {
-        try { Send $ctx "quit" | Out-Null } catch {}
-        Start-Sleep -Milliseconds 300
-        if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+        $env:CHEF_E2E = $oldE2E
+        $env:CHEF_USER_DATA_DIR = $oldUserData
+        if ($ctx) { try { Send $ctx "quit" | Out-Null } catch {} }
+        if ($proc) {
+            Start-Sleep -Milliseconds 300
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+        }
     }
 }
 
@@ -74,6 +87,7 @@ Run-App $Pdf {
     Start-Sleep -Milliseconds 500
     $s = State $ctx
     ExpectTrue "locked file asks for a password" ($s.password.open -eq $true) "không hỏi mật khẩu"
+    ExpectTrue "password text is masked and copy is disabled" ($s.password.masked -eq $true -and $s.password.copyAllowed -eq $false) "ô mật khẩu chưa bật secure mode"
     Expect "no wrong-password message on first ask" ([bool]$s.password.wrong) $false
     ExpectTrue "no document is open yet" ($null -eq $s.view) "đã mở tài liệu khi chưa có mật khẩu"
     # Cửa sổ E2E không active nên tiêu điểm đặt lúc mở không giữ: bấm vào ô như người dùng sẽ làm.
@@ -94,6 +108,7 @@ Run-App $Pdf {
     ExpectTrue "wrong password keeps the dialog" ($s.password.open -eq $true) "hộp thoại đóng sau mật khẩu sai"
     ExpectTrue "wrong password is reported" ($s.password.wrong -eq $true) "không báo mật khẩu sai"
     ExpectTrue "still no document after a wrong password" ($null -eq $s.view) "mở tài liệu với mật khẩu sai"
+    ExpectTrue "wrong password input buffer is cleared" ($s.password.bufferEmpty -eq $true) "buffer mật khẩu sai chưa xóa"
 
     Send $ctx "char $secret" | Out-Null
     Start-Sleep -Milliseconds 150
@@ -102,6 +117,12 @@ Run-App $Pdf {
     $s = State $ctx
     ExpectTrue "right password opens the document" ($null -ne $s.view) "không mở được tài liệu"
     ExpectTrue "dialog closes after opening" ($s.password.open -eq $false) "hộp thoại vẫn mở"
+    ExpectTrue "source password is retained only for the open tab" ($s.password.sourceHeld -eq $true) "mật khẩu nguồn chưa được giữ"
+    Send $ctx "action closetab" | Out-Null
+    Start-Sleep -Milliseconds 500
+    $s = State $ctx
+    ExpectTrue "closing the tab releases the source password" ($s.password.sourceHeld -eq $false) "mật khẩu nguồn còn sau khi đóng thẻ"
+    ExpectTrue "closing the tab leaves the password buffer empty" ($s.password.bufferEmpty -eq $true) "buffer mật khẩu còn sau khi đóng thẻ"
 }
 $logText = Get-ChildItem (Join-Path $env:TEMP "chef-password-*.txt") | Sort-Object LastWriteTime | Select-Object -Last 1 | Get-Content -Raw
 ExpectTrue "the password never reaches the log" (-not $logText.Contains($secret)) "mật khẩu xuất hiện trong nhật ký"
@@ -129,6 +150,27 @@ Run-App $Pdf {
     ExpectTrue "Esc closes the password dialog" ($s.password.open -eq $false) "hộp thoại vẫn mở"
     ExpectTrue "Esc opens no document" ($null -eq $s.view) "có tài liệu sau Esc"
     ExpectTrue "Esc reports no error" ($null -eq $s.message) ("thông báo: " + $s.message)
+}
+
+# ---- Lượt 3: đóng tab khi hộp mật khẩu còn chứa nội dung ----
+Run-App $Pdf {
+    param($ctx)
+    Start-Sleep -Milliseconds 500
+    $st = State $ctx
+    $inp = $st.controls.controls | Where-Object { $_.id -eq "password-input" }
+    $sc = [double]$st.controls.scale
+    $cx = [int](($inp.bounds[0] + $inp.bounds[2] / 2) * $sc); $cy = [int](($inp.bounds[1] + $inp.bounds[3] / 2) * $sc)
+    Send $ctx "mouse move $cx $cy" | Out-Null; Start-Sleep -Milliseconds 80
+    Send $ctx "mouse down $cx $cy" | Out-Null; Start-Sleep -Milliseconds 60
+    Send $ctx "mouse up $cx $cy" | Out-Null; Start-Sleep -Milliseconds 200
+    Send $ctx "char $secret" | Out-Null
+    Start-Sleep -Milliseconds 200
+    ExpectTrue "password buffer contains entered text before tab close" ((State $ctx).password.bufferEmpty -eq $false) "buffer không nhận ký tự"
+    Send $ctx "action closetab" | Out-Null
+    Start-Sleep -Milliseconds 500
+    $s = State $ctx
+    ExpectTrue "closing a tab closes its password prompt" ($s.password.open -eq $false) "hộp mật khẩu vẫn mở sau khi đóng thẻ"
+    ExpectTrue "closing a tab zeroizes its live input buffer" ($s.password.bufferEmpty -eq $true) "buffer chưa được xóa khi đóng thẻ"
 }
 
 Write-Output ("FAILS: " + $script:fails)

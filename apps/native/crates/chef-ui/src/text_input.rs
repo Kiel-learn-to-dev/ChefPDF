@@ -76,6 +76,7 @@ pub struct TextInput {
     last_layout: Option<ShapedLine>,
     last_bounds: Option<Bounds<Pixels>>,
     is_selecting: bool,
+    secure: bool,
 }
 
 impl TextInput {
@@ -87,6 +88,7 @@ impl TextInput {
             last_layout: None,
             last_bounds: None,
             is_selecting: false,
+            secure: false,
         }
     }
 
@@ -97,7 +99,23 @@ impl TextInput {
 
     /// Đặt nội dung từ bên ngoài (ví dụ xóa khi bấm Esc). Không phát sự kiện Changed.
     pub fn set_text(&mut self, text: &str, cx: &mut Context<Self>) {
+        self.buffer.zeroize_content();
         self.buffer = TextBuffer::new(text);
+        cx.notify();
+    }
+
+    /// Mask rendered text, disable copy/cut, and zeroize the current buffer on clear/drop.
+    pub fn set_secure(&mut self, secure: bool, cx: &mut Context<Self>) {
+        self.secure = secure;
+        cx.notify();
+    }
+
+    pub fn is_secure(&self) -> bool {
+        self.secure
+    }
+
+    pub fn clear_sensitive(&mut self, cx: &mut Context<Self>) {
+        self.buffer.zeroize_content();
         cx.notify();
     }
 
@@ -195,6 +213,9 @@ impl TextInput {
     }
 
     fn copy(&mut self, _: &Copy, _: &mut Window, cx: &mut Context<Self>) {
+        if self.secure {
+            return;
+        }
         if !self.buffer.selected_range().is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 self.buffer.selected_text().to_string(),
@@ -203,6 +224,9 @@ impl TextInput {
     }
 
     fn cut(&mut self, _: &Cut, window: &mut Window, cx: &mut Context<Self>) {
+        if self.secure {
+            return;
+        }
         if !self.buffer.selected_range().is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 self.buffer.selected_text().to_string(),
@@ -440,7 +464,11 @@ impl Element for TextElement {
         cx: &mut App,
     ) -> Self::PrepaintState {
         let input = self.input.read(cx);
-        let content = SharedString::from(input.buffer.content().to_string());
+        let content = SharedString::from(if input.secure {
+            mask_preserving_offsets(input.buffer.content())
+        } else {
+            input.buffer.content().to_string()
+        });
         let selected = input.buffer.selected_range();
         let cursor = input.buffer.cursor();
         let marked = input.buffer.marked_range();
@@ -569,6 +597,17 @@ impl Element for TextElement {
     }
 }
 
+fn mask_preserving_offsets(text: &str) -> String {
+    // Keep the byte length stable so GPUI cursor/selection offsets remain aligned with TextBuffer.
+    "*".repeat(text.len())
+}
+
+impl Drop for TextInput {
+    fn drop(&mut self) {
+        self.buffer.zeroize_content();
+    }
+}
+
 impl Render for TextInput {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
@@ -600,5 +639,20 @@ impl Render for TextInput {
             .px(px(8.))
             .items_center()
             .child(TextElement { input: cx.entity() })
+    }
+}
+
+#[cfg(test)]
+mod secure_tests {
+    use super::mask_preserving_offsets;
+
+    #[test]
+    fn password_mask_does_not_change_utf8_offsets_or_reveal_text() {
+        let secret = "aé🧪";
+        let masked = mask_preserving_offsets(secret);
+        assert_eq!(masked.len(), secret.len());
+        assert_eq!(masked, "*******");
+        assert!(!masked.contains('é'));
+        assert!(!masked.contains('🧪'));
     }
 }

@@ -7,7 +7,7 @@
 //!
 //! Khi lõi chết, mọi yêu cầu đang chờ nhận lỗi ngay (xem `client.rs`), còn yêu cầu mới chờ tới `ready_wait`.
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
@@ -20,6 +20,8 @@ use crate::client::{CallError, Client, ExitInfo, Notification};
 
 /// Khoảng kiểm tra thời gian rảnh khi lõi đang chạy.
 const IDLE_POLL: Duration = Duration::from_millis(100);
+/// Bound terminal notifications that arrive before their `ops.run` response is registered.
+const EARLY_COMPLETED_JOBS_MAX: usize = 256;
 
 /// Trạng thái lõi. Bốn trạng thái đầu đúng tên trong CONTRACTS §2; `Stopped` là riêng của bản Rust (D89).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,6 +115,69 @@ struct State {
     /// còn lý do nào. Phiên giữ lõi vì `system.shutdown` xóa thư mục phiên (CONTRACTS §4): tắt khi còn phiên
     /// sẽ mất các revision chưa lưu.
     busy: HashSet<String>,
+    jobs: JobLedger,
+}
+
+/// Tracks job holds for one core process. A terminal notification can arrive before the request
+/// response (and therefore before `ops.start` registers its job ID), so keep a bounded set of those
+/// IDs until registration catches up.
+#[derive(Default)]
+struct JobLedger {
+    run_epoch: u64,
+    active: bool,
+    running: HashSet<String>,
+    completed_before_registration: HashSet<String>,
+    early_completion_order: VecDeque<String>,
+}
+
+impl JobLedger {
+    fn begin_run(&mut self) -> u64 {
+        self.run_epoch = self.run_epoch.wrapping_add(1);
+        self.active = true;
+        self.running.clear();
+        self.completed_before_registration.clear();
+        self.early_completion_order.clear();
+        self.run_epoch
+    }
+
+    fn register(&mut self, epoch: u64, job_id: &str) -> bool {
+        if !self.active || epoch != self.run_epoch {
+            return false;
+        }
+        if self.completed_before_registration.remove(job_id) {
+            return true;
+        }
+        self.running.insert(job_id.to_owned());
+        true
+    }
+
+    fn finish(&mut self, epoch: u64, job_id: &str) -> bool {
+        if !self.active || epoch != self.run_epoch {
+            return false;
+        }
+        if self.running.remove(job_id) || self.completed_before_registration.contains(job_id) {
+            return true;
+        }
+        while self.completed_before_registration.len() >= EARLY_COMPLETED_JOBS_MAX {
+            let Some(oldest) = self.early_completion_order.pop_front() else {
+                break;
+            };
+            self.completed_before_registration.remove(&oldest);
+        }
+        if self.completed_before_registration.insert(job_id.to_owned()) {
+            self.early_completion_order.push_back(job_id.to_owned());
+        }
+        true
+    }
+
+    fn clear_run(&mut self, epoch: u64) {
+        if self.run_epoch == epoch {
+            self.active = false;
+            self.running.clear();
+            self.completed_before_registration.clear();
+            self.early_completion_order.clear();
+        }
+    }
 }
 
 struct Shared {
@@ -133,6 +198,64 @@ fn wait_for<'a>(
         Ok((guard, _)) => guard,
         Err(poison) => poison.into_inner().0,
     }
+}
+
+fn finish_job_on_run(shared: &Shared, job_id: &str, epoch: u64) {
+    let mut state = lock(shared);
+    if !state.jobs.finish(epoch, job_id) {
+        return;
+    }
+    if !state.jobs.running.contains(job_id) {
+        state.busy.remove(&format!("job:{job_id}"));
+    }
+    state.last_activity = Instant::now();
+    shared.changed.notify_all();
+}
+
+fn register_job_on_run(shared: &Shared, job_id: &str, epoch: u64) -> bool {
+    let mut state = lock(shared);
+    if !state.jobs.register(epoch, job_id) {
+        return false;
+    }
+    if state.jobs.running.contains(job_id) {
+        state.busy.insert(format!("job:{job_id}"));
+    }
+    state.last_activity = Instant::now();
+    shared.changed.notify_all();
+    true
+}
+
+fn observe_terminal_job(shared: &Shared, epoch: u64, notification: &Notification) {
+    if !matches!(
+        notification.method.as_str(),
+        "job.finished" | "job.failed" | "job.cancelled"
+    ) {
+        return;
+    }
+    if let Some(job_id) = notification.params.get("jobId").and_then(Value::as_str) {
+        finish_job_on_run(shared, job_id, epoch);
+    }
+}
+
+fn forward_notification(
+    shared: &Shared,
+    epoch: u64,
+    events: &Sender<Event>,
+    notification: Notification,
+) -> bool {
+    observe_terminal_job(shared, epoch, &notification);
+    events.send(Event::Notification(notification)).is_ok()
+}
+
+fn clear_run_jobs(shared: &Shared, epoch: u64) {
+    let mut state = lock(shared);
+    if state.jobs.run_epoch != epoch {
+        return;
+    }
+    state.jobs.clear_run(epoch);
+    state.busy.retain(|reason| !reason.starts_with("job:"));
+    state.last_activity = Instant::now();
+    shared.changed.notify_all();
 }
 
 /// Giám sát một tiến trình lõi. Khi bị bỏ, `Drop` dừng lõi.
@@ -169,6 +292,7 @@ impl Supervisor {
                 want_start: eager,
                 last_activity: Instant::now(),
                 busy: HashSet::new(),
+                jobs: JobLedger::default(),
             }),
             changed: Condvar::new(),
         });
@@ -196,18 +320,40 @@ impl Supervisor {
     /// Gửi yêu cầu. Chờ tới `ready_wait` để lõi sẵn sàng; nếu lõi đang tắt, yêu cầu này khởi động lại lõi.
     /// Gọi từ luồng nền, không từ luồng UI.
     pub fn request(&self, method: &str, params: &Value) -> Result<Value, CallError> {
-        let client = self.wait_ready()?;
+        let (client, _) = self.wait_ready_with_epoch()?;
         client.call(method, params)
+    }
+
+    /// Send a request and return the core run epoch used by that exact client. Job registration
+    /// uses the epoch to reject a response that arrives after the core has restarted.
+    pub fn request_with_epoch(
+        &self,
+        method: &str,
+        params: &Value,
+    ) -> Result<(Value, u64), CallError> {
+        let (client, epoch) = self.wait_ready_with_epoch()?;
+        client.call(method, params).map(|reply| (reply, epoch))
     }
 
     /// Ghi nhận một job vừa bắt đầu: lõi không tự tắt khi còn job.
     pub fn job_started(&self, job_id: &str) {
-        self.set_busy(format!("job:{job_id}"), true);
+        let epoch = lock(&self.shared).jobs.run_epoch;
+        self.job_started_on_run(job_id, epoch);
+    }
+
+    /// Register a job only if its `ops.run` response belongs to the current core process.
+    pub fn job_started_on_run(&self, job_id: &str, epoch: u64) -> bool {
+        register_job_on_run(&self.shared, job_id, epoch)
     }
 
     /// Ghi nhận một job đã kết thúc (thành công, lỗi, hoặc bị hủy).
     pub fn job_finished(&self, job_id: &str) {
-        self.set_busy(format!("job:{job_id}"), false);
+        let epoch = lock(&self.shared).jobs.run_epoch;
+        self.finish_job_on_run(job_id, epoch);
+    }
+
+    fn finish_job_on_run(&self, job_id: &str, epoch: u64) {
+        finish_job_on_run(&self.shared, job_id, epoch);
     }
 
     /// Ghi nhận một phiên vừa mở: lõi phải chạy để giữ revision của phiên (R3.03).
@@ -272,7 +418,7 @@ impl Supervisor {
         }
     }
 
-    fn wait_ready(&self) -> Result<Arc<Client>, CallError> {
+    fn wait_ready_with_epoch(&self) -> Result<(Arc<Client>, u64), CallError> {
         let deadline = Instant::now() + self.ready_wait;
         let mut state = lock(&self.shared);
         state.last_activity = Instant::now();
@@ -284,7 +430,7 @@ impl Supervisor {
             if state.ready
                 && let Some(client) = &state.client
             {
-                return Ok(Arc::clone(client));
+                return Ok((Arc::clone(client), state.jobs.run_epoch));
             }
             if state.stopping || state.finished {
                 return Err(CallError::Closed);
@@ -325,7 +471,7 @@ enum RunOutcome {
 }
 
 /// Vòng chạy, nằm chờ và khởi động lại. Thoát khi được yêu cầu dừng, hoặc khi lõi chết quá nhiều lần liên tiếp.
-fn supervise(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) {
+fn supervise(config: &SupervisorConfig, shared: &Arc<Shared>, events: &Sender<Event>) {
     let mut failed_starts = 0u32;
     loop {
         if !wait_until_wanted(shared) {
@@ -410,7 +556,7 @@ fn wait_backoff(shared: &Shared, delay: Duration) -> bool {
 
 /// Một lượt chạy: spawn, ping, rồi chờ lõi thoát hoặc tự tắt vì rảnh. Khi trở về, mọi trạng thái của lượt đã
 /// được xóa.
-fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) -> RunOutcome {
+fn run_once(config: &SupervisorConfig, shared: &Arc<Shared>, events: &Sender<Event>) -> RunOutcome {
     let args: Vec<&str> = config.command.args.iter().map(String::as_str).collect();
     let env = [
         ("PYTHONUNBUFFERED", "1"),
@@ -437,33 +583,37 @@ fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) 
         return RunOutcome::Exited;
     };
 
-    // Thông báo của lõi chuyển thành sự kiện; vòng này kết thúc khi pipe của lõi đóng.
+    // Gán client và kiểm `stopping` trong cùng một khóa. Nếu `shutdown` đã bắt đầu, lõi bị dừng ngay và không
+    // ping: `shutdown` đã đọc `client` trước khi có, nên không ai khác dừng lõi này.
+    let run_epoch = {
+        let mut state = lock(shared);
+        if state.stopping {
+            None
+        } else {
+            state.busy.retain(|reason| !reason.starts_with("job:"));
+            let epoch = state.jobs.begin_run();
+            state.client = Some(Arc::clone(&client));
+            Some(epoch)
+        }
+    };
+    let Some(run_epoch) = run_epoch else {
+        client.terminate_tree();
+        let _ = exit.recv();
+        return RunOutcome::Exited;
+    };
+
+    // Observe terminal job events before forwarding them. This releases a timed-out job's hold
+    // even if `wait_job` already returned, and the public event remains unchanged for its caller.
     let forward = Arc::clone(&client);
     let forward_events = events.clone();
+    let forward_shared = Arc::clone(shared);
     thread::spawn(move || {
         for note in forward.notifications().iter() {
-            if forward_events.send(Event::Notification(note)).is_err() {
+            if !forward_notification(&forward_shared, run_epoch, &forward_events, note) {
                 break;
             }
         }
     });
-
-    // Gán client và kiểm `stopping` trong cùng một khóa. Nếu `shutdown` đã bắt đầu, lõi bị dừng ngay và không
-    // ping: `shutdown` đã đọc `client` trước khi có, nên không ai khác dừng lõi này.
-    let stored = {
-        let mut state = lock(shared);
-        if state.stopping {
-            false
-        } else {
-            state.client = Some(Arc::clone(&client));
-            true
-        }
-    };
-    if !stored {
-        client.terminate_tree();
-        let _ = exit.recv();
-        return RunOutcome::Exited;
-    }
 
     let (code, idle) =
         match client.call_with_timeout("system.ping", &json!({}), config.startup_timeout) {
@@ -484,6 +634,7 @@ fn run_once(config: &SupervisorConfig, shared: &Shared, events: &Sender<Event>) 
         state.client = None;
         state.ready = false;
     }
+    clear_run_jobs(shared, run_epoch);
     shared.changed.notify_all();
     (config.log)(&format!("lõi đã thoát (mã {code:?})"));
     if idle {
@@ -551,6 +702,129 @@ mod tests {
     use super::*;
     use crate::job::process_alive;
     use std::time::Duration;
+
+    fn job_test_shared() -> Arc<Shared> {
+        Arc::new(Shared {
+            state: Mutex::new(State {
+                client: None,
+                ready: false,
+                status: CoreStatus::Stopped,
+                stopping: false,
+                finished: false,
+                want_start: false,
+                last_activity: Instant::now(),
+                busy: HashSet::new(),
+                jobs: JobLedger::default(),
+            }),
+            changed: Condvar::new(),
+        })
+    }
+
+    #[test]
+    fn terminal_notification_after_wait_timeout_releases_hold_and_is_forwarded_unchanged() {
+        let shared = job_test_shared();
+        let epoch = lock(&shared).jobs.begin_run();
+        assert!(register_job_on_run(&shared, "job-late", epoch));
+        {
+            let mut state = lock(&shared);
+            state.busy.insert("session-open".to_owned());
+            assert!(state.busy.contains("job:job-late"));
+        }
+
+        // This notification may arrive after the `wait_job` caller already returned TimedOut.
+        let notification = Notification {
+            method: "job.finished".to_owned(),
+            params: json!({ "jobId": "job-late", "result": { "revision": 1 } }),
+        };
+        let (tx, rx) = channel();
+        assert!(forward_notification(
+            &shared,
+            epoch,
+            &tx,
+            notification.clone()
+        ));
+        assert_eq!(rx.recv().unwrap(), Event::Notification(notification));
+        let state = lock(&shared);
+        assert!(!state.busy.contains("job:job-late"));
+        assert!(state.busy.contains("session-open"));
+        assert!(!state.jobs.running.contains("job-late"));
+    }
+
+    #[test]
+    fn terminal_notification_before_ops_response_registration_does_not_reinsert_hold() {
+        let shared = job_test_shared();
+        let epoch = lock(&shared).jobs.begin_run();
+        let notification = Notification {
+            method: "job.finished".to_owned(),
+            params: json!({ "jobId": "job-fast", "result": {} }),
+        };
+        let (tx, rx) = channel();
+        assert!(forward_notification(
+            &shared,
+            epoch,
+            &tx,
+            notification.clone()
+        ));
+        assert_eq!(rx.recv().unwrap(), Event::Notification(notification));
+
+        assert!(register_job_on_run(&shared, "job-fast", epoch));
+        let state = lock(&shared);
+        assert!(!state.busy.contains("job:job-fast"));
+        assert!(!state.jobs.running.contains("job-fast"));
+        assert!(
+            !state
+                .jobs
+                .completed_before_registration
+                .contains("job-fast")
+        );
+    }
+
+    #[test]
+    fn nonterminal_notifications_do_not_release_jobs_or_change_forwarded_events() {
+        let shared = job_test_shared();
+        let epoch = lock(&shared).jobs.begin_run();
+        assert!(register_job_on_run(&shared, "job-progress", epoch));
+        let notification = Notification {
+            method: "job.progress".to_owned(),
+            params: json!({ "jobId": "job-progress", "progress": 0.5 }),
+        };
+        let (tx, rx) = channel();
+        assert!(forward_notification(
+            &shared,
+            epoch,
+            &tx,
+            notification.clone()
+        ));
+        assert_eq!(rx.recv().unwrap(), Event::Notification(notification));
+        assert!(lock(&shared).busy.contains("job:job-progress"));
+    }
+
+    #[test]
+    fn stale_epoch_cannot_register_or_finish_a_job_and_run_cleanup_keeps_sessions() {
+        let shared = job_test_shared();
+        let old_epoch = lock(&shared).jobs.begin_run();
+        assert!(register_job_on_run(&shared, "reused-id", old_epoch));
+        {
+            lock(&shared).busy.insert("session-kept".to_owned());
+        }
+        clear_run_jobs(&shared, old_epoch);
+        assert!(!register_job_on_run(&shared, "reused-id", old_epoch));
+
+        let new_epoch = lock(&shared).jobs.begin_run();
+        assert_ne!(old_epoch, new_epoch);
+        assert!(register_job_on_run(&shared, "reused-id", new_epoch));
+        let (tx, rx) = channel();
+        let stale = Notification {
+            method: "job.finished".to_owned(),
+            params: json!({ "jobId": "reused-id" }),
+        };
+        assert!(forward_notification(&shared, old_epoch, &tx, stale.clone()));
+        assert_eq!(rx.recv().unwrap(), Event::Notification(stale));
+        let state = lock(&shared);
+        assert!(state.busy.contains("session-kept"));
+        assert!(state.busy.contains("job:reused-id"));
+        assert!(state.jobs.running.contains("reused-id"));
+    }
 
     fn quiet_log() -> Arc<dyn Fn(&str) + Send + Sync> {
         Arc::new(|_: &str| {})

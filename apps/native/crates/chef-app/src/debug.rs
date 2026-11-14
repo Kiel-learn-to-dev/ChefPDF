@@ -16,7 +16,7 @@ use std::ffi::c_void;
 use std::io::Write;
 use std::mem::size_of;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const PIPE_ACCESS_DUPLEX: u32 = 0x0000_0003;
 const PIPE_TYPE_BYTE: u32 = 0x0000_0000;
@@ -28,6 +28,158 @@ const BI_RGB: u32 = 0;
 
 /// Số lần GPUI gọi `render` từ khi khởi động. Đọc qua lệnh `state` để đo số vòng vẽ (R1.08).
 static RENDERS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static RENDER_TIMING: std::sync::LazyLock<RenderTiming> =
+    std::sync::LazyLock::new(RenderTiming::default);
+static LAST_RENDER_START: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
+
+#[derive(Default)]
+struct RenderTiming {
+    samples: std::sync::atomic::AtomicU64,
+    body_max_ns: std::sync::atomic::AtomicU64,
+    body_over_50ms: std::sync::atomic::AtomicU64,
+    call_gap_max_ns: std::sync::atomic::AtomicU64,
+    call_gap_over_50ms: std::sync::atomic::AtomicU64,
+}
+
+pub struct RenderTimer {
+    start: Instant,
+    call_gap_ns: Option<u64>,
+    enabled: bool,
+}
+
+impl Drop for RenderTimer {
+    fn drop(&mut self) {
+        if !self.enabled {
+            return;
+        }
+        let ns = self.start.elapsed().as_nanos().min(u64::MAX as u128) as u64;
+        RENDER_TIMING
+            .samples
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        RENDER_TIMING
+            .body_max_ns
+            .fetch_max(ns, std::sync::atomic::Ordering::Relaxed);
+        if ns > 50_000_000 {
+            RENDER_TIMING
+                .body_over_50ms
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
+        if let Some(gap) = self.call_gap_ns {
+            RENDER_TIMING
+                .call_gap_max_ns
+                .fetch_max(gap, std::sync::atomic::Ordering::Relaxed);
+            if gap > 50_000_000 {
+                RENDER_TIMING
+                    .call_gap_over_50ms
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+    }
+}
+
+pub fn render_timer() -> RenderTimer {
+    let start = Instant::now();
+    let enabled = std::env::var_os("CHEF_E2E").as_deref() == Some(std::ffi::OsStr::new("1"));
+    let call_gap_ns = if enabled {
+        LAST_RENDER_START
+            .lock()
+            .ok()
+            .and_then(|mut last| last.replace(start))
+            .map(|last| start.duration_since(last).as_nanos().min(u64::MAX as u128) as u64)
+    } else {
+        None
+    };
+    RenderTimer {
+        start,
+        call_gap_ns,
+        enabled,
+    }
+}
+
+fn reset_render_timing() {
+    RENDER_TIMING
+        .samples
+        .store(0, std::sync::atomic::Ordering::Relaxed);
+    RENDER_TIMING
+        .body_max_ns
+        .store(0, std::sync::atomic::Ordering::Relaxed);
+    RENDER_TIMING
+        .body_over_50ms
+        .store(0, std::sync::atomic::Ordering::Relaxed);
+    RENDER_TIMING
+        .call_gap_max_ns
+        .store(0, std::sync::atomic::Ordering::Relaxed);
+    RENDER_TIMING
+        .call_gap_over_50ms
+        .store(0, std::sync::atomic::Ordering::Relaxed);
+    if let Ok(mut last) = LAST_RENDER_START.lock() {
+        *last = None;
+    }
+}
+
+fn render_timing_json() -> String {
+    let samples = RENDER_TIMING
+        .samples
+        .load(std::sync::atomic::Ordering::Relaxed);
+    let max_ms = RENDER_TIMING
+        .body_max_ns
+        .load(std::sync::atomic::Ordering::Relaxed) as f64
+        / 1_000_000.0;
+    let over = RENDER_TIMING
+        .body_over_50ms
+        .load(std::sync::atomic::Ordering::Relaxed);
+    let gap_ms = RENDER_TIMING
+        .call_gap_max_ns
+        .load(std::sync::atomic::Ordering::Relaxed) as f64
+        / 1_000_000.0;
+    let gap_over = RENDER_TIMING
+        .call_gap_over_50ms
+        .load(std::sync::atomic::Ordering::Relaxed);
+    format!(
+        "{{\"bodyMeasurement\":\"GPUI Render body duration\",\"gapMeasurement\":\"between Render call start timestamps, not presented frame interval\",\"samples\":{samples},\"maxBodyMs\":{max_ms:.3},\"bodyOver50ms\":{over},\"maxRenderCallGapMs\":{gap_ms:.3},\"renderCallGapOver50ms\":{gap_over}}}"
+    )
+}
+static THEME_DARK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static TABS: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("[]".into()));
+static START_RECENTS: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("[]".into()));
+static TAB_MESSAGE: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("null".into()));
+static PALETTE: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
+    std::sync::Mutex::new("{\"open\":false,\"query\":\"\",\"selected\":0,\"results\":[]}".into())
+});
+
+/// Snapshot of document tab identity, selection, dirty state, and retained page images.
+pub fn set_tabs(tabs: serde_json::Value) {
+    if let Ok(mut current) = TABS.lock() {
+        *current = tabs.to_string();
+    }
+}
+
+/// Ordered recent file paths on the Start screen, for isolated native UI E2E.
+pub fn set_start_recents(paths: Vec<String>) {
+    if let Ok(mut current) = START_RECENTS.lock() {
+        *current = serde_json::to_string(&paths).unwrap_or_else(|_| "[]".into());
+    }
+}
+
+pub fn set_tab_message(message: Option<&str>) {
+    if let Ok(mut current) = TAB_MESSAGE.lock() {
+        *current = message.map_or_else(|| "null".into(), json_str);
+    }
+}
+
+pub fn set_palette_state(state: serde_json::Value) {
+    if let Ok(mut current) = PALETTE.lock() {
+        *current = state.to_string();
+    }
+}
+
+/// Theme đang được dùng trong lần render gần nhất.
+pub fn set_theme_dark(dark: bool) {
+    THEME_DARK.store(dark, std::sync::atomic::Ordering::Relaxed);
+}
 
 /// Gọi mỗi lần `render` của cửa sổ.
 pub fn count_render() {
@@ -37,10 +189,60 @@ pub fn count_render() {
 /// Số trang đang có ảnh trong cache và số yêu cầu render đang chờ, do viewer cập nhật.
 static CACHED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 static PENDING: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static CACHED_PAGE_IMAGES: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("{}".into()));
+static CACHE_INVALIDATION: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("null".into()));
+static SOURCE_WARNING: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new("null".into()));
+static SIDEBAR_THUMBNAILS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static SIDEBAR_OUTLINE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static SIDEBAR_BOOKMARKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 pub fn set_viewer_stats(cached: usize, pending: usize) {
     CACHED.store(cached as u64, std::sync::atomic::Ordering::Relaxed);
     PENDING.store(pending as u64, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Full-size bitmap page index -> GPUI's monotonic RenderImage ID for the active viewer.
+/// IDs distinguish preserved cache entries from a page that was invalidated and rerendered.
+pub fn set_viewer_cache_images(images: impl IntoIterator<Item = (usize, usize)>) {
+    let value = serde_json::to_string(
+        &images
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>(),
+    )
+    .unwrap_or_else(|_| "{}".into());
+    if let Ok(mut current) = CACHED_PAGE_IMAGES.lock() {
+        *current = value;
+    }
+}
+
+/// Audit a revision's full-size bitmap invalidation at the moment it is applied.
+pub fn set_cache_invalidation(snapshot: serde_json::Value) {
+    if let Ok(mut current) = CACHE_INVALIDATION.lock() {
+        *current = snapshot.to_string();
+    }
+}
+
+/// Localized source warning shown by the viewer, without exposing the source path.
+pub fn set_source_warning(warning: Option<(&str, &str)>) {
+    let value = warning
+        .map(|(title, body)| serde_json::json!({"title": title, "body": body}).to_string())
+        .unwrap_or_else(|| "null".into());
+    if let Ok(mut current) = SOURCE_WARNING.lock() {
+        *current = value;
+    }
+}
+
+/// Number of retained page thumbnails in the active document's sidebar (R2.22).
+pub fn set_sidebar_thumbnail_count(count: usize) {
+    SIDEBAR_THUMBNAILS.store(count as u64, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn set_sidebar_state(outline: bool, bookmark_count: usize) {
+    SIDEBAR_OUTLINE.store(outline, std::sync::atomic::Ordering::Relaxed);
+    SIDEBAR_BOOKMARKS.store(bookmark_count as u64, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Tên action được phép gửi qua lệnh `action`. Luồng GPUI đổi tên thành action thật (main.rs).
@@ -66,21 +268,48 @@ pub const ACTION_NAMES: &[&str] = &[
     "zoomin",
     "zoomout",
     "zoomreset",
+    "zoomfitpage",
+    "rotateviewleft",
+    "rotateviewright",
+    "focuszoom",
     "nextpage",
     "prevpage",
     "togglefullscreen",
+    "exitslideshow",
     "togglenight",
     "focusnext",
     "focusprev",
     "opensettings",
     "openfile",
+    "openpalette",
+    "palettenext",
+    "paletteprev",
+    "tabnext",
+    "tabprev",
+    "closetab",
     "openproperties",
+    "rotatepage",
+    "undoedit",
+    "redoedit",
+    "saveedit",
+    "saveeditas",
+    "viewcontinuous",
+    "viewtwopage",
+    "viewbook",
+    "viewslideshow",
+    "slidenext",
+    "slideprevious",
 ];
 
 /// Hàng đợi action chờ luồng GPUI chạy. Đường đi: pipe -> hàng đợi -> `window.dispatch_action`,
 /// nên tổ hợp phím như Shift+mũi tên được kiểm đúng đường keymap (PostMessage không đặt được Shift).
 static ACTIONS: std::sync::Mutex<std::collections::VecDeque<String>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
+/// Số màn hình cần cuộn (chỉ nhận lệnh qua debug pipe E2E).
+static SCROLL_SCREENS: std::sync::Mutex<std::collections::VecDeque<f32>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+/// (bước mục tiêu, bước hoàn tất, đang thực thi), để runner đợi cuộn có nhịp xong.
+static SCROLL_PROGRESS: std::sync::Mutex<(u32, u32, bool)> = std::sync::Mutex::new((0, 0, false));
 
 /// Lấy các action đang chờ (gọi từ luồng GPUI).
 pub fn take_actions() -> Vec<String> {
@@ -90,8 +319,53 @@ pub fn take_actions() -> Vec<String> {
     }
 }
 
+/// Lấy các lệnh cuộn chính xác đang chờ để chạy trên luồng GPUI.
+pub fn take_scroll_screens() -> Vec<f32> {
+    match SCROLL_SCREENS.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn set_scroll_progress(completed: u32, total: u32, active: bool) {
+    if let Ok(mut progress) = SCROLL_PROGRESS.lock() {
+        *progress = (total, completed, active);
+    }
+}
+
+fn scroll_progress_json() -> String {
+    let (total, completed, active) = SCROLL_PROGRESS.lock().map(|p| *p).unwrap_or((0, 0, false));
+    format!("{{\"total\":{total},\"completed\":{completed},\"active\":{active}}}")
+}
+
 /// (zoom, vị trí cuộn, chiều cao vùng nhìn, vừa chiều rộng, trang đầu, lớp chữ).
-type ViewState = (f32, f32, f32, bool, usize, &'static str);
+type ViewState = (
+    f32,
+    f32,
+    f32,
+    bool,
+    usize,
+    &'static str,
+    &'static str,
+    Vec<usize>,
+    bool,
+    bool,
+    u8,
+);
+
+pub struct ViewSnapshot {
+    pub zoom: f32,
+    pub scroll_y: f32,
+    pub viewport_h: f32,
+    pub fit_width: bool,
+    pub first_page: usize,
+    pub kind: &'static str,
+    pub mode: &'static str,
+    pub visible_pages: Vec<usize>,
+    pub fullscreen: bool,
+    pub fit_page: bool,
+    pub rotation: u8,
+}
 
 /// Trạng thái khung nhìn, do viewer ghi mỗi lần vẽ: zoom, vị trí cuộn, chiều cao vùng nhìn, chế độ
 /// vừa chiều rộng, và trang đầu đang thấy.
@@ -105,25 +379,45 @@ pub fn set_night(on: bool) {
     NIGHT.store(on, std::sync::atomic::Ordering::Relaxed);
 }
 
-pub fn set_view(
-    zoom: f32,
-    scroll_y: f32,
-    viewport_h: f32,
-    fit_width: bool,
-    first_page: usize,
-    kind: &'static str,
-) {
+pub fn set_view(snapshot: ViewSnapshot) {
     if let Ok(mut view) = VIEW.lock() {
-        *view = Some((zoom, scroll_y, viewport_h, fit_width, first_page, kind));
+        *view = Some((
+            snapshot.zoom,
+            snapshot.scroll_y,
+            snapshot.viewport_h,
+            snapshot.fit_width,
+            snapshot.first_page,
+            snapshot.kind,
+            snapshot.mode,
+            snapshot.visible_pages,
+            snapshot.fullscreen,
+            snapshot.fit_page,
+            snapshot.rotation,
+        ));
     }
 }
 
 fn view_json() -> String {
-    match VIEW.lock().ok().and_then(|guard| *guard) {
-        Some((zoom, scroll_y, viewport_h, fit_width, first_page, kind)) => format!(
-            "{{\"zoom\":{zoom:.4},\"scrollY\":{scroll_y:.2},\"viewportH\":{viewport_h:.2},\"fitWidth\":{fit_width},\"firstPage\":{first_page},\"kind\":{},\"night\":{}}}",
+    match VIEW.lock().ok().and_then(|guard| guard.clone()) {
+        Some((
+            zoom,
+            scroll_y,
+            viewport_h,
+            fit_width,
+            first_page,
+            kind,
+            mode,
+            visible_pages,
+            fullscreen,
+            fit_page,
+            rotation,
+        )) => format!(
+            "{{\"zoom\":{zoom:.4},\"scrollY\":{scroll_y:.2},\"viewportH\":{viewport_h:.2},\"fitWidth\":{fit_width},\"fitPage\":{fit_page},\"rotation\":{rotation},\"firstPage\":{first_page},\"kind\":{},\"night\":{},\"mode\":{},\"pageMode\":{},\"visiblePages\":{},\"fullscreen\":{fullscreen}}}",
             json_str(kind),
-            NIGHT.load(std::sync::atomic::Ordering::Relaxed)
+            NIGHT.load(std::sync::atomic::Ordering::Relaxed),
+            json_str(mode),
+            json_str(mode),
+            serde_json::to_string(&visible_pages).unwrap_or_else(|_| "[]".into())
         ),
         None => "null".into(),
     }
@@ -153,11 +447,11 @@ fn find_json() -> String {
 }
 
 /// Nội dung và vùng chọn của ô nhập, do luồng GPUI ghi sau mỗi lần xử lý action.
-static INPUT: std::sync::Mutex<Option<(String, usize, usize)>> = std::sync::Mutex::new(None);
+static INPUT: std::sync::Mutex<Option<(String, usize, usize, bool)>> = std::sync::Mutex::new(None);
 
-pub fn set_input(text: &str, selected: std::ops::Range<usize>) {
+pub fn set_input(text: &str, selected: std::ops::Range<usize>, focused: bool) {
     if let Ok(mut input) = INPUT.lock() {
-        *input = Some((text.to_string(), selected.start, selected.end));
+        *input = Some((text.to_string(), selected.start, selected.end, focused));
     }
 }
 
@@ -224,6 +518,7 @@ unsafe extern "system" {
 unsafe extern "system" {
     fn GetWindowRect(hwnd: isize, rect: *mut WinRect) -> i32;
     fn IsWindowVisible(hwnd: isize) -> i32;
+    fn GetForegroundWindow() -> isize;
     fn GetDpiForWindow(hwnd: isize) -> u32;
     fn PostMessageW(hwnd: isize, msg: u32, wparam: usize, lparam: isize) -> i32;
 }
@@ -336,8 +631,8 @@ fn json_str(s: &str) -> String {
 
 fn input_json() -> String {
     match INPUT.lock().ok().and_then(|guard| guard.clone()) {
-        Some((text, start, end)) => format!(
-            "{{\"text\":{},\"selStart\":{start},\"selEnd\":{end}}}",
+        Some((text, start, end, focused)) => format!(
+            "{{\"text\":{},\"selStart\":{start},\"selEnd\":{end},\"focused\":{focused}}}",
             json_str(&text)
         ),
         None => "null".into(),
@@ -347,17 +642,24 @@ fn input_json() -> String {
 /// Trạng thái cài đặt của viewer (theme, ngôn ngữ, thư mục, hộp thoại đang mở), dạng JSON.
 /// Viewer ghi mỗi lần vẽ.
 /// Trạng thái hộp nhập mật khẩu (mở, lần thử trước sai). Viewer ghi mỗi lần vẽ.
-static PASSWORD: std::sync::Mutex<(bool, bool)> = std::sync::Mutex::new((false, false));
+static PASSWORD: std::sync::Mutex<(bool, bool, bool, bool, bool)> =
+    std::sync::Mutex::new((false, false, true, false, true));
 
-pub fn set_password(open: bool, wrong: bool) {
+pub fn set_password(open: bool, wrong: bool, buffer_empty: bool, source_held: bool, masked: bool) {
     if let Ok(mut current) = PASSWORD.lock() {
-        *current = (open, wrong);
+        *current = (open, wrong, buffer_empty, source_held, masked);
     }
 }
 
 fn password_json() -> String {
-    let (open, wrong) = PASSWORD.lock().map(|p| *p).unwrap_or((false, false));
-    format!("{{\"open\":{open},\"wrong\":{wrong}}}")
+    let (open, wrong, buffer_empty, source_held, masked) = PASSWORD
+        .lock()
+        .map(|p| *p)
+        .unwrap_or((false, false, true, false, true));
+    format!(
+        "{{\"open\":{open},\"wrong\":{wrong},\"bufferEmpty\":{buffer_empty},\"sourceHeld\":{source_held},\"masked\":{masked},\"copyAllowed\":{}}}",
+        !masked
+    )
 }
 
 /// Số liệu hộp thoại Thuộc tính khi đang mở (JSON), hoặc None. Viewer ghi mỗi lần vẽ.
@@ -427,28 +729,63 @@ fn state(hwnd: isize) -> String {
     let ok = unsafe { GetWindowRect(hwnd, &mut rect) } != 0;
     // SAFETY: chỉ đọc trạng thái hiển thị của cửa sổ.
     let visible = unsafe { IsWindowVisible(hwnd) } != 0;
+    // Read-only check used by R2.17 to verify activation after a second launch forwards paths.
+    let foreground = unsafe { GetForegroundWindow() } == hwnd;
     // Tỉ lệ hiển thị của cửa sổ (96 DPI là 1,0). E2E dùng để đổi tọa độ logic sang vật lý.
     // SAFETY: chỉ đọc DPI của cửa sổ còn sống; 0 nếu không lấy được.
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"visible\":{visible},\"scale\":{scale},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"cached\":{},\"pending\":{},\"input\":{},\"find\":{},\"view\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarOutline\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"palette\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
+        THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
         rect.top,
         rect.right,
         rect.bottom,
         RENDERS.load(std::sync::atomic::Ordering::Relaxed),
+        render_timing_json(),
         CACHED.load(std::sync::atomic::Ordering::Relaxed),
+        CACHED_PAGE_IMAGES
+            .lock()
+            .map(|images| images.clone())
+            .unwrap_or_else(|_| "{}".into()),
+        CACHE_INVALIDATION
+            .lock()
+            .map(|snapshot| snapshot.clone())
+            .unwrap_or_else(|_| "null".into()),
+        SOURCE_WARNING
+            .lock()
+            .map(|warning| warning.clone())
+            .unwrap_or_else(|_| "null".into()),
         PENDING.load(std::sync::atomic::Ordering::Relaxed),
+        SIDEBAR_THUMBNAILS.load(std::sync::atomic::Ordering::Relaxed),
+        SIDEBAR_OUTLINE.load(std::sync::atomic::Ordering::Relaxed),
+        SIDEBAR_BOOKMARKS.load(std::sync::atomic::Ordering::Relaxed),
+        START_RECENTS
+            .lock()
+            .map(|paths| paths.clone())
+            .unwrap_or_else(|_| "[]".into()),
         input_json(),
         find_json(),
         view_json(),
+        TABS.lock()
+            .map(|tabs| tabs.clone())
+            .unwrap_or_else(|_| "[]".into()),
+        TAB_MESSAGE
+            .lock()
+            .map(|message| message.clone())
+            .unwrap_or_else(|_| "null".into()),
+        PALETTE
+            .lock()
+            .map(|palette| palette.clone())
+            .unwrap_or_else(|_| "{}".into()),
         controls_json(),
         chef_ui::motion::reduced(),
         settings_json(),
         message_json(),
         properties_json(),
         password_json(),
+        scroll_progress_json(),
         crate::logging::recent().len()
     )
 }
@@ -557,6 +894,30 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             }
             "{\"ok\":true}".into()
         }
+        "resetrendertiming" => {
+            reset_render_timing();
+            "{\"ok\":true}".into()
+        }
+        // Cuộn chính xác theo số viewport, chỉ có thể gọi qua pipe CHEF_E2E.
+        "scrollscreens" => match arg.parse::<f32>() {
+            Ok(screens) if screens.is_finite() && screens != 0.0 && screens.abs() <= 10_000.0 => {
+                let Ok(mut progress) = SCROLL_PROGRESS.lock() else {
+                    return "{\"ok\":false,\"error\":\"không khóa được trạng thái cuộn\"}".into();
+                };
+                if progress.2 {
+                    return "{\"ok\":false,\"error\":\"đang có chuỗi cuộn chạy\"}".into();
+                }
+                if let Ok(mut queue) = SCROLL_SCREENS.lock() {
+                    queue.push_back(screens);
+                } else {
+                    return "{\"ok\":false,\"error\":\"không khóa được hàng đợi cuộn\"}".into();
+                }
+                *progress = (screens.abs().ceil() as u32, 0, true);
+                "{\"ok\":true}".into()
+            }
+            _ => "{\"ok\":false,\"error\":\"scrollscreens cần số hữu hạn trong phạm vi 10000\"}"
+                .into(),
+        },
         _ => format!("{{\"ok\":false,\"error\":\"lệnh không hỗ trợ: {cmd}\"}}"),
     }
 }
@@ -652,7 +1013,7 @@ pub fn start(hwnd: isize) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{dispatch, json_str, take_actions};
+    use super::{dispatch, json_str, take_actions, take_scroll_screens};
 
     #[test]
     fn wrong_token_is_rejected_before_any_command_runs() {
@@ -697,5 +1058,28 @@ mod tests {
         );
         assert_eq!(take_actions(), vec!["selectleft".to_string()]);
         assert!(take_actions().is_empty());
+    }
+
+    #[test]
+    fn scrollscreens_queues_finite_viewport_delta() {
+        assert_eq!(
+            dispatch("dung_token scrollscreens 350", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        assert!(
+            dispatch("dung_token scrollscreens -350", "dung_token", 0)
+                .contains("đang có chuỗi cuộn")
+        );
+        assert_eq!(take_scroll_screens(), vec![350.0]);
+        super::set_scroll_progress(350, 350, false);
+        assert_eq!(
+            dispatch("dung_token scrollscreens -350", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        assert_eq!(take_scroll_screens(), vec![-350.0]);
+        super::set_scroll_progress(350, 350, false);
+        assert!(dispatch("dung_token scrollscreens 0", "dung_token", 0).contains("ok\":false"));
+        assert!(dispatch("dung_token scrollscreens NaN", "dung_token", 0).contains("\"ok\":false"));
+        assert!(take_scroll_screens().is_empty());
     }
 }

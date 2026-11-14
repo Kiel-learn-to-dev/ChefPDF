@@ -8,6 +8,7 @@ pub mod form;
 pub mod i18n;
 pub mod menu;
 pub mod motion;
+pub mod palette;
 pub mod select;
 pub mod tabs;
 pub mod text_buffer;

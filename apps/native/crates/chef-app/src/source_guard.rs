@@ -125,6 +125,14 @@ mod tests {
     }
 
     #[test]
+    fn empty_file_has_a_stable_fingerprint() {
+        let file = TempFile::new("empty", b"");
+        let before = fingerprint(&file.0).expect("vân tay file rỗng");
+        assert_eq!(before.size, 0);
+        assert_eq!(check(&before, &file.0), Verdict::Same);
+    }
+
+    #[test]
     fn change_in_the_first_bytes_is_detected() {
         let file = TempFile::new("head", &vec![b'a'; 200 * 1024]);
         let before = fingerprint(&file.0).expect("vân tay");
@@ -159,6 +167,21 @@ mod tests {
         let before = fingerprint(&file.0).expect("vân tay");
         fs::remove_file(&file.0).expect("xóa");
         assert_eq!(check(&before, &file.0), Verdict::Missing);
+    }
+
+    #[test]
+    fn directory_at_source_path_is_unreadable() {
+        let path = std::env::temp_dir().join(format!(
+            "chef-source-guard-directory-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&path);
+        fs::write(&path, b"pdf goc").expect("tạo file gốc");
+        let before = fingerprint(&path).expect("vân tay file gốc");
+        fs::remove_file(&path).expect("thay file gốc");
+        fs::create_dir(&path).expect("tạo thư mục tại đường dẫn gốc");
+        assert_eq!(check(&before, &path), Verdict::Unreadable);
+        fs::remove_dir(&path).expect("xóa thư mục tạm");
     }
 
     #[test]

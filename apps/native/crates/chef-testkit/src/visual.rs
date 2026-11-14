@@ -2,7 +2,8 @@
 //! tham chiếu của Electron theo lưới ô, rồi ghi báo cáo JSON, HTML và ảnh chênh lệch.
 //!
 //! Một ô bị coi là lệch khi độ chênh lệch kênh trung bình (0–255) của ô vượt `tile_mean_tolerance`.
-//! Màn hình đạt khi hai ảnh cùng kích thước và tỉ lệ ô lệch không vượt `max_bad_ratio`.
+//! Màn hình đạt khi hai ảnh cùng kích thước, tỉ lệ ô lệch không vượt `max_bad_ratio`, và số ô lệch
+//! không vượt `max_bad_tiles`.
 //! Khử răng cưa chữ chỉ đổi vài điểm ảnh ở mép chữ nên trung bình ô tăng ít; lệch 1 px của chữ làm
 //! trung bình ô tăng nhiều. Ngưỡng nằm trong file cấu hình JSON (`config_from_json`).
 
@@ -20,6 +21,8 @@ pub struct Config {
     pub tile_mean_tolerance: f64,
     /// Tỉ lệ ô lệch tối đa để màn hình đạt (0–1).
     pub max_bad_ratio: f64,
+    /// Số ô lệch tuyệt đối tối đa. Giới hạn này ngăn lỗi nhỏ bị che bởi tỉ lệ trên ảnh lớn.
+    pub max_bad_tiles: u32,
 }
 
 impl Default for Config {
@@ -28,6 +31,7 @@ impl Default for Config {
             tile: 16,
             tile_mean_tolerance: 6.0,
             max_bad_ratio: 0.02,
+            max_bad_tiles: 3,
         }
     }
 }
@@ -57,6 +61,10 @@ pub fn config_from_json(text: &str) -> Result<Config, String> {
             return Err("maxBadRatio phải trong khoảng 0–1".into());
         }
         cfg.max_bad_ratio = r;
+    }
+    if let Some(t) = v.get("maxBadTiles") {
+        let t = t.as_u64().ok_or("maxBadTiles phải là số nguyên không âm")?;
+        cfg.max_bad_tiles = u32::try_from(t).map_err(|_| "maxBadTiles quá lớn")?;
     }
     Ok(cfg)
 }
@@ -130,7 +138,7 @@ pub fn compare(reference: &RgbaImage, candidate: &RgbaImage, cfg: &Config) -> Ve
         bad_tiles: bad,
         bad_ratio,
         score: 1.0 - bad_ratio,
-        passed: bad_ratio <= cfg.max_bad_ratio,
+        passed: bad_ratio <= cfg.max_bad_ratio && bad <= cfg.max_bad_tiles,
     }
 }
 
@@ -266,8 +274,8 @@ pub fn report_json(results: &[ScreenResult], cfg: &Config) -> String {
     let mut out = String::new();
     let _ = write!(
         out,
-        "{{\n  \"config\": {{\"tile\": {}, \"tileMeanTolerance\": {}, \"maxBadRatio\": {}}},\n",
-        cfg.tile, cfg.tile_mean_tolerance, cfg.max_bad_ratio
+        "{{\n  \"config\": {{\"tile\": {}, \"tileMeanTolerance\": {}, \"maxBadRatio\": {}, \"maxBadTiles\": {}}},\n",
+        cfg.tile, cfg.tile_mean_tolerance, cfg.max_bad_ratio, cfg.max_bad_tiles
     );
     let failed = results.iter().filter(|r| !r.verdict.passed).count();
     let _ = write!(
@@ -428,12 +436,15 @@ mod tests {
 
     #[test]
     fn config_reads_keys_and_rejects_bad_values() {
-        let cfg = config_from_json(r#"{"tile": 8, "maxBadRatio": 0.05}"#).unwrap();
+        let cfg =
+            config_from_json(r#"{"tile": 8, "maxBadRatio": 0.05, "maxBadTiles": 9}"#).unwrap();
         assert_eq!(cfg.tile, 8);
         assert_eq!(cfg.max_bad_ratio, 0.05);
         assert_eq!(cfg.tile_mean_tolerance, 6.0);
+        assert_eq!(cfg.max_bad_tiles, 9);
         assert!(config_from_json(r#"{"tile": 0}"#).is_err());
         assert!(config_from_json(r#"{"maxBadRatio": 1.5}"#).is_err());
+        assert!(config_from_json(r#"{"maxBadTiles": -1}"#).is_err());
         assert!(config_from_json("not json").is_err());
     }
 
@@ -464,10 +475,52 @@ mod tests {
         write_reports(&results, &out, &cfg).unwrap();
         let json = std::fs::read_to_string(out.join("report.json")).unwrap();
         assert!(json.contains("\"failed\": 1"));
+        assert!(json.contains("\"maxBadTiles\": 3"));
         assert!(json.contains("start <screen>"));
         let html = std::fs::read_to_string(out.join("report.html")).unwrap();
         assert!(html.contains("start &lt;screen&gt;"));
         assert!(html.contains("không đạt"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn selftest_acceptance_cases_and_report_config() {
+        let cfg = Config::default();
+        let baseline = page(200, 120, 0);
+        let identical = compare(&baseline, &baseline, &cfg);
+        assert!(identical.passed && identical.score == 1.0);
+
+        let mut antialiased = baseline.clone();
+        for y in 39..61 {
+            for x in [39u32, 40, 119, 120] {
+                let p = antialiased.get_pixel_mut(x, y);
+                p.0[0] = p.0[0].saturating_add(2);
+                p.0[1] = p.0[1].saturating_add(2);
+            }
+        }
+        assert!(compare(&baseline, &antialiased, &cfg).passed);
+        assert!(!compare(&baseline, &page(200, 120, 1), &cfg).passed);
+
+        let mut recolored = baseline.clone();
+        for p in recolored.pixels_mut() {
+            if p.0[0] == 255 {
+                p.0 = [235, 235, 235, 255];
+            }
+        }
+        assert!(!compare(&baseline, &recolored, &cfg).passed);
+        assert!(!compare(&baseline, &page(201, 120, 0), &cfg).size_match);
+
+        let result = ScreenResult {
+            name: "selftest".into(),
+            reference: PathBuf::from("reference.png"),
+            candidate: PathBuf::from("candidate.png"),
+            diff_png: None,
+            verdict: identical,
+        };
+        let json = report_json(&[result], &cfg);
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["failed"], 0);
+        assert_eq!(parsed["config"]["maxBadTiles"], cfg.max_bad_tiles);
+        assert!(report_html(&[]).contains("0 màn hình"));
     }
 }

@@ -19,26 +19,34 @@ use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 mod assets;
 mod capture;
+mod commands;
 mod debug;
 mod dialogs;
+mod drop;
 mod find;
+mod instance;
 mod logging;
 mod night;
 mod password;
 mod probe;
 mod properties;
+#[cfg(windows)]
+mod save;
+#[cfg(windows)]
+mod session;
 mod settings;
 mod settings_dialog;
-// Dùng khi app nối lõi (R3.03); đến lúc đó chỉ test gọi.
-#[cfg(windows)]
-#[allow(dead_code)]
-mod session;
 #[allow(dead_code)]
 mod source_guard;
+mod start;
+mod tabs;
+mod tabs_host;
 mod theme;
+#[cfg(windows)]
+mod undo;
 mod viewer;
 
-use viewer::Viewer;
+use tabs_host::DocumentHost;
 
 /// Góc trên trái của cửa sổ E2E, nằm xa ngoài mọi màn hình hiện có.
 const OFFSCREEN_ORIGIN: (i32, i32) = (-20000, -20000);
@@ -199,15 +207,37 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "zoomin" => Box::new(viewer::ZoomIn),
         "zoomout" => Box::new(viewer::ZoomOut),
         "zoomreset" => Box::new(viewer::ZoomReset),
+        "zoomfitpage" => Box::new(viewer::ZoomFitPage),
+        "rotateviewleft" => Box::new(viewer::RotateViewLeft),
+        "rotateviewright" => Box::new(viewer::RotateViewRight),
+        "focuszoom" => Box::new(viewer::FocusZoomInput),
         "nextpage" => Box::new(viewer::NextPage),
         "prevpage" => Box::new(viewer::PrevPage),
         "togglefullscreen" => Box::new(viewer::ToggleFullscreen),
+        "viewcontinuous" => Box::new(viewer::SetContinuous),
+        "viewtwopage" => Box::new(viewer::SetTwoPage),
+        "viewbook" => Box::new(viewer::SetBook),
+        "viewslideshow" => Box::new(viewer::SetSlideshow),
+        "slidenext" => Box::new(viewer::SlideNext),
+        "slideprevious" => Box::new(viewer::SlidePrevious),
+        "exitslideshow" => Box::new(viewer::ExitSlideshow),
         "togglenight" => Box::new(viewer::ToggleNight),
         "focusnext" => Box::new(chef_ui::button::FocusNext),
         "focusprev" => Box::new(chef_ui::button::FocusPrev),
         "opensettings" => Box::new(viewer::OpenSettings),
         "openfile" => Box::new(viewer::OpenFile),
+        "openpalette" => Box::new(commands::OpenPalette),
+        "palettenext" => Box::new(commands::PaletteNext),
+        "paletteprev" => Box::new(commands::PalettePrevious),
+        "tabnext" => Box::new(tabs_host::NextTab),
+        "tabprev" => Box::new(tabs_host::PreviousTab),
+        "closetab" => Box::new(tabs_host::CloseTab),
         "openproperties" => Box::new(viewer::OpenProperties),
+        "rotatepage" => Box::new(viewer::RotatePage),
+        "undoedit" => Box::new(viewer::UndoEdit),
+        "redoedit" => Box::new(viewer::RedoEdit),
+        "saveedit" => Box::new(viewer::SaveEdit),
+        "saveeditas" => Box::new(viewer::SaveEditAs),
         _ => return None,
     };
     Some(action)
@@ -221,19 +251,63 @@ fn exe_dir() -> PathBuf {
         .unwrap_or_default()
 }
 
+#[cfg(windows)]
+fn dispatch_instance_requests(
+    server: instance::InstanceServer,
+    window: WindowHandle<DocumentHost>,
+    cx: &mut App,
+) {
+    cx.spawn(async move |cx| {
+        loop {
+            cx.background_executor()
+                .timer(Duration::from_millis(30))
+                .await;
+            match server.try_recv() {
+                Ok(paths) => {
+                    if window
+                        .update(cx, |host, window, cx| {
+                            host.open_paths(paths, window, cx);
+                            window.activate_window();
+                            cx.activate(true);
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+            }
+        }
+    })
+    .detach();
+}
+
 fn main() {
     logging::init(&settings::user_data_dir());
     logging::info("khởi động");
-    // Tham số đầu tiên không bắt đầu bằng "-" là đường dẫn PDF.
-    let pdf = std::env::args()
-        .skip(1)
-        .find(|a| !a.starts_with('-'))
-        .map(PathBuf::from);
+    let pdfs = drop::parse_argv(std::env::args_os().skip(1));
     let e2e = std::env::var("CHEF_E2E").as_deref() == Ok("1");
+    let e2e_probe = e2e && std::env::var("CHEF_E2E_PROBE").as_deref() == Ok("1");
+    #[cfg(windows)]
+    let instance_server = if e2e_probe {
+        None
+    } else {
+        match instance::start(pdfs.clone(), &settings::user_data_dir()) {
+            Ok(instance::LaunchInstance::Primary(server)) => Some(server),
+            Ok(instance::LaunchInstance::Forwarded) => return,
+            Err(error) => {
+                eprintln!("không chuyển được yêu cầu tới Chef PDF đang chạy: {error}");
+                return;
+            }
+        }
+    };
 
     application()
         .with_assets(assets::Embedded)
         .run(move |cx: &mut App| {
+            #[cfg(windows)]
+            let mut instance_server = instance_server;
             chef_ui::text_input::bind_keys(cx);
             chef_ui::button::bind_keys(cx);
             chef_ui::dialog::bind_keys(cx);
@@ -241,6 +315,8 @@ fn main() {
             chef_ui::menu::bind_keys(cx);
             chef_ui::tabs::bind_keys(cx);
             viewer::bind_keys(cx);
+            commands::bind_keys(cx);
+            tabs_host::bind_keys(cx);
             assets::register_fonts(cx);
             let handle = match chef_pdf::render::spawn(exe_dir()) {
                 Ok(h) => h,
@@ -250,9 +326,32 @@ fn main() {
                     std::process::exit(2);
                 }
             };
+            #[cfg(windows)]
+            let supervisor = {
+                use chef_rpc::{CoreCommand, Supervisor, SupervisorConfig};
+                use std::sync::{Arc, Mutex};
+                let core = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../core");
+                let data = settings::user_data_dir();
+                let command = CoreCommand {
+                    program: core.join(".venv/Scripts/python.exe"),
+                    args: vec![
+                        "-m".into(),
+                        "chef_core".into(),
+                        "--data-dir".into(),
+                        data.display().to_string(),
+                    ],
+                    cwd: core,
+                };
+                let log = Arc::new(|line: &str| logging::info(line));
+                Some(Arc::new(Mutex::new(Supervisor::lazy(
+                    SupervisorConfig::new(command, log),
+                ))))
+            };
+            #[cfg(not(windows))]
+            let supervisor = None;
             let min = Some(size(px(MIN_SIZE.0), px(MIN_SIZE.1)));
 
-            if e2e && std::env::var("CHEF_E2E_PROBE").as_deref() == Ok("1") {
+            if e2e_probe {
                 open_probe_offscreen(cx, min);
                 return;
             }
@@ -273,39 +372,29 @@ fn main() {
                             show: false,
                             ..Default::default()
                         },
-                        |_, cx| cx.new(|cx| Viewer::open(handle.clone(), pdf.clone(), cx)),
+                        |_, cx| {
+                            cx.new(|cx| {
+                                DocumentHost::new(
+                                    pdfs.clone(),
+                                    handle.clone(),
+                                    supervisor.clone(),
+                                    cx,
+                                )
+                            })
+                        },
                     )
                     .expect("mở cửa sổ E2E thất bại");
-                // Chỉ để đo (R1.34, R1.35): cuộn từng màn hình, mỗi bước cách nhau 150 ms.
-                if let Some(screens) = std::env::var("CHEF_E2E_SCROLL_SCREENS")
-                    .ok()
-                    .and_then(|v| v.parse::<u32>().ok())
-                {
-                    cx.spawn(async move |cx| {
-                        for _ in 0..screens {
-                            cx.background_executor()
-                                .timer(Duration::from_millis(150))
-                                .await;
-                            if window
-                                .update(cx, |viewer, _window, cx| {
-                                    viewer.scroll_screens(1.0);
-                                    cx.notify();
-                                })
-                                .is_err()
-                            {
-                                break;
-                            }
-                        }
-                    })
-                    .detach();
-                }
                 let (hwnd, scale) = window
-                    .update(cx, |viewer, window, cx| {
-                        viewer.focus_search(window, cx);
+                    .update(cx, |host, window, cx| {
+                        host.focus_active(window, cx);
                         hwnd_of(window)
                     })
                     .expect("cập nhật cửa sổ thất bại")
                     .expect("không lấy được HWND");
+                #[cfg(windows)]
+                if let Some(server) = instance_server.take() {
+                    dispatch_instance_requests(server, window, cx);
+                }
                 // Chạy trong task riêng: WM_SIZE đồng bộ gọi lại GPUI qua AsyncApp, và chỉ hoạt động
                 // khi closure run() đã trả về (không còn mượn &mut App). Nếu gọi ngay, bounds_changed
                 // thất bại âm thầm và viewport giữ giá trị CW_USEDEFAULT.
@@ -325,14 +414,38 @@ fn main() {
                         cx.background_executor()
                             .timer(Duration::from_millis(16))
                             .await;
-                        let alive = window.update(cx, |viewer, window, cx| {
+                        for screens in debug::take_scroll_screens() {
+                            let total = screens.abs().ceil() as u32;
+                            let direction = screens.signum();
+                            let mut remaining = screens.abs();
+                            for completed in 1..=total {
+                                let amount = remaining.min(1.0) * direction;
+                                if window
+                                    .update(cx, |host, _window, cx| {
+                                        host.scroll_active(amount, cx);
+                                    })
+                                    .is_err()
+                                {
+                                    return;
+                                }
+                                remaining -= amount.abs();
+                                debug::set_scroll_progress(completed, total, true);
+                                cx.background_executor()
+                                    .timer(Duration::from_millis(150))
+                                    .await;
+                            }
+                            debug::set_scroll_progress(total, total, false);
+                        }
+                        let alive = window.update(cx, |host, window, cx| {
                             for name in debug::take_actions() {
                                 if let Some(action) = action_for(&name) {
                                     window.dispatch_action(action, cx);
                                 }
                             }
-                            let input = viewer.search().read(cx);
-                            debug::set_input(input.text(), input.selected_range());
+                            if let Some((text, selection, focused)) = host.active_search(window, cx)
+                            {
+                                debug::set_input(&text, selection, focused);
+                            }
                         });
                         if alive.is_err() {
                             break;
@@ -371,13 +484,25 @@ fn main() {
                             window_min_size: min,
                             ..Default::default()
                         },
-                        |_, cx| cx.new(|cx| Viewer::open(handle.clone(), pdf.clone(), cx)),
+                        |_, cx| {
+                            cx.new(|cx| {
+                                DocumentHost::new(
+                                    pdfs.clone(),
+                                    handle.clone(),
+                                    supervisor.clone(),
+                                    cx,
+                                )
+                            })
+                        },
                     )
                     .expect("mở cửa sổ thất bại");
+                #[cfg(windows)]
+                if let Some(server) = instance_server.take() {
+                    dispatch_instance_requests(server, window, cx);
+                }
                 window
-                    .update(cx, |viewer, window, cx| viewer.focus_search(window, cx))
+                    .update(cx, |host, window, cx| host.focus_active(window, cx))
                     .expect("cập nhật cửa sổ thất bại");
-                cx.activate(true);
             }
         });
 }

@@ -14,3 +14,4 @@ workspace = true
 pdfium-render = { version = "0.9.5", default-features = false, features = ["pdfium_8125", "thread_safe"] }
 # Bỏ dấu tiếng Việt khi tìm (R2.23): NFD để tách dấu tổ hợp. MIT OR Apache-2.0.
 unicode-normalization = "0.1"
+zeroize = "1"

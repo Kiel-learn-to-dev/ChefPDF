@@ -94,7 +94,7 @@ Các giá trị dưới đây là **giá trị khởi điểm**, không phải n
 - Sau khi cuộn 350 màn hình (mỗi bước 150 ms): `nativeMB` = 100,3 MB; `cached` = 2 trang; không có yêu cầu nào chờ. Chính sách full-scale chỉ cho trang nhìn thấy ±1 (R2) đã giữ cache nhỏ.
 - Bản release (LTO) cho cùng kết quả ở đường E2E (151 lần vẽ, cache 2).
 - `coreMB` = 0: chưa có lõi nào được khởi động trong kịch bản này (lõi lười, §4). Chưa đo cùng kịch bản với Electron có lõi (R1.38), nên chưa so sánh tổng. Số Electron đã có (1351 MB ở 350 màn hình) là chỉ riêng tiến trình Electron.
-- Working set không thấy bộ nhớ VRAM của GPU (texture nằm trên GPU, không tính vào working set). Đo bằng bộ đếm GPU của Windows theo tiến trình (`\GPU Process Memory(pid_*)\Dedicated Usage`), chưa làm (R1.35 còn mở); chỉ dùng DXGI nếu bộ đếm tăng theo số trang đã cuộn.
+- Working set không thấy bộ nhớ GPU (texture nằm ngoài working set). R1.35 sẽ ghi `Dedicated Usage` và `Shared Usage` từ `\GPU Process Memory(pid_*)` ở ba mốc của runner, tách tổng PID của Chef Native và chef-core. Trường nào không có bộ đếm hoặc PID path sẽ in `unavailable`, không coi là 0. Chưa có số GPU hay kết luận; ghi kèm phiên bản Windows và driver GPU vì Microsoft ghi nhận bộ đếm có thể sai trên một số hệ thống Windows 10 từ bản 1709 trở lên ([KB 4490156](https://learn.microsoft.com/en-us/troubleshoot/windows-client/performance/gpu-process-memory-counters-report-wrong-value)). Chỉ dùng DXGI nếu phép đo Windows cho thấy bộ nhớ GPU tăng theo số trang đã cuộn.
 
 ## 3. Lõi xử lý: mô hình thao tác (Operation)
 

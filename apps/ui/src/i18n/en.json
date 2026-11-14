@@ -298,6 +298,38 @@
     "moveUp": "Move up",
     "remove": "Remove"
   },
+  "editor": {
+    "rotateFirst": "Rotate first page",
+    "undo": "Undo",
+    "redo": "Redo",
+    "save": "Save",
+    "saveAs": "Save As…",
+    "saved": "PDF saved",
+    "savedWithWarning": "PDF saved with a protection warning.",
+    "savedOwnerPasswordWarning": "PDF saved. The original owner password could not be preserved.",
+    "savedRestrictionsWarning": "PDF saved without encryption because its restrictions-only owner password could not be preserved.",
+    "waitCurrentOperation": "Wait for the current edit to finish before opening another PDF.",
+    "saveBeforeSwitch": "Save this document before opening another PDF.",
+    "sessionClosing": "Closing the saved editing session…",
+    "nothingToUndo": "There is no edit to undo.",
+    "nothingToRedo": "There is no edit to redo.",
+    "nothingToSave": "There is no editing session to save.",
+    "reloadRequired": "The current revision could not be loaded. Editing is blocked until you retry the reload.",
+    "reloadRevision": "Reload current revision",
+    "coreUnavailable": "The editing service is unavailable.",
+    "sessionOpenFailed": "Could not start an editing session.",
+    "operationFailed": "The operation could not be completed.",
+    "revisionMissing": "The new document revision could not be loaded.",
+    "operationDisconnected": "The editing service disconnected before completing the operation."
+  },
+  "sourceGuard": {
+    "title": "Original file changed",
+    "changed": "This file was edited or replaced outside Chef PDF after you opened it. Chef PDF has not created a work session yet, so the operation would use the new file. Review the file or reopen it to use its current contents.",
+    "missing": "The original file could not be found at its previous location. Check whether it was renamed or deleted.",
+    "unreadable": "The original file could not be read. Another program may have it locked.",
+    "review": "Review",
+    "reopen": "Reopen"
+  },
   "shell": {
     "documents": "Open documents",
     "functions": "Function groups",
@@ -497,6 +529,20 @@
       "app": "App",
       "soon": "Coming soon"
     }
+  },
+  "commands": {
+    "openPdf": "Open PDF",
+    "find": "Find in document",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "zoomReset": "Fit to width",
+    "rotatePage": "Rotate page",
+    "undo": "Undo",
+    "redo": "Redo",
+    "save": "Save document",
+    "settings": "Settings",
+    "sign": "Digital signature",
+    "decree30": "Page numbers under Decree 30"
   },
   "pageMenu": {
     "createPdf_one": "Create PDF from {{count}} selected page",

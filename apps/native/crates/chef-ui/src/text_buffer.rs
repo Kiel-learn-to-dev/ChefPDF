@@ -7,6 +7,7 @@
 use std::ops::Range;
 
 use unicode_segmentation::UnicodeSegmentation;
+use zeroize::Zeroize;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TextBuffer {
@@ -32,6 +33,14 @@ impl TextBuffer {
 
     pub fn content(&self) -> &str {
         &self.content
+    }
+
+    /// Overwrite the current allocation before clearing sensitive text.
+    pub fn zeroize_content(&mut self) {
+        self.content.zeroize();
+        self.selected = 0..0;
+        self.reversed = false;
+        self.marked = None;
     }
 
     pub fn selected_range(&self) -> Range<usize> {
@@ -245,6 +254,18 @@ pub fn single_line(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{TextBuffer, single_line};
+
+    #[test]
+    fn zeroize_content_clears_text_and_selection_state() {
+        let mut buffer = TextBuffer::new("secret-🧪");
+        buffer.select_all();
+        buffer.replace_and_mark(Some(0..6), "secret", None);
+        buffer.zeroize_content();
+        assert!(buffer.content().is_empty());
+        assert_eq!(buffer.selected_range(), 0..0);
+        assert_eq!(buffer.marked_range(), None);
+        assert!(!buffer.selection_reversed());
+    }
 
     #[test]
     fn vietnamese_text_is_stored_and_counted_in_utf16() {

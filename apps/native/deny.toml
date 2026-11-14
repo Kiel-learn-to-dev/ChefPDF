@@ -139,3 +139,15 @@ deny = [
 
 [advisories]
 version = 2
+ignore = [
+    { id = "RUSTSEC-2025-0052", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của async-std qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2024-0384", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của instant qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2024-0436", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của paste qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0441", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của pin-utils qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0173", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của proc-macro-error2 qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0206", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của rustybuzz qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0192", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của ttf-parser qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0371", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của zbus_names qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0370", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của zvariant qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0372", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của zvariant_derive qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+]

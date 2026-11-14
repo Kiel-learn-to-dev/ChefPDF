@@ -38,24 +38,25 @@ pub fn start(
     if let Some(session_id) = session_id {
         request["sessionId"] = json!(session_id);
     }
-    let reply = sup.request("ops.run", &request)?;
+    let (reply, run_epoch) = sup.request_with_epoch("ops.run", &request)?;
     let job_id = reply
         .get("jobId")
         .and_then(Value::as_str)
         .map(str::to_string)
         .ok_or_else(|| CallError::Rpc(json!({ "message": "ops.run không trả jobId" })))?;
-    // Lõi không tự tắt khi còn job này, cho đến khi `wait_job` thấy job kết thúc (R3.03).
-    sup.job_started(&job_id);
+    // The notification forwarder owns release, including a terminal event that arrives before
+    // this response. Epoch ties registration to the exact core process that handled `ops.run`.
+    if !sup.job_started_on_run(&job_id, run_epoch) {
+        // The core restarted after answering `ops.run`; its job is gone or unknown to the new run.
+        return Err(CallError::Closed);
+    }
     Ok(job_id)
 }
 
-/// Chờ job `job_id` kết thúc, tối đa `timeout`. Khi job kết thúc (không tính hết giờ), bỏ đánh dấu job đang chạy.
+/// Chờ job `job_id` kết thúc, tối đa `timeout`. Supervisor tracks the terminal notification and
+/// releases the job hold even when this waiter has already timed out.
 pub fn wait_job(sup: &Supervisor, job_id: &str, timeout: Duration) -> JobEnd {
-    let end = wait_job_events(sup.events(), job_id, timeout);
-    if end != JobEnd::TimedOut {
-        sup.job_finished(job_id);
-    }
-    end
+    wait_job_events(sup.events(), job_id, timeout)
 }
 
 fn wait_job_events(events: &Receiver<Event>, job_id: &str, timeout: Duration) -> JobEnd {

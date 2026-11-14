@@ -779,6 +779,7 @@ version = "0.1.0"
 dependencies = [
  "pdfium-render",
  "unicode-normalization",
+ "zeroize",
 ]
 
 [[package]]
@@ -809,11 +810,15 @@ dependencies = [
  "gpui",
  "serde_json",
  "unicode-segmentation",
+ "zeroize",
 ]
 
 [[package]]
 name = "chef-viewer"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
 
 [[package]]
 name = "chrono"

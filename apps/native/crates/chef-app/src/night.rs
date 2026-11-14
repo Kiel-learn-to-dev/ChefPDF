@@ -1,6 +1,9 @@
 //! Đọc ban đêm: đảo màu trang như `invert(1) hue-rotate(180deg)` của bản Electron
 //! (apps/ui/src/features/viewer/Viewer.css, TASKS_RUST R2.28). Biến đổi tại chỗ, không tạo bộ nhớ mới.
 
+use chef_viewer::cache::LruCache;
+use std::hash::Hash;
+
 /// Ma trận hue-rotate(180deg) theo công thức CSS Filter Effects (cos = -1, sin = 0).
 const HUE_ROTATE_180: [[f32; 3]; 3] = [
     [-0.574, 1.430, 0.144],
@@ -27,13 +30,27 @@ pub fn invert_bgra(bgra: &mut [u8]) {
     }
 }
 
+/// Evict cached page images when switching the pixel transform; returned values are handed to GPUI
+/// for explicit texture release by the caller.
+pub fn evict_cached_pages<K, V>(cache: &mut LruCache<K, V>) -> Vec<V>
+where
+    K: Eq + Hash + Clone,
+{
+    cache
+        .keys()
+        .into_iter()
+        .filter_map(|key| cache.remove(&key))
+        .collect()
+}
+
 fn to_byte(v: f32) -> u8 {
     (v.clamp(0.0, 1.0) * 255.0).round() as u8
 }
 
 #[cfg(test)]
 mod tests {
-    use super::invert_bgra;
+    use super::{evict_cached_pages, invert_bgra};
+    use chef_viewer::cache::LruCache;
 
     #[test]
     fn white_page_becomes_black_and_black_becomes_white() {
@@ -48,6 +65,34 @@ mod tests {
         let mut px = [10, 20, 30, 77];
         invert_bgra(&mut px);
         assert_eq!(px[3], 77);
+    }
+
+    #[test]
+    fn representative_colors_match_invert_then_hue_rotate_180_css_filter() {
+        // CSS `invert(1) hue-rotate(180deg)`, input/output byte order BGRA.
+        let mut px = [64, 128, 192, 77, 17, 90, 210, 211];
+        invert_bgra(&mut px);
+        assert_eq!(&px, &[45, 109, 173, 77, 51, 124, 244, 211]);
+    }
+
+    #[test]
+    fn night_inversion_does_not_allocate_a_replacement_pixel_buffer() {
+        let mut px = vec![64, 128, 192, 77, 17, 90, 210, 211];
+        let capacity = px.capacity();
+        invert_bgra(&mut px);
+        assert_eq!(px.capacity(), capacity);
+    }
+
+    #[test]
+    fn switching_night_mode_evicts_all_cached_page_images() {
+        let mut cache = LruCache::new(1024);
+        cache.insert(1, "first", 10);
+        cache.insert(2, "second", 10);
+        let released = evict_cached_pages(&mut cache);
+        assert!(cache.is_empty());
+        assert_eq!(cache.total_bytes(), 0);
+        assert_eq!(released.len(), 2);
+        assert!(released.contains(&"first") && released.contains(&"second"));
     }
 
     #[test]

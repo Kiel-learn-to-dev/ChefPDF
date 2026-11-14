@@ -13,12 +13,19 @@ $ErrorActionPreference = "Stop"
 if (-not $Exe) { $Exe = Join-Path $PSScriptRoot "..\apps\native\target\debug\chef-app.exe" }
 if (-not $Pdf) { $Pdf = Join-Path $env:TEMP "chef-perf\pages1000.pdf" }
 
-Get-Process chef-app -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.Id -Force }
-
+$oldE2E = $env:CHEF_E2E
+$oldUserData = $env:CHEF_USER_DATA_DIR
 $env:CHEF_E2E = "1"
+$env:CHEF_USER_DATA_DIR = Join-Path $env:TEMP ("chef-e2e-userdata-night-" + [guid]::NewGuid().ToString("N"))
 $log = Join-Path $env:TEMP ("chef-night-" + [guid]::NewGuid().ToString("N") + ".txt")
-$proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Pdf + '"') -PassThru -RedirectStandardError $log -WindowStyle Hidden
-$env:CHEF_E2E = $null
+$proc = $null
+try {
+    $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Pdf + '"') -PassThru -RedirectStandardError $log -WindowStyle Hidden
+}
+finally {
+    $env:CHEF_E2E = $oldE2E
+    $env:CHEF_USER_DATA_DIR = $oldUserData
+}
 Start-Sleep -Seconds 5
 
 $text = Get-Content $log -Raw
@@ -73,9 +80,13 @@ try {
     Expect "togglenight turns night off" ((Send 'state' | ConvertFrom-Json).view.night) $false
 }
 finally {
-    Send "quit" | Out-Null
-    Start-Sleep -Milliseconds 300
-    if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+    $env:CHEF_E2E = $oldE2E
+    $env:CHEF_USER_DATA_DIR = $oldUserData
+    try { Send "quit" | Out-Null } catch {}
+    if ($proc) {
+        Start-Sleep -Milliseconds 300
+        if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+    }
 }
 Write-Output ("FAILS: " + $script:fails)
 if ($script:fails -gt 0) { exit 1 }

@@ -28,6 +28,16 @@ pub const ENV_USER_DATA: &str = "CHEF_USER_DATA_DIR";
 const KEY_THEME: &str = "theme";
 const KEY_LANGUAGE: &str = "language";
 const KEY_SAVE_DIR: &str = "defaultSaveDir";
+const KEY_RECENT_FILES: &str = "recentFiles";
+const MAX_RECENT_FILES: usize = 20;
+
+/// File history record shared with Electron (`settings.recentFiles`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecentFile {
+    pub path: String,
+    pub name: String,
+    pub opened_at: String,
+}
 
 /// Giá trị mặc định khi tạo file mới, đúng `defaultSettings()` của Electron.
 fn defaults() -> Map<String, Value> {
@@ -167,6 +177,63 @@ impl Settings {
         self.str_value(KEY_SAVE_DIR).filter(|s| !s.is_empty())
     }
 
+    /// Read valid recent PDF entries in their stored newest-first order, capped at twenty.
+    pub fn recent_files(&self) -> Vec<RecentFile> {
+        let Some(entries) = self.raw.get(KEY_RECENT_FILES).and_then(Value::as_array) else {
+            return Vec::new();
+        };
+        dedupe_recent(entries.iter().filter_map(|entry| {
+            let object = entry.as_object()?;
+            Some(RecentFile {
+                path: object.get("path")?.as_str()?.to_string(),
+                name: object.get("name")?.as_str()?.to_string(),
+                opened_at: object.get("openedAt")?.as_str()?.to_string(),
+            })
+        }))
+    }
+
+    /// Replace recent-file history with Electron's `{path,name,openedAt}` records.
+    pub fn set_recent_files(&mut self, recent: impl IntoIterator<Item = RecentFile>) {
+        let entries: Vec<Value> = dedupe_recent(recent)
+            .into_iter()
+            .map(|entry| {
+                serde_json::json!({
+                    "path": entry.path,
+                    "name": entry.name,
+                    "openedAt": entry.opened_at,
+                })
+            })
+            .collect();
+        self.put(KEY_RECENT_FILES, Value::Array(entries));
+    }
+
+    /// Add an absolute PDF path to the front of history and de-duplicate according to the host
+    /// platform's path-case rules. Saving remains explicit so callers can report write failures.
+    pub fn record_recent(&mut self, path: &Path, opened_at: &str) -> io::Result<()> {
+        if !path.is_absolute() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "recent file path must be absolute",
+            ));
+        }
+        let path = path.to_string_lossy().into_owned();
+        let name = Path::new(&path)
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| path.clone());
+        let mut recent = self.recent_files();
+        recent.insert(
+            0,
+            RecentFile {
+                path,
+                name,
+                opened_at: opened_at.to_string(),
+            },
+        );
+        self.set_recent_files(recent);
+        Ok(())
+    }
+
     pub fn set_theme(&mut self, theme: Theme) {
         self.put(KEY_THEME, Value::String(theme.as_str().into()));
     }
@@ -237,6 +304,66 @@ impl Settings {
     fn str_value(&self, key: &str) -> Option<&str> {
         self.raw.get(key).and_then(Value::as_str)
     }
+}
+
+fn dedupe_recent(entries: impl IntoIterator<Item = RecentFile>) -> Vec<RecentFile> {
+    let mut result = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for entry in entries {
+        if entry.path.is_empty() || entry.name.is_empty() || entry.opened_at.is_empty() {
+            continue;
+        }
+        let key = recent_path_key(&entry.path);
+        if seen.insert(key) {
+            result.push(entry);
+            if result.len() == MAX_RECENT_FILES {
+                break;
+            }
+        }
+    }
+    result
+}
+
+#[cfg(any(windows, target_os = "macos"))]
+fn recent_path_key(path: &str) -> String {
+    path.to_lowercase()
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn recent_path_key(path: &str) -> String {
+    path.to_string()
+}
+
+/// Current UTC timestamp in the ISO-8601 format consumed by Electron's settings parser.
+pub fn now_iso_8601() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let seconds = duration.as_secs();
+    let days = (seconds / 86_400) as i64;
+    let day_seconds = seconds % 86_400;
+    let (year, month, day) = civil_from_days(days);
+    let hour = day_seconds / 3_600;
+    let minute = day_seconds % 3_600 / 60;
+    let second = day_seconds % 60;
+    let millis = duration.subsec_millis();
+    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}.{millis:03}Z")
+}
+
+fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
+    let z = days_since_epoch + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let day_of_era = z - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let mut year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_prime = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+    let month = month_prime + if month_prime < 10 { 3 } else { -9 };
+    year += i64::from(month <= 2);
+    (year, month, day)
 }
 
 /// Chọn thư mục userData theo thứ tự: biến ghi đè; chế độ E2E dùng thư mục tạm riêng của tiến trình
@@ -325,6 +452,95 @@ mod tests {
         assert_eq!(s.theme(), Theme::Dark);
         assert_eq!(s.language(), Language::En);
         assert_eq!(s.default_save_dir(), Some("D:\\Out"));
+    }
+
+    #[test]
+    fn recent_files_keep_newest_first_order_dedupe_paths_and_cap_at_twenty() {
+        let dir = TempDir::new("recent-order");
+        let mut s = Settings::load(&dir.0).unwrap();
+        let entries = (0..24).map(|index| RecentFile {
+            path: recent_test_path(&format!("{index}.pdf")),
+            name: format!("{index}.pdf"),
+            opened_at: format!("2026-11-{index:02}T00:00:00Z"),
+        });
+        s.set_recent_files(entries);
+        let items = s.recent_files();
+        assert_eq!(items.len(), 20);
+        assert_eq!(items[0].name, "0.pdf");
+        assert_eq!(items[19].name, "19.pdf");
+
+        s.record_recent(
+            Path::new(&recent_test_path("3.pdf")),
+            "2026-12-01T00:00:00Z",
+        )
+        .unwrap();
+        let items = s.recent_files();
+        assert_eq!(items.len(), 20);
+        assert_eq!(items[0].name, "3.pdf");
+        assert_eq!(items[0].opened_at, "2026-12-01T00:00:00Z");
+        assert_eq!(
+            items
+                .iter()
+                .filter(|item| recent_path_key(&item.path)
+                    == recent_path_key(&recent_test_path("3.pdf")))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn saving_recent_files_preserves_unknown_settings_fields() {
+        let dir = TempDir::new("recent-preserve");
+        fs::write(dir.0.join(FILE_NAME), electron_like()).unwrap();
+        let mut settings = Settings::load(&dir.0).unwrap();
+        settings
+            .record_recent(
+                &std::env::current_dir().unwrap().join("Tài liệu/new.pdf"),
+                "2026-11-14T00:00:00.000Z",
+            )
+            .unwrap();
+        settings.save().unwrap();
+        let reread = Settings::load(&dir.0).unwrap();
+        assert_eq!(reread.recent_files()[0].name, "new.pdf");
+        assert_eq!(
+            reread.raw().get("futureKey").unwrap()["keep"],
+            serde_json::json!([1, 2, 3])
+        );
+        assert_eq!(reread.raw().get("prefs").unwrap()["zoom"]["step"], 1.25);
+    }
+
+    #[test]
+    fn malformed_recent_entries_are_skipped_and_relative_paths_cannot_be_added() {
+        let dir = TempDir::new("recent-malformed");
+        fs::write(
+            dir.0.join(FILE_NAME),
+            r#"{"recentFiles":[{"path":"/ok.pdf","name":"ok.pdf","openedAt":"2026-01-01T00:00:00Z"},{"path":"/bad.pdf","name":3,"openedAt":""},3]}"#,
+        ).unwrap();
+        let mut settings = Settings::load(&dir.0).unwrap();
+        assert_eq!(settings.recent_files().len(), 1);
+        assert_eq!(settings.recent_files()[0].name, "ok.pdf");
+        assert!(
+            settings
+                .record_recent(Path::new("relative.pdf"), "now")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn current_timestamp_uses_iso_8601_utc_shape() {
+        let timestamp = now_iso_8601();
+        assert_eq!(timestamp.len(), 24);
+        assert_eq!(&timestamp[4..5], "-");
+        assert_eq!(&timestamp[10..11], "T");
+        assert_eq!(&timestamp[23..24], "Z");
+    }
+
+    fn recent_test_path(file: &str) -> String {
+        if cfg!(windows) {
+            format!("C:\\docs\\{file}")
+        } else {
+            format!("/docs/{file}")
+        }
     }
 
     #[test]

@@ -11,6 +11,7 @@ import pikepdf
 import pytest
 from conftest import Harness, RpcFailure, page_widths
 
+from chef_core.pdf import io as pdf_io
 from chef_core.session import manager as session_manager
 from chef_core.session.info import pdf_date_to_iso
 
@@ -185,6 +186,31 @@ def test_save_as_and_save(
 
     harness.call("session.undo", {"sessionId": sid})
     assert _state(harness, sid)["dirty"] is True
+
+
+def test_failed_atomic_save_preserves_source_and_dirty_state(
+    harness: Harness, numbered: Callable[[int], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src = numbered(2)
+    original = src.read_bytes()
+    sid = harness.open(src)["state"]["sessionId"]
+    harness.op("page.rotate", {"pages": [0], "angle": 90}, sid)
+    assert _state(harness, sid)["dirty"] is True
+
+    replaced: list[Path] = []
+
+    def fail_before_replace(source: str | Path, target: str | Path) -> None:
+        replaced.append(Path(target))
+        raise OSError("injected failure before atomic replacement")
+
+    monkeypatch.setattr(pdf_io.os, "replace", fail_before_replace)
+    with pytest.raises(RpcFailure):
+        harness.call("session.save", {"sessionId": sid})
+
+    assert replaced == [src]
+    assert src.read_bytes() == original
+    assert _state(harness, sid)["dirty"] is True
+    assert list(src.parent.glob(f".{src.name}.*.tmp")) == []
 
 
 def test_save_errors(harness: Harness, tmp_path: Path) -> None:

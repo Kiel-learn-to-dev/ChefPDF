@@ -2,7 +2,10 @@
 //! Phần vẽ nằm trong chef-app; crate này không phụ thuộc GPUI để kiểm thử được riêng.
 
 pub mod cache;
+pub mod reload;
 pub mod scroll;
+pub mod sidebar;
+pub mod spread;
 
 #[cfg(test)]
 mod tests {

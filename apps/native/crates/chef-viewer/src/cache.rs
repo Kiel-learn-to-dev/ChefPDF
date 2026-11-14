@@ -127,4 +127,27 @@ impl<K: Eq + Hash + Clone, V> LruCache<K, V> {
     pub fn keys(&self) -> Vec<K> {
         self.items.keys().cloned().collect()
     }
+
+    /// Read cache entries without marking them as recently used.
+    pub fn entries(&self) -> impl Iterator<Item = (&K, &V)> {
+        self.items.iter().map(|(key, entry)| (key, &entry.value))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LruCache;
+
+    #[test]
+    fn entries_does_not_change_lru_eviction_order() {
+        let mut cache = LruCache::new(2);
+        cache.insert(1, "page-1", 1);
+        cache.insert(2, "page-2", 1);
+        assert_eq!(cache.entries().count(), 2);
+
+        let evicted = cache.insert(3, "page-3", 1);
+        assert_eq!(evicted, vec!["page-1"]);
+        assert!(cache.contains(&2));
+        assert!(cache.contains(&3));
+    }
 }

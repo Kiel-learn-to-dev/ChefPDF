@@ -107,6 +107,8 @@ async function rendererDetail(cdp: Cdp | null, l: Launched): Promise<string> {
       count: cs.length,
       bytes,
       dpr: window.devicePixelRatio,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
       scrollTop: Math.round(document.querySelector('.viewer__scroll')?.scrollTop ?? -1),
       pagesWithCanvas: document.querySelectorAll('.pdfViewer .page canvas').length,
       elements: document.getElementsByTagName('*').length,
@@ -116,7 +118,8 @@ async function rendererDetail(cdp: Cdp | null, l: Launched): Promise<string> {
     `workers=${workers} heapMB=${mb(heap.usedSize)} ` +
     `domNodes=${dom?.nodes ?? 'n/a'} listeners=${dom?.jsEventListeners ?? 'n/a'} ` +
     `canvases=${canvas.count} canvasMB=${mb(canvas.bytes)} pagesWithCanvas=${canvas.pagesWithCanvas} ` +
-    `elements=${canvas.elements} dpr=${canvas.dpr} scrollTop=${canvas.scrollTop}`
+    `elements=${canvas.elements} viewport=${canvas.viewportWidth}x${canvas.viewportHeight} ` +
+    `dpr=${canvas.dpr} scrollTop=${canvas.scrollTop}`
   );
 }
 
@@ -174,10 +177,12 @@ test('idle with no document', async () => {
   await snapshot(launched, 'idle', await openCdp(launched));
 });
 
-test('one 1000-page document: open, scroll to the end, back to the top', async () => {
+test('one 1000-page document: open, scroll 350 screens, return to the top', async () => {
   test.setTimeout(900_000);
   launched = await launchUnderTest({ args: launchArgs([path.join(perfDir, 'pages1000.pdf')]) });
   const page = launched.page;
+  // Match the native E2E window (main.rs DEFAULT_SIZE = 1200×860 logical px).
+  await page.setViewportSize({ width: 1200, height: 860 });
   const cdp = await openCdp(launched);
   await page.waitForSelector('.pdfViewer .page canvas', { timeout: 300_000 });
   await page.waitForTimeout(3_000);
@@ -193,18 +198,29 @@ test('one 1000-page document: open, scroll to the end, back to the top', async (
       }
     }).observe({ entryTypes: ['longtask'] });
   });
-  // Scroll the viewer by one screen per step. PageDown from the keyboard stalls in the offscreen
-  // window (the frames it waits for are not produced), so the scroll position is set directly.
-  for (let i = 1; i <= 1400; i += 1) {
+  // Match the native R1.37 scenario: one content viewport every 150 ms. PageDown from the keyboard
+  // stalls in the offscreen window (frames are not produced), so set scrollTop directly.
+  const screens = 350;
+  const start = await page.evaluate(() => {
+    const el = document.querySelector('.viewer__scroll');
+    return { scrollTop: el?.scrollTop ?? -1, viewportH: el?.clientHeight ?? 0 };
+  });
+  expect(start.viewportH).toBeGreaterThan(0);
+  expect(start.scrollTop).toBeGreaterThanOrEqual(0);
+  for (let i = 0; i < screens; i += 1) {
     await page.evaluate(() => {
       const el = document.querySelector('.viewer__scroll');
       if (el) el.scrollTop += el.clientHeight;
     });
-    await page.waitForTimeout(30);
-    if (i % 350 === 0) await snapshot(launched, `scroll-${i}`, cdp);
+    await page.waitForTimeout(150);
   }
+  const scrolled = await page.evaluate(() => {
+    const el = document.querySelector('.viewer__scroll');
+    return { scrollTop: el?.scrollTop ?? -1 };
+  });
+  expect(scrolled.scrollTop - start.scrollTop).toBeGreaterThanOrEqual(start.viewportH * screens * 0.99);
   await page.waitForTimeout(3_000);
-  await snapshot(launched, 'scrolled-end', cdp);
+  await snapshot(launched, `after-scroll-${screens}`, cdp);
   const lt = await page.evaluate(
     () => (window as unknown as { __longTasks: { count: number; max: number } }).__longTasks,
   );
@@ -212,12 +228,18 @@ test('one 1000-page document: open, scroll to the end, back to the top', async (
     `PERFMEM longtasks count=${lt.count} maxMs=${Math.round(lt.max)} totalMs=${Math.round(lt.total)} ` +
       `switches="${switches.join(' ')}"`,
   );
-  await page.evaluate(() => {
-    const el = document.querySelector('.viewer__scroll');
-    if (el) el.scrollTop = 0;
-  });
+  for (let i = 0; i < screens; i += 1) {
+    await page.evaluate(() => {
+      const el = document.querySelector('.viewer__scroll');
+      if (el) el.scrollTop = Math.max(0, el.scrollTop - el.clientHeight);
+    });
+    await page.waitForTimeout(150);
+  }
+  const top = await page.evaluate(() => document.querySelector('.viewer__scroll')?.scrollTop ?? -1);
+  expect(top).toBeGreaterThanOrEqual(0);
+  expect(top).toBeLessThanOrEqual(2);
   await page.waitForTimeout(3_000);
-  await snapshot(launched, 'back-to-top', cdp);
+  await snapshot(launched, 'return-top', cdp);
 });
 
 test('five tabs, each visited, then all closed', async () => {

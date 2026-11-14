@@ -298,6 +298,38 @@
     "moveUp": "Chuyển lên",
     "remove": "Bỏ ra"
   },
+  "editor": {
+    "rotateFirst": "Xoay trang đầu",
+    "undo": "Hoàn tác",
+    "redo": "Làm lại",
+    "save": "Lưu",
+    "saveAs": "Lưu thành…",
+    "saved": "Đã lưu PDF",
+    "savedWithWarning": "Đã lưu PDF kèm cảnh báo về mật khẩu bảo vệ.",
+    "savedOwnerPasswordWarning": "Đã lưu PDF. Không thể giữ mật khẩu chủ sở hữu ban đầu.",
+    "savedRestrictionsWarning": "Đã lưu PDF không mã hóa vì không thể giữ mật khẩu chủ sở hữu chỉ dùng để đặt hạn chế.",
+    "waitCurrentOperation": "Hãy đợi thao tác chỉnh sửa hiện tại hoàn tất trước khi mở PDF khác.",
+    "saveBeforeSwitch": "Hãy lưu tài liệu này trước khi mở PDF khác.",
+    "sessionClosing": "Đang đóng phiên chỉnh sửa đã lưu…",
+    "nothingToUndo": "Không có thao tác nào để hoàn tác.",
+    "nothingToRedo": "Không có thao tác nào để làm lại.",
+    "nothingToSave": "Chưa có phiên chỉnh sửa để lưu.",
+    "reloadRequired": "Không thể tải bản sửa đổi hiện tại. Chỉnh sửa đã bị khóa cho đến khi bạn thử tải lại.",
+    "reloadRevision": "Tải lại bản hiện tại",
+    "coreUnavailable": "Dịch vụ chỉnh sửa hiện không khả dụng.",
+    "sessionOpenFailed": "Không mở được phiên chỉnh sửa.",
+    "operationFailed": "Không thể hoàn tất thao tác.",
+    "revisionMissing": "Không thể tải bản tài liệu mới.",
+    "operationDisconnected": "Dịch vụ chỉnh sửa đã ngắt kết nối trước khi hoàn tất thao tác."
+  },
+  "sourceGuard": {
+    "title": "File gốc đã thay đổi",
+    "changed": "File này đã được sửa hoặc thay thế bên ngoài Chef PDF từ lúc bạn mở. Chef PDF chưa tạo phiên làm việc cho file này, nên thao tác sẽ áp lên bản mới. Hãy xem lại file hoặc mở lại để dùng nội dung hiện có.",
+    "missing": "Không tìm thấy file gốc ở vị trí cũ. Hãy kiểm tra file đã bị đổi tên hoặc xóa chưa.",
+    "unreadable": "Không đọc được file gốc. File có thể đang bị chương trình khác khóa.",
+    "review": "Xem lại",
+    "reopen": "Mở lại"
+  },
   "shell": {
     "documents": "Tài liệu đang mở",
     "functions": "Nhóm chức năng",
@@ -497,6 +529,20 @@
       "app": "Ứng dụng",
       "soon": "Sắp có"
     }
+  },
+  "commands": {
+    "openPdf": "Mở PDF",
+    "find": "Tìm trong tài liệu",
+    "zoomIn": "Phóng to",
+    "zoomOut": "Thu nhỏ",
+    "zoomReset": "Vừa khung",
+    "rotatePage": "Xoay trang",
+    "undo": "Hoàn tác",
+    "redo": "Làm lại",
+    "save": "Lưu tài liệu",
+    "settings": "Cài đặt",
+    "sign": "Ký số",
+    "decree30": "Số trang theo Nghị định 30"
   },
   "pageMenu": {
     "createPdf": "Tạo PDF từ {{count}} trang đã chọn",

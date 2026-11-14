@@ -28,6 +28,15 @@ pub struct PageImage {
     pub bgra: Vec<u8>,
 }
 
+/// Flat PDF outline entry. Unsupported or remote bookmark destinations remain visible with no
+/// page index so the UI can show them without attempting an invalid navigation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Bookmark {
+    pub title: String,
+    pub page_index: Option<usize>,
+    pub depth: usize,
+}
+
 /// Kết quả trả về kèm id của yêu cầu, để kiểm tra không bị lẫn.
 #[derive(Debug)]
 pub struct Reply<T> {
@@ -42,7 +51,7 @@ pub enum Job {
     Open {
         id: u64,
         path: PathBuf,
-        password: Option<String>,
+        password: Option<zeroize::Zeroizing<String>>,
         reply: Sender<Reply<DocId>>,
     },
     PageCount {
@@ -62,6 +71,12 @@ pub enum Job {
         doc: DocId,
         index: usize,
         reply: Sender<Reply<(f32, f32)>>,
+    },
+    /// PDF document outline/bookmarks, flattened in reading order (R2.22).
+    Bookmarks {
+        id: u64,
+        doc: DocId,
+        reply: Sender<Reply<Vec<Bookmark>>>,
     },
     Render {
         id: u64,
@@ -147,7 +162,7 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
             } => {
                 let had_password = password.is_some();
                 let result = pdfium
-                    .load_pdf_from_file(&path, password.as_deref())
+                    .load_pdf_from_file(&path, password.as_ref().map(|value| value.as_str()))
                     .map_err(|e| open_error(&path, &e, had_password))
                     .map(|doc| {
                         let key = next_doc;
@@ -184,6 +199,13 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                     .map(|p| (p.width().value, p.height().value));
                 let _ = reply.send(Reply { id, result });
             }
+            Job::Bookmarks { id, doc, reply } => {
+                let result = docs
+                    .get(&doc)
+                    .ok_or_else(|| format!("không có tài liệu {doc}"))
+                    .map(read_bookmarks);
+                let _ = reply.send(Reply { id, result });
+            }
             Job::Render {
                 id,
                 doc,
@@ -218,6 +240,42 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
             }
         }
     }
+}
+
+fn read_bookmarks(document: &PdfDocument<'_>) -> Vec<Bookmark> {
+    use std::collections::HashSet;
+
+    // Traverse iteratively so unusually deep outlines cannot overflow the Rust stack. PDFium
+    // handles are tracked to avoid loops in malformed bookmark graphs.
+    let mut result = Vec::new();
+    let mut visited = HashSet::new();
+    let mut pending = Vec::new();
+    if let Some(root) = document.bookmarks().root() {
+        pending.push((root, 0usize));
+    }
+    while let Some((bookmark, depth)) = pending.pop() {
+        if !visited.insert(bookmark.clone()) {
+            continue;
+        }
+        if let Some(sibling) = bookmark.next_sibling() {
+            pending.push((sibling, depth));
+        }
+        if depth < 256
+            && let Some(child) = bookmark.first_child()
+        {
+            pending.push((child, depth + 1));
+        }
+        let page_index = bookmark
+            .destination()
+            .and_then(|destination| destination.page_index().ok())
+            .and_then(|index| usize::try_from(index).ok());
+        result.push(Bookmark {
+            title: bookmark.title().unwrap_or_default(),
+            page_index,
+            depth,
+        });
+    }
+    result
 }
 
 fn render_page(

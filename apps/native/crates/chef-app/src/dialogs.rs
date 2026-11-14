@@ -118,6 +118,7 @@ pub fn open_pdfs(initial_dir: Option<&Path>) -> Vec<PathBuf> {
     let mut ofn = new_ofn(
         filter.as_mut_ptr(),
         file.as_mut_ptr(),
+        file.len() as u32,
         title.as_ptr(),
         dir.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
         OFN_EXPLORER
@@ -147,6 +148,7 @@ pub fn save_pdf(initial_dir: Option<&Path>, suggested: &str) -> Option<PathBuf> 
     let mut ofn = new_ofn(
         filter.as_mut_ptr(),
         file.as_mut_ptr(),
+        file.len() as u32,
         title.as_ptr(),
         dir.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
         OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY,
@@ -163,6 +165,7 @@ pub fn save_pdf(initial_dir: Option<&Path>, suggested: &str) -> Option<PathBuf> 
 fn new_ofn(
     filter: *mut u16,
     file: *mut u16,
+    max_file: u32,
     title: *const u16,
     initial_dir: *const u16,
     flags: u32,
@@ -176,7 +179,7 @@ fn new_ofn(
         max_custom_filter: 0,
         filter_index: 1,
         file,
-        max_file: FILE_BUFFER as u32,
+        max_file,
         file_title: std::ptr::null_mut(),
         max_file_title: 0,
         initial_dir,
@@ -268,5 +271,21 @@ mod tests {
         assert!(initial_dir_wide(Some(Path::new("Z:\\khong-co-thu-muc-nay"))).is_none());
         assert!(initial_dir_wide(None).is_none());
         assert!(initial_dir_wide(Some(&std::env::temp_dir())).is_some());
+    }
+
+    #[test]
+    fn open_file_dialog_capacity_matches_the_provided_buffer() {
+        let mut filter = pdf_filter();
+        let mut file = vec![0u16; 1024];
+        let title = wide("Lưu PDF");
+        let ofn = new_ofn(
+            filter.as_mut_ptr(),
+            file.as_mut_ptr(),
+            file.len() as u32,
+            title.as_ptr(),
+            std::ptr::null(),
+            OFN_PATHMUSTEXIST,
+        );
+        assert_eq!(ofn.max_file, file.len() as u32);
     }
 }

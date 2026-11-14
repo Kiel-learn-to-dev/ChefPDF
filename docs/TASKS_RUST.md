@@ -27,8 +27,8 @@ Checkpoint sau mỗi 2–3 task và cuối mỗi mốc là **điểm kiểm** đ
 |---|---|---|---|
 | CH-R1 | **Chuyển trang web sang PDF** (`web2pdfRender.ts` dùng `printToPDF` của Chromium, bản Rust không có Chromium). Chọn một: (a) giữ một tiến trình Electron nhỏ, chỉ chạy khi dùng tính năng này; (b) dùng WebView2 có sẵn của Windows qua CDP; (c) bỏ tính năng, ghi vào "Thay đổi sau khi chốt" của FEATURES | R5.16 (❌) | **Đã chốt (c), 2026-11-09:** bỏ tính năng, ghi FEATURES M5 và D78 |
 | CH-R2 | Độ tương phản của token (D72): có đổi màu `--c-text-3`, `--c-success`, `--c-warning` khi chữ không đạt 4,5:1 không | Không chặn; quyết định ở M9 | Giữ nguyên, ghi nhận |
-| CH-R3 | Lọc `invert` của trang đọc tối và `grayscale` của màn hình Start (BLUEPRINT_RUST §6.2) | R2.28 (đã có đề xuất) | Đảo màu bitmap trong Rust; bỏ grayscale nếu không đáng **Đã chốt (2026-11-09): đảo màu trên CPU, D79; grayscale quyết ở R2.16.** |
-| CH-R4 | `cargo deny check` đỏ ở mục advisories: 10 cảnh báo unmaintained từ upstream gpui (async-std, instant, paste, pin-utils, proc-macro-error2, rustybuzz, ttf-parser, zbus_names, zvariant, zvariant_derive). Không có lỗ hổng bảo mật, chỉ là crate không còn bảo trì. Thêm `[advisories] ignore` theo RUSTSEC id (có lý do từng mục), hay giữ đỏ đến khi gpui đổi phụ thuộc? | Không chặn tính năng; DoD (c) yêu cầu deny xanh | Đề xuất: thêm ignore có lý do cho từng id, ghi NOTES; không sửa `deny.toml` trước khi chủ dự án chốt |
+| CH-R3 | Lọc `invert` của trang đọc tối và `grayscale` trong Start (`StartScreen.css`) | R2.28, R2.16 | **Đã chốt:** đảo màu bitmap trên CPU (D79); giữ `grayscale(0.6)` và `opacity: 0.7` chỉ trên icon của ô bị vô hiệu hóa `.tile.is-disabled .tile__icon`, không lọc toàn màn hình. |
+| CH-R4 | `cargo deny check` từng đỏ vì 10 cảnh báo unmaintained từ phụ thuộc bắc cầu của GPUI. Các ID đã kiểm tra lại ngày 2026-11-14; đều là advisory unmaintained, không phải vulnerability/unsound. | Không chặn tính năng; được chốt D90 | **Đã chốt 2026-11-14:** chủ dự án chọn ignore đúng 10 ID, mỗi ID có lý do trong `apps/native/deny.toml`; rà lại khi nâng GPUI hoặc advisory thay đổi (D90) |
 
 ## Việc thủ công của chủ dự án
 
@@ -201,7 +201,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.11, R1.07
 - **File:** `apps/native/crates/chef-theme/src/system.rs`, `apps/native/crates/chef-app/src/window.rs`
 - **Tính năng:** A4 (theme)
-- **Ghi chú:** bảng màu lấy từ chef-theme; chế độ hệ thống đọc AppsUseLightTheme mỗi lần vẽ. Chưa kiểm tiêu chí 2 (đổi theme hệ thống thì cập nhật); nền viewer dùng --c-canvas, không phải --c-bg
+- **Ghi chú:** bảng màu lấy từ chef-theme; chế độ hệ thống đọc AppsUseLightTheme mỗi lần vẽ. (2026-11-14) Viewer đăng ký `observe_window_appearance`, gọi render lại ở mode System; debug state có `themeDark` để so trước/sau. Windows GNU check/clippy và test compile đạt; vẫn chưa đổi theme thật trong Windows profile tạm. Nền viewer dùng --c-canvas, không phải --c-bg.
 - **Trạng thái:** 🔄
 
 ### R1.13 · Probe font Be Vietnam Pro · S
@@ -300,7 +300,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.21, R2.02
 - **File:** `apps/native/crates/chef-app/src/probe.rs`, `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-11) thêm ở bản 0.2 để năm task 🔄 không đóng lẻ từng cái.
+- **Ghi chú:** (2026-11-11) thêm ở bản 0.2 để năm task 🔄 không đóng lẻ từng cái. (2026-11-14) Chưa thể chạy: repo chỉ có manifest và hash, ảnh Electron nằm ngoài repo; máy hiện tại không có thư mục refs ổn định theo `CHEF_VISUAL_REFS`, và R2.02 chưa có driver chụp probe native để tạo các cặp ảnh. Giữ mở, không suy luận kết quả so ảnh từ probe đơn lẻ.
 - **Trạng thái:** ⬜
 
 ### M1.3 IME (rủi ro cao nhất)
@@ -410,7 +410,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.30
 - **File:** `apps/native/crates/chef-viewer/src/scroll.rs`
 - **Tính năng:** B2 (cuộn liên tục)
-- **Ghi chú:** hình học cuộn và visible ±1 đã test (9 test chef-viewer). Chưa đo tiêu chí 3 (không khung nào >50 ms khi cuộn bằng bánh xe thật)
+- **Ghi chú:** hình học cuộn và visible ±1 có unit test. `debug.state.renderTiming` ghi GPUI `Render` body duration và khoảng giữa các lần gọi `Render`; các giá trị này không phải thời gian khung hình đã trình bày. Cần xác nhận frame/present thật trên Windows.
 - **Trạng thái:** 🔄
 
 ### R1.33 · Cache LRU tính theo MB · M
@@ -440,7 +440,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.34, R1.37
 - **File:** `scripts/measure-native-memory.ps1`, `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Ghi chú:** đo RAM tiến trình trước/sau cuộn (100,3 MB). Chưa đo bộ nhớ GPU; chưa kết luận GPUI có giữ bản sao ngoài cache. Nếu bộ đếm GPU tăng theo số trang đã cuộn thì mới đào sâu bằng DXGI
+- **Ghi chú:** runner ghi `Dedicated Usage` và `Shared Usage` theo PID ở cả ba mốc, tách nhóm Chef Native/chef-core; nếu không có counter set hoặc PID path thì ghi `unavailable`, không giả định 0. Chưa đo GPU và chưa kết luận GPUI có giữ bản sao ngoài cache. Nếu số đo trên Windows tăng theo số trang đã cuộn thì mới đào sâu bằng DXGI.
 - **Trạng thái:** 🔄
 
 ### M1.5 Đo RAM
@@ -464,7 +464,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-testkit/src/memory.rs`
 - **E2E:** `perf-memory` (viết lại), `perf-large` (viết lại)
 - **Tính năng:** —
-- **Ghi chú:** bản tối thiểu: scripts/measure-native-memory.ps1 (cây tiến trình, 3 mốc). Chưa có coreMB (lõi chưa chạy trong kịch bản), chưa có lần đo "về đầu"
+- **Ghi chú:** (2026-11-14) `scripts/measure-native-memory.ps1` đo 3 mốc `open` → cuộn từng viewport 350 bước, 150 ms/bước → `return-top`; xác nhận tọa độ cửa sổ ngoài màn hình, đợi chuỗi cuộn và render idle; tách `nativeMB`/`coreMB` theo cây process và có `-NoCore` để xác nhận `coreMB=0`. Lõi được bật mặc định qua `page.rotate`. PowerShell 7 parse, Windows GNU check/clippy và workspace test compile `--no-run` đạt trên Mac. Chưa chạy GUI/đo RAM Windows; cần fixture 1000 trang và ghi số đo thật trước khi chuyển ✅.
 - **Trạng thái:** 🔄
 
 ### R1.38 · Đo Electron cùng kịch bản, gồm lõi · S
@@ -475,7 +475,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `docs/NOTES.md`
 - **E2E:** `perf-memory`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) `tests/e2e/specs/perf-memory.spec.ts` đã căn kịch bản với R1.37: fixture 1000 trang, viewport 1200×860, ba mốc mở/cuộn 350 viewport mỗi 150 ms/quay về đầu; kiểm khoảng cuộn và scrollTop cuối, in viewport/DPR. Native PERFMEM cũng in DPR/viewportH. Chưa chạy trên Windows, chưa ghi `electronMB/coreMB` hoặc đối chiếu số lịch sử 1351 MB.
+- **Trạng thái:** 🔄
 
 ### M1.6 Lõi lười (song song, chạm core/)
 
@@ -550,18 +551,18 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-testkit/src/visual.rs`
 - **E2E:** `ui-audit-selftest`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09x) `chef-testkit/src/visual.rs`: so theo ô 16 px (trung bình chênh lệch kênh vượt 6,0 thì ô lệch; màn hình đạt khi tỉ lệ ô lệch ≤ 2% và cùng kích thước). Ngưỡng đọc từ JSON (`config_from_json`), báo cáo `report.json` và `report.html` (ảnh Electron, ảnh Rust, ảnh chênh lệch đỏ). 7 test: giống hệt cho điểm 1; lệch 1 px chữ bị bắt; khử răng cưa nhẹ không vượt ngưỡng; đổi màu bị bắt; kích thước khác không đạt; đọc cấu hình và báo lỗi giá trị sai; chạy cả quy trình ghi file. Chưa xong: (3) chưa có cặp ảnh Rust/Electron thật để kiểm "chữ khác antialias không vượt ngưỡng" (cần ảnh chụp màn hình Rust, chưa có driver ui-audit phía Rust); E2E `ui-audit-selftest` chưa viết. Lưu ý cho lúc có ảnh thật: ngưỡng là tỉ lệ trên tổng số ô, nên một nhãn lệch 1 px (khoảng 4 ô trên ảnh 1200×800, tức 0,1%) lọt qua 2%. Khi đó thêm ngưỡng tuyệt đối (số ô lệch tối đa) vào `Config`; `badTiles` đã có trong JSON.
+- **Ghi chú:** (2026-11-14) Comparator dùng lưới 16 px, mean threshold 6.0, giới hạn đồng thời `maxBadRatio` 2% và `maxBadTiles` 3; cấu hình/báo cáo JSON ghi cả hai ngưỡng. Có self-test cho ảnh giống, AA nhẹ, lệch chữ 1 px, đổi màu, sai kích thước và output báo cáo; `scripts/e2e-native-visual-selftest.ps1` kiểm manifest R1.21 ở root và manifest R2.01 theo `ui-audit-$theme/$file` (manifest có 104 file/theme nhưng basename lặp giữa light/dark). Fixture hai theme cùng tên, nội dung/hash khác đã xác nhận cả hai file riêng biệt được verify. Script kiểm hash, byte size nếu manifest ghi, kích thước PNG, path traversal, và giữ refs ngoài repo/%TEMP%; default là thư mục data user ổn định. Rust 8/8 test, PowerShell self-test/parser đạt khi dùng SDK 15.4. **Còn mở:** corpus thật chưa có ở thư mục refs (lần chạy báo thiếu 220 file); chưa có ảnh Rust/Electron tương ứng, driver chụp native và MAN-5 duyệt bằng mắt. Giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R2.33 · Script chạy gộp E2E native · XS
 - **Mô tả:** `scripts/e2e-native-all.ps1` chạy lần lượt mọi `scripts/e2e-native-*.ps1` ở nền (cửa sổ ngoài màn hình, không dùng chuột thật), in bảng tổng (tên, số kiểm tra, số lỗi, thời gian) và thoát khác 0 khi có lỗi. Là cổng kiểm cục bộ cho định nghĩa "xong" mục (a) trong lúc job CI (R1.05) chưa chạy.
 - **Tiêu chí:** (1) tự tìm script theo mẫu tên, thêm script mới không phải sửa danh sách; (2) một script lỗi không dừng các script sau, và mã thoát cuối khác 0; (3) không chiếm chuột và không hiện cửa sổ (quy tắc E2E nền).
-- **Kiểm chứng:** chạy với bộ hiện có (16 script); thử một script cố ý lỗi.
+- **Kiểm chứng:** chạy với bộ hiện có (26 script, không tính runner); thử một script cố ý lỗi.
 - **Phụ thuộc:** R1.07
 - **File:** `scripts/e2e-native-all.ps1`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-11) thêm ở bản 0.2.
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-11) thêm ở bản 0.2. (2026-11-14) `e2e-native-all.ps1` tự tìm script, bỏ qua chính nó, chạy tuần tự trong PowerShell ẩn, gom PASS/FAIL/thời gian, tiếp tục sau lỗi và trả exit tổng; timeout dừng cả cây tiến trình; giữ log khi có lỗi. Yêu cầu PowerShell 7. Parser và `-SelfTest` xanh trên Mac (5 script tạm, 10 kiểm tra; xác nhận tự loại runner, hai dạng đếm lỗi, lỗi tổng hợp, tiếp tục sau lỗi và mã thoát tổng). Hiện runner tự tìm 26 E2E UI script; chưa chạy bộ này trên Windows. `e2e-native-perf-scroll.ps1` và `e2e-native-zoom.ps1` mặc định không gửi OS input.
+- **Trạng thái:** 🔄
 
 ### M2.1 Thư viện thành phần (thay Radix)
 
@@ -697,27 +698,30 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/tabs.rs`
 - **E2E:** `keyboard` (phần tab)
 - **Tính năng:** A2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) Có model thuần `chef-app/src/tabs.rs`: ID ổn định, title/path/dirty, active, cycle hai chiều và quy tắc chọn tab thay thế khi đóng; 3 unit test đạt. Host `tabs_host.rs` đã giữ một Viewer cho mỗi TabId, nối Ctrl+Tab/Ctrl+Shift+Tab/Ctrl+W, Ctrl+O và nút +; khi chuyển tab xả bitmap và hủy render đang chờ, giữ trạng thái tài liệu; chặn đóng khi dirty/thao tác đang chạy, đóng session trước DocId; `state.tabs` có ID/title/active/dirty/cache. Có `scripts/e2e-native-tabs.ps1` cho ba argv, chuyển/cache nền, chặn đóng dirty và đóng tab sạch. Mac đã qua Windows GNU `cargo check`, Clippy `-D warnings`, test compile `--no-run`, `cargo fmt --check`, `git diff --check` và PowerShell parse. **Còn mở:** chưa chạy E2E trên Windows; script dùng action debug, chưa xác minh tổ hợp Ctrl+Tab thật hoặc chuột; chưa có phép đo R1.33 thực tế.
+- **Trạng thái:** 🔄
 
 ### R2.16 · Start: ô nhiệm vụ và file gần đây · M
-- **Mô tả:** ảnh mờ của màn hình Start dùng `grayscale(0.6)` (`StartScreen.css:110`): quyết định ở đây, xem CH-R3. Màn hình Start với các ô nhiệm vụ (Mở PDF, Ghép file, Chuyển thành bản scan, Ký số, Đóng dấu, Nén…), file gần đây. Ô nhiệm vụ chưa có tính năng thì hiện trạng thái rõ, không giả làm xong. Danh sách quy trình đã lưu để M5f.
+- **Mô tả:** Màn hình Start với các ô nhiệm vụ (Mở PDF, Ghép file, Tách file, Chuyển thành bản scan, Ký số, Đóng dấu, Nén…) và file gần đây. Chỉ icon của ô chưa hỗ trợ dùng `grayscale(0.6)` + `opacity: 0.7` như `.tile.is-disabled .tile__icon` trong `StartScreen.css`; không lọc grayscale toàn màn hình. Ô chưa có tính năng phải hiện trạng thái rõ, không giả làm xong. Danh sách quy trình đã lưu để M5f.
 - **Tiêu chí:** (1) ô nhiệm vụ mở đúng hộp thoại đã có hoặc báo "chưa có ở bản này"; (2) file gần đây lưu trong `settings` và hiện đúng thứ tự; (3) bố cục khớp `StartScreen.css` ở ba chiều rộng.
 - **Kiểm chứng:** E2E `smoke`, `start-tiles`; ui-audit màn hình Start.
 - **Phụ thuộc:** R2.10, R2.14, R1.17
 - **File:** `apps/native/crates/chef-app/src/start.rs`
 - **E2E:** `smoke`, `start-tiles`, `start-workflows` (phần Start; phần quy trình để M5f)
 - **Tính năng:** A1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) `start.rs` hiển thị ô Mở PDF có tác dụng mở hộp thoại; các ô Ghép/Tách/Scan/Ký số/Đóng dấu/Nén được đánh dấu chưa hỗ trợ. Có RecentFiles truy cập cùng `settings.json`, sắp newest-first, chuẩn hóa dedupe đường dẫn, cap 20, ghi `openedAt` ISO-8601 và giữ khóa settings chưa biết; bấm mục gần đây mở tài liệu thành tab. Lưới khớp ngưỡng CSS min 208 px, theme lấy từ settings/system và EN/VI có khóa trạng thái. CH-R3 được chốt: chỉ icon disabled grayscale 0.6 + opacity 0.7. Có `e2e-native-start.ps1` kiểm thứ tự recents, dark theme và click mở tài liệu. Windows GNU check/clippy/test compile và fmt/diff đạt; script đã parse. **Còn mở:** E2E trên Windows, ui-audit/screenshot ở ba chiều rộng và kiểm trực quan theme sáng/tối.
+- **Trạng thái:** 🔄
 
 ### R2.17 · Kéo thả file, argv và một phiên bản · M
 - **Mô tả:** kéo file vào Start hoặc cửa sổ, nhận file từ argv, và khi mở file thứ hai thì chuyển cửa sổ đã có (single instance). Dùng named pipe nội bộ.
 - **Tiêu chí:** (1) kéo thả mở đúng file; (2) mở file lần hai đưa cửa sổ cũ lên trước với file mới trong tab; (3) không mở hai cửa sổ.
-- **Kiểm chứng:** E2E `wheel-second-instance` (phần chuyển cửa sổ), test kéo thả.
+- **Kiểm chứng:** E2E `scripts/e2e-native-instance.ps1` (phần chuyển cửa sổ/argv); kiểm kéo thả trong phiên Windows.
 - **Phụ thuộc:** R2.15, R1.07
-- **File:** `apps/native/crates/chef-app/src/instance.rs`, `apps/native/crates/chef-app/src/drop.rs`
-- **E2E:** `wheel-second-instance`
+- **File:** `apps/native/crates/chef-app/src/instance.rs`, `apps/native/crates/chef-app/src/drop.rs`, `apps/native/crates/chef-app/src/main.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`
+- **E2E:** `scripts/e2e-native-instance.ps1`
 - **Tính năng:** A1 (kéo thả), A5 (argv)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) Có parser argv nhiều đường dẫn Unicode, `--` cho tên bắt đầu bằng dấu gạch; đường dẫn được chuẩn hóa; xác thực PDF/đọc được từng file, tiếp tục nhận các file tốt khi có file lỗi. GPUI `ExternalPaths` kéo thả vào host; second launch gửi JSON versioned (giới hạn 512 path/128 KiB) qua named pipe per-user, mutex tồn tại suốt đời primary, pipe dùng default DACL và từ chối remote clients. Primary thêm các tab vào cửa sổ hiện có, focus tab cuối, activate app/window. E2E hai tiến trình kiểm tra Unicode, hai PDF hợp lệ + file thiếu, thứ tự tab, foreground và second process thoát. Windows GNU check/clippy `-D warnings`/test compile, fmt/diff, PowerShell parse đạt trên Mac. **Còn mở:** chưa chạy E2E Windows và chưa thử kéo file thật từ Explorer.
+- **Trạng thái:** 🔄
 
 ### R2.18 · Bảng lệnh Ctrl+K với tìm không dấu · M
 - **Mô tả:** bảng lệnh đọc từ một registry lệnh; gõ không dấu ("ky so") vẫn ra "Ký số". Mỗi milestone đăng ký lệnh của mình.
@@ -726,19 +730,20 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.10, R2.23 (chuẩn hóa không dấu)
 - **File:** `apps/native/crates/chef-ui/src/palette.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **Tính năng:** A3
-- **Trạng thái:** ⬜
+- **Ghi chú:** `CommandRegistry` cung cấp thêm/thay lệnh theo ID và xếp hạng tên/keyword bằng `chef_pdf::search::fold_query` dùng chung R2.23. Host mở palette Ctrl+K, gõ không dấu, điều hướng ↑/↓, Enter chạy lệnh đang bật, Esc đóng; danh sách rỗng chỉ tối đa 50 mục. Unit test có “Ký số”, “Số trang theo Nghị định 30”, đăng ký thêm lệnh, thay ID trùng và thứ tự tìm. `scripts/e2e-native-palette.ps1` kiểm tra tìm không dấu, Enter chạy Zoom in, đóng/mở lại và xóa query. Windows GNU check/clippy, test compile `--no-run`, fmt và PowerShell parse đạt trên Mac. **Còn mở:** chưa chạy E2E giao diện trên Windows; các lệnh Ký số và Nghị định còn disabled cho tới khi có tính năng native tương ứng.
+- **Trạng thái:** 🔄
 
 ### M2.3 Viewer
 
 ### R2.19 · Viewer: cuộn liên tục · M
 - **Mô tả:** cuộn liên tục một cột (chế độ mặc định của Electron `Viewer.tsx`), nhảy trang bằng PageUp và PageDown, cuộn bằng bánh xe chuột thật.
 - **Tiêu chí:** (1) bánh xe chuột mượt; (2) PageDown đi đúng một trang; (3) không khung nào quá 50 ms khi cuộn 350 màn hình (đo bằng R1.37).
-- **Kiểm chứng:** E2E `wheel` và `b2-other-window-top` (viết lại); `perf-wheel` (viết lại, đo khung).
+- **Kiểm chứng:** `scripts/e2e-native-perf-scroll.ps1` kiểm mode mặc định, PageUp/Down, cuộn 350 viewport và timing; opt-in `b2-other-window-top` kiểm wheel trên Viewer khi topmost khác che strip trên, rồi control wheel trên strip bị che. OS input chỉ chạy khi `CHEF_E2E_OS_INPUT=1`.
 - **Phụ thuộc:** R1.32, R1.33
-- **File:** `apps/native/crates/chef-viewer/src/view.rs`
-- **E2E:** `wheel`, `b2-other-window-top`, `perf-wheel`
+- **File:** `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/debug.rs`
+- **E2E:** `scripts/e2e-native-perf-scroll.ps1` (`perf-wheel`, `b2-other-window-top`); OS input chỉ khi `CHEF_E2E_OS_INPUT=1`
 - **Tính năng:** B2
-- **Ghi chú:** (2026-11-09) PageDown và PageUp đi đúng một trang, kiểm bằng E2E `scripts/e2e-native-view.ps1`. Bánh xe đã có từ trước. Chưa đo khung (tiêu chí 3, cần R1.37).
+- **Ghi chú:** Continuous vẫn là mode mặc định. `e2e-native-perf-scroll.ps1` kiểm PageUp/PageDown qua debug action, cuộn 350 viewport theo nhịp, và xuất max/đếm GPUI Render-body trên/qua 50 ms cùng khoảng cách giữa lần gọi Render. Opt-in `CHEF_E2E_OS_INPUT=1` gửi phím PageDown/PageUp thật và dùng fixture `b2_top_window.ps1` + `b2_os_wheel.ps1` để kiểm wheel trên Viewer khi topmost khác che strip trên, rồi control wheel trên strip bị che. Mặc định không inject input OS. Timing là proxy, không đo frame đã present. Chưa chạy Windows wheel/UI hoặc có log frame/present thật.
 - **Trạng thái:** 🔄
 
 ### R2.20 · Viewer: hai trang, kiểu sách, toàn màn hình · M
@@ -746,30 +751,32 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) kiểu sách đặt trang đầu đứng một mình; (2) F11 vào và ra toàn màn hình; (3) trình chiếu chỉ một trang và đi bằng mũi tên.
 - **Kiểm chứng:** E2E; screenshot.
 - **Phụ thuộc:** R2.19
-- **File:** `apps/native/crates/chef-viewer/src/view.rs`
+- **File:** `apps/native/crates/chef-viewer/src/spread.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`, `apps/native/crates/chef-app/src/debug.rs`
 - **Tính năng:** B2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) Thêm geometry `SpreadLayout` thuần Rust cho Continuous/TwoPage/Book/Slideshow; Viewer có nút mode, command palette, arrow navigation, Escape thoát trình chiếu và tự vào fullscreen rồi khôi phục trạng thái fullscreen trước đó. Debug state xuất mode, visible pages và fullscreen; `scripts/e2e-native-spread.ps1` kiểm tra bằng action dispatch, không gửi phím/chuột thật. Đã có unit tests cho nhóm trang, book cover, geometry/fit và slide singleton. `chef-viewer` đạt 18/18 tests với SDKROOT MacOSX15.4; Windows GNU check/clippy và compile app test binary đạt. E2E screenshot/runtime trên Windows và thao tác phím thật chưa xác nhận; giữ R2.20 🔄.
+- **Trạng thái:** 🔄
 
 ### R2.21 · Zoom, vừa khổ, xoay khung nhìn · M
 - **Mô tả:** zoom bằng Ctrl+=, Ctrl+−, Ctrl+0 (phím của bản Electron, D67), vừa chiều rộng, vừa trang, nhập phần trăm, xoay khung nhìn 90°.
 - **Tiêu chí:** (1) vừa chiều rộng khớp Electron ở ba cỡ cửa sổ; (2) zoom giữ vị trí cuộn; (3) mở file 305 MB không chậm hơn Electron (so với `perf-large`).
 - **Kiểm chứng:** E2E `perf-large` (viết lại), `keyboard`.
 - **Phụ thuộc:** R2.19
-- **File:** `apps/native/crates/chef-viewer/src/zoom.rs`
-- **E2E:** `perf-large`, `keyboard`
+- **File:** `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`, `apps/native/crates/chef-app/src/debug.rs`, `apps/native/crates/chef-app/src/main.rs`
+- **E2E:** `scripts/e2e-native-zoom.ps1` (action-only; prepared, not run)
 - **Tính năng:** B1
-- **Ghi chú:** (2026-11-09) Ctrl+=, Ctrl+−, Ctrl+0 và giữ điểm giữa vùng nhìn khi zoom, kiểm bằng E2E `e2e-native-view`. Chưa làm: nhập phần trăm, vừa trang, xoay 90°. Chưa so với Electron ở ba cỡ cửa sổ, chưa đo file 305 MB.
+- **Ghi chú:** (2026-11-14) Đã thêm nút vừa trang, nhập zoom phần trăm, xoay khung nhìn 90° chỉ thay đổi cách hiển thị; debug action/state và script `e2e-native-zoom.ps1` đã chuẩn bị, nhưng chưa chạy. Có unit regression cho chọn trang giữa viewport khi fit từ giữa trang, giữ page id sau khi fit lại khi đổi viewport và chuyển đổi rect/point ở cả bốn góc xoay. Đã sửa zoom giữ neo giữa viewport, fit-page ghim nhóm hiện tại và geometry xoay cho render/search/text selection/hit-test. Chưa xác minh runtime, chưa so vừa chiều rộng với Electron ở ba cỡ cửa sổ và chưa đo file 305 MB; giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R2.22 · Thanh bên: thumbnail ảo hóa và mục lục · M
 - **Mô tả:** thumbnail chỉ render dòng nhìn thấy, cap 60 thumbnail mỗi tài liệu (`c3496fc`), chiều cao dòng tính từ kích thước trang. Mục lục từ bookmark của pdfium.
 - **Tiêu chí:** (1) chỉ dòng nhìn thấy được render; (2) không quá 60 thumbnail; (3) bấm mục lục nhảy đúng trang.
-- **Kiểm chứng:** đếm thumbnail; E2E `toc`.
+- **Kiểm chứng:** đếm thumbnail; E2E `scripts/e2e-native-toc.ps1` (`toc`).
 - **Phụ thuộc:** R2.21
-- **File:** `apps/native/crates/chef-viewer/src/sidebar.rs`
-- **E2E:** `toc`
+- **File:** `apps/native/crates/chef-viewer/src/sidebar.rs`, `apps/native/crates/chef-pdf/src/render.rs`, `apps/native/crates/chef-app/src/viewer.rs`
+- **E2E:** `scripts/e2e-native-toc.ps1` (`toc`)
 - **Tính năng:** B3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) Có `SidebarLayout` theo tỷ lệ trang, chỉ trả hàng giao viewport và giới hạn 60; cache thumbnail nhỏ riêng xóa ảnh/cache/pending khi ra khỏi vùng và khi tab rời foreground. Sidebar Trang/Mục lục đọc outline từ pdfium, hỗ trợ depth và destination; chọn bookmark tới đúng page index, giữ zoom. Test `chef-viewer` 16/16; Windows GNU check/clippy `-D warnings`/test compile, fmt, diff và PowerShell parse đạt trên Mac. E2E tạo PDF 500 trang rất mỏng để ép hard cap 60, có bookmark trang 9 và click qua debug mouse. **Còn mở:** chưa chạy runtime trên Windows; tiêu chí hình ảnh/click thực tế và E2E `toc` chưa xác nhận.
+- **Trạng thái:** 🔄
 
 ### R2.23 · Engine tìm không dấu · M
 - **Mô tả:** lấy chữ từ pdfium theo trang, chuẩn hóa bỏ dấu (NFD, bỏ dấu kết hợp, đ thành d, Đ thành D, chữ thường). Trả vị trí từng kết quả.
@@ -816,11 +823,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 ### R2.26 · Mở file có mật khẩu · S
 - **Mô tả:** hỏi mật khẩu khi pdfium báo cần mật khẩu, không ghi mật khẩu ra đĩa, giữ trong bộ nhớ (zeroize khi đóng tab).
 - **Tiêu chí:** (1) sai mật khẩu báo lại; (2) mật khẩu không xuất hiện trong log (kiểm bằng grep log); (3) đóng tab xóa mật khẩu khỏi bộ nhớ.
-- **Kiểm chứng:** E2E `keyboard`; test với PDF mẫu có mật khẩu.
+- **Kiểm chứng:** `scripts/e2e-native-password.ps1`; test với PDF mẫu có mật khẩu.
 - **Phụ thuộc:** R2.10, R1.28
-- **File:** `apps/native/crates/chef-pdf/src/password.rs`
+- **File:** `apps/native/crates/chef-app/src/password.rs`, `apps/native/crates/chef-pdf/src/render.rs`, `apps/native/crates/chef-pdf/Cargo.toml`, `apps/native/crates/chef-ui/src/text_input.rs`, `apps/native/crates/chef-ui/src/text_buffer.rs`, `apps/native/crates/chef-ui/Cargo.toml`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`
 - **Tính năng:** B6
-- **Ghi chú:** (2026-11-09w) Mở file khóa hỏi mật khẩu (hộp thoại), sai mật khẩu báo lại và giữ hộp, đúng thì mở; Esc đóng không mở gì; mật khẩu không xuất hiện trong nhật ký (e2e-native-password, 0 lỗi). Chưa: tiêu chí 'đóng tab xóa mật khẩu' (chưa có thẻ tài liệu, R2.15); ô nhập lưu chữ dạng thường nên bộ đệm TextInput chưa được xóa bằng zeroize (chỉ chuỗi do viewer giữ được xóa). Ô nhập không che chữ.
+- **Ghi chú:** (2026-11-14) Ô mật khẩu dùng secure mode: nội dung được che khi vẽ, Ctrl+C/Ctrl+X bị chặn, `TextBuffer` zeroize khi xóa và khi `TextInput` bị drop. Viewer truyền `Zeroizing<String>` xuyên qua `Job::Open`, nên cả đường lỗi trước lúc gửi lẫn khi render thread drop job đều xóa vùng chuỗi do app sở hữu. Khi đóng tab, viewer xóa buffer và drop mật khẩu nguồn. E2E được mở rộng để kiểm buffer rỗng sau mật khẩu sai, đóng tab khi prompt còn chữ, và thả mật khẩu nguồn sau khi mở đúng; script chưa chạy trên Windows. Unit tests xác nhận buffer state sau zeroize và masking giữ offset UTF-8; đây không phải bằng chứng về toàn bộ physical-memory lifetime. Các bản sao/transient allocation bên trong GPUI hoặc pdfium và trang bộ nhớ do allocator quản lý ngoài vùng String hiện tại chưa thể chứng minh đã bị ghi đè; không khẳng định physical-memory erasure.
 - **Trạng thái:** 🔄
 
 ### R2.27 · Thuộc tính tài liệu · S
@@ -835,13 +842,13 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 
 ### R2.28 · Đọc ban đêm và đảo màu trang · M
 - **Mô tả:** chế độ đọc ban đêm đảo màu bitmap trang trong Rust (thay `invert(1) hue-rotate(180deg)` của `Viewer.css`). Ghi quyết định D79 (CH-R3).
-- **Tiêu chí:** (1) màu đảo khớp bản Electron ở ảnh mẫu, sai lệch nhỏ hơn ngưỡng R2.02; (2) không tăng cache quá 10% so với bình thường; (3) D75 ghi trong NOTES.
+- **Tiêu chí:** (1) màu đảo khớp bản Electron ở ảnh mẫu, sai lệch nhỏ hơn ngưỡng R2.02; (2) không tăng cache quá 10% so với bình thường; (3) D79 ghi trong NOTES.
 - **Kiểm chứng:** ui-audit; đo cache.
 - **Phụ thuộc:** R2.02, R1.33
-- **File:** `apps/native/crates/chef-viewer/src/invert.rs`
+- **File:** `apps/native/crates/chef-app/src/night.rs`, `apps/native/crates/chef-app/src/viewer.rs`
 - **E2E:** `ui-audit` (màn hình đọc ban đêm)
 - **Tính năng:** B9
-- **Ghi chú:** (2026-11-09) Đảo màu trên CPU theo cùng công thức `invert(1) hue-rotate(180deg)` (D79), tại chỗ, không tăng bộ nhớ (tiêu chí 2). E2E `scripts/e2e-native-night.ps1` 5/5. Chưa so ảnh với Electron (tiêu chí 1, cần R2.01).
+- **Ghi chú:** (2026-11-14) D79 nằm ở `docs/NOTES.md` (không phải D75). Công thức CPU dùng cùng thứ tự CSS `invert(1)` rồi `hue-rotate(180deg)`, đổi tại chỗ; khi bật/tắt, Viewer evict cache ảnh trang và chuyển ảnh cũ cho GPUI giải phóng. Unit tests mới so màu RGB không xám với đầu ra công thức, giữ alpha/capacity và kiểm helper evict trả toàn bộ ảnh cache. E2E `scripts/e2e-native-night.ps1` trước đây đạt 5/5 nhưng chưa chạy lại ở phiên này. Chưa có ảnh tham chiếu Rust/Electron theo R2.02/MAN-5 và chưa đo cache thực tế để xác nhận ngưỡng tăng dưới 10%; giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R2.29 · Chip "có chữ, scan, hỗn hợp" · XS
@@ -861,7 +868,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.14
 - **File:** `apps/native/crates/chef-app/src/dialogs.rs`
 - **Tính năng:** A5 (hộp chọn file)
-- **Ghi chú:** (2026-11-09v) `chef-app/src/dialogs.rs`: `GetOpenFileNameW` và `GetSaveFileNameW` của comdlg32 (không thêm thư viện), bộ lọc PDF trước, chọn nhiều tệp (phân tích vùng kết quả có test), thư mục bắt đầu lấy từ `defaultSaveDir`. Ctrl+O trong viewer mở tệp đầu tiên được chọn (nhiều tệp cần thẻ, R2.15). Hủy không báo lỗi (E2E `e2e-native-dialogs`: hộp thoại hiện và tự đóng bằng đường hủy có kiểm soát). Chưa kiểm tự động: chọn tệp thật và việc thư mục mặc định được áp dụng, cần kiểm tay. Lưu PDF (`save_pdf`) có sẵn nhưng chưa dùng.
+- **Ghi chú:** (2026-11-09v) `chef-app/src/dialogs.rs`: `GetOpenFileNameW` và `GetSaveFileNameW` của comdlg32, bộ lọc PDF trước, chọn nhiều tệp (phân tích vùng kết quả có test), thư mục bắt đầu lấy từ `defaultSaveDir`. Ctrl+O trong viewer mở các tệp được chọn thành thẻ (R2.15); hủy không báo lỗi (E2E đóng hộp thoại bằng đường hủy có kiểm soát). (2026-11-14) Rà `OPENFILENAMEW.nMaxFile`: trước đây khai 65,536 ký tự cho buffer lưu 1,024 ký tự; đã sửa để khai đúng `file.len()` ở cả mở/lưu và thêm regression test. Chưa kiểm tự động chọn file thật, filter và thư mục mặc định trên Windows; giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R2.31 · Phím tắt viewer · S
@@ -869,10 +876,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) mọi phím đúng hành động; (2) không trùng với phím của điều khiển đang có tiêu điểm.
 - **Kiểm chứng:** E2E `keyboard`.
 - **Phụ thuộc:** R2.19, R2.21, R2.24
-- **File:** `apps/native/crates/chef-app/src/keys.rs`
-- **E2E:** `keyboard`
+- **File:** `apps/native/crates/chef-app/src/viewer.rs`, `tabs_host.rs`, `commands.rs`; `apps/native/crates/chef-ui/src/text_input.rs`
+- **E2E:** `scripts/e2e-native-perf-scroll.ps1` (opt-in physical PageUp/PageDown); remaining bindings need physical-key coverage
 - **Tính năng:** A3 (phím tắt)
-- **Ghi chú:** (2026-11-09) Có: Ctrl+F, Ctrl+A, Ctrl+C, Ctrl+=, Ctrl+−, Ctrl+0, PageUp, PageDown, F11, đọc ban đêm. Chưa có: Ctrl+O (cần R2.30), Ctrl+K (cần R2.18), Ctrl+Tab (cần R2.15). Phím được kiểm qua action, không qua tổ hợp thật.
+- **Ghi chú:** (2026-11-14) Binding hiện nằm trong `viewer.rs` (Ctrl+F/A/C, Ctrl+=/−/0, PageUp/Down, F11, Ctrl+O, Ctrl+D, v.v.), `commands.rs` (Ctrl+K), và `tabs_host.rs` (Ctrl+Tab/Shift+Ctrl+Tab). Context `Viewer` chứa viewer/host; `TextInput` có binding cụ thể cho Ctrl+A/C/X và phím sửa văn bản; slider có context riêng cho PageUp/Down. `TextInput` không khai báo PageUp/Down nên cần xác nhận chúng không bubble tới Viewer khi ô tìm/palette đang focus. Chưa có E2E gửi phím tổ hợp thật cho toàn ma trận; script perf chỉ có nhánh PageUp/PageDown vật lý khi bật `CHEF_E2E_OS_INPUT=1`, chưa chạy Windows. Action dispatch không chứng minh keymap/ưu tiên focus. Giữ 🔄 tới khi physical-key E2E xác nhận đủ phím khi viewer, ô nhập, slider và palette focus.
 - **Trạng thái:** 🔄
 
 ### R2.32 · Điểm kiểm M2 · —
@@ -935,7 +942,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.10
 - **File:** `apps/native/crates/chef-app/src/source_guard.rs`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-11) `source_guard.rs`: vân tay gồm kích thước, mtime và FNV-1a 64 bit của 64 KB đầu và cuối; `check` trả `Same`, `Changed`, `Missing` hoặc `Unreadable`. 6 test đạt (đổi đầu, đổi cuối, đổi kích thước, xóa, vùng giữa không băm). Chuỗi cảnh báo tiếng Việt, nút "Xem lại" và "Mở lại" ở `source_guard::text`, chưa vào i18n (D87). Còn để đạt ✅: tiêu chí 1 đòi cảnh báo trước khi tạo phiên, nên hộp thoại phải được gọi ở đường tạo phiên (R3.05). Module có `#[allow(dead_code)]` đến lúc đó.
+- **Ghi chú:** (2026-11-11) `source_guard.rs`: vân tay gồm kích thước, mtime và FNV-1a 64 bit của 64 KB đầu và cuối; `check` trả `Same`, `Changed`, `Missing` hoặc `Unreadable`; 8 unit test bao gồm file rỗng và file bị thay bằng thư mục. (2026-11-14) Viewer gọi guard trước `session.open`; cảnh báo có nút "Xem lại"/"Mở lại" và khóa i18n được đồng bộ ở `apps/ui` cùng assets native theo D87. Integration E2E chạy locale vi, đọc title/body và nhãn hai nút từ debug state lấy đúng các chuỗi của banner; thử cả hai nút và xác nhận Review chưa tạo session/revision. Script chưa chạy trên Windows.
 - **Trạng thái:** 🔄
 
 ### R3.05 · session.open lần thao tác đầu · M
@@ -953,9 +960,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) vị trí cuộn và zoom không đổi sau thao tác; (2) chỉ trang trong `changedPages` bị xóa bitmap, đo bằng R1.33; (3) tìm kiếm còn kết quả sau thao tác (hoặc được làm mới rõ ràng).
 - **Kiểm chứng:** E2E với thao tác xoay một trang; đo bitmap.
 - **Phụ thuộc:** R3.05, R2.19
-- **File:** `apps/native/crates/chef-viewer/src/reload.rs`
+- **File:** `apps/native/crates/chef-viewer/src/reload.rs`, `apps/native/crates/chef-viewer/src/spread.rs`, `apps/native/crates/chef-app/src/viewer.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-14) Có helper chụp/khôi phục trang neo và zoom; UI mở revision ở worker, chỉ bỏ bitmap trang lớn và thumbnail theo `changedPages`, giữ text selection theo page/char index, làm mới truy vấn tìm kiếm. (2026-11-14p) Sửa neo theo hàng `SpreadLayout` cho TwoPage/Book/Slideshow, giữ hàng neo, phần trăm cuộn và zoom qua các mode; sau revision tắt cả `fit_width` và `fit_page`. Kết quả transport không rõ của Rotate/Undo/Redo khóa sửa và yêu cầu nạp lại `session.state`; lỗi RPC tường minh không bị xem là mơ hồ. `chef-viewer` 22/22 test đạt, gồm iterator cache chỉ đọc không đổi LRU. (2026-11-14w) Debug state xuất page→`RenderImage.id`; audit tại lúc apply revision ghi cache trước, `changedPages`, và chính xác image ID bị remove. Integration E2E đợi trang 0/1 cache trước/sau `page.rotate`, xác nhận trang đổi bị evict + render ID mới, trang không đổi giữ ID; fixture được sửa để external mutation cho đúng ba trang. Thêm `input.focused` ack để chờ ô tìm nhận focus trước khi gõ, so tỷ lệ scroll qua đổi chiều cao trang và dùng clipboard sentinel; script kiểm source warning và Ctrl+Z/Ctrl+Y thật. Windows GNU workspace clippy và compile test binaries, fmt, parser PowerShell đạt trên Mac; E2E/native Windows runtime chưa chạy, nên R3.06 giữ 🔄.
+- **Trạng thái:** 🔄
 
 ### R3.07 · Codegen chef-contracts từ JSON Schema · M
 - **Mô tả:** sinh struct Rust cho `Params` của mọi operation và cho `ops.run` từ JSON Schema (`core/chef_core/codegen.py`), kèm kiểm tra lệch trong CI. Dùng kết quả của R1.42.
@@ -974,7 +982,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-rpc/src/ops.rs`
 - **E2E:** `integration`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-11) Làm trước R3.06 (lát cắt, xem nhật ký): `ops::start` (ops.run), `wait_job` (job.finished, job.failed, job.cancelled), `cancel` (jobs.cancel). 4 test với lõi thật: page.rotate chạy như job; rev-0001 có `/Rotate 90` ở trang 0 và vẫn 2 trang; góc 45 bị từ chối `INVALID_PARAMS` với khóa `errors.INVALID_PARAMS`. (2026-11-11, bổ sung) Tiêu chí 2 đạt: `page.duplicate` trên 4000 trang, hủy sau 30 ms cho `job.cancelled`, revision vẫn 0 và không có bước hoàn tác (test `cancel_stops_a_running_job_and_leaves_the_revision_alone`). Chưa có E2E `integration`: chuyển sang lúc app nối lõi (R3.03).
+- **Ghi chú:** (2026-11-11) Làm trước R3.06 (lát cắt, xem nhật ký): `ops::start` (ops.run), `wait_job` (job.finished, job.failed, job.cancelled), `cancel` (jobs.cancel). 4 test với lõi thật: page.rotate chạy như job; rev-0001 có `/Rotate 90` ở trang 0 và vẫn 2 trang; góc 45 bị từ chối `INVALID_PARAMS` với khóa `errors.INVALID_PARAMS`. (2026-11-11, bổ sung) Tiêu chí 2 đạt: `page.duplicate` trên 4000 trang, hủy sau 30 ms cho `job.cancelled`, revision vẫn 0 và không có bước hoàn tác (test `cancel_stops_a_running_job_and_leaves_the_revision_alone`). Chưa có E2E `integration`: chuyển sang lúc app nối lõi (R3.03). (2026-11-14v) Supervisor giữ job hold qua timeout và giải phóng khi forwarder nhận terminal notification; xử lý terminal trước response đăng ký bằng ledger bounded, gắn registration/forwarder với run epoch và từ chối `ops.start` nếu epoch đã stale. Thêm helper tests cho terminal sau timeout, trước registration, progress/unrelated events, forwarding nguyên sự kiện, stale epoch và bảo toàn session hold. Test chỉ compile cross-target; chưa chạy runtime Windows. `wait_job` vẫn drop notification của job khác, theo dõi event routing ở R3.09.
 - **Trạng thái:** ✅
 
 ### R3.09 · Panel tiến trình (JobPanel) · S
@@ -1004,7 +1012,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/undo.rs`
 - **E2E:** `keyboard`
 - **Tính năng:** A6
-- **Ghi chú:** (2026-11-11) `ops::undo` và `ops::redo` (chef-rpc): test sau page.rotate: revision 1 → undo → 0 (canRedo đúng) → redo → 1. (2026-11-11, bổ sung) Giới hạn 50 revision (tiêu chí 2) đạt: 55 thao tác, hoàn tác đúng 49 bước rồi `canUndo` là false, rev-0000 còn (test `undo_history_is_capped_at_fifty_revisions_and_rev0_is_kept`). Chưa làm: nút mờ khi không còn gì để hoàn tác (tiêu chí 3, UI), Ctrl+Z và Ctrl+Y (keymap và E2E `keyboard`).
+- **Ghi chú:** (2026-11-11) RPC undo/redo và giới hạn 50 revision đạt unit test. Viewer có binding Ctrl+Z/Y, guard tập trung và trạng thái disabled theo `canUndo/canRedo`. `scripts/e2e-native-integration.ps1` nay gửi Ctrl+Z/Ctrl+Y qua Windows input thật và kiểm revision, dirty, trạng thái nút Undo/Redo; script chưa chạy trên Windows. RPC test còn kiểm lịch sử tối đa 50 revision và giữ `rev-0000`. Giữ 🔄 đến khi E2E xác nhận thực tế.
 - **Trạng thái:** 🔄
 
 ### R3.12 · Lưu và Lưu thành · S
@@ -1015,7 +1023,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/save.rs`
 - **E2E:** `scan-save-reopen`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-11) `ops::save(path)` (chef-rpc): file lưu có `/Rotate 180` và 1 trang (đọc bằng pikepdf), trạng thái `dirty: false`, file gốc không đổi. Chưa làm: mở lại bằng pdfium (tiêu chí 1, nửa pdfium); ghi nguyên tử và kiểm lỗi giữa chừng (tiêu chí 2); cảnh báo mật khẩu owner (tiêu chí 3); lưu đè file gốc khi không có `path`.
+- **Ghi chú:** (2026-11-11) `ops::save(path)` test với lõi: pikepdf đọc được, `dirty: false`, file gốc còn nguyên; lõi hiện có save nguyên tử. Viewer có Save/Save As và cảnh báo riêng khi không giữ được owner password hoặc restriction. Ba test lõi `test_save_as_and_save`, `test_failed_atomic_save_preserves_source_and_dirty_state`, `test_encrypted_round_trip` đạt 3/3 trên Mac; test lỗi inject trước `os.replace` xác nhận bytes nguồn giữ nguyên, phiên còn dirty, temp được dọn; test mã hóa xác nhận warning khi owner password không được giữ. `scripts/e2e-native-owner-warning.ps1` kiểm warning UI sau Save As, đầu ra mã hóa đọc lại bằng pikepdf, rotation và nguyên trạng nguồn; integration script kiểm Save As, Ctrl+S overwrite cùng đích sau revision kế tiếp, PDF đầu ra và reopen native. Hai script chưa chạy Windows; cần xác nhận UI/luồng lưu thực tế, giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R3.13 · Khôi phục khi crash · M
@@ -2927,12 +2935,25 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 | 2026-11-11 | R5.35, R5.36 | Phụ thuộc đổi sang R5.30 | Chuỗi R5.34 → R5.35 → R5.36 là phụ thuộc giả. R5.37 giữ phụ thuộc R5.36 (tiêu chí 3 dùng Bates) |
 | 2026-11-11 | R7.08, R7.09 | R7.08 ❌, gộp vào R7.09 | Hai task là cùng một lần MAN-1 |
 | 2026-11-11 | R8.11 | Phụ thuộc đổi từ R8.12 sang R8.01 | Gỡ phụ thuộc vòng R8.11 ↔ R8.12 |
+| 2026-11-14 | CH-R4 / D90 | Chốt bỏ qua đúng 10 advisory `unmaintained` theo ID, mỗi mục có lý do trong deny.toml | Chủ dự án chọn; ID được xác minh lại bằng cargo-deny 0.20.2 trên đồ thị hiện tại |
+| 2026-11-14 | R3.06 | Chuyển ⬜ → 🔄 | Có nền helper và UI reload revision; tiêu chí E2E Windows chưa xác nhận |
+| 2026-11-14 | R2.33 | Chuyển ⬜ → 🔄 | Runner và self-test có; chưa chạy bộ E2E giao diện Windows |
+| 2026-11-14 | R1.43 | Ghi nhận phụ thuộc còn thiếu | Manifest có băm nhưng ảnh Electron không nằm trong repo/thư mục `CHEF_VISUAL_REFS`; chưa có driver chụp probe native cho R2.02. Giữ mở, không đánh dấu so ảnh khi thiếu cặp ảnh và report |
+| 2026-11-14 | R1.37 | Cập nhật runner đo RAM | Ba mốc, 350 bước cuộn có nhịp, tách core/native, xác minh off-screen và cleanup đã có; chỉ biên dịch tĩnh trên Mac, chưa có số đo Windows |
+| 2026-11-14 | R1.38 | Căn kịch bản Electron với R1.37 | `perf-memory.spec.ts` dùng 350 bước × 150 ms, ba mốc mở/cuộn/về đầu; chưa chạy và chưa có số đo Windows |
+| 2026-11-14 | R1.35 | Thêm GPU counters vào PERFMEM | Đọc Dedicated/Shared Usage theo PID, tách native/core; không có counter thì `unavailable`. Chưa đo Windows, giữ 🔄 |
+| 2026-11-14 | R1.12, R1.32 | Ghi trạng thái đuôi M1 | R1.12 có observer và debug themeDark nhưng thiếu đổi theme thật trên Windows; R1.32 vẫn thiếu frame-time đo khi cuộn bánh xe |
+| 2026-11-14 | R2.15 | Chuyển ⬜ → 🔄; cập nhật tiến độ | Model 3 test; host GPUI, Viewer/session/cache, debug state và script E2E có; Windows runtime, tổ hợp phím/chuột thật, đo R1.33 còn thiếu |
+| 2026-11-14 | R2.22 | Chuyển ⬜ → 🔄 | Sidebar ảo hóa/cap 60, bookmark và E2E fixture có; chưa chạy Windows runtime |
+| 2026-11-14 | R2.17 | Chuyển ⬜ → 🔄 | argv/drop/IPC/second-instance có và E2E hai tiến trình có; chưa chạy Windows, chưa thử Explorer drop |
+| 2026-11-14 | CH-R3 / R2.16 | Chốt lọc icon disabled theo CSS; chuyển R2.16 ⬜ → 🔄 | Start, RecentFiles và E2E script đã có; còn Windows runtime, ui-audit ba chiều rộng và kiểm trực quan sáng/tối |
+| 2026-11-14 | R2.02 | Bổ sung ngưỡng ô lệch tuyệt đối, self-test và xác minh manifest | Đã thêm selftest và script hash/size/path; chưa có refs external hoặc cặp Rust/Electron, chưa chạy MAN-5 |
 
 ### Điểm kiểm M1 (cuối mốc)
 
 - [ ] Bảng RAM: `nativeMB` và `coreMB` cạnh số Electron (R1.38), có ghi tổng và chênh lệch
 - [ ] R1.43 xong: năm probe hình họa đã so với Electron; năm dòng "Kiểm ở M1" của BLUEPRINT_RUST §6.2 có kết quả
-- [ ] CH-R4 đã chốt (`cargo deny` advisories), để định nghĩa "xong" mục (c) đạt được
+- [x] CH-R4 đã chốt (`cargo deny` advisories) theo D90; full `cargo deny check` chạy lại ngày 2026-11-14 và xanh (advisories, bans, licenses, sources)
 - [ ] Danh sách "đã kiểm / chưa kiểm": IME (R1.26), cửa sổ ngoài màn hình (R1.08/R1.09), texture (R1.35), DPR (R1.21), font, icon, bóng, layout
 - [ ] Đọc lại M2–M9, sửa task theo kết quả đo, ghi thay đổi vào NOTES
 - [ ] Ước lượng điểm cho M2–M9 (BLUEPRINT_RUST §14), dựa trên số giờ thực tế của M1 và số task đã xong; ghi tốc độ học Rust/GPUI (BLUEPRINT_RUST §15)

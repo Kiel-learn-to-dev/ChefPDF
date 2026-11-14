@@ -12,6 +12,7 @@ workspace = true
 gpui.workspace = true
 # Cùng phiên bản với workspace của Zed (gpui dùng unicode-segmentation 1.10+).
 unicode-segmentation = "1.10"
+zeroize = "1"
 # Đọc en.json và vi.json nguyên văn (TASKS_RUST R2.13). Cùng phiên bản đã có trong Cargo.lock.
 serde_json = "1"
 # Token màu và kích thước của nút (TASKS_RUST R2.03). Sinh từ tokens.css.
