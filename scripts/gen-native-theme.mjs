@@ -148,7 +148,7 @@ export function main(argv = process.argv.slice(2)) {
   const css = readFileSync(SOURCE, 'utf8');
   const { text, counts } = generate(css);
   if (argv.includes('--check')) {
-    let current = '';
+    let current;
     try {
       current = readFileSync(OUTPUT, 'utf8');
     } catch {

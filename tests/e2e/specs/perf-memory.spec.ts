@@ -78,7 +78,7 @@ function descendants(all: Proc[], root: number): Proc[] {
 const mb = (bytes: number): string => (bytes / 1048576).toFixed(0);
 
 interface Cdp {
-  send(method: string, params?: object): Promise<any>;
+  send(method: string, params?: object): Promise<unknown>;
 }
 
 async function openCdp(l: Launched): Promise<Cdp | null> {
@@ -92,7 +92,9 @@ async function openCdp(l: Launched): Promise<Cdp | null> {
 /** Dedicated workers (pdf.js) and the renderer's heap, DOM and canvas bytes after a forced GC. */
 async function rendererDetail(cdp: Cdp | null, l: Launched): Promise<string> {
   if (!cdp) return 'cdp=n/a';
-  const { targetInfos } = await cdp.send('Target.getTargets');
+  const { targetInfos } = (await cdp.send('Target.getTargets')) as {
+    targetInfos: { type: string }[];
+  };
   const workers = targetInfos.filter((t: { type: string }) => t.type === 'worker').length;
   await cdp.send('HeapProfiler.collectGarbage');
   const heap = (await cdp.send('Runtime.getHeapUsage')) as { usedSize: number };
