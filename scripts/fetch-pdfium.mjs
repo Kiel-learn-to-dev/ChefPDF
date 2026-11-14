@@ -46,12 +46,14 @@ export async function main(platform = process.platform, arch = process.arch) {
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) throw new Error(`tải ${url} lỗi ${res.status}`);
   writeFileSync(tgz, Buffer.from(await res.arrayBuffer()));
-  // tar của Windows (bsdtar) nếu có; tar của Git (GNU) hiểu "C:" là host từ xa nên cần --force-local.
+  // Dùng tar.exe của Windows nếu có; GNU tar trên Windows hiểu "C:" là host từ xa.
   const winTar = 'C:\\Windows\\System32\\tar.exe';
   if (existsSync(winTar)) {
     execFileSync(winTar, ['-xzf', tgz, '-C', work]);
-  } else {
+  } else if (platform === 'win32') {
     execFileSync('tar', ['--force-local', '-xzf', tgz, '-C', work]);
+  } else {
+    execFileSync('tar', ['-xzf', tgz, '-C', work]);
   }
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(output, readFileSync(join(work, config.binary)));
