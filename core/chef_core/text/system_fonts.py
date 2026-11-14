@@ -13,10 +13,12 @@ already has; a system font of the same family is the next choice, before a bundl
 from __future__ import annotations
 
 import hashlib
+import importlib
 import os
 import re
 from functools import cache
 from pathlib import Path
+from typing import Any, cast
 
 from chef_core.text.fonts import FontEntry, covers
 
@@ -76,7 +78,8 @@ def _entry(path: Path, family: str, bold: bool, italic: bool) -> FontEntry:
 
 
 def _windows_registry() -> list[tuple[str, Path]]:
-    import winreg
+    # winreg exists only on Windows; import it dynamically so mypy can check this module on Linux.
+    winreg = cast(Any, importlib.import_module("winreg"))
 
     windows = Path(os.environ.get("SYSTEMROOT", r"C:\Windows"))
     roots = (
