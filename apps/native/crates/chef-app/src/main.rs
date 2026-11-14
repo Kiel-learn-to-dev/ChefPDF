@@ -18,12 +18,22 @@ use gpui_platform::application;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 mod assets;
+#[cfg(windows)]
 mod capture;
 mod commands;
+#[cfg(windows)]
 mod debug;
+#[cfg(not(windows))]
+#[path = "debug_stub.rs"]
+mod debug;
+#[cfg(windows)]
+mod dialogs;
+#[cfg(not(windows))]
+#[path = "dialogs_stub.rs"]
 mod dialogs;
 mod drop;
 mod find;
+#[cfg(windows)]
 mod instance;
 mod logging;
 mod night;
@@ -65,6 +75,7 @@ const SW_SHOWNOACTIVATE: i32 = 4;
 const SWP_NOZORDER: u32 = 0x0004;
 const SWP_NOACTIVATE: u32 = 0x0010;
 
+#[cfg(windows)]
 #[link(name = "user32")]
 unsafe extern "system" {
     fn SetWindowPos(
@@ -95,6 +106,7 @@ fn hwnd_of(window: &mut Window) -> Result<(isize, f32), String> {
 /// Phải gọi NGOÀI `window.update`: SetWindowPos/ShowWindow gửi WM_SIZE đồng bộ vào GPUI.
 /// Nếu gọi trong update, kích thước viewport không được cập nhật (còn giá trị CW_USEDEFAULT) và
 /// không khung nào được vẽ.
+#[cfg(windows)]
 fn show_offscreen(hwnd: isize, scale: f32, size: (f32, f32)) -> Result<(), String> {
     // Truyền kích thước thật (không SWP_NOSIZE): Windows chỉ gửi WM_SIZE khi kích thước đổi,
     // và GPUI cần WM_SIZE để cập nhật viewport.
@@ -119,6 +131,11 @@ fn show_offscreen(hwnd: isize, scale: f32, size: (f32, f32)) -> Result<(), Strin
         ShowWindow(hwnd, SW_SHOWNOACTIVATE);
     }
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn show_offscreen(_hwnd: isize, _scale: f32, _size: (f32, f32)) -> Result<(), String> {
+    Err("chế độ E2E ngoài màn hình chỉ hỗ trợ Windows".into())
 }
 
 /// Chỉ E2E (R1.13, R1.15–R1.19): mở trang thử hình họa ngoài màn hình và bật kênh debug.

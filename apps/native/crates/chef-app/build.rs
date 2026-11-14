@@ -1,8 +1,6 @@
-// Sao chép pdfium.dll cạnh chef-app.exe (TASKS_RUST R1.28).
-//
-// Nguồn: apps/native/third_party/pdfium/pdfium.dll, tải bằng scripts/fetch-pdfium.mjs (build 8125,
-// khớp feature pdfium_8125 của pdfium-render). KHÔNG dùng DLL của pypdfium2 (build 8076): thiếu symbol.
-// Ghi đè được bằng biến môi trường CHEF_PDFIUM_DLL. Không commit binary.
+// Sao chép thư viện PDFium cạnh executable để pdfium-render có thể nạp động.
+// Nguồn: apps/native/third_party/pdfium/, tải bằng scripts/fetch-pdfium.mjs (build 8125).
+// Không dùng DLL của pypdfium2 (build 8076): thiếu symbol. Không commit binary.
 use std::path::{Path, PathBuf};
 
 fn main() {
@@ -11,9 +9,15 @@ fn main() {
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     // crates/chef-app -> apps/native là hai cấp trên.
     let native = manifest.join("..").join("..");
-    let source = std::env::var("CHEF_PDFIUM_DLL")
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let library = match target_os.as_str() {
+        "windows" => "pdfium.dll",
+        "macos" => "libpdfium.dylib",
+        _ => return,
+    };
+    let source = std::env::var("CHEF_PDFIUM_LIBRARY")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| native.join("third_party").join("pdfium").join("pdfium.dll"));
+        .unwrap_or_else(|_| native.join("third_party").join("pdfium").join(library));
     println!("cargo:rerun-if-changed={}", source.display());
 
     // OUT_DIR = target/<profile>/build/<pkg>-<hash>/out; ba cấp trên là target/<profile>.
@@ -27,12 +31,12 @@ fn main() {
 
     if !Path::new(&source).exists() {
         println!(
-            "cargo:warning=không thấy pdfium.dll tại {} (chạy: node scripts/fetch-pdfium.mjs)",
+            "cargo:warning=không thấy {library} tại {} (chạy: node scripts/fetch-pdfium.mjs)",
             source.display()
         );
         return;
     }
-    let dest = profile_dir.join("pdfium.dll");
+    let dest = profile_dir.join(library);
     std::fs::copy(&source, &dest).expect("sao chép pdfium.dll thất bại");
 }
 

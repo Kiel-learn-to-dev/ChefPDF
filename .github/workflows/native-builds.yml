@@ -1,0 +1,164 @@
+name: Native Rust Builds
+
+on:
+  push:
+    branches: ['new-rust']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Build Rust app (Windows x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/native
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.20.2
+
+      - name: Fetch matching PDFium DLL
+        run: node scripts/fetch-pdfium.mjs
+
+      - name: Format
+        working-directory: apps/native
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        working-directory: apps/native
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        working-directory: apps/native
+        run: cargo test --workspace --all-targets
+
+      - name: Dependency policy
+        working-directory: apps/native
+        run: cargo deny check
+
+      - name: Build release executable
+        working-directory: apps/native
+        run: cargo build --release -p chef-app
+
+      - name: Package Windows app
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'chef-pdf-rust-windows-x64'
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Copy-Item apps/native/target/release/chef-app.exe $package
+          Copy-Item apps/native/target/release/pdfium.dll $package
+          @'
+          Chef PDF native Rust build (Windows x64)
+
+          This package contains the Rust/GPUI viewer and PDFium. The Python editing core is not
+          bundled yet; editing features that require chef_core are not available in this build.
+          Run chef-app.exe from this folder so pdfium.dll can be found beside it.
+          '@ | Set-Content -Encoding utf8 (Join-Path $package 'README.txt')
+          Compress-Archive -Path "$package\*" -DestinationPath (Join-Path $env:RUNNER_TEMP 'chef-pdf-rust-windows-x64.zip')
+
+      - name: Upload Windows installer package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chef-pdf-rust-windows-x64
+          if-no-files-found: error
+          path: ${{ runner.temp }}/chef-pdf-rust-windows-x64.zip
+          retention-days: 14
+
+  macos:
+    name: Build Rust app (macOS ARM64)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/native
+
+      - name: Verify ARM64 runner
+        run: test "$(uname -m)" = arm64
+
+      - name: Fetch matching PDFium dylib
+        run: node scripts/fetch-pdfium.mjs
+
+      - name: Format
+        working-directory: apps/native
+        run: cargo fmt --all --check
+
+      - name: Build release app
+        working-directory: apps/native
+        run: cargo build --release -p chef-app
+
+      - name: Package macOS app and DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/Chef PDF.app"
+          contents="$app/Contents"
+          mkdir -p "$contents/MacOS" "$contents/Resources"
+          cp apps/native/target/release/chef-app "$contents/MacOS/chef-app-real"
+          cp apps/native/target/release/libpdfium.dylib "$contents/MacOS/libpdfium.dylib"
+          cat > "$contents/MacOS/chef-app" <<'LAUNCHER'
+          #!/bin/sh
+          bundle_bin="$(cd "$(dirname "$0")" && pwd)"
+          export DYLD_LIBRARY_PATH="$bundle_bin${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+          exec "$bundle_bin/chef-app-real" "$@"
+          LAUNCHER
+          cat > "$contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key><string>Chef PDF</string>
+            <key>CFBundleDisplayName</key><string>Chef PDF</string>
+            <key>CFBundleIdentifier</key><string>app.chefpdf.native</string>
+            <key>CFBundleVersion</key><string>1</string>
+            <key>CFBundleShortVersionString</key><string>0.1.0</string>
+            <key>CFBundleExecutable</key><string>chef-app</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>LSMinimumSystemVersion</key><string>13.0</string>
+          </dict></plist>
+          PLIST
+          chmod +x "$contents/MacOS/chef-app" "$contents/MacOS/chef-app-real"
+          codesign --force --deep --sign - "$app"
+          mkdir -p "$RUNNER_TEMP/dmg-root"
+          cp -R "$app" "$RUNNER_TEMP/dmg-root/"
+          cat > "$RUNNER_TEMP/dmg-root/README.txt" <<'README'
+          Chef PDF native Rust build (macOS ARM64)
+
+          This package contains the Rust/GPUI viewer and PDFium. The Python editing core is not
+          bundled yet; editing features that require chef_core are not available in this build.
+          This build is ad-hoc signed and is not notarized.
+          README
+          hdiutil create -volname "Chef PDF" -srcfolder "$RUNNER_TEMP/dmg-root" \
+            -ov -format UDZO "$RUNNER_TEMP/chef-pdf-rust-macos-arm64.dmg"
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: chef-pdf-rust-macos-arm64
+          if-no-files-found: error
+          path: ${{ runner.temp }}/chef-pdf-rust-macos-arm64.dmg
+          retention-days: 14
