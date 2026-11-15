@@ -35,7 +35,7 @@ $recent = @(
     @{ path = $paths[0]; name = 'recent-1.pdf'; openedAt = '2026-11-14T01:00:00.000Z' }
 )
 $settings = @{ version = 1; language = 'en'; theme = 'dark'; defaultSaveDir = $work; recentFiles = $recent }
-$settings | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 (Join-Path $userData 'settings.json')
+[IO.File]::WriteAllText((Join-Path $userData 'settings.json'), ($settings | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false)) # no BOM: Windows PowerShell 5.1 Set-Content -Encoding utf8 writes one, which the settings loader rejects
 
 $oldE2E = $env:CHEF_E2E
 $oldUserData = $env:CHEF_USER_DATA_DIR

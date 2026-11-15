@@ -40,7 +40,7 @@ function ExpectTrue([string]$name, [bool]$cond, [string]$detail) {
 }
 function File-Contains([string]$Path, [string]$Value) {
     $bytes = [System.IO.File]::ReadAllBytes($Path)
-    return [System.Text.Encoding]::Latin1.GetString($bytes).Contains($Value)
+    return [System.Text.Encoding]::GetEncoding(28591).GetString($bytes).Contains($Value)
 }
 
 function Run-App([string]$Path, [scriptblock]$Steps) {
