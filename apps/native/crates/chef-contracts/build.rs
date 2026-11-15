@@ -1,21 +1,99 @@
-//! Probe R1.42 (TASKS_RUST): sinh struct Rust từ JSON Schema của lõi (core/chef_core/layout/schema.json).
-//! Kết quả ghi vào OUT_DIR/layout_types.rs, lib.rs nạp lại bằng include!.
+//! Sinh struct Rust từ JSON Schema của lõi (TASKS_RUST R1.42 và R3.07).
+//!
+//! - `core/chef_core/layout/schema.json` → `OUT_DIR/layout_types.rs` (`layout_types`).
+//! - `schema/ops.schema.json` (do `python -m chef_core.codegen` sinh, `--check` báo lệch)
+//!   → `OUT_DIR/ops_types.rs` (`ops_types`): `Params` của mọi operation.
+//!
+//! lib.rs nạp lại bằng `include!`. Đổi `Params` ở lõi mà chưa chạy codegen thì `--check` lỗi;
+//! chạy codegen rồi mà code Rust dùng field cũ thì build lỗi.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// Tên các definition mà `value` tham chiếu bằng `$ref`.
+fn collect_refs(value: &serde_json::Value, out: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, v) in map {
+                if key == "$ref" {
+                    if let Some(name) = v.as_str().and_then(|s| s.strip_prefix("#/definitions/")) {
+                        out.push(name.to_string());
+                    }
+                } else {
+                    collect_refs(v, out);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => items.iter().for_each(|v| collect_refs(v, out)),
+        _ => {}
+    }
+}
+
+/// Khi typify lỗi, thử từng definition cùng các definition nó cần để chỉ ra definition hỏng.
+fn find_failing_definitions(text: &str) -> Vec<String> {
+    let root: serde_json::Value = serde_json::from_str(text).expect("schema JSON");
+    let defs = root["definitions"].as_object().cloned().unwrap_or_default();
+    let mut bad = Vec::new();
+    for name in defs.keys() {
+        let mut needed = vec![name.clone()];
+        let mut i = 0;
+        while i < needed.len() {
+            let mut refs = Vec::new();
+            collect_refs(&defs[&needed[i]], &mut refs);
+            for r in refs {
+                if !needed.contains(&r) && defs.contains_key(&r) {
+                    needed.push(r);
+                }
+            }
+            i += 1;
+        }
+        let subset: serde_json::Map<String, serde_json::Value> = needed
+            .iter()
+            .map(|n| (n.clone(), defs[n].clone()))
+            .collect();
+        let mut sub_root = root.clone();
+        sub_root["definitions"] = serde_json::Value::Object(subset);
+        let Ok(schema) = serde_json::from_value::<schemars::schema::RootSchema>(sub_root) else {
+            continue;
+        };
+        let failed = std::panic::catch_unwind(|| {
+            let mut space = typify::TypeSpace::default();
+            space.add_root_schema(schema).is_err()
+        });
+        if failed.unwrap_or(true) {
+            bad.push(name.clone());
+        }
+    }
+    bad
+}
+fn generate(schema_path: &Path, out_name: &str) {
+    println!("cargo:rerun-if-changed={}", schema_path.display());
+    let text = std::fs::read_to_string(schema_path)
+        .unwrap_or_else(|e| panic!("đọc {}: {e}", schema_path.display()));
+    let schema: schemars::schema::RootSchema = serde_json::from_str(&text).unwrap_or_else(|e| {
+        panic!(
+            "{} không đọc được bằng schemars: {e}",
+            schema_path.display()
+        )
+    });
+    let mut space = typify::TypeSpace::default();
+    if let Err(e) = space.add_root_schema(schema) {
+        let bad = find_failing_definitions(&text);
+        panic!(
+            "typify không sinh được type từ {}: {e}; definition lỗi: {bad:?}",
+            schema_path.display()
+        );
+    }
+    let file: syn::File = syn::parse2(space.to_stream()).expect("mã sinh ra không parse được");
+    let out = prettyplease::unparse(&file);
+    let dest = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join(out_name);
+    std::fs::write(dest, out).unwrap_or_else(|e| panic!("ghi {out_name}: {e}"));
+}
 
 fn main() {
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
-    let schema_path = manifest.join("../../../../core/chef_core/layout/schema.json");
-    println!("cargo:rerun-if-changed={}", schema_path.display());
-    let text = std::fs::read_to_string(&schema_path).expect("đọc schema.json của lõi");
-    let schema: schemars::schema::RootSchema =
-        serde_json::from_str(&text).expect("schema.json không đọc được bằng schemars");
-    let mut space = typify::TypeSpace::default();
-    space
-        .add_root_schema(schema)
-        .expect("typify không sinh được type");
-    let file: syn::File = syn::parse2(space.to_stream()).expect("mã sinh ra không parse được");
-    let out = prettyplease::unparse(&file);
-    let dest = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("layout_types.rs");
-    std::fs::write(dest, out).expect("ghi layout_types.rs");
+    generate(
+        &manifest.join("../../../../core/chef_core/layout/schema.json"),
+        "layout_types.rs",
+    );
+    generate(&manifest.join("schema/ops.schema.json"), "ops_types.rs");
 }

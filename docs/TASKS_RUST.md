@@ -980,7 +980,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.42
 - **File:** `scripts/gen-native-contracts.mjs`, `apps/native/crates/chef-contracts/src/generated.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-15g) Làm khác mô tả file: không có `gen-native-contracts.mjs` hay `generated.rs` commit sẵn. `python -m chef_core.codegen` nay sinh thêm `apps/native/crates/chef-contracts/schema/ops.schema.json` (draft-07, một `<Op>Params` cho mỗi operation, 194 operation) và `--check` (đã chạy trong `ci.yml`) báo lệch cả file này. `chef-contracts/build.rs` chạy typify trên file đó ra `ops_types` (194 struct, kiểm bằng test). Hai xử lý riêng cho typify: (1) enum chuỗi có giá trị chỉ khác hoa thường (`roman`/`ROMAN` của `numberFormat`) thành `string` kèm mô tả; (2) bỏ `default` (trường có default không bắt buộc nên thành `Option`, lõi tự áp default; typify từ chối vài default như `anyOf [const "keep", number]`). Nếu typify lỗi, build.rs in tên definition hỏng. Thêm dependency `regress` (typify dùng cho `pattern`). Test: struct có cho mọi `*Params`, `PageRotateParams` đúng dạng dây, từ chối field lạ. Không đổi hành vi lõi: `ops.ts` và `workflow.ts` sinh lại không đổi, pytest codegen 7/7, ruff, mypy, clippy `-D warnings` sạch. Chưa chạy `cargo deny` cho `regress` (đã có trong lockfile qua typify).
+- **Trạng thái:** ✅
 
 ### R3.08 · ops.list và ops.run với job runner · M
 - **Mô tả:** gọi `ops.list` lấy danh sách, `ops.run` với `Params` kiểu Rust, nhận `jobId`, theo dõi tiến độ, hủy bằng `jobs.cancel`. Trong lát cắt dọc chỉ cần `Params` của `page.rotate`, sinh bằng đường typify của R1.42 (hoặc viết tay một struct, thay bằng bản sinh khi R3.07 xong). Codegen cho mọi operation (R3.07) không chặn task này; nó chặn R5.02.

@@ -32,6 +32,9 @@ from chef_core.workflow.model import Workflow, WorkflowInputs, WorkflowOutput, W
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "ops.ts"
 DEFAULT_WORKFLOW_OUTPUT = REPO_ROOT / "packages" / "contracts" / "src" / "generated" / "workflow.ts"
+DEFAULT_RUST_SCHEMA_OUTPUT = (
+    REPO_ROOT / "apps" / "native" / "crates" / "chef-contracts" / "schema" / "ops.schema.json"
+)
 
 HEADER = """\
 /**
@@ -234,15 +237,108 @@ def render_workflow() -> str:
     return WORKFLOW_HEADER + "\n" + "\n\n".join(blocks) + "\n"
 
 
+def _to_draft7_refs(node: Any) -> Any:
+    """Rewrite pydantic's ``#/$defs/X`` refs to draft-07 ``#/definitions/X`` (schemars/typify)."""
+    if isinstance(node, dict):
+        return {
+            key: (
+                value.replace("#/$defs/", "#/definitions/")
+                if key == "$ref" and isinstance(value, str)
+                else _to_draft7_refs(value)
+            )
+            for key, value in node.items()
+        }
+    if isinstance(node, list):
+        return [_to_draft7_refs(item) for item in node]
+    return node
+
+
+def _relax_colliding_enums(node: Any) -> Any:
+    """Turn string enums whose values differ only by case into plain strings.
+
+    typify derives CamelCase variant names, so ``roman`` and ``ROMAN`` collide and it panics.
+    The core still validates the allowed values; Rust only loses the enum for those fields.
+    """
+    if isinstance(node, dict):
+        values = node.get("enum")
+        if isinstance(values, list) and all(isinstance(v, str) for v in values):
+            keys = [v.lower() for v in values]
+            if len(set(keys)) != len(keys):
+                relaxed = {k: v for k, v in node.items() if k != "enum"}
+                relaxed["type"] = "string"
+                note = "One of: " + ", ".join(values) + "."
+                old = relaxed.get("description")
+                relaxed["description"] = f"{old} {note}" if old else note
+                return relaxed
+        return {key: _relax_colliding_enums(value) for key, value in node.items()}
+    if isinstance(node, list):
+        return [_relax_colliding_enums(item) for item in node]
+    return node
+
+
+def _strip_defaults(node: Any) -> Any:
+    """Drop ``default`` values from the Rust schema.
+
+    Fields with a default are not ``required``, so Rust sees them as ``Option`` and may omit them;
+    the core then applies its own default. typify also rejects some of our defaults (for example
+    ``anyOf [const "keep", number]`` with default ``"keep"``).
+    """
+    if isinstance(node, dict):
+        return {key: _strip_defaults(value) for key, value in node.items() if key != "default"}
+    if isinstance(node, list):
+        return [_strip_defaults(item) for item in node]
+    return node
+
+
+def render_rust_schema() -> str:
+    """One draft-07 schema holding every operation's ``Params`` for Rust codegen (typify).
+
+    ``definitions`` has one ``<Op>Params`` per registered operation plus the shared ``$defs``.
+    ``apps/native/crates/chef-contracts/build.rs`` turns it into Rust structs.
+    """
+    ops.load_builtin_ops()
+    specs = sorted(ops.registry().values(), key=lambda s: s.id)
+    definitions: dict[str, Schema] = {}
+    for spec in specs:
+        schema = spec.params_schema()
+        for def_name, def_schema in schema.pop("$defs", {}).items():
+            if def_name in definitions and definitions[def_name] != def_schema:
+                raise ValueError(f"conflicting definitions for {def_name}")
+            definitions[def_name] = def_schema
+        name = interface_name(spec.id)
+        if name in definitions:
+            raise ValueError(f"operation params name clashes with a definition: {name}")
+        definitions[name] = schema
+    root = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ChefOps",
+        "description": (
+            "GENERATED FILE - DO NOT EDIT. Run: cd core && uv run python -m chef_core.codegen"
+        ),
+        "type": "object",
+        "definitions": dict(sorted(definitions.items())),
+    }
+    return (
+        json.dumps(
+            _strip_defaults(_relax_colliding_enums(_to_draft7_refs(root))),
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m chef_core.codegen")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--workflow-out", type=Path, default=DEFAULT_WORKFLOW_OUTPUT)
+    parser.add_argument("--rust-schema-out", type=Path, default=DEFAULT_RUST_SCHEMA_OUTPUT)
     parser.add_argument("--check", action="store_true", help="fail if the file is outdated")
     parser.add_argument("--stdout", action="store_true", help="print instead of writing")
     args = parser.parse_args(argv)
     content = render()
     workflow_content = render_workflow()
+    rust_schema_content = render_rust_schema()
     if args.stdout:
         sys.stdout.write(content)
         return 0
@@ -251,6 +347,7 @@ def main(argv: list[str] | None = None) -> int:
         targets = [(out, content)]
         if args.out == DEFAULT_OUTPUT:
             targets.append((args.workflow_out, workflow_content))
+            targets.append((args.rust_schema_out, rust_schema_content))
         stale = False
         for target, expected in targets:
             current = target.read_text(encoding="utf-8") if target.is_file() else ""
@@ -261,6 +358,7 @@ def main(argv: list[str] | None = None) -> int:
     targets = [(out, content)]
     if args.out == DEFAULT_OUTPUT:
         targets.append((args.workflow_out, workflow_content))
+        targets.append((args.rust_schema_out, rust_schema_content))
     for target, expected in targets:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(expected, encoding="utf-8", newline="\n")
