@@ -290,20 +290,56 @@ if ($SelfTest) {
 }
 
 $scriptDirectory = $PSScriptRoot
-$logDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ('chef-native-e2e-' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Force $logDirectory | Out-Null
+$systemTemp = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
+$runPrefix = 'chef-native-e2e-'
+
+# Everything a run writes (logs, screenshots, work folders, the app's E2E user data) goes under one
+# run directory, because the child processes get TEMP/TMP pointed at it. A passing run removes it.
+# A failing run keeps it for diagnosis, and the next run removes it, so at most one is ever left.
+function Remove-RunDirectory([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    # Unlink junctions first (non-recursive delete removes only the link), so the shared fixture
+    # folder they point at is never deleted with the run directory.
+    Get-ChildItem -LiteralPath $Path -Recurse -Force -Attributes ReparsePoint -ErrorAction SilentlyContinue |
+        ForEach-Object { [System.IO.Directory]::Delete($_.FullName, $false) }
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Get-ChildItem -LiteralPath $systemTemp -Directory -Filter "$runPrefix*" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notlike 'chef-native-e2e-selftest-*' } |
+    ForEach-Object { Remove-RunDirectory $_.FullName }
+
+$runDirectory = Join-Path $systemTemp ($runPrefix + [guid]::NewGuid().ToString('N'))
+$logDirectory = Join-Path $runDirectory 'logs'
+$childTemp = Join-Path $runDirectory 'tmp'
+New-Item -ItemType Directory -Force $logDirectory, $childTemp | Out-Null
+
+# Shared PDF fixtures live in %TEMP%\chef-perf and are not run output: expose them inside the
+# redirected temp folder so the scripts' default fixture paths keep working.
+$fixtures = Join-Path $systemTemp 'chef-perf'
+if (Test-Path -LiteralPath $fixtures) {
+    New-Item -ItemType Junction -Path (Join-Path $childTemp 'chef-perf') -Target $fixtures | Out-Null
+}
+
+$previousTemp = $env:TEMP
+$previousTmp = $env:TMP
+$aggregateExitCode = 1
 try {
+    $env:TEMP = $childTemp
+    $env:TMP = $childTemp
     $results = Invoke-E2ESuite -Directory $scriptDirectory -PowerShellExe $powerShellExe `
         -LogDirectory $logDirectory -TimeoutSeconds ($TimeoutMinutes * 60)
     $aggregateExitCode = Show-Summary -Results $results
-    if ($aggregateExitCode -ne 0) {
-        Write-Output "Full logs: $logDirectory"
-        exit 1
-    }
-    Remove-Item -LiteralPath $logDirectory -Recurse -Force -ErrorAction SilentlyContinue
-    exit 0
 } catch {
-    Write-Error $_
-    Write-Output "Full logs: $logDirectory"
+    Write-Error $_ -ErrorAction Continue
+} finally {
+    $env:TEMP = $previousTemp
+    $env:TMP = $previousTmp
+}
+
+if ($aggregateExitCode -ne 0) {
+    Write-Output "Run kept for diagnosis (removed by the next run): $runDirectory"
     exit 1
 }
+Remove-RunDirectory $runDirectory
+exit 0

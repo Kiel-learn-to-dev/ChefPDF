@@ -830,11 +830,21 @@ mod tests {
         Arc::new(|_: &str| {})
     }
 
-    /// Cấu hình lõi Python thật. Bỏ qua (None) khi không có core/.venv.
+    /// Thư mục userData tạm của lõi trong một test; xóa khi test xong để không để rác trong %TEMP%.
+    struct DataDir(std::path::PathBuf);
+
+    impl Drop for DataDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// Cấu hình lõi Python thật, kèm thư mục dữ liệu tạm (giữ đến hết test, khai báo trước
+    /// `Supervisor` để lõi dừng rồi mới xóa). Bỏ qua (None) khi không có core/.venv.
     fn real_core_config(
         test: &str,
         log: Arc<dyn Fn(&str) + Send + Sync>,
-    ) -> Option<SupervisorConfig> {
+    ) -> Option<(SupervisorConfig, DataDir)> {
         let core = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../core");
         let python = core.join(".venv/Scripts/python.exe");
         if !python.exists() {
@@ -857,7 +867,7 @@ mod tests {
         config.backoff_initial = Duration::from_millis(50);
         // Trong test, lõi không tự tắt trừ khi test tự đặt.
         config.idle_stop = None;
-        Some(config)
+        Some((config, DataDir(data)))
     }
 
     /// Lấy sự kiện trạng thái cho đến khi gặp `until`, hoặc hết thời gian.
@@ -882,7 +892,7 @@ mod tests {
 
     #[test]
     fn real_core_pings_and_shutdown_stops_the_whole_tree() {
-        let Some(config) = real_core_config("ping", quiet_log()) else {
+        let Some((config, _data)) = real_core_config("ping", quiet_log()) else {
             return;
         };
         let mut sup = Supervisor::start(config);
@@ -984,7 +994,7 @@ mod tests {
 
     #[test]
     fn whole_tree_killed_restarts_with_status_sequence() {
-        let Some(config) = real_core_config("restart-tree", quiet_log()) else {
+        let Some((config, _data)) = real_core_config("restart-tree", quiet_log()) else {
             return;
         };
         let mut sup = Supervisor::start(config);
@@ -1012,7 +1022,7 @@ mod tests {
     #[test]
     fn only_the_launcher_killed_takes_the_whole_tree_down() {
         // Đúng lỗi đã gặp: kill launcher không dừng tiến trình Python con. Job phải dọn nốt con.
-        let Some(config) = real_core_config("restart-launcher", quiet_log()) else {
+        let Some((config, _data)) = real_core_config("restart-launcher", quiet_log()) else {
             return;
         };
         let mut sup = Supervisor::start(config);
@@ -1023,7 +1033,7 @@ mod tests {
 
     #[test]
     fn only_the_real_python_killed_takes_the_launcher_down() {
-        let Some(config) = real_core_config("restart-child", quiet_log()) else {
+        let Some((config, _data)) = real_core_config("restart-child", quiet_log()) else {
             return;
         };
         let mut sup = Supervisor::start(config);
@@ -1043,7 +1053,7 @@ mod tests {
         // Hồi quy: shutdown lúc lõi đang spawn từng làm treo (client chưa được gán khi shutdown đọc).
         // Cửa sổ rất hẹp, nên chạy nhiều vòng; mỗi vòng phải kết thúc trong 15 giây.
         for round in 0..20 {
-            let Some(config) = real_core_config("race", quiet_log()) else {
+            let Some((config, _data)) = real_core_config("race", quiet_log()) else {
                 return;
             };
             let (done_tx, done_rx) = channel();
@@ -1061,7 +1071,7 @@ mod tests {
 
     #[test]
     fn lazy_core_starts_only_on_the_first_request() {
-        let Some(config) = real_core_config("lazy", quiet_log()) else {
+        let Some((config, _data)) = real_core_config("lazy", quiet_log()) else {
             return;
         };
         let mut sup = Supervisor::lazy(config);
@@ -1091,7 +1101,7 @@ mod tests {
 
     #[test]
     fn idle_core_stops_by_itself_and_comes_back_on_the_next_request() {
-        let Some(mut config) = real_core_config("idle", quiet_log()) else {
+        let Some((mut config, _data)) = real_core_config("idle", quiet_log()) else {
             return;
         };
         config.idle_stop = Some(Duration::from_millis(800));
@@ -1127,7 +1137,7 @@ mod tests {
 
     #[test]
     fn running_job_keeps_the_core_alive_until_it_ends() {
-        let Some(mut config) = real_core_config("busy", quiet_log()) else {
+        let Some((mut config, _data)) = real_core_config("busy", quiet_log()) else {
             return;
         };
         config.idle_stop = Some(Duration::from_millis(300));
@@ -1160,7 +1170,7 @@ mod tests {
     #[test]
     fn open_session_keeps_the_core_alive_until_it_is_closed() {
         // system.shutdown xóa thư mục phiên, nên lõi không được tự tắt khi còn phiên mở.
-        let Some(mut config) = real_core_config("session-busy", quiet_log()) else {
+        let Some((mut config, _data)) = real_core_config("session-busy", quiet_log()) else {
             return;
         };
         config.idle_stop = Some(Duration::from_millis(300));

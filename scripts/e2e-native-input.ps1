@@ -21,7 +21,7 @@ $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Pdf + '"') -PassThru 
 $env:CHEF_E2E = $null
 Start-Sleep -Seconds 5
 
-$text = Get-Content $log -Raw
+$text = [string](Get-Content $log -Raw)
 $pipe = [regex]::Match($text, 'chef-native-\d+').Value
 $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
 

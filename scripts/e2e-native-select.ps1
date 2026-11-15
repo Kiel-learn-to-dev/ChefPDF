@@ -22,7 +22,7 @@ $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Pdf + '"') -PassThru 
 $env:CHEF_E2E = $null
 Start-Sleep -Seconds 5
 
-$text = Get-Content $log -Raw
+$text = [string](Get-Content $log -Raw)
 $pipe = [regex]::Match($text, 'chef-native-\d+').Value
 $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
 
@@ -57,10 +57,11 @@ try {
     function Phys([double]$lx, [double]$ly) { return ("{0} {1}" -f [int]($lx / $ref * $scale), [int]($ly / $ref * $scale)) }
 
     # 1. Kéo chuột từ "T" của "Trang 1" đến sau "định", rồi Ctrl+C.
-    Send ("mouse down " + (Phys 250 195)) | Out-Null
+    # Dòng đầu nằm ở x 577..1320, y 227..263 trong vùng client (viewer có thanh tab và sidebar).
+    Send ("mouse down " + (Phys 582 245)) | Out-Null
     Start-Sleep -Milliseconds 100
-    1..8 | ForEach-Object { Send ("mouse move " + (Phys (250 + $_ * 50) 195)) | Out-Null; Start-Sleep -Milliseconds 40 }
-    Send ("mouse up " + (Phys 640 195)) | Out-Null
+    1..8 | ForEach-Object { Send ("mouse move " + (Phys (582 + $_ * 50) 245)) | Out-Null; Start-Sleep -Milliseconds 40 }
+    Send ("mouse up " + (Phys 982 245)) | Out-Null
     Start-Sleep -Milliseconds 300
     Send "action copyselection" | Out-Null
     Start-Sleep -Milliseconds 300

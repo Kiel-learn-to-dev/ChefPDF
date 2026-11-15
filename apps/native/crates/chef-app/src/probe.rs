@@ -957,16 +957,18 @@ impl Render for Probe {
                 .child(shadow_section(&c))
                 .child(layout_section(&c, window.viewport_size().width.as_f32()))
         } else {
+            // Các khu có tương tác đứng trước: Windows kẹp chiều cao cửa sổ theo màn hình, nên phần
+            // cuối trang có thể nằm ngoài cửa sổ và không nhận chuột. Các khu chỉ để chụp ảnh đứng sau.
             root.child(form_section(&c, self, cx))
+                .child(choice_section(&c, self, cx))
+                .child(menu_section(&c, self, window, cx))
+                .child(components_section(&c, self, cx))
+                .child(dialog_section(&c, self, cx))
                 .child(fonts_section(&c))
                 .child(icons_section(&c))
                 .child(shadow_section(&c))
                 .child(layout_section(&c, window.viewport_size().width.as_f32()))
                 .child(tnum_section(&c))
-                .child(choice_section(&c, self, cx))
-                .child(menu_section(&c, self, window, cx))
-                .child(components_section(&c, self, cx))
-                .child(dialog_section(&c, self, cx))
         };
         root.children(self.dialog_open.then(|| self.dialog(&c, cx)))
             // Menu chuột phải nằm trong lớp phủ tuyệt đối ở gốc cửa sổ, để vị trí là tọa độ cửa sổ.

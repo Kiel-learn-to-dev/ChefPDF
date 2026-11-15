@@ -41,25 +41,29 @@ export async function main(platform = process.platform, arch = process.arch) {
   }
   const work = join(tmpdir(), `chef-pdfium-${Date.now()}`);
   mkdirSync(work, { recursive: true });
-  const tgz = join(work, config.asset);
-  const url = assetUrl(platform, arch);
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`tải ${url} lỗi ${res.status}`);
-  writeFileSync(tgz, Buffer.from(await res.arrayBuffer()));
-  // Dùng tar.exe của Windows nếu có; GNU tar trên Windows hiểu "C:" là host từ xa.
-  const winTar = 'C:\\Windows\\System32\\tar.exe';
-  if (existsSync(winTar)) {
-    execFileSync(winTar, ['-xzf', tgz, '-C', work]);
-  } else if (platform === 'win32') {
-    execFileSync('tar', ['--force-local', '-xzf', tgz, '-C', work]);
-  } else {
-    execFileSync('tar', ['-xzf', tgz, '-C', work]);
+  // Xóa thư mục tạm cả khi tải hoặc giải nén lỗi, không để rác trong thư mục tạm.
+  try {
+    const tgz = join(work, config.asset);
+    const url = assetUrl(platform, arch);
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok) throw new Error(`tải ${url} lỗi ${res.status}`);
+    writeFileSync(tgz, Buffer.from(await res.arrayBuffer()));
+    // Dùng tar.exe của Windows nếu có; GNU tar trên Windows hiểu "C:" là host từ xa.
+    const winTar = 'C:\\Windows\\System32\\tar.exe';
+    if (existsSync(winTar)) {
+      execFileSync(winTar, ['-xzf', tgz, '-C', work]);
+    } else if (platform === 'win32') {
+      execFileSync('tar', ['--force-local', '-xzf', tgz, '-C', work]);
+    } else {
+      execFileSync('tar', ['-xzf', tgz, '-C', work]);
+    }
+    mkdirSync(OUT_DIR, { recursive: true });
+    writeFileSync(output, readFileSync(join(work, config.binary)));
+    const version = readFileSync(join(work, 'VERSION'), 'utf8');
+    writeFileSync(stamp, `${TAG}\n${config.asset}\n${version}`);
+  } finally {
+    rmSync(work, { recursive: true, force: true });
   }
-  mkdirSync(OUT_DIR, { recursive: true });
-  writeFileSync(output, readFileSync(join(work, config.binary)));
-  const version = readFileSync(join(work, 'VERSION'), 'utf8');
-  writeFileSync(stamp, `${TAG}\n${config.asset}\n${version}`);
-  rmSync(work, { recursive: true, force: true });
   console.log(`đã tải pdfium ${TAG} vào ${output}`);
 }
 

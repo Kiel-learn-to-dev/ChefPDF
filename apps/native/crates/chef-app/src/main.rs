@@ -40,7 +40,6 @@ mod night;
 mod password;
 mod probe;
 mod properties;
-mod save;
 mod session;
 mod settings;
 mod settings_dialog;
@@ -50,7 +49,6 @@ mod start;
 mod tabs;
 mod tabs_host;
 mod theme;
-mod undo;
 mod viewer;
 
 use tabs_host::DocumentHost;

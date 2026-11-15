@@ -20,7 +20,7 @@ pdf = pikepdf.Pdf.new()
 # Shallow, tiny pages make >60 thumbnail rows intersect the initial sidebar viewport. That
 # exercises the hard cap instead of merely checking that a normal four-row viewport is small.
 for _ in range(500):
-    pdf.add_blank_page(page_size=(100, 1))
+    pdf.add_blank_page(page_size=(3000, 3))
 target = pdf.pages[8]
 with pdf.open_outline() as outline:
     outline.root.append(pikepdf.OutlineItem("Jump to page 9", pikepdf.Array([target.obj, pikepdf.Name.Fit])))
@@ -46,7 +46,7 @@ try {
         $env:CHEF_USER_DATA_DIR = $oldUserData
     }
     $deadline = (Get-Date).AddSeconds(45)
-    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or ((Get-Content $log -Raw) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
+    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or (([string](Get-Content $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
     $logText = Get-Content $log -Raw
     $pipe = [regex]::Match($logText, 'chef-native-\d+').Value
     $token = [regex]::Match($logText, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value

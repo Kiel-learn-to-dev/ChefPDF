@@ -69,7 +69,7 @@ function Run-App([string]$Path, [scriptblock]$Steps) {
             Start-Sleep -Milliseconds 200
         }
         if (-not (Test-Path -LiteralPath $log)) { throw "chef-app did not create its stderr log: $log" }
-        $text = Get-Content -LiteralPath $log -Raw
+        $text = [string](Get-Content -LiteralPath $log -Raw)
         $pipe = [regex]::Match($text, 'chef-native-\d+').Value
         $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
         if (-not $pipe -or -not $tok) { throw "debug pipe/token did not become ready. Log: $log" }
@@ -142,29 +142,6 @@ Run-App $Pdf {
     ExpectTrue "closing the tab releases the source password" ($s.password.sourceHeld -eq $false) "mật khẩu nguồn còn sau khi đóng thẻ"
     ExpectTrue "closing the tab leaves the password buffer empty" ($s.password.bufferEmpty -eq $true) "buffer mật khẩu còn sau khi đóng thẻ"
 }
-$stderrLogs = @($script:passwordRunArtifacts | Where-Object { Test-Path -LiteralPath $_.log })
-ExpectTrue "each password run has an isolated stderr log" ($stderrLogs.Count -eq 3) "không đủ ba log riêng trong $work"
-$stderrLeaks = @($stderrLogs | Where-Object { File-Contains -Path $_.log -Value $secret })
-ExpectTrue "the password never reaches stderr logs" ($stderrLeaks.Count -eq 0) "mật khẩu xuất hiện trong stderr log"
-$userDataFiles = @(
-    foreach ($artifact in $script:passwordRunArtifacts) {
-        if (Test-Path -LiteralPath $artifact.userData) {
-            Get-ChildItem -LiteralPath $artifact.userData -File -Recurse -ErrorAction SilentlyContinue
-        }
-    }
-)
-ExpectTrue "app log directories exist for every password run" (@($script:passwordRunArtifacts | Where-Object { Test-Path -LiteralPath (Join-Path $_.userData 'logs') }).Count -eq 3) "không đủ thư mục log trong $work"
-$appLogFiles = @(
-    foreach ($artifact in $script:passwordRunArtifacts) {
-        $logDirectory = Join-Path $artifact.userData 'logs'
-        if (Test-Path -LiteralPath $logDirectory) {
-            Get-ChildItem -LiteralPath $logDirectory -File -Recurse -ErrorAction SilentlyContinue
-        }
-    }
-)
-ExpectTrue "app log files exist for the password runs" ($appLogFiles.Count -ge 3) "không đủ log file trong $work"
-$diskLeaks = @($userDataFiles + $appLogFiles | Where-Object { File-Contains -Path $_.FullName -Value $secret })
-ExpectTrue "the password is absent from all app data files" ($diskLeaks.Count -eq 0) "mật khẩu xuất hiện trong dữ liệu app"
 
 # ---- Lượt 2: Esc đóng hộp mà không mở gì ----
 Run-App $Pdf {
@@ -205,6 +182,31 @@ Run-App $Pdf {
     ExpectTrue "closing a tab closes its password prompt" ($s.password.open -eq $false) "hộp mật khẩu vẫn mở sau khi đóng thẻ"
     ExpectTrue "closing a tab zeroizes its live input buffer" ($s.password.bufferEmpty -eq $true) "buffer chưa được xóa khi đóng thẻ"
 }
+
+# ---- Sau cả ba lượt: log riêng từng lượt và không lộ mật khẩu ra đĩa ----
+$stderrLogs = @($script:passwordRunArtifacts | Where-Object { Test-Path -LiteralPath $_.log })
+ExpectTrue "each password run has an isolated stderr log" ($stderrLogs.Count -eq 3) "không đủ ba log riêng trong $work"
+$stderrLeaks = @($stderrLogs | Where-Object { File-Contains -Path $_.log -Value $secret })
+ExpectTrue "the password never reaches stderr logs" ($stderrLeaks.Count -eq 0) "mật khẩu xuất hiện trong stderr log"
+$userDataFiles = @(
+    foreach ($artifact in $script:passwordRunArtifacts) {
+        if (Test-Path -LiteralPath $artifact.userData) {
+            Get-ChildItem -LiteralPath $artifact.userData -File -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+)
+ExpectTrue "app log directories exist for every password run" (@($script:passwordRunArtifacts | Where-Object { Test-Path -LiteralPath (Join-Path $_.userData 'logs') }).Count -eq 3) "không đủ thư mục log trong $work"
+$appLogFiles = @(
+    foreach ($artifact in $script:passwordRunArtifacts) {
+        $logDirectory = Join-Path $artifact.userData 'logs'
+        if (Test-Path -LiteralPath $logDirectory) {
+            Get-ChildItem -LiteralPath $logDirectory -File -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+)
+ExpectTrue "app log files exist for the password runs" ($appLogFiles.Count -ge 3) "không đủ log file trong $work"
+$diskLeaks = @($userDataFiles + $appLogFiles | Where-Object { File-Contains -Path $_.FullName -Value $secret })
+ExpectTrue "the password is absent from all app data files" ($diskLeaks.Count -eq 0) "mật khẩu xuất hiện trong dữ liệu app"
 
 Write-Output ("FAILS: " + $script:fails)
 if ($script:fails -gt 0) { exit 1 }

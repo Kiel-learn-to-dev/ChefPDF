@@ -36,6 +36,7 @@ function Send([string] $Command) {
     $reader = [IO.StreamReader]::new($client, [Text.UTF8Encoding]::new($false))
     $writer.WriteLine("$script:token $Command")
     $line = $reader.ReadLine()
+    if (-not $line -and $Command -eq 'quit') { return }
     if (-not $line) { throw "No response to debug command '$Command'." }
     $result = $line | ConvertFrom-Json
     if ($result.ok -eq $false) { throw "Debug command '$Command' failed: $line" }
@@ -105,7 +106,7 @@ try {
   Wait-For {
     if ($proc.HasExited) { throw "chef-app exited ($($proc.ExitCode)): $(Get-Content $log -Raw)" }
     if (-not (Test-Path -LiteralPath $log)) { return $false }
-    $text = Get-Content -LiteralPath $log -Raw
+    $text = [string](Get-Content -LiteralPath $log -Raw)
     $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
     $script:token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
     if (-not $script:pipe -or -not $script:token) { return $false }

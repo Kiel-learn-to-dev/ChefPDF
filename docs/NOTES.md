@@ -474,3 +474,22 @@ Verification on macOS: `cargo fmt --all --check`, Windows GNU `cargo check -p ch
 # R2.19 · Cuộn liên tục
 
 Continuous vẫn là chế độ mặc định. `scripts/e2e-native-perf-scroll.ps1` tạo PDF 1000 trang, kiểm hướng PageUp/PageDown và cuộn kiểm soát 350 viewport. Chỉ khi `CHEF_E2E_OS_INPUT=1`, script mới gửi PageUp/PageDown, đưa cửa sổ ra màn hình và dùng fixture B2 để kiểm bánh xe trên vùng viewer khi cửa sổ topmost khác che dải tiêu đề, cùng lượt đối chứng trên vùng bị che. Debug state đo thời gian thân hàm GPUI `Render` và khoảng giữa các lần gọi `Render`; đây là số proxy, không phải thời gian frame compositor đã trình bày. Cần log bánh xe và frame thật trên Windows. Repo hiện có 26 script E2E native, chưa tính runner.
+
+# 2026-11-15 · Lần chạy thật đầu tiên trên Windows cho vỏ Rust
+
+Các thay đổi ngày 2026-11-14 được viết trên Mac và chưa từng chạy. Kết quả chạy trên máy Windows chính (MSVC, build debug, E2E ngoài màn hình, không dùng chuột thật):
+
+- `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test --workspace`, `cargo deny check`: xanh.
+- `scripts/e2e-native-all.ps1`: từ 20/28 script đỏ (56 lỗi) xuống 11/28 đỏ (16 lỗi). Lát cắt dọc M3 (`e2e-native-integration`, `e2e-native-owner-warning`) xanh: R3.03, R3.04, R3.06, R3.08, R3.12 đóng; R3.11 còn thiếu phím thật.
+- Lỗi sản phẩm tìm ra nhờ chạy thật: (1) dải cảnh báo file gốc đẩy hai nút ra ngoài cửa sổ; (2) mất tiêu điểm sau khi đóng dải cảnh báo hoặc hộp mật khẩu làm phím tắt chết; (3) chữ của trang có `/Rotate`: hộp ký tự sai hệ tọa độ, thứ tự dòng đổi sau khi xoay, chữ copy có dòng trống; (4) trang thử (probe) cao hơn cửa sổ: Windows kẹp chiều cao cửa sổ theo màn hình (1600 px logic yêu cầu, được khoảng 1044), nên menu, tooltip, toast nằm ngoài vùng nhận chuột. Các khu có tương tác nay đứng đầu trang thử.
+- Còn mở: Cài đặt không mở được từ màn hình Start (R2.14 về 🔄); kéo chọn chữ từ đầu dòng (R2.25b về 🔄); zoom lệch tâm khoảng 10 px (R2.21); night, palette, spread, toc, zoom chưa điều tra.
+- Dọn dẹp: test và E2E không còn để rác trong %TEMP% (runner gộp dùng thư mục TEMP riêng mỗi lần chạy; test supervisor tự xóa thư mục dữ liệu; `fetch-pdfium.mjs` xóa thư mục tải cả khi lỗi). Đã xóa các thư mục build của Electron trên máy (bản Electron build lại bằng GitHub Actions). `undo.rs` và `save.rs` của chef-app bị bỏ vì chỉ chuyển tiếp sang `chef_rpc::ops`.
+
+# 2026-11-15b · E2E native trên Windows: còn 1/28 script đỏ
+
+`scripts/e2e-native-all.ps1`: 28 script, 333 kiểm tra, 1 lỗi. Script đỏ duy nhất là `e2e-native-visual-selftest` vì máy chưa có bộ ảnh tham chiếu Electron (`CHEF_VISUAL_REFS`), không phải lỗi code. `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test -p chef-app` xanh.
+
+- Lỗi sản phẩm đã sửa trong `chef-app/src/viewer.rs`: (1) viewer coi cả cửa sổ là vùng của mình, không trừ thanh tab 40 px, dải cảnh báo và thanh tìm kiếm: chọn chữ lệch 40 px, chiều cao vùng trang thừa 40 px. Nay đo khung vùng trang thật (`content_bounds`, chậm một khung hình). (2) Ảnh trang không được render lại khi zoom đổi: trang mở ra bị mờ (ảnh vài trăm byte của khung hình đầu bị kéo giãn) và phóng to không nét lên. Nay ảnh cũ được đánh dấu cũ theo zoom × tỉ lệ màn hình, vẫn hiện cho đến khi ảnh mới về. (3) Hàng trong sidebar (thumbnail, mục lục, dòng "không có bookmark") bị cộng chiều cao tiêu đề sidebar hai lần, nên nằm thấp hơn 40 px.
+- Lỗi của script đã sửa: `select` (tọa độ cũ, lấy theo ảnh chụp có thanh tiêu đề thay vì vùng client); `view` (công thức tâm zoom không trừ khoảng cách 16 px giữa các trang; sản phẩm đúng, nên mục "zoom lệch tâm 10 px" của R2.21 đóng); `night` (lấy mẫu cả sidebar và lề tối của giao diện tối); `password` (ba kiểm tra log đòi đủ ba lượt chạy nhưng đặt sau lượt 1).
+- R2.14 và R2.25b về ✅. Cài đặt mở được từ màn hình Start sau khi chuyển sang `SettingsPanel` của cửa sổ.
+- Còn mở: bộ ảnh tham chiếu cho `visual-selftest`; R3.11 thiếu kiểm bằng phím thật; thanh công cụ của viewer tràn chữ ở cửa sổ 1188 px logic (thấy trên ảnh chụp, chưa có task).

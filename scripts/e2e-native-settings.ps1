@@ -33,7 +33,7 @@ function Start-App {
     $env:CHEF_E2E = $null
     $env:CHEF_USER_DATA_DIR = $null
     Start-Sleep -Seconds 3
-    $text = Get-Content $log -Raw
+    $text = [string](Get-Content $log -Raw)
     $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
     $script:tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
     Start-Sleep -Milliseconds 500

@@ -11,7 +11,7 @@ try { & uv run --no-project python -c 'import pikepdf,sys; p=pikepdf.Pdf.new(); 
 $oldE2E=$env:CHEF_E2E; $oldData=$env:CHEF_USER_DATA_DIR; $env:CHEF_E2E='1'; $env:CHEF_USER_DATA_DIR=Join-Path $work 'userdata'; $log=Join-Path $work 'app.log'; $proc=$null
 try {
   try{$proc=Start-Process -FilePath $Exe -ArgumentList ('"'+$pdf+'"') -PassThru -RedirectStandardError $log -WindowStyle Hidden} finally{$env:CHEF_E2E=$oldE2E;$env:CHEF_USER_DATA_DIR=$oldData}
-  $until=(Get-Date).AddSeconds(30); while((Get-Date)-lt $until -and ((-not(Test-Path $log))-or((Get-Content $log -Raw)-notmatch 'CHEF_DEBUG_TOKEN='))){Start-Sleep -Milliseconds 200}
+  $until=(Get-Date).AddSeconds(30); while((Get-Date)-lt $until -and ((-not(Test-Path $log))-or(([string](Get-Content $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))){Start-Sleep -Milliseconds 200}
   $txt=Get-Content $log -Raw; $pipe=[regex]::Match($txt,'chef-native-\d+').Value; $token=[regex]::Match($txt,'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value; if(-not$pipe-or-not$token){throw 'debug pipe/token missing'}
   function Send([string]$cmd){$c=[IO.Pipes.NamedPipeClientStream]::new('.',$pipe,[IO.Pipes.PipeDirection]::InOut);$c.Connect(5000);try{$w=[IO.StreamWriter]::new($c,[Text.UTF8Encoding]::new($false));$w.AutoFlush=$true;$r=[IO.StreamReader]::new($c,[Text.UTF8Encoding]::new($false));$w.WriteLine("$token $cmd");$r.ReadLine()}finally{$c.Dispose()}}
   function State(){Send 'state'|ConvertFrom-Json}
@@ -37,7 +37,8 @@ public static class ChefZoomKeyboard {
   Wait {$s=State;[double]$s.view.zoom-lt$before} 'physical Ctrl+- zooms out'
   Ctrl-Key 0x30 # Ctrl+0
   Wait {(State).view.fitWidth-and-not(State).view.fitPage} 'physical Ctrl+0 restores fit width'
-  Send 'action focuszoom'|Out-Null; Send 'action selectall'|Out-Null; Send 'char 150%'|Out-Null; Send 'action submit'|Out-Null
+  # Actions run on the app's 16 ms pump while typed characters arrive at once: pause between steps.
+  Send 'action focuszoom'|Out-Null; Start-Sleep -Milliseconds 200; Send 'action selectall'|Out-Null; Start-Sleep -Milliseconds 200; Send 'char 150%'|Out-Null; Start-Sleep -Milliseconds 200; Send 'action submit'|Out-Null
   Wait {$s=State;[math]::Abs($s.view.zoom-1.5)-lt0.02-and-not$s.view.fitPage-and-not$s.view.fitWidth} '150 percent zoom input'
   Send 'action rotateviewright'|Out-Null; Wait {(State).view.rotation-eq1} 'rotate right'
   Send 'action rotateviewright'|Out-Null; Wait {(State).view.rotation-eq2} 'rotate 180 degrees'

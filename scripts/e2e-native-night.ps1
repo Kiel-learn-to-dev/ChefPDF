@@ -38,7 +38,7 @@ finally {
     $env:CHEF_USER_DATA_DIR = $oldUserData
 }
 $deadline = (Get-Date).AddSeconds(45)
-while ((Get-Date) -lt $deadline -and ((-not (Test-Path -LiteralPath $log)) -or ((Get-Content -LiteralPath $log -Raw) -notmatch 'CHEF_DEBUG_TOKEN='))) {
+while ((Get-Date) -lt $deadline -and ((-not (Test-Path -LiteralPath $log)) -or (([string](Get-Content -LiteralPath $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))) {
     if ($proc -and $proc.HasExited) { throw "chef-app exited ($($proc.ExitCode)) before the debug pipe was ready. Log: $log" }
     Start-Sleep -Milliseconds 200
 }
@@ -46,7 +46,7 @@ if (-not (Test-Path -LiteralPath $log)) {
     if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
     throw "app stderr log not created: $log"
 }
-$text = Get-Content -LiteralPath $log -Raw
+$text = [string](Get-Content -LiteralPath $log -Raw)
 $pipe = [regex]::Match($text, 'chef-native-\d+').Value
 $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
 if (-not $pipe -or -not $tok) {
@@ -76,11 +76,11 @@ function WaitFor([scriptblock]$predicate, [string]$what) {
     throw "Timed out waiting for $what"
 }
 
-# Tỉ lệ điểm tối (<100) trên vùng trang: nền trang sáng thì gần 0, nền tối thì gần 100.
+# Tỉ lệ điểm tối (<100) trên vùng trang: nền trang sáng thì gần 0, nền tối thì gần 100. Chỉ lấy mẫu phần giữa cửa sổ, nơi trang nằm: sidebar và lề quanh trang theo màu giao diện, không theo chế độ đọc.
 function DarkShare([string]$bmp) {
     $code = "import sys; from PIL import Image; im=Image.open(sys.argv[1]).convert('RGB'); w,h=im.size; px=im.load(); d=n=0
-for y in range(120,h-10,4):
-  for x in range(10,w-10,4):
+for y in range(h//4,h-h//10,4):
+  for x in range(w*3//10,w*17//20,4):
     n+=1; d+= max(px[x,y])<100
 print(round(100*d/n,1))"
     Push-Location (Join-Path $PSScriptRoot '..\core')
@@ -98,7 +98,9 @@ function Expect([string]$name, $actual, $expected) {
 }
 
 try {
-    WaitFor { $s = State; $null -ne $s.view -and -not $s.view.night -and $s.pending -eq 0 -and $s.cachedBytes -gt 0 } 'day-mode page cache to settle'
+    # The first frame renders a placeholder-sized bitmap (a few hundred bytes) before the viewport is
+    # known; wait for a full-size page so the day screenshot and cache size are the real ones.
+    WaitFor { $s = State; $null -ne $s.view -and -not $s.view.night -and $s.pending -eq 0 -and $s.cachedBytes -gt 100000 } 'day-mode page cache to settle'
     $dayState = State
     Expect "starts in day mode" $dayState.view.night $false
     $dayPath = (Send ("screenshot " + (Join-Path $work "night-day.bmp")) | ConvertFrom-Json).path

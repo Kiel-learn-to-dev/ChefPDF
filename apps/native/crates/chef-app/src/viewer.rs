@@ -4,8 +4,10 @@
 //! yêu cầu ảnh full-scale cho trang nhìn thấy và một trang mỗi bên, và giải phóng ảnh (texture GPU)
 //! của trang đã bỏ bằng `Window::drop_image`. Tìm kiếm quét chữ từng trang trong nền (find.rs).
 
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -26,15 +28,14 @@ use chef_viewer::{
 use gpui::{
     App, ClipboardItem, Context, Entity, FocusHandle, Focusable, IntoElement, KeyBinding,
     MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, RenderImage,
-    ScrollWheelEvent, Subscription, Window, actions, div, img, prelude::*, px, rgb, rgba,
+    ScrollWheelEvent, Subscription, Window, actions, canvas, div, img, prelude::*, px, rgb, rgba,
 };
 use image::{Frame, RgbaImage};
 
 use crate::find::Find;
 use crate::password;
 use crate::properties;
-use crate::settings::{self, Language as SettingLanguage, Settings, Theme as SettingTheme};
-use crate::settings_dialog;
+use crate::settings_dialog::SettingsPanel;
 use crate::source_guard::{self, Fingerprint, Verdict};
 use crate::theme::{self, Mode};
 use chef_ui::i18n;
@@ -141,6 +142,8 @@ const MARGIN: f32 = 24.0;
 const BUFFER_PAGES: usize = 1;
 /// Chiều cao thanh tìm kiếm phía trên trang, pixel logic.
 const TOOLBAR_H: f32 = 40.0;
+/// Khung vùng trang trong cửa sổ: x, y, rộng, cao (pixel logic).
+type ContentBounds = (f32, f32, f32, f32);
 /// Chiều cao thanh dưới (số trang và chỉ báo lớp chữ), pixel logic.
 const FOOTER_H: f32 = 24.0;
 /// Số trang lấy mẫu để biết tài liệu có chữ hay là scan (R2.29). Không đọc cả file.
@@ -156,14 +159,6 @@ const THUMBNAIL_WIDTH: f32 = 150.0;
 const THUMBNAIL_GAP: f32 = 10.0;
 const THUMBNAIL_RASTER_WIDTH: u32 = 150;
 
-/// Cài đặt đang hiển thị: từ settings.json, hoặc mặc định khi file không đọc được.
-#[derive(Clone, Default)]
-struct Prefs {
-    theme: SettingTheme,
-    language: SettingLanguage,
-    save_dir: Option<String>,
-}
-
 pub struct Viewer {
     handle: RenderHandle,
     supervisor: Option<Arc<Mutex<Supervisor>>>,
@@ -172,13 +167,8 @@ pub struct Viewer {
     /// Giữ đăng ký sự kiện của ô tìm và ô thư mục: bỏ thì không còn nhận sự kiện.
     _subscriptions: Vec<Subscription>,
     appearance_observer_installed: bool,
-    /// settings.json đã đọc. None khi file không đọc được: thay đổi chỉ còn trong phiên này.
-    settings: Option<Settings>,
-    settings_error: Option<String>,
-    prefs: Prefs,
-    settings_open: bool,
-    settings_handles: settings_dialog::Handles,
-    dir_input: Entity<TextInput>,
+    /// Cài đặt dùng chung của cửa sổ (giao diện, ngôn ngữ, thư mục lưu). Cửa sổ vẽ hộp thoại.
+    settings: Entity<SettingsPanel>,
     find: Find,
     /// Tiêu điểm của khung viewer. Bấm vào trang đưa tiêu điểm về đây để Ctrl+A, Ctrl+C hoạt động.
     focus: FocusHandle,
@@ -187,7 +177,9 @@ pub struct Viewer {
     text_pending: HashMap<usize, Receiver<Reply<PageText>>>,
     selection: Option<Selection>,
     dragging: bool,
-    mode: Mode,
+    /// Khung vùng trang đo ở lần vẽ trước (x, y, rộng, cao; tọa độ cửa sổ). Viewer nằm dưới thanh
+    /// tab và có thể có dải cảnh báo, thanh tìm kiếm, nên không suy ra được từ kích thước cửa sổ.
+    content_bounds: Rc<Cell<Option<ContentBounds>>>,
     doc: Option<DocId>,
     /// Đường dẫn tệp đang mở, để hộp thoại Thuộc tính đọc dung lượng.
     doc_path: Option<PathBuf>,
@@ -226,6 +218,8 @@ pub struct Viewer {
     password_handles: password::Handles,
     /// Đặt tiêu điểm vào ô mật khẩu ở khung kế tiếp (sau khi hộp thoại hiện).
     password_focus_pending: bool,
+    /// Trả tiêu điểm về khung viewer ở khung kế tiếp (sau khi một hộp thoại đóng mà không có `Window`).
+    viewer_focus_pending: bool,
     layout: Option<Layout>,
     spread: Option<SpreadLayout>,
     page_sizes: Vec<(f32, f32)>,
@@ -240,6 +234,11 @@ pub struct Viewer {
     viewport: (f32, f32),
     cache: LruCache<usize, Arc<RenderImage>>,
     pending: HashMap<usize, Receiver<Reply<PageImage>>>,
+    /// Zoom nhân tỉ lệ màn hình (phần vạn) mà ảnh trong cache được render. Khi nó đổi, ảnh cũ vẫn
+    /// hiện (bị kéo giãn) cho đến khi ảnh render lại ở độ phân giải mới về.
+    raster_key: u32,
+    /// Trang có ảnh trong cache nhưng render ở zoom cũ, cần render lại.
+    stale: std::collections::HashSet<usize>,
     bookmarks: Vec<Bookmark>,
     sidebar_outline: bool,
     sidebar_scroll_y: f32,
@@ -299,6 +298,40 @@ fn call_error_has_unknown_outcome(error: &CallError) -> bool {
         error,
         CallError::Timeout | CallError::Closed | CallError::Io(_)
     )
+}
+
+/// Whether a failed revision edit (rotate, undo, redo) may still have been committed by the core,
+/// so the displayed revision must be re-read before another edit.
+fn edit_error_needs_reload(error: &CallError) -> bool {
+    let outcome = if call_error_has_unknown_outcome(error) {
+        reload::MutationOutcome::Unknown
+    } else {
+        reload::MutationOutcome::ExplicitFailure
+    };
+    reload::requires_revision_reconciliation(reload::MutationKind::RevisionEdit, outcome)
+}
+
+/// `canUndo`, `canRedo` and `dirty` of a session state object; a missing field reads as false.
+struct SessionFlags {
+    can_undo: bool,
+    can_redo: bool,
+    dirty: bool,
+}
+
+impl SessionFlags {
+    fn read(state: &serde_json::Value) -> SessionFlags {
+        let flag = |key: &str| {
+            state
+                .get(key)
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false)
+        };
+        SessionFlags {
+            can_undo: flag("canUndo"),
+            can_redo: flag("canRedo"),
+            dirty: flag("dirty"),
+        }
+    }
 }
 
 /// Tài liệu có chữ, không có chữ (scan) hay hỗn hợp (R2.29).
@@ -363,6 +396,11 @@ impl Viewer {
                     .ok_or_else(|| i18n::t("editor.revisionMissing"))?;
                 drop(sup);
                 let (doc, sizes) = load_revision(&handle, path.clone())?;
+                let SessionFlags {
+                    can_undo,
+                    can_redo,
+                    dirty,
+                } = SessionFlags::read(&state);
                 let applied = OperationResult::Applied {
                     generation,
                     session_id: session_id.clone(),
@@ -370,18 +408,9 @@ impl Viewer {
                     doc,
                     sizes,
                     changed_pages: Some(serde_json::Value::String("all".into())),
-                    can_undo: state
-                        .get("canUndo")
-                        .and_then(serde_json::Value::as_bool)
-                        .unwrap_or(false),
-                    can_redo: state
-                        .get("canRedo")
-                        .and_then(serde_json::Value::as_bool)
-                        .unwrap_or(false),
-                    dirty: state
-                        .get("dirty")
-                        .and_then(serde_json::Value::as_bool)
-                        .unwrap_or(false),
+                    can_undo,
+                    can_redo,
+                    dirty,
                 };
                 if let Err(std::sync::mpsc::SendError(OperationResult::Applied { doc, .. })) =
                     tx.send(applied)
@@ -400,6 +429,30 @@ impl Viewer {
             }
         });
         cx.notify();
+    }
+
+    /// Lưu thành: hỏi đường dẫn rồi lưu. E2E đặt sẵn đường dẫn qua `CHEF_E2E_SAVE_AS_PATH`, vì
+    /// hộp thoại gốc của Windows không điều khiển được qua kênh debug.
+    fn begin_save_as(&mut self, cx: &mut Context<Self>) {
+        let e2e_path = (std::env::var("CHEF_E2E").as_deref() == Ok("1"))
+            .then(|| std::env::var_os("CHEF_E2E_SAVE_AS_PATH"))
+            .flatten()
+            .map(PathBuf::from);
+        let path = e2e_path.or_else(|| {
+            let suggested = self
+                .source_path
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "document.pdf".into());
+            crate::dialogs::save_pdf(
+                self.settings.read(cx).save_dir().map(std::path::Path::new),
+                &suggested,
+            )
+        });
+        if let Some(path) = path {
+            self.begin_edit(EditOperation::Save(Some(path.display().to_string())), cx);
+        }
     }
 
     fn begin_edit(&mut self, operation: EditOperation, cx: &mut Context<Self>) {
@@ -494,14 +547,7 @@ impl Viewer {
                         ) {
                             Ok(id) => id,
                             Err(error) => {
-                                refresh_required = reload::requires_revision_reconciliation(
-                                    reload::MutationKind::RevisionEdit,
-                                    if call_error_has_unknown_outcome(&error) {
-                                        reload::MutationOutcome::Unknown
-                                    } else {
-                                        reload::MutationOutcome::ExplicitFailure
-                                    },
-                                );
+                                refresh_required = edit_error_needs_reload(&error);
                                 return Err(call_error_text(error));
                             }
                         };
@@ -523,33 +569,19 @@ impl Viewer {
                         }
                     }
                     EditOperation::Undo => {
-                        crate::undo::undo(&sup, &session_id).map_err(|error| {
-                            refresh_required = reload::requires_revision_reconciliation(
-                                reload::MutationKind::RevisionEdit,
-                                if call_error_has_unknown_outcome(&error) {
-                                    reload::MutationOutcome::Unknown
-                                } else {
-                                    reload::MutationOutcome::ExplicitFailure
-                                },
-                            );
+                        chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
+                            refresh_required = edit_error_needs_reload(&error);
                             call_error_text(error)
                         })?
                     }
                     EditOperation::Redo => {
-                        crate::undo::redo(&sup, &session_id).map_err(|error| {
-                            refresh_required = reload::requires_revision_reconciliation(
-                                reload::MutationKind::RevisionEdit,
-                                if call_error_has_unknown_outcome(&error) {
-                                    reload::MutationOutcome::Unknown
-                                } else {
-                                    reload::MutationOutcome::ExplicitFailure
-                                },
-                            );
+                        chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
+                            refresh_required = edit_error_needs_reload(&error);
                             call_error_text(error)
                         })?
                     }
                     EditOperation::Save(path) => {
-                        crate::save::save(&sup, &session_id, path.as_deref())
+                        chef_rpc::ops::save(&sup, &session_id, path.as_deref())
                             .map_err(call_error_text)?
                     }
                 };
@@ -569,32 +601,28 @@ impl Viewer {
                                 .collect()
                         })
                         .unwrap_or_default();
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&reply);
                     let _ = tx.send(OperationResult::Saved {
                         generation,
                         session_id,
                         path,
                         warnings,
-                        can_undo: reply
-                            .get("canUndo")
-                            .and_then(serde_json::Value::as_bool)
-                            .unwrap_or(false),
-                        can_redo: reply
-                            .get("canRedo")
-                            .and_then(serde_json::Value::as_bool)
-                            .unwrap_or(false),
-                        dirty: reply
-                            .get("dirty")
-                            .and_then(serde_json::Value::as_bool)
-                            .unwrap_or(false),
+                        can_undo,
+                        can_redo,
+                        dirty,
                     });
                     return Ok(());
                 }
-                if !is_save {
-                    refresh_required = reload::requires_revision_reconciliation(
-                        reload::MutationKind::RevisionEdit,
-                        reload::MutationOutcome::Committed,
-                    );
-                }
+                // The core has committed the edit: a later failure (loading the revision) must
+                // force a state reload before the next edit.
+                refresh_required = reload::requires_revision_reconciliation(
+                    reload::MutationKind::RevisionEdit,
+                    reload::MutationOutcome::Committed,
+                );
                 let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
                 let revision_path = state
                     .get("revisionPath")
@@ -604,18 +632,11 @@ impl Viewer {
                 drop(sup);
                 let (doc, sizes) = load_revision(&render_handle, revision_path.clone())?;
                 let changed = reply.get("changedPages").cloned();
-                let can_undo = state
-                    .get("canUndo")
-                    .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false);
-                let can_redo = state
-                    .get("canRedo")
-                    .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false);
-                let dirty = state
-                    .get("dirty")
-                    .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false);
+                let SessionFlags {
+                    can_undo,
+                    can_redo,
+                    dirty,
+                } = SessionFlags::read(&state);
                 let applied = OperationResult::Applied {
                     generation,
                     session_id,
@@ -852,6 +873,7 @@ impl Viewer {
         handle: RenderHandle,
         path: Option<PathBuf>,
         supervisor: Option<Arc<Mutex<Supervisor>>>,
+        settings: Entity<SettingsPanel>,
         cx: &mut Context<Self>,
     ) -> Self {
         let search = cx.new(|cx| TextInput::new(cx, "Tìm trong tài liệu"));
@@ -869,33 +891,8 @@ impl Viewer {
             &search,
             |this: &mut Viewer, _, event: &TextInputEvent, cx| this.on_search_event(*event, cx),
         );
-        // Cài đặt: đọc settings.json trong userData (hoặc thư mục thử nghiệm). Lỗi đọc không làm sập app.
-        let (settings, settings_error) = match Settings::load(&settings::user_data_dir()) {
-            Ok(s) => (Some(s), None),
-            Err(e) => (None, Some(e.to_string())),
-        };
-        let prefs = match &settings {
-            Some(s) => Prefs {
-                theme: s.theme(),
-                language: s.language(),
-                save_dir: s.default_save_dir().map(str::to_string),
-            },
-            None => Prefs::default(),
-        };
-        i18n::set_language(i18n::Lang::from_code(prefs.language.as_str()));
-        let dir_input =
-            cx.new(|cx| TextInput::new(cx, i18n::t("settings.defaultSaveDirPlaceholder")));
-        let dir_text = prefs.save_dir.clone().unwrap_or_default();
-        dir_input.update(cx, |input, cx| input.set_text(&dir_text, cx));
-        let dir_subscription = cx.subscribe(
-            &dir_input,
-            |this: &mut Viewer, input, event: &TextInputEvent, cx| {
-                if matches!(event, TextInputEvent::Submit) {
-                    let text = input.read(cx).text().to_string();
-                    this.set_save_dir_setting(text, cx);
-                }
-            },
-        );
+        // Cài đặt đổi (giao diện, ngôn ngữ) thì vẽ lại.
+        let settings_subscription = cx.observe(&settings, |_, _, cx| cx.notify());
         let password_input = cx.new(|cx| TextInput::new(cx, i18n::t("password.label")));
         password_input.update(cx, |input, cx| input.set_secure(true, cx));
         let password_subscription = cx.subscribe(
@@ -915,11 +912,6 @@ impl Viewer {
         let redo_focus = cx.focus_handle();
         let save_focus = cx.focus_handle();
         let save_as_focus = cx.focus_handle();
-        let settings_handles = settings_dialog::Handles {
-            theme: (0..3).map(|_| cx.focus_handle()).collect(),
-            close: cx.focus_handle(),
-            return_to: focus.clone(),
-        };
         let mut viewer = Viewer {
             handle,
             supervisor,
@@ -928,23 +920,18 @@ impl Viewer {
             _subscriptions: vec![
                 subscription,
                 zoom_subscription,
-                dir_subscription,
+                settings_subscription,
                 password_subscription,
             ],
             appearance_observer_installed: false,
             settings,
-            settings_error,
-            prefs: prefs.clone(),
-            settings_open: false,
-            settings_handles,
-            dir_input,
             find: Find::default(),
             focus,
             texts: HashMap::new(),
             text_pending: HashMap::new(),
             selection: None,
             dragging: false,
-            mode: theme::effective_mode(prefs.theme),
+            content_bounds: Rc::new(Cell::new(None)),
             doc_path: None,
             source_path: None,
             source_fingerprint: None,
@@ -982,6 +969,7 @@ impl Viewer {
                 return_to: focus_for_password.clone(),
             },
             password_focus_pending: false,
+            viewer_focus_pending: false,
             doc: None,
             layout: None,
             spread: None,
@@ -996,6 +984,8 @@ impl Viewer {
             viewport: (0.0, 0.0),
             cache: LruCache::new(CACHE_BUDGET),
             pending: HashMap::new(),
+            raster_key: 0,
+            stale: std::collections::HashSet::new(),
             bookmarks: Vec::new(),
             sidebar_outline: false,
             sidebar_scroll_y: 0.0,
@@ -1013,52 +1003,6 @@ impl Viewer {
         }
         viewer.start_poll(cx);
         viewer
-    }
-
-    /// Ghi settings.json. Lỗi ghi hiện ở thông báo, không làm sập app.
-    fn save_settings(&mut self) {
-        let result = self.settings.as_mut().map(|settings| settings.save());
-        if let Some(Err(e)) = result {
-            self.message = Some(format!("Không lưu được cài đặt: {e}"));
-        }
-    }
-
-    /// Đổi giao diện từ hộp thoại: có hiệu lực ngay và được ghi.
-    pub(crate) fn set_theme_setting(&mut self, theme: SettingTheme, cx: &mut Context<Self>) {
-        self.prefs.theme = theme;
-        self.mode = theme::effective_mode(theme);
-        if let Some(settings) = self.settings.as_mut() {
-            settings.set_theme(theme);
-        }
-        self.save_settings();
-        cx.notify();
-    }
-
-    /// Đổi ngôn ngữ từ hộp thoại: chuỗi giao diện đổi ngay và được ghi.
-    pub(crate) fn set_language_setting(
-        &mut self,
-        language: SettingLanguage,
-        cx: &mut Context<Self>,
-    ) {
-        self.prefs.language = language;
-        i18n::set_language(i18n::Lang::from_code(language.as_str()));
-        if let Some(settings) = self.settings.as_mut() {
-            settings.set_language(language);
-        }
-        self.save_settings();
-        cx.notify();
-    }
-
-    /// Đặt thư mục lưu mặc định từ ô nhập (Enter). Chuỗi rỗng là bỏ thư mục mặc định.
-    pub(crate) fn set_save_dir_setting(&mut self, text: String, cx: &mut Context<Self>) {
-        let dir = text.trim();
-        let value = (!dir.is_empty()).then(|| dir.to_string());
-        if let Some(settings) = self.settings.as_mut() {
-            settings.set_default_save_dir(value.as_deref());
-        }
-        self.prefs.save_dir = value;
-        self.save_settings();
-        cx.notify();
     }
 
     /// Mở một file. Nếu file cần mật khẩu thì hỏi mật khẩu (R2.26); lỗi khác hiện ở thông báo.
@@ -1154,7 +1098,11 @@ impl Viewer {
             .update(cx, |input, cx| input.clear_sensitive(cx));
         let result = self.load(path, Some(typed));
         match result {
-            Ok(()) => self.close_password_state(),
+            Ok(()) => {
+                self.close_password_state();
+                // Ô mật khẩu vừa biến mất: không trả tiêu điểm thì phím tắt của viewer không còn tới được.
+                self.viewer_focus_pending = true;
+            }
             Err(e) if e == chef_pdf::render::PASSWORD_WRONG => {
                 self.password_wrong = true;
                 self.password_focus_pending = true;
@@ -1228,24 +1176,6 @@ impl Viewer {
     /// Đóng hộp thoại Thuộc tính và trả tiêu điểm về khung viewer.
     fn close_properties(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.props_open = false;
-        window.focus(&self.focus, cx);
-        cx.notify();
-    }
-
-    /// Mở hộp thoại Cài đặt (Ctrl+,). Tiêu điểm vào nút của chế độ đang chọn.
-    fn open_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let text = self.prefs.save_dir.clone().unwrap_or_default();
-        self.dir_input
-            .update(cx, |input, cx| input.set_text(&text, cx));
-        self.settings_open = true;
-        let selected = settings_dialog::theme_index(self.prefs.theme);
-        window.focus(&self.settings_handles.theme[selected], cx);
-        cx.notify();
-    }
-
-    /// Đóng hộp thoại Cài đặt và trả tiêu điểm về khung viewer.
-    pub(crate) fn close_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.settings_open = false;
         window.focus(&self.focus, cx);
         cx.notify();
     }
@@ -1415,6 +1345,7 @@ impl Viewer {
                     }
                     match to_render_image(page, self.view_rotation) {
                         Ok((image, bytes)) => {
+                            self.stale.remove(&index);
                             self.to_drop.extend(self.cache.insert(index, image, bytes));
                         }
                         Err(e) => self.message = Some(e),
@@ -1570,7 +1501,11 @@ impl Viewer {
     fn point_to_char(&self, pos: Point<Pixels>) -> Option<(usize, usize)> {
         let layout = self.layout.as_ref()?;
         let (vw, _) = self.viewport;
-        let (x, y) = (pos.x.as_f32() - SIDEBAR_WIDTH, pos.y.as_f32() - TOOLBAR_H);
+        let (left, top, _, _) =
+            self.content_bounds
+                .get()
+                .unwrap_or((SIDEBAR_WIDTH, TOOLBAR_H, 0.0, 0.0));
+        let (x, y) = (pos.x.as_f32() - left, pos.y.as_f32() - top);
         let zoom = layout.zoom();
         let pages = self
             .spread
@@ -1693,7 +1628,10 @@ impl Viewer {
                 text.chars.len()
             };
             let mut prev: Option<CharBox> = None;
-            for cb in text.chars.get(start..end).unwrap_or(&[]) {
+            // Bỏ ký tự xuống dòng pdfium tự chèn: dòng được tách theo hình học ở dưới, giữ cả hai
+            // thì mỗi dòng copy ra kèm thêm một dòng trống.
+            let glyphs = text.chars.get(start..end).unwrap_or(&[]).iter();
+            for cb in glyphs.filter(|cb| !chef_pdf::text::is_line_break(cb.ch)) {
                 if prev.as_ref().is_some_and(|p| new_line(p, cb)) {
                     out.push('\n');
                 }
@@ -2352,7 +2290,7 @@ impl Render for Viewer {
         if !self.appearance_observer_installed {
             self._subscriptions
                 .push(cx.observe_window_appearance(window, |this, _window, cx| {
-                    if this.mode == Mode::System {
+                    if this.settings.read(cx).mode() == Mode::System {
                         cx.notify();
                     }
                 }));
@@ -2361,15 +2299,28 @@ impl Render for Viewer {
         // Đầu khung: xóa danh sách điều khiển của khung trước, để lệnh `state` không đọc bản cũ.
         chef_ui::a11y::begin_frame(window.scale_factor());
         let vp = window.viewport_size();
-        self.viewport = (vp.width.as_f32(), vp.height.as_f32());
+        // `viewport` giữ nghĩa cũ (vùng trang cộng sidebar, thanh công cụ, thanh dưới) nhưng lấy từ
+        // khung vùng trang đã đo, để phần trừ đi ở các công thức ra đúng kích thước thật.
+        self.viewport = match self.content_bounds.get() {
+            Some((_, _, w, h)) => (w + SIDEBAR_WIDTH, h + TOOLBAR_H + FOOTER_H),
+            None => (vp.width.as_f32(), vp.height.as_f32()),
+        };
         for old in self.to_drop.drain(..) {
             let _ = window.drop_image(old);
         }
-        let dark = theme::is_dark(self.mode);
+        let dark = theme::is_dark(self.settings.read(cx).mode());
         crate::debug::set_theme_dark(dark);
         let palette = theme::palette(dark);
         crate::debug::set_message(self.message.as_deref());
         let entity = cx.entity();
+        if self.viewer_focus_pending {
+            self.viewer_focus_pending = false;
+            let focus = self.focus.clone();
+            window.defer(cx, move |window, cx| {
+                window.focus(&focus, cx);
+                window.refresh();
+            });
+        }
         if self.password_focus_pending {
             self.password_focus_pending = false;
             // Hộp thoại dựng ở khung này, nên tiêu điểm đặt sau khi khung vẽ xong (defer). Trong E2E cửa sổ
@@ -2430,28 +2381,6 @@ impl Render for Viewer {
             crate::debug::set_properties(None);
             None
         };
-        crate::debug::set_settings(
-            self.prefs.theme.as_str(),
-            self.prefs.language.as_str(),
-            self.prefs.save_dir.as_deref(),
-            self.settings_open,
-        );
-        let settings_dialog = self.settings_open.then(|| {
-            let snapshot = settings_dialog::Snapshot {
-                theme: self.prefs.theme,
-                language: self.prefs.language,
-                dark,
-                read_error: self.settings_error.clone(),
-            };
-            settings_dialog::build(
-                &cx.entity(),
-                &snapshot,
-                &self.settings_handles,
-                &self.dir_input,
-                window,
-                cx,
-            )
-        });
         let scanning = self.scanning();
         let source_warning = self.source_warning.map(|verdict| {
             let (body, title) = match verdict {
@@ -2483,13 +2412,17 @@ impl Render for Viewer {
                 .gap(px(8.))
                 .bg(rgb(palette.surface))
                 .text_color(rgb(palette.text))
-                .child(div().flex_1().child(format!("{title}: {body}")))
+                // min_w_0: không có thì dòng chữ dài không co lại, đẩy hai nút ra ngoài cửa sổ.
+                .child(div().flex_1().min_w_0().child(format!("{title}: {body}")))
                 .child(
                     Button::new("source-warning-review", self.source_warning_review.clone())
                         .label(i18n::t("sourceGuard.review"))
-                        .on_click(move |_, _, cx| {
+                        .on_click(move |_, window, cx| {
                             review.update(cx, |this, cx| {
                                 this.source_warning = None;
+                                // Nút vừa bấm biến mất cùng dải cảnh báo: trả tiêu điểm về viewer,
+                                // nếu không phím tắt (xoay, hoàn tác, lưu) không còn tới được.
+                                window.focus(&this.focus, cx);
                                 cx.notify();
                             })
                         }),
@@ -2498,12 +2431,13 @@ impl Render for Viewer {
                     Button::new("source-warning-reopen", self.source_warning_reopen.clone())
                         .label(i18n::t("sourceGuard.reopen"))
                         .variant(Variant::Primary)
-                        .on_click(move |_, _, cx| {
+                        .on_click(move |_, window, cx| {
                             reopen.update(cx, |this, cx| {
                                 this.source_warning = None;
                                 if let Some(path) = path.clone() {
                                     this.open_path(path, cx);
                                 }
+                                window.focus(&this.focus, cx);
                                 cx.notify();
                             })
                         }),
@@ -2625,36 +2559,7 @@ impl Render for Viewer {
                     )
                     .on_click({
                         let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |this, cx| {
-                                if std::env::var("CHEF_E2E").as_deref() == Ok("1")
-                                    && let Some(path) = std::env::var_os("CHEF_E2E_SAVE_AS_PATH")
-                                {
-                                    this.begin_edit(
-                                        EditOperation::Save(Some(
-                                            PathBuf::from(path).display().to_string(),
-                                        )),
-                                        cx,
-                                    );
-                                    return;
-                                }
-                                let name = this
-                                    .source_path
-                                    .as_ref()
-                                    .and_then(|p| p.file_name())
-                                    .map(|s| s.to_string_lossy().into_owned())
-                                    .unwrap_or_else(|| "document.pdf".into());
-                                if let Some(path) = crate::dialogs::save_pdf(
-                                    this.prefs.save_dir.as_deref().map(std::path::Path::new),
-                                    &name,
-                                ) {
-                                    this.begin_edit(
-                                        EditOperation::Save(Some(path.display().to_string())),
-                                        cx,
-                                    );
-                                }
-                            })
-                        }
+                        move |_, _, cx| entity.update(cx, |this, cx| this.begin_save_as(cx))
                     }),
             )
             .children(retry_reload)
@@ -2853,9 +2758,6 @@ impl Render for Viewer {
                     this.toggle_night();
                     cx.notify();
                 }))
-                .on_action(cx.listener(|this, _: &OpenSettings, window, cx| {
-                    this.open_settings(window, cx);
-                }))
                 .on_action(cx.listener(|this, _: &OpenProperties, window, cx| {
                     this.open_properties(window, cx);
                 }))
@@ -2871,29 +2773,7 @@ impl Render for Viewer {
                 .on_action(cx.listener(|this, _: &SaveEdit, _window, cx| {
                     this.begin_edit(EditOperation::Save(None), cx)
                 }))
-                .on_action(cx.listener(|this, _: &SaveEditAs, _window, cx| {
-                    if std::env::var("CHEF_E2E").as_deref() == Ok("1")
-                        && let Some(path) = std::env::var_os("CHEF_E2E_SAVE_AS_PATH")
-                    {
-                        this.begin_edit(
-                            EditOperation::Save(Some(PathBuf::from(path).display().to_string())),
-                            cx,
-                        );
-                        return;
-                    }
-                    let suggested = this
-                        .source_path
-                        .as_ref()
-                        .and_then(|p| p.file_name())
-                        .map(|s| s.to_string_lossy().into_owned())
-                        .unwrap_or_else(|| "document.pdf".into());
-                    if let Some(path) = crate::dialogs::save_pdf(
-                        this.prefs.save_dir.as_deref().map(std::path::Path::new),
-                        &suggested,
-                    ) {
-                        this.begin_edit(EditOperation::Save(Some(path.display().to_string())), cx);
-                    }
-                }))
+                .on_action(cx.listener(|this, _: &SaveEditAs, _window, cx| this.begin_save_as(cx)))
                 .on_action(cx.listener(|this, _: &RetryRevisionReload, _window, cx| {
                     this.retry_revision_reload(cx)
                 }))
@@ -2939,7 +2819,6 @@ impl Render for Viewer {
                         .text_color(rgb(palette.text_2))
                         .child(text),
                 )
-                .children(settings_dialog)
                 .children(props_dialog)
                 .children(password_dialog);
         };
@@ -3005,6 +2884,12 @@ impl Render for Viewer {
         }
         let zoom = layout.zoom();
         let page_count = layout.page_count();
+        let raster_key = (zoom * scale * 10_000.0).round() as u32;
+        if raster_key != self.raster_key {
+            self.raster_key = raster_key;
+            self.pending.clear();
+            self.stale = self.cache.keys().into_iter().collect();
+        }
 
         // Vùng nhìn và vùng giữ bitmap. Các trang ngoài vùng giữ bị bỏ khỏi cache (R2).
         let visible: Vec<usize> = self
@@ -3043,7 +2928,9 @@ impl Render for Viewer {
         let requests: Vec<(usize, u32, u32)> = keep
             .iter()
             .copied()
-            .filter(|i| !self.cache.contains(i) && !self.pending.contains_key(i))
+            .filter(|i| {
+                (!self.cache.contains(i) || self.stale.contains(i)) && !self.pending.contains_key(i)
+            })
             .map(|i| {
                 let (w, h) = layout.page_px(i);
                 (i, (w * scale).round() as u32, (h * scale).round() as u32)
@@ -3057,6 +2944,7 @@ impl Render for Viewer {
             .collect();
 
         for i in outside {
+            self.stale.remove(&i);
             if let Some(image) = self.cache.remove(&i) {
                 self.to_drop.push(image);
             }
@@ -3287,6 +3175,25 @@ impl Render for Viewer {
             .on_mouse_move(cx.listener(Self::on_mouse_move))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
+            .child({
+                let measured = self.content_bounds.clone();
+                canvas(
+                    move |bounds, window, _| {
+                        let now = Some((
+                            bounds.origin.x.as_f32(),
+                            bounds.origin.y.as_f32(),
+                            bounds.size.width.as_f32(),
+                            bounds.size.height.as_f32(),
+                        ));
+                        if measured.replace(now) != now {
+                            window.request_animation_frame();
+                        }
+                    },
+                    |_, _, _, _| {},
+                )
+                .absolute()
+                .size_full()
+            })
             .children(children);
         let pages_toggle = cx.listener(|this, _: &MouseDownEvent, _window, cx| {
             this.sidebar_outline = false;
@@ -3346,6 +3253,7 @@ impl Render for Viewer {
             cx.notify();
         });
         let mut sidebar_rows = Vec::new();
+        // Các hàng nằm trong khung "sidebar-scroll", vốn đã ở dưới tiêu đề sidebar: tọa độ tính từ 0.
         if self.sidebar_outline {
             let row_height = 28.0;
             let first = (self.sidebar_scroll_y / row_height).floor() as usize;
@@ -3357,7 +3265,7 @@ impl Render for Viewer {
                 .skip(first)
                 .take(end.saturating_sub(first))
             {
-                let top = SIDEBAR_HEADER_H + index as f32 * row_height - self.sidebar_scroll_y;
+                let top = index as f32 * row_height - self.sidebar_scroll_y;
                 let title = if bookmark.title.is_empty() {
                     "(không có tiêu đề)"
                 } else {
@@ -3393,7 +3301,7 @@ impl Render for Viewer {
             }
         } else {
             for row in &visible_thumbnail_rows {
-                let top = SIDEBAR_HEADER_H + row.top - self.sidebar_scroll_y;
+                let top = row.top - self.sidebar_scroll_y;
                 let child = match self.thumbnail_cache.get(&row.page_index).cloned() {
                     Some(image) => img(image)
                         .w(px(row.width))
@@ -3435,7 +3343,7 @@ impl Render for Viewer {
             sidebar_rows.push(
                 div()
                     .absolute()
-                    .top(px(SIDEBAR_HEADER_H))
+                    .top(px(0.0))
                     .w_full()
                     .px(px(8.0))
                     .py(px(8.0))
@@ -3525,7 +3433,6 @@ impl Render for Viewer {
             .children(source_banner)
             .child(body)
             .child(footer)
-            .children(settings_dialog)
             .children(props_dialog)
             .children(password_dialog)
     }

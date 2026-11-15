@@ -50,6 +50,7 @@ function Send([string]$Command) {
         $reader = [System.IO.StreamReader]::new($client, [System.Text.UTF8Encoding]::new($false))
         $writer.WriteLine("$script:token $Command")
         $line = $reader.ReadLine()
+        if (-not $line -and $Command -eq 'quit') { return }
         if (-not $line) { throw "No response to debug command '$Command'." }
         return $line
     } finally { $client.Dispose() }
@@ -114,7 +115,7 @@ try {
 
     WaitFor {
         if (-not (Test-Path -LiteralPath $log)) { return $false }
-        $text = Get-Content -LiteralPath $log -Raw
+        $text = [string](Get-Content -LiteralPath $log -Raw)
         $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
         $script:token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
         if (-not $script:pipe -or -not $script:token) { return $false }
@@ -179,7 +180,7 @@ try {
     }
     WaitFor {
         if (-not (Test-Path -LiteralPath $reopenLog)) { return $false }
-        $text = Get-Content -LiteralPath $reopenLog -Raw
+        $text = [string](Get-Content -LiteralPath $reopenLog -Raw)
         $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
         $script:token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
         if (-not $script:pipe -or -not $script:token) { return $false }

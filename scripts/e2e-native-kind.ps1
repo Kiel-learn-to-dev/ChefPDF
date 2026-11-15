@@ -26,7 +26,7 @@ foreach ($case in $cases) {
     $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + (Join-Path $dir $case.File) + '"') -PassThru -RedirectStandardError $log -WindowStyle Hidden
     $env:CHEF_E2E = $null
     Start-Sleep -Seconds 4
-    $text = Get-Content $log -Raw
+    $text = [string](Get-Content $log -Raw)
     $pipe = [regex]::Match($text, 'chef-native-\d+').Value
     $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
     $c = New-Object System.IO.Pipes.NamedPipeClientStream(".", $pipe, [System.IO.Pipes.PipeDirection]::InOut)

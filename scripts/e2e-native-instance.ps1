@@ -42,7 +42,7 @@ try {
     $primary = Start-Process -FilePath $Exe -ArgumentList $primaryArgs -PassThru -RedirectStandardError $primaryLog -WindowStyle Hidden
 
     $deadline = (Get-Date).AddSeconds(45)
-    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $primaryLog)) -or ((Get-Content $primaryLog -Raw) -notmatch 'CHEF_DEBUG_TOKEN='))) {
+    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $primaryLog)) -or (([string](Get-Content $primaryLog -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))) {
         Start-Sleep -Milliseconds 200
     }
     if (-not (Test-Path $primaryLog)) { throw 'primary instance did not create its log' }

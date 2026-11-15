@@ -34,7 +34,7 @@ try {
     finally { $env:CHEF_E2E = $oldE2E; $env:CHEF_USER_DATA_DIR = $oldUserData }
 
     $deadline = (Get-Date).AddSeconds(30)
-    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or ((Get-Content $log -Raw) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
+    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or (([string](Get-Content $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
     if (-not (Test-Path $log)) { throw 'app log was not created' }
     $logText = Get-Content $log -Raw
     $pipe = [regex]::Match($logText, 'chef-native-\d+').Value

@@ -22,7 +22,7 @@ $proc = Start-Process -FilePath $Exe -ArgumentList ('"' + $Pdf + '"') -PassThru 
 $env:CHEF_E2E = $null
 Start-Sleep -Seconds 5
 
-$text = Get-Content $log -Raw
+$text = [string](Get-Content $log -Raw)
 $pipe = [regex]::Match($text, 'chef-native-\d+').Value
 $tok = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
 
@@ -71,13 +71,21 @@ try {
     1..5 | ForEach-Object { Send "action nextpage" | Out-Null; Start-Sleep -Milliseconds 80 }
     Start-Sleep -Milliseconds 200
     $before = View
-    $anchorBefore = ([double]$before.scrollY + [double]$before.viewportH / 2) / [double]$before.zoom
+    # Điểm giữa vùng nhìn tính theo point của trang. Khoảng cách 16 px giữa các trang không đổi theo
+    # zoom, nên phải trừ nó ra trước khi chia cho zoom.
+    function Anchor($v) {
+        $zoom = [double]$v.zoom; $step = 841.9 * $zoom + 16
+        $centre = [double]$v.scrollY + [double]$v.viewportH / 2
+        $page = [math]::Floor($centre / $step)
+        return $page * 841.9 + ($centre - $page * $step) / $zoom
+    }
+    $anchorBefore = Anchor $before
     Send "action zoomin" | Out-Null
     Start-Sleep -Milliseconds 300
     $after = View
     Near "Ctrl+= zooms in by one step" ([double]$after.zoom) ([double]$before.zoom * 1.25) 0.001
     Expect "zooming turns off fit-to-width" $after.fitWidth $false
-    $anchorAfter = ([double]$after.scrollY + [double]$after.viewportH / 2) / [double]$after.zoom
+    $anchorAfter = Anchor $after
     Near "zoom keeps the centre point of the view" $anchorAfter $anchorBefore 0.5
 
     # 3. Ctrl+− về lại, Ctrl+0 về vừa chiều rộng (zoom ban đầu).

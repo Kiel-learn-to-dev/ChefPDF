@@ -10,7 +10,7 @@ try { & uv run --no-project python -c 'import pikepdf,sys; p=pikepdf.Pdf.new(); 
 $oldE2E=$env:CHEF_E2E; $oldData=$env:CHEF_USER_DATA_DIR; $env:CHEF_E2E='1'; $env:CHEF_USER_DATA_DIR=Join-Path $work 'userdata'; $log=Join-Path $work 'app.log'; $proc=$null
 try {
   try{$proc=Start-Process -FilePath $Exe -ArgumentList ('"'+$pdf+'"') -PassThru -RedirectStandardError $log -WindowStyle Hidden} finally{$env:CHEF_E2E=$oldE2E;$env:CHEF_USER_DATA_DIR=$oldData}
-  $until=(Get-Date).AddSeconds(30); while((Get-Date)-lt $until -and ((-not(Test-Path $log))-or((Get-Content $log -Raw)-notmatch 'CHEF_DEBUG_TOKEN='))){Start-Sleep -Milliseconds 200}
+  $until=(Get-Date).AddSeconds(30); while((Get-Date)-lt $until -and ((-not(Test-Path $log))-or(([string](Get-Content $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))){Start-Sleep -Milliseconds 200}
   $txt=Get-Content $log -Raw; $pipe=[regex]::Match($txt,'chef-native-\d+').Value; $token=[regex]::Match($txt,'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value; if(-not$pipe-or-not$token){throw 'debug pipe/token missing'}
   function Send([string]$cmd){$c=[IO.Pipes.NamedPipeClientStream]::new('.',$pipe,[IO.Pipes.PipeDirection]::InOut);$c.Connect(5000);try{$w=[IO.StreamWriter]::new($c,[Text.UTF8Encoding]::new($false));$w.AutoFlush=$true;$r=[IO.StreamReader]::new($c,[Text.UTF8Encoding]::new($false));$w.WriteLine("$token $cmd");$r.ReadLine()}finally{$c.Dispose()}}
   function State(){Send 'state'|ConvertFrom-Json}
@@ -28,7 +28,7 @@ public static class ChefSpreadKeyboard {
   function Focus-App{if($env:CHEF_E2E_OS_INPUT-ne'1'){return};$s=State;$hwnd=[IntPtr]::new([long]$s.hwnd);[void][ChefSpreadKeyboard]::ShowWindow($hwnd,9);[void][ChefSpreadKeyboard]::SetWindowPos($hwnd,[IntPtr]::Zero,100,100,1280,900,0x0040);Start-Sleep -Milliseconds 200;[void][ChefSpreadKeyboard]::SetForegroundWindow($hwnd);Wait {(State).foreground} 'app foreground'}
   function Key([byte]$vk){if($env:CHEF_E2E_OS_INPUT-ne'1'){switch($vk){0x27{Send 'action slidenext'|Out-Null;return}0x25{Send 'action slideprevious'|Out-Null;return}0x7A{Send 'action togglefullscreen'|Out-Null;return}default{throw "unsupported non-OS key: $vk"}}};[ChefSpreadKeyboard]::keybd_event($vk,0,0,[UIntPtr]::Zero);[ChefSpreadKeyboard]::keybd_event($vk,0,2,[UIntPtr]::Zero)}
   Wait {$null-ne(State).view} 'initial render'; Focus-App
-  Send 'action viewbook'|Out-Null; Wait {$s=State;$s.view.mode-eq'book'-and(@($s.view.visiblePages).Count-eq1)} 'book cover alone'
+  Send 'action viewbook'|Out-Null; Wait {$s=State;$v=@($s.view.visiblePages);$s.view.mode-eq'book'-and$v.Count-gt0-and$v[0]-eq0-and($v.Count%2)-eq1} 'book cover alone in the first row'
   Send 'action viewtwopage'|Out-Null; Wait {$s=State;$s.view.mode-eq'twoPage'-and(@($s.view.visiblePages).Count-ge2)} 'two-page spread'
   Send 'action viewslideshow'|Out-Null; Wait {$s=State;$s.view.pageMode-eq'slideshow'-and$s.view.fullscreen-and(@($s.view.visiblePages).Count-eq1)} 'one-page fullscreen slideshow'
   $shot=Join-Path $work 'slideshow.bmp'; Send "screenshot $shot"|Out-Null; if(-not(Test-Path $shot)){throw 'slideshow screenshot was not captured'}

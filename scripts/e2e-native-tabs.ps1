@@ -52,7 +52,7 @@ try {
         if ($proc.HasExited) { throw "chef-app exited ($($proc.ExitCode)) before creating its startup log" }
         Start-Sleep -Milliseconds 100
     }
-    while ((Get-Date) -lt $deadline -and ((Get-Content $log -Raw -ErrorAction SilentlyContinue) -notmatch 'CHEF_DEBUG_TOKEN=')) {
+    while ((Get-Date) -lt $deadline -and (([string](Get-Content $log -Raw -ErrorAction SilentlyContinue)) -notmatch 'CHEF_DEBUG_TOKEN=')) {
         if ($proc.HasExited) { throw "chef-app exited ($($proc.ExitCode)): $(Get-Content $log -Raw -ErrorAction SilentlyContinue)" }
         Start-Sleep -Milliseconds 200
     }

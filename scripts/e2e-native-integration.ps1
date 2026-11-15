@@ -157,7 +157,7 @@ function Send-ControlKey([byte]$key) {
 function PdfRotation([string]$path) {
     Push-Location (Join-Path $repo 'core')
     try {
-        $rotation = & uv run --no-project python -c 'import pikepdf,sys; print(int(pikepdf.Pdf.open(sys.argv[1]).pages[0].get("/Rotate",0)))' $path
+        $rotation = & uv run --no-project python -c 'import pikepdf,sys; p=pikepdf.Pdf.open(sys.argv[1]); print(int(p.pages[0].get("/Rotate",0)))' $path
         if ($LASTEXITCODE -ne 0) { throw "pikepdf could not read rotation from $path" }
         return $rotation.Trim()
     }
@@ -229,7 +229,7 @@ try {
     # the document untouched until Reopen adopts the changed source.
     Push-Location (Join-Path $repo 'core')
     try {
-        & uv run --no-project python -c 'import os,pikepdf,sys; src=sys.argv[1]; tmp=src+".mutated.pdf"; p=pikepdf.Pdf.open(src); p.add_blank_page(page_size=(612,792)); p.save(tmp); p.close(); os.replace(tmp,src)' $source
+        & uv run --no-project python -c 'import os,pikepdf,shutil,sys; src=sys.argv[1]; tmp=src+".mutated.pdf"; p=pikepdf.Pdf.open(src); p.add_blank_page(page_size=(612,792)); p.save(tmp); p.close(); shutil.copyfile(tmp,src); os.remove(tmp)' $source
         if ($LASTEXITCODE) { throw 'source mutation fixture failed' }
     }
     finally { Pop-Location }

@@ -150,19 +150,17 @@ mod tests {
     }
 
     /// Chạy một đoạn Python có sẵn pikepdf của lõi, với đối số là các đường dẫn.
+    ///
+    /// Dùng `-c`, không ghi script ra %TEMP%: Python thêm thư mục chứa script vào `sys.path`,
+    /// nên một file lạ trong %TEMP% (ví dụ `inspect.py`) che thư viện chuẩn và làm hỏng pikepdf.
     fn run_py(python: &Path, script: &str, args: &[&Path]) -> String {
-        // Tên duy nhất cho mỗi lần chạy: các test chạy song song trong cùng một tiến trình.
-        static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-        let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let file = std::env::temp_dir().join(format!("chef-ops-{}-{n}.py", std::process::id()));
-        fs::write(&file, script).expect("ghi script");
         let out = Command::new(python)
-            .arg(&file)
+            .arg("-c")
+            .arg(script)
             .args(args)
             .current_dir(core_dir())
             .output()
             .expect("chạy python");
-        let _ = fs::remove_file(&file);
         assert!(
             out.status.success(),
             "{}",

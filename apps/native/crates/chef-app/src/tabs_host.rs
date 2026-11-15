@@ -18,6 +18,7 @@ use gpui::{
 };
 
 use crate::commands::{self, Command, CommandRegistry};
+use crate::settings_dialog::{self, SettingsPanel};
 use crate::tabs::{TabId, Tabs};
 use crate::viewer::{self, Viewer};
 
@@ -43,8 +44,8 @@ pub struct DocumentHost {
     closing: HashMap<TabId, Closing>,
     close_message: Option<String>,
     poll_started: bool,
-    recent_files: Vec<crate::settings::RecentFile>,
-    start_mode: crate::theme::Mode,
+    /// Cài đặt của cửa sổ, dùng chung cho màn hình Start và mọi tab.
+    settings: Entity<SettingsPanel>,
     appearance_observer_installed: bool,
     _subscriptions: Vec<Subscription>,
     command_registry: CommandRegistry,
@@ -53,6 +54,8 @@ pub struct DocumentHost {
     palette_selected: usize,
     palette_input: Entity<TextInput>,
     palette_close: FocusHandle,
+    /// Tiêu điểm của khung cửa sổ khi chưa có tab nào (màn hình Start), để phím tắt vẫn tới được.
+    focus: FocusHandle,
     palette_window: Option<AnyWindowHandle>,
 }
 
@@ -71,6 +74,8 @@ impl DocumentHost {
                 this.on_palette_input(input, *event, cx);
             },
         );
+        let settings = cx.new(SettingsPanel::new);
+        let settings_subscription = cx.observe(&settings, |_, _, cx| cx.notify());
         let mut host = Self {
             tabs: Tabs::new(),
             viewers: HashMap::new(),
@@ -79,19 +84,18 @@ impl DocumentHost {
             closing: HashMap::new(),
             close_message: None,
             poll_started: false,
-            recent_files: Vec::new(),
-            start_mode: crate::theme::Mode::System,
+            settings,
             appearance_observer_installed: false,
-            _subscriptions: vec![palette_subscription],
+            _subscriptions: vec![palette_subscription, settings_subscription],
             command_registry: commands::viewer_commands(chef_ui::i18n::t),
             palette_open: false,
             palette_query: String::new(),
             palette_selected: 0,
             palette_input,
             palette_close: cx.focus_handle(),
+            focus: cx.focus_handle(),
             palette_window: None,
         };
-        host.refresh_start_preferences();
         let batch = crate::drop::validate_paths(paths);
         for path in batch.accepted {
             host.insert_path(path, cx);
@@ -269,11 +273,12 @@ impl DocumentHost {
                 self.handle.clone(),
                 Some(path.clone()),
                 self.supervisor.clone(),
+                self.settings.clone(),
                 cx,
             )
         });
         self.viewers.insert(id, viewer);
-        self.record_recent_path(&path);
+        self.record_recent_path(&path, cx);
     }
 
     fn activate(&mut self, id: TabId, window: &mut Window, cx: &mut Context<Self>) {
@@ -317,9 +322,7 @@ impl DocumentHost {
             cx.notify();
             return;
         }
-        let initial_dir = crate::settings::Settings::load(&crate::settings::user_data_dir())
-            .ok()
-            .and_then(|settings| settings.default_save_dir().map(PathBuf::from));
+        let initial_dir = self.settings.read(cx).save_dir().map(PathBuf::from);
         let paths = crate::dialogs::open_pdfs(initial_dir.as_deref());
         self.open_paths(paths, window, cx);
     }
@@ -403,9 +406,6 @@ impl DocumentHost {
         self.viewers.remove(&id);
         self.closing.remove(&id);
         self.close_message = None;
-        if self.tabs.active_id().is_none() {
-            self.refresh_start_preferences();
-        }
         if was_active
             && let Some(next) = self.tabs.active_id()
             && let Some(viewer) = self.viewers.get(&next)
@@ -509,31 +509,13 @@ impl DocumentHost {
         .detach();
     }
 
-    fn refresh_start_preferences(&mut self) {
-        if let Ok(settings) = crate::settings::Settings::load(&crate::settings::user_data_dir()) {
-            self.recent_files = settings.recent_files();
-            self.start_mode = crate::theme::effective_mode(settings.theme());
-            chef_ui::i18n::set_language(chef_ui::i18n::Lang::from_code(
-                settings.language().as_str(),
-            ));
-        }
-    }
-
-    fn record_recent_path(&mut self, path: &std::path::Path) {
-        let Ok(mut settings) = crate::settings::Settings::load(&crate::settings::user_data_dir())
-        else {
-            return;
-        };
-        if settings
-            .record_recent(path, &crate::settings::now_iso_8601())
-            .is_err()
-        {
-            return;
-        }
-        if let Err(error) = settings.save() {
+    fn record_recent_path(&mut self, path: &std::path::Path, cx: &mut Context<Self>) {
+        let saved = self
+            .settings
+            .update(cx, |settings, cx| settings.record_recent(path, cx));
+        if let Err(error) = saved {
             self.close_message = Some(format!("Không lưu được danh sách gần đây: {error}"));
         }
-        self.recent_files = settings.recent_files();
     }
 }
 
@@ -562,12 +544,17 @@ impl Render for DocumentHost {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.begin_poll(cx);
         self.poll_closing(window, cx);
+        if self.tabs.active_id().is_none() {
+            // Viewer đang hiện tự mở khung đăng ký điều khiển; ở màn hình Start thì cửa sổ làm việc đó,
+            // nếu không danh sách điều khiển (và tỉ lệ màn hình) của kênh debug không được làm mới.
+            chef_ui::a11y::begin_frame(window.scale_factor());
+        }
         self.palette_window = Some(window.window_handle());
         if !self.appearance_observer_installed {
             self._subscriptions
                 .push(cx.observe_window_appearance(window, |this, _window, cx| {
                     if this.tabs.active_id().is_none()
-                        && this.start_mode == crate::theme::Mode::System
+                        && this.settings.read(cx).mode() == crate::theme::Mode::System
                     {
                         cx.notify();
                     }
@@ -621,9 +608,19 @@ impl Render for DocumentHost {
                 "enabled": command.is_available(),
             })).collect::<Vec<_>>(),
         }));
+        let (recent_files, mode) = {
+            let settings = self.settings.read(cx);
+            crate::debug::set_settings(
+                settings.theme().as_str(),
+                settings.language().as_str(),
+                settings.save_dir(),
+                settings.is_open(),
+            );
+            (settings.recent_files(), settings.mode())
+        };
         if active.is_none() {
             crate::debug::set_start_recents(
-                self.recent_files
+                recent_files
                     .iter()
                     .map(|recent| recent.path.clone())
                     .collect(),
@@ -709,14 +706,17 @@ impl Render for DocumentHost {
             );
         }
         let has_active = active.is_some();
+        if !has_active && window.focused(cx).is_none() {
+            window.focus(&self.focus, cx);
+        }
         let body = if let Some(viewer) = active.clone() {
             div().flex_1().child(viewer).into_any_element()
         } else {
-            let dark = crate::theme::is_dark(self.start_mode);
+            let dark = crate::theme::is_dark(mode);
             crate::debug::set_theme_dark(dark);
             crate::start::build(
                 cx.entity(),
-                &self.recent_files,
+                &recent_files,
                 window.viewport_size().width.as_f32(),
                 dark,
                 self.close_message.as_deref(),
@@ -730,6 +730,7 @@ impl Render for DocumentHost {
             .w_full()
             .h_full()
             .key_context("Viewer")
+            .track_focus(&self.focus)
             .on_action(
                 cx.listener(|this, _: &viewer::OpenFile, window, cx| this.open_dialog(window, cx)),
             )
@@ -738,6 +739,10 @@ impl Render for DocumentHost {
                 cx.listener(|this, _: &PreviousTab, window, cx| this.cycle(false, window, cx)),
             )
             .on_action(cx.listener(|this, _: &CloseTab, window, cx| this.close_active(window, cx)))
+            .on_action(cx.listener(|this, _: &viewer::OpenSettings, window, cx| {
+                this.settings
+                    .update(cx, |settings, cx| settings.open(window, cx));
+            }))
             .on_action(cx.listener(|this, _: &commands::OpenPalette, window, cx| {
                 this.open_palette(window, cx)
             }))
@@ -758,7 +763,7 @@ impl Render for DocumentHost {
             root.child(body)
         };
         if self.palette_open {
-            let dark = crate::theme::is_dark(self.start_mode);
+            let dark = crate::theme::is_dark(mode);
             let items = palette_results
                 .iter()
                 .map(|command| {
@@ -808,6 +813,7 @@ impl Render for DocumentHost {
             dialog = dialog.child(self.palette_input.clone()).child(results);
             root = root.child(dialog);
         }
-        root
+        let settings = self.settings.clone();
+        root.children(settings_dialog::build(&settings, window, cx))
     }
 }

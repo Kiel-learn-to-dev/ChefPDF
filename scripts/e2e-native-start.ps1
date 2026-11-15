@@ -53,7 +53,7 @@ try {
         $env:CHEF_E2E_CLOSE_DIALOGS = $oldCloseDialogs
     }
     $deadline = (Get-Date).AddSeconds(45)
-    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or ((Get-Content $log -Raw) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
+    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or (([string](Get-Content $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
     $logText = Get-Content $log -Raw
     $pipe = [regex]::Match($logText, 'chef-native-\d+').Value
     $token = [regex]::Match($logText, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value

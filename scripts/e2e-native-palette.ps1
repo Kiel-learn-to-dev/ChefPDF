@@ -37,7 +37,7 @@ try {
         $env:CHEF_E2E_SAVE_AS_PATH = $previousSaveAsPath
     }
     $deadline = (Get-Date).AddSeconds(30)
-    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or ((Get-Content $log -Raw) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
+    while ((Get-Date) -lt $deadline -and ((-not (Test-Path $log)) -or (([string](Get-Content $log -Raw)) -notmatch 'CHEF_DEBUG_TOKEN='))) { Start-Sleep -Milliseconds 200 }
     $logText = Get-Content $log -Raw
     $pipe = [regex]::Match($logText, 'chef-native-\d+').Value
     $token = [regex]::Match($logText, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
@@ -118,6 +118,9 @@ public static class ChefPaletteKeyboard {
     function ReplaceQuery([string]$query) {
         Ctrl-Key 0x41 # Ctrl+A
         Key 0x08 # Backspace
+        # Actions run on the app's 16 ms pump while typed characters arrive at once: wait until the
+        # field is really empty, or the new text is typed first and then erased.
+        WaitFor { (State).palette.query -eq '' } 'query cleared before typing'
         if ($query) { Type-Ascii $query }
     }
 
