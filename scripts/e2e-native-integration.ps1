@@ -142,10 +142,11 @@ function FocusViewerCanvas() {
 }
 function Send-ControlKey([byte]$key) {
     if ($env:CHEF_E2E_OS_INPUT -ne '1') {
+        # Không cần foreground: tổ hợp đi qua keymap GPUI (Window::dispatch_keystroke), giống phím thật.
         switch ($key) {
-            0x5A { Send 'action undoedit' | Out-Null; return }
-            0x59 { Send 'action redoedit' | Out-Null; return }
-            0x53 { Send 'action saveedit' | Out-Null; return }
+            0x5A { Send 'keystroke ctrl-z' | Out-Null; return }
+            0x59 { Send 'keystroke ctrl-y' | Out-Null; return }
+            0x53 { Send 'keystroke ctrl-s' | Out-Null; return }
             default { throw "unsupported non-OS Ctrl key: $key" }
         }
     }
@@ -281,11 +282,17 @@ try {
     WaitFor { $s = State; $null -ne $s.input -and $s.input.focused } 'search field owns focus before typing'
     Send 'char CHEF-M3-ANCHOR' | Out-Null
     WaitFor { $s = State; $s.find.query -eq 'CHEF-M3-ANCHOR' -and $s.find.total -gt 0 -and (-not $s.find.scanning) } 'search result before reload'
-    Send 'action selectalltext' | Out-Null
-    Start-Sleep -Milliseconds 150
     Set-Clipboard -Value 'CHEF-M3-CLIPBOARD-SENTINEL-BEFORE'
-    Send 'action copyselection' | Out-Null
-    WaitFor { (Get-Clipboard -Raw).Contains('CHEF-M3-ANCHOR') } 'selected text copied before revision'
+    # selectalltext is a no-op until the first page's text is extracted (text_of is async), and the
+    # debug state does not expose the selection. Retry select+copy until the clipboard shows the
+    # anchor instead of copying once right after the search result (flake R3.11).
+    WaitFor {
+        Send 'action selectalltext' | Out-Null
+        Start-Sleep -Milliseconds 150
+        Send 'action copyselection' | Out-Null
+        Start-Sleep -Milliseconds 150
+        (Get-Clipboard -Raw).Contains('CHEF-M3-ANCHOR')
+    } 'selected text copied before revision'
     $selectionBefore = Get-Clipboard -Raw
     if (-not $selectionBefore.Contains('CHEF-M3-ANCHOR')) { throw 'could not select/copy the text-bearing first page before revision reload' }
     Start-Sleep -Seconds 2
@@ -351,10 +358,20 @@ try {
         [long]$s.cachedPageImages.'0' -ne $beforeCacheIds[0] -and [long]$s.cachedPageImages.'1' -eq $beforeCacheIds[1] -and [int]$s.pending -eq 0
     } 'scroll/zoom/search state and per-page cache identity after revision reload'
     Set-Clipboard -Value 'CHEF-M3-CLIPBOARD-SENTINEL-AFTER'
-    Send 'action copyselection' | Out-Null
-    WaitFor { (Get-Clipboard -Raw) -ne 'CHEF-M3-CLIPBOARD-SENTINEL-AFTER' } 'selected text copied after revision reload'
+    # Wait for the anchor itself, not just "not the sentinel": a transient empty read of the
+    # clipboard counts as "not the sentinel" and let the check run before the copy landed.
+    WaitFor {
+        Send 'action copyselection' | Out-Null
+        Start-Sleep -Milliseconds 150
+        $clip = Get-Clipboard -Raw
+        ($clip -is [string]) -and $clip.Contains('CHEF-M3-ANCHOR')
+    } 'selected text copied after revision reload'
     $selectionAfter = Get-Clipboard -Raw
-    if ($selectionAfter -cne $selectionBefore) { throw 'text selection content changed after revision reload' }
+    if ($selectionAfter -cne $selectionBefore) {
+        $head = { param($t) if ($t.Length -gt 120) { $t.Substring(0, 120) } else { $t } }
+        throw ("text selection content changed after revision reload: before len={0} '{1}' | after len={2} '{3}'" -f `
+            $selectionBefore.Length, (& $head $selectionBefore), $selectionAfter.Length, (& $head $selectionAfter))
+    }
     $after = State
     Write-Output ("R3.06 view before/after: scrollY={0}/{1}, zoom={2}/{3}, firstPage={4}/{5}, cachedPages={6}/{7}" -f
         $before.view.scrollY, $after.view.scrollY, $beforeZoom, $after.view.zoom, $beforeFirstPage, $after.view.firstPage, $beforeCacheCount, $after.cached)
@@ -483,7 +500,8 @@ try {
         Stop-Process -Id $reopen.Id -Force -ErrorAction SilentlyContinue
         if (-not $reopen.WaitForExit(5000)) { throw 'Reopened app process did not exit.' }
     }
-    Write-Output 'PASS source guard -> page.rotate/revision/cache -> physical Ctrl+Z/Y -> Save As -> physical Ctrl+S -> native reopen'
+    $keyPath = if ($env:CHEF_E2E_OS_INPUT -eq '1') { 'physical' } else { 'keymap (debug keystroke)' }
+    Write-Output "PASS source guard -> page.rotate/revision/cache -> $keyPath Ctrl+Z/Y -> Save As -> $keyPath Ctrl+S -> native reopen"
     $passed = $true
 }
 finally {

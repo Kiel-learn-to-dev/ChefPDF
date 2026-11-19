@@ -1,17 +1,14 @@
-//! Thao tác, job, hoàn tác và lưu (TASKS_RUST R3.08, R3.11, R3.12; CONTRACTS §4 và §6). Mọi hàm đi qua
-//! `Supervisor`. `ops.run` trả `jobId` ngay; kết quả đến sau qua thông báo `job.finished`, `job.failed` hoặc
-//! `job.cancelled`, và `wait_job` đọc chúng từ kênh sự kiện.
-//!
-//! Lưu ý: `wait_job` bỏ qua mọi sự kiện không thuộc job đang chờ. Đây là đường đơn giản cho đến khi JobPanel
-//! (R3.09) có vòng sự kiện riêng.
+//! Thao tác, job, hoàn tác, lưu và khôi phục (TASKS_RUST R3.08, R3.09, R3.11, R3.12, R3.13; CONTRACTS §4 và §6).
+//! Mọi hàm đi qua `Supervisor`. `ops.run` trả `jobId` ngay; kết quả đến sau qua thông báo `job.finished`,
+//! `job.failed` hoặc `job.cancelled`. `wait_job` chờ trên sổ cái kết quả của `Supervisor` nên không tiêu thụ
+//! hay làm rơi sự kiện của `JobStore` / các job chạy song song.
 
-use std::sync::mpsc::{Receiver, RecvTimeoutError};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use serde_json::{Value, json};
 
 use crate::client::{CallError, Notification};
-use crate::supervisor::{Event, Supervisor};
+use crate::supervisor::{JobWaiter, Supervisor};
 
 /// Kết thúc của một job, theo thông báo của lõi.
 #[derive(Debug, Clone, PartialEq)]
@@ -50,40 +47,29 @@ pub fn start(
         // The core restarted after answering `ops.run`; its job is gone or unknown to the new run.
         return Err(CallError::Closed);
     }
+    sup.notify_job_started(&job_id, op_id, session_id);
     Ok(job_id)
 }
 
 /// Chờ job `job_id` kết thúc, tối đa `timeout`. Supervisor tracks the terminal notification and
 /// releases the job hold even when this waiter has already timed out.
 pub fn wait_job(sup: &Supervisor, job_id: &str, timeout: Duration) -> JobEnd {
-    wait_job_events(sup.events(), job_id, timeout)
+    wait_job_with_waiter(&sup.waiter(), job_id, timeout)
 }
 
-fn wait_job_events(events: &Receiver<Event>, job_id: &str, timeout: Duration) -> JobEnd {
-    let deadline = Instant::now() + timeout;
-    loop {
-        let left = deadline.saturating_duration_since(Instant::now());
-        match events.recv_timeout(left) {
-            Ok(Event::Notification(Notification { method, params }))
-                if params.get("jobId").and_then(Value::as_str) == Some(job_id) =>
-            {
-                match method.as_str() {
-                    "job.finished" => {
-                        return JobEnd::Finished(
-                            params.get("result").cloned().unwrap_or(Value::Null),
-                        );
-                    }
-                    "job.failed" => {
-                        return JobEnd::Failed(params.get("error").cloned().unwrap_or(Value::Null));
-                    }
-                    "job.cancelled" => return JobEnd::Cancelled,
-                    _ => {}
-                }
+/// Chờ job `job_id` kết thúc qua [`JobWaiter`], cho phép nhả khóa `Mutex<Supervisor>` trong lúc chờ.
+pub fn wait_job_with_waiter(waiter: &JobWaiter, job_id: &str, timeout: Duration) -> JobEnd {
+    match waiter.wait_notification(job_id, timeout) {
+        Ok(Some(Notification { method, params })) => match method.as_str() {
+            "job.finished" => {
+                JobEnd::Finished(params.get("result").cloned().unwrap_or(Value::Null))
             }
-            Ok(_) => {}
-            Err(RecvTimeoutError::Timeout) => return JobEnd::TimedOut,
-            Err(RecvTimeoutError::Disconnected) => return JobEnd::Stopped,
-        }
+            "job.failed" => JobEnd::Failed(params.get("error").cloned().unwrap_or(Value::Null)),
+            "job.cancelled" => JobEnd::Cancelled,
+            _ => JobEnd::Stopped,
+        },
+        Ok(None) => JobEnd::TimedOut,
+        Err(_) => JobEnd::Stopped,
     }
 }
 
@@ -112,11 +98,53 @@ pub fn save(sup: &Supervisor, session_id: &str, path: Option<&str>) -> Result<Va
     sup.request("session.save", &params)
 }
 
+/// Liệt kê các phiên chưa đóng còn trên đĩa (`recovery.list`, R3.13).
+pub fn recovery_list(sup: &Supervisor) -> Result<Vec<Value>, CallError> {
+    let reply = sup.request("recovery.list", &json!({}))?;
+    match reply {
+        Value::Array(items) => Ok(items),
+        other => Ok(other
+            .get("sessions")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()),
+    }
+}
+
+/// Khôi phục một phiên chưa đóng về revision hợp lệ cuối cùng (`recovery.restore`, R3.13).
+/// Trả về `{ state, info, warnings }` và đăng ký phiên mở với `Supervisor`.
+pub fn recovery_restore(sup: &Supervisor, session_id: &str) -> Result<Value, CallError> {
+    let reply = sup.request("recovery.restore", &json!({ "sessionId": session_id }))?;
+    let restored = if let Some(job_id) = reply.get("jobId").and_then(Value::as_str) {
+        match wait_job(sup, job_id, Duration::from_secs(120)) {
+            JobEnd::Finished(result) => result,
+            JobEnd::Failed(error) => return Err(CallError::Rpc(error)),
+            JobEnd::Cancelled | JobEnd::Stopped => return Err(CallError::Closed),
+            JobEnd::TimedOut => return Err(CallError::Timeout),
+        }
+    } else {
+        reply
+    };
+    let active_sid = restored
+        .get("state")
+        .and_then(|s| s.get("sessionId"))
+        .and_then(Value::as_str)
+        .unwrap_or(session_id);
+    sup.session_opened(active_sid);
+    Ok(restored)
+}
+
+/// Xóa một phiên chưa đóng khỏi đĩa (`recovery.discard`, R3.13).
+pub fn recovery_discard(sup: &Supervisor, session_id: &str) -> Result<(), CallError> {
+    sup.request("recovery.discard", &json!({ "sessionId": session_id }))
+        .map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::errors::{kind_of, message_key};
-    use crate::{CoreCommand, SupervisorConfig};
+    use crate::{CoreCommand, Event, SupervisorConfig};
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::process::Command;
@@ -407,6 +435,50 @@ mod tests {
             .join(&session)
             .join("rev-0000.pdf");
         assert!(rev0.exists(), "rev-0000 phải luôn được giữ");
+        sup.shutdown(Duration::from_secs(5));
+    }
+
+    #[test]
+    fn subscriber_receives_job_started_and_finished_alongside_wait_job() {
+        let Some(python) = python() else {
+            eprintln!("bỏ qua: không có core/.venv");
+            return;
+        };
+        let sandbox = Sandbox::new("sub-fanout");
+        let pdf = sandbox.0.join("one.pdf");
+        make_pdf(&python, &pdf, 1);
+        let mut sup = start_core(&sandbox);
+        let sub = sup.subscribe();
+        let session = open_session(&sup, &pdf);
+
+        let job = start(
+            &sup,
+            "page.rotate",
+            Some(&session),
+            &json!({ "pages": [0], "angle": 90 }),
+        )
+        .expect("ops.run");
+        expect_finished(&sup, &job);
+
+        let mut saw_started = false;
+        let mut saw_finished = false;
+        while let Ok(ev) = sub.try_recv() {
+            if let Event::Notification(note) = ev
+                && note.params.get("jobId").and_then(Value::as_str) == Some(job.as_str())
+            {
+                if note.method == "job.started" {
+                    saw_started = true;
+                }
+                if note.method == "job.finished" {
+                    saw_finished = true;
+                }
+            }
+        }
+        assert!(saw_started, "subscriber phải nhận được job.started");
+        assert!(
+            saw_finished,
+            "subscriber phải nhận được job.finished cùng lúc với wait_job"
+        );
         sup.shutdown(Duration::from_secs(5));
     }
 }

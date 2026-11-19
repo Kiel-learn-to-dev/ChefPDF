@@ -20,6 +20,7 @@ use chef_ui::menu::{Menu, MenuEntry};
 use chef_ui::select::Select;
 use chef_ui::tabs::{TabItem, Tabs};
 use chef_ui::text_input::TextInput;
+use chef_ui::thumbnail::ThumbnailShimmer;
 use chef_ui::toast::Toast;
 use chef_ui::tooltip::Tooltip;
 
@@ -690,6 +691,55 @@ fn section(title: &str, c: &Colors) -> Div {
         )
 }
 
+fn thumbnail_shimmer_probe(c: &Colors) -> Div {
+    let row = |label: &str, width: f32, height: f32, shimmer: ThumbnailShimmer| {
+        div()
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(16.0))
+            .child(div().w(px(150.0)).child(label.to_string()))
+            .child(
+                div()
+                    .relative()
+                    .w(px(width))
+                    .h(px(height))
+                    .overflow_hidden()
+                    .border_1()
+                    .border_color(rgb(c.border))
+                    .child(shimmer),
+            )
+    };
+    section("R4.01 · thumb-shimmer phase and reduced motion", c)
+        .text_size(px(13.0))
+        .child(row(
+            "Phase 0.0",
+            520.0,
+            100.0,
+            ThumbnailShimmer::new("probe-shimmer-start", 520.0, 100.0).at_phase(0.0),
+        ))
+        .child(row(
+            "Phase 0.5",
+            520.0,
+            100.0,
+            ThumbnailShimmer::new("probe-shimmer-middle", 520.0, 100.0).at_phase(0.5),
+        ))
+        .child(row(
+            "Reduced motion",
+            520.0,
+            100.0,
+            ThumbnailShimmer::new("probe-shimmer-reduced", 520.0, 100.0)
+                .at_phase(0.5)
+                .reduced_motion(true),
+        ))
+        .child(row(
+            "Portrait page",
+            82.0,
+            106.0,
+            ThumbnailShimmer::new("probe-shimmer-portrait", 82.0, 106.0).at_phase(0.5),
+        ))
+}
+
 /// R1.13: ba độ đậm của Be Vietnam Pro ở 13 px, kèm chữ có dấu.
 fn fonts_section(c: &Colors) -> Div {
     let line = |label: &str, weight: FontWeight| {
@@ -939,6 +989,19 @@ impl Render for Probe {
         chef_ui::a11y::begin_frame(window.scale_factor());
         crate::debug::count_render();
         let c = Colors::new(is_dark(mode_from_env()));
+        if std::env::var("CHEF_E2E_PROBE_THUMBNAIL_SHIMMER").as_deref() == Ok("1") {
+            return chef_ui::button::focus_nav(div())
+                .size_full()
+                .bg(rgb(c.bg))
+                .text_color(rgb(c.text))
+                .font_family("Be Vietnam Pro")
+                .p(px(24.0))
+                .flex()
+                .flex_col()
+                .gap(px(16.0))
+                .child("Thumbnail shimmer capture · 1.4 s linear")
+                .child(thumbnail_shimmer_probe(&c));
+        }
         let context = self.context_at.map(|(x, y)| self.context_menu(x, y, cx));
         let visual_only = std::env::var("CHEF_E2E_PROBE_VISUAL_ONLY").as_deref() == Ok("1");
         let root = chef_ui::button::focus_nav(div())

@@ -222,7 +222,9 @@ test('one 1000-page document: open, scroll 350 screens, return to the top', asyn
     const el = document.querySelector('.viewer__scroll');
     return { scrollTop: el?.scrollTop ?? -1 };
   });
-  expect(scrolled.scrollTop - start.scrollTop).toBeGreaterThanOrEqual(start.viewportH * screens * 0.99);
+  expect(scrolled.scrollTop - start.scrollTop).toBeGreaterThanOrEqual(
+    start.viewportH * screens * 0.99,
+  );
   await page.waitForTimeout(3_000);
   await snapshot(launched, `after-scroll-${screens}`, cdp);
   const lt = await page.evaluate(
@@ -241,6 +243,12 @@ test('one 1000-page document: open, scroll 350 screens, return to the top', asyn
     });
     await page.waitForTimeout(150);
   }
+  // clientHeight is not constant (about 711 px here), so 350 steps back can stop short of the top
+  // by a few px. Jump the rest of the way, as the native run does, so the mark is really "top".
+  await page.evaluate(() => {
+    const el = document.querySelector('.viewer__scroll');
+    if (el && el.scrollTop > 2) el.scrollTop = 0;
+  });
   const top = await page.evaluate(() => document.querySelector('.viewer__scroll')?.scrollTop ?? -1);
   expect(top).toBeGreaterThanOrEqual(0);
   expect(top).toBeLessThanOrEqual(2);

@@ -20,6 +20,7 @@ use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 mod assets;
 #[cfg(windows)]
 mod capture;
+mod close;
 mod commands;
 #[cfg(windows)]
 mod debug;
@@ -40,6 +41,7 @@ mod night;
 mod password;
 mod probe;
 mod properties;
+mod recovery;
 mod session;
 mod settings;
 mod settings_dialog;
@@ -83,6 +85,19 @@ unsafe extern "system" {
         flags: u32,
     ) -> i32;
     fn ShowWindow(hwnd: isize, cmd: i32) -> i32;
+    fn GetWindowRect(hwnd: isize, rect: *mut WinRect) -> i32;
+    fn GetClientRect(hwnd: isize, rect: *mut WinRect) -> i32;
+}
+
+/// RECT của Win32 (left, top, right, bottom).
+#[cfg(windows)]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct WinRect {
+    left: i32,
+    top: i32,
+    right: i32,
+    bottom: i32,
 }
 
 /// HWND và hệ số scale của cửa sổ GPUI. Gọi trong `window.update`, không đổi vị trí hay kích thước.
@@ -133,6 +148,52 @@ fn show_offscreen(_hwnd: isize, _scale: f32, _size: (f32, f32)) -> Result<(), St
     Err("chế độ E2E ngoài màn hình chỉ hỗ trợ Windows".into())
 }
 
+/// Chỉ trang thử (R1.43): SetWindowPos đặt kích thước KHUNG NGOÀI, nên vùng client thật nhỏ hơn
+/// (trừ thanh tiêu đề và viền). Hàm này đo phần khung rồi đặt lại để vùng client đúng
+/// `size` (logic × scale), khớp kích thước viewport của bản Electron ở cùng cỡ.
+/// Gọi ngoài `window.update`, sau `show_offscreen`.
+#[cfg(windows)]
+fn fit_client_size(hwnd: isize, scale: f32, size: (f32, f32)) -> Result<(), String> {
+    let zero = WinRect {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    };
+    let (mut outer, mut client) = (zero, zero);
+    // SAFETY: hwnd là cửa sổ GPUI còn sống; hai con trỏ trỏ tới biến cục bộ hợp lệ.
+    unsafe {
+        if GetWindowRect(hwnd, &mut outer) == 0 || GetClientRect(hwnd, &mut client) == 0 {
+            return Err("GetWindowRect/GetClientRect thất bại".into());
+        }
+    }
+    let frame_w = (outer.right - outer.left) - (client.right - client.left);
+    let frame_h = (outer.bottom - outer.top) - (client.bottom - client.top);
+    let cx = (size.0 * scale).round() as i32 + frame_w;
+    let cy = (size.1 * scale).round() as i32 + frame_h;
+    // SAFETY: như trên; vị trí truyền tường minh là OFFSCREEN_ORIGIN, giống show_offscreen.
+    unsafe {
+        if SetWindowPos(
+            hwnd,
+            0,
+            OFFSCREEN_ORIGIN.0,
+            OFFSCREEN_ORIGIN.1,
+            cx,
+            cy,
+            SWP_NOZORDER | SWP_NOACTIVATE,
+        ) == 0
+        {
+            return Err("SetWindowPos (client) thất bại".into());
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn fit_client_size(_hwnd: isize, _scale: f32, _size: (f32, f32)) -> Result<(), String> {
+    Err("chế độ E2E ngoài màn hình chỉ hỗ trợ Windows".into())
+}
+
 /// Chỉ E2E (R1.13, R1.15–R1.19): mở trang thử hình họa ngoài màn hình và bật kênh debug.
 fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
     // CHEF_E2E_PROBE_WIDTH: chiều rộng khung (pixel logic), để đo auto-fit ở nhiều cỡ (R1.17).
@@ -173,6 +234,8 @@ fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
         cx.spawn(async move |_| {
             show_offscreen(hwnd, scale, (width, PROBE_HEIGHT))
                 .expect("đưa cửa sổ ra ngoài màn hình thất bại");
+            fit_client_size(hwnd, scale, (width, PROBE_HEIGHT))
+                .expect("đặt vùng client trang thử thất bại");
         })
         .detach();
     }
@@ -194,6 +257,20 @@ fn spawn_action_pump<V: 'static>(window: WindowHandle<V>, cx: &mut App) {
                     }
                 }
             });
+            // Tổ hợp phím chạy sau khi update kết thúc: handler của viewer có thể cập nhật lại
+            // DocumentHost, và làm vậy trong update đang chạy sẽ panic (re-entrant update).
+            let keystrokes = debug::take_keystrokes();
+            if !keystrokes.is_empty() {
+                // AnyWindowHandle không lease root view (WindowHandle::update thì có, và render lại sẽ panic).
+                let any: gpui::AnyWindowHandle = window.into();
+                let _ = any.update(cx, |_, window, cx| {
+                    for keystroke in keystrokes {
+                        if let Ok(parsed) = gpui::Keystroke::parse(&keystroke) {
+                            window.dispatch_keystroke(parsed, cx);
+                        }
+                    }
+                });
+            }
             if alive.is_err() {
                 break;
             }
@@ -379,6 +456,13 @@ fn main() {
             };
             #[cfg(not(windows))]
             let supervisor = None;
+            if let Some(sup_for_shutdown) = supervisor.clone() {
+                debug::set_shutdown_hook(move || {
+                    if let Ok(mut sup) = sup_for_shutdown.lock() {
+                        sup.shutdown(Duration::from_secs(3));
+                    }
+                });
+            }
             let min = Some(size(px(MIN_SIZE.0), px(MIN_SIZE.1)));
 
             if e2e_probe {
@@ -477,6 +561,18 @@ fn main() {
                                 debug::set_input(&text, selection, focused);
                             }
                         });
+                        let keystrokes = debug::take_keystrokes();
+                        if !keystrokes.is_empty() {
+                            // AnyWindowHandle không lease root view (WindowHandle::update thì có, và render lại sẽ panic).
+                            let any: gpui::AnyWindowHandle = window.into();
+                            let _ = any.update(cx, |_, window, cx| {
+                                for keystroke in keystrokes {
+                                    if let Ok(parsed) = gpui::Keystroke::parse(&keystroke) {
+                                        window.dispatch_keystroke(parsed, cx);
+                                    }
+                                }
+                            });
+                        }
                         if alive.is_err() {
                             break;
                         }
@@ -535,4 +631,5 @@ fn main() {
                     .expect("cập nhật cửa sổ thất bại");
             }
         });
+    debug::run_shutdown_hook();
 }

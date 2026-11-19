@@ -1,6 +1,6 @@
 //! Multi-document window host for R2.15.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex,
@@ -11,13 +11,19 @@ use std::time::Duration;
 use chef_pdf::render::RenderHandle;
 use chef_rpc::Supervisor;
 use chef_ui::dialog::{Dialog, Width};
+use chef_ui::jobs_panel::{
+    JobMeta, JobStore, JobsPanelCallbacks, JobsPanelProps, JobsToggleCallbacks, JobsToggleProps,
+    build_jobs_panel, build_jobs_toggle, is_job_notification,
+};
 use chef_ui::text_input::{TextInput, TextInputEvent};
 use gpui::{
     AnyWindowHandle, App, Context, Entity, ExternalPaths, FocusHandle, Focusable, KeyBinding,
     Render, SharedString, Subscription, Window, actions, div, prelude::*, px, rgb,
 };
 
+use crate::close::UnsavedClosePrompt;
 use crate::commands::{self, Command, CommandRegistry};
+use crate::recovery::{ConfirmDiscard, RecoverableSession, RecoveryModal};
 use crate::settings_dialog::{self, SettingsPanel};
 use crate::tabs::{TabId, Tabs};
 use crate::viewer::{self, Viewer};
@@ -36,6 +42,31 @@ struct Closing {
     rx: Receiver<Result<(), String>>,
 }
 
+enum RecoveryOpResult {
+    Listed(Result<Vec<RecoverableSession>, String>),
+    Restored {
+        session_id: String,
+        result: Result<serde_json::Value, String>,
+    },
+    Discarded {
+        discarded_ids: Vec<String>,
+        error: Option<String>,
+    },
+}
+
+fn job_title_for_op(op_id: &str) -> String {
+    match op_id {
+        "page.rotate" => chef_ui::i18n::t("toolbar.rotateRight"),
+        _ => op_id.to_string(),
+    }
+}
+
+static HOST_FRAME: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub(crate) fn take_host_frame() -> bool {
+    HOST_FRAME.swap(false, std::sync::atomic::Ordering::SeqCst)
+}
+
 pub struct DocumentHost {
     tabs: Tabs,
     viewers: HashMap<TabId, Entity<Viewer>>,
@@ -43,6 +74,13 @@ pub struct DocumentHost {
     supervisor: Option<Arc<Mutex<Supervisor>>>,
     closing: HashMap<TabId, Closing>,
     close_message: Option<String>,
+    close_prompt: UnsavedClosePrompt,
+    recovery: RecoveryModal,
+    recovery_rx: Option<Receiver<RecoveryOpResult>>,
+    job_store: JobStore,
+    jobs_open: bool,
+    debug_job_ids: HashSet<String>,
+    core_events: Option<Receiver<chef_rpc::Event>>,
     poll_started: bool,
     /// Cài đặt của cửa sổ, dùng chung cho màn hình Start và mọi tab.
     settings: Entity<SettingsPanel>,
@@ -76,6 +114,16 @@ impl DocumentHost {
         );
         let settings = cx.new(SettingsPanel::new);
         let settings_subscription = cx.observe(&settings, |_, _, cx| cx.notify());
+        let core_events = supervisor
+            .as_ref()
+            .and_then(|sup| sup.lock().ok())
+            .map(|sup| sup.subscribe());
+        let close_prompt = UnsavedClosePrompt::new(cx);
+        let recovery = RecoveryModal::new(cx);
+        let job_store = JobStore::new();
+        crate::debug::set_close_prompt(false, None, None);
+        crate::debug::set_recovery(recovery.to_debug_json());
+        crate::debug::set_jobs(job_store.to_debug_json(false));
         let mut host = Self {
             tabs: Tabs::new(),
             viewers: HashMap::new(),
@@ -83,6 +131,13 @@ impl DocumentHost {
             supervisor,
             closing: HashMap::new(),
             close_message: None,
+            close_prompt,
+            recovery,
+            recovery_rx: None,
+            job_store,
+            jobs_open: false,
+            debug_job_ids: HashSet::new(),
+            core_events,
             poll_started: false,
             settings,
             appearance_observer_installed: false,
@@ -101,7 +156,35 @@ impl DocumentHost {
             host.insert_path(path, cx);
         }
         host.close_message = open_errors_message(&batch.rejected);
+        host.start_recovery_check_if_needed();
         host
+    }
+
+    /// Kiểm tra các phiên chưa đóng trên đĩa lúc khởi động (R3.13).
+    /// Bất biến R3.03: chỉ gọi `chef-core` (`recovery.list`) khi `has_unclosed_sessions` trả `true`.
+    fn start_recovery_check_if_needed(&mut self) {
+        if !crate::recovery::has_unclosed_sessions(&crate::settings::user_data_dir()) {
+            return;
+        }
+        let Some(supervisor) = self.supervisor.clone() else {
+            return;
+        };
+        let (tx, rx) = channel();
+        self.recovery_rx = Some(rx);
+        std::thread::spawn(move || {
+            let result = supervisor
+                .lock()
+                .map_err(|_| "Core không khả dụng".to_string())
+                .and_then(|sup| {
+                    let items =
+                        chef_rpc::ops::recovery_list(&sup).map_err(|err| format!("{err:?}"))?;
+                    Ok(items
+                        .iter()
+                        .filter_map(RecoverableSession::from_json)
+                        .collect::<Vec<_>>())
+                });
+            let _ = tx.send(RecoveryOpResult::Listed(result));
+        });
     }
 
     fn on_palette_input(
@@ -277,6 +360,8 @@ impl DocumentHost {
                 cx,
             )
         });
+        self._subscriptions
+            .push(cx.observe(&viewer, |_, _, cx| cx.notify()));
         self.viewers.insert(id, viewer);
         self.record_recent_path(&path, cx);
     }
@@ -361,15 +446,43 @@ impl DocumentHost {
         let Some(viewer_entity) = self.viewers.get(&id).cloned() else {
             return;
         };
-        let viewer_ref = viewer_entity.read(cx);
-        let blocked = viewer_ref.tab_close_blocked();
-        let target = viewer_ref.tab_close_target();
-        if blocked {
+        let (busy, dirty, title) = {
+            let viewer_ref = viewer_entity.read(cx);
+            (
+                viewer_ref.tab_is_busy(),
+                viewer_ref.tab_is_dirty(),
+                viewer_ref.tab_title(),
+            )
+        };
+        if busy {
             self.close_message =
                 Some("Lưu thay đổi hoặc chờ thao tác hiện tại trước khi đóng thẻ.".into());
             cx.notify();
             return;
         }
+        if dirty {
+            self.close_prompt
+                .open_for(id.get() as usize, title.clone(), window, cx);
+            crate::debug::set_close_prompt(true, Some(id.get() as usize), Some(&title));
+            cx.notify();
+            return;
+        }
+        self.close_tab_clean_or_discard(id, window, cx);
+    }
+
+    fn close_tab_clean_or_discard(
+        &mut self,
+        id: TabId,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.closing.contains_key(&id) {
+            return;
+        }
+        let Some(viewer_entity) = self.viewers.get(&id).cloned() else {
+            return;
+        };
+        let target = viewer_entity.read(cx).tab_close_target();
         if let Some((supervisor, session_id)) = target {
             viewer_entity.update(cx, |viewer, _| viewer.set_tab_closing(true));
             let (tx, rx) = channel();
@@ -394,6 +507,368 @@ impl DocumentHost {
             cx.notify();
         } else {
             self.finish_close(id, window, cx);
+        }
+    }
+
+    fn cancel_close_prompt(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.close_prompt.close();
+        crate::debug::set_close_prompt(false, None, None);
+        self.focus_active(window, cx);
+        cx.notify();
+    }
+
+    fn discard_close_prompt(
+        &mut self,
+        raw_tab_id: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.close_prompt.close();
+        crate::debug::set_close_prompt(false, None, None);
+        if let Some(id) = self
+            .tabs
+            .tabs()
+            .iter()
+            .find(|t| t.id().get() as usize == raw_tab_id)
+            .map(|t| t.id())
+        {
+            self.close_tab_clean_or_discard(id, window, cx);
+        }
+    }
+
+    fn save_close_prompt(
+        &mut self,
+        raw_tab_id: usize,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.close_prompt.close();
+        crate::debug::set_close_prompt(false, None, None);
+        if let Some(id) = self
+            .tabs
+            .tabs()
+            .iter()
+            .find(|t| t.id().get() as usize == raw_tab_id)
+            .map(|t| t.id())
+            && let Some(viewer) = self.viewers.get(&id).cloned()
+        {
+            viewer.update(cx, |v, cx| v.save_for_close(cx));
+        }
+        cx.notify();
+    }
+
+    fn poll_ready_to_close(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        let ready_ids: Vec<TabId> = self
+            .viewers
+            .iter()
+            .filter_map(|(id, viewer)| {
+                viewer
+                    .update(cx, |v, _| v.take_ready_to_close())
+                    .then_some(*id)
+            })
+            .collect();
+        if ready_ids.is_empty() {
+            return false;
+        }
+        for id in ready_ids {
+            self.close_tab_clean_or_discard(id, window, cx);
+        }
+        true
+    }
+
+    fn insert_restored_tab(
+        &mut self,
+        restored: &serde_json::Value,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(active) = self.tabs.active_id()
+            && let Some(viewer) = self.viewers.get(&active)
+        {
+            viewer.update(cx, |viewer, _| viewer.deactivate_tab(window));
+        }
+        let state = restored.get("state").unwrap_or(restored);
+        let source_path = state
+            .get("sourcePath")
+            .and_then(serde_json::Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(PathBuf::from);
+        let title = source_path
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Untitled".to_string());
+        let Ok(id) = self.tabs.open(title, source_path.clone()) else {
+            return;
+        };
+        let restored_clone = restored.clone();
+        let viewer = cx.new(|cx| {
+            Viewer::open_restored(
+                self.handle.clone(),
+                &restored_clone,
+                self.supervisor.clone(),
+                self.settings.clone(),
+                cx,
+            )
+        });
+        self._subscriptions
+            .push(cx.observe(&viewer, |_, _, cx| cx.notify()));
+        let dirty = viewer.read(cx).tab_is_dirty();
+        self.tabs.set_dirty(id, dirty);
+        self.viewers.insert(id, viewer);
+        if let Some(path) = &source_path {
+            self.record_recent_path(path, cx);
+        }
+        crate::debug::set_tabs(self.tabs_debug(cx));
+        self.focus_active(window, cx);
+    }
+
+    fn restore_recovery_session(
+        &mut self,
+        session_id: String,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.recovery.busy {
+            return;
+        }
+        let Some(supervisor) = self.supervisor.clone() else {
+            return;
+        };
+        self.recovery.busy = true;
+        self.recovery.error = None;
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        let (tx, rx) = channel();
+        self.recovery_rx = Some(rx);
+        std::thread::spawn(move || {
+            let sid = session_id.clone();
+            let result = supervisor
+                .lock()
+                .map_err(|_| "Core không khả dụng".to_string())
+                .and_then(|sup| {
+                    chef_rpc::ops::recovery_restore(&sup, &sid).map_err(|err| format!("{err:?}"))
+                });
+            let _ = tx.send(RecoveryOpResult::Restored { session_id, result });
+        });
+        cx.notify();
+    }
+
+    fn request_discard_recovery(
+        &mut self,
+        target: ConfirmDiscard,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.recovery.busy {
+            return;
+        }
+        self.recovery.confirming_discard = Some(target);
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        cx.notify();
+    }
+
+    fn cancel_discard_recovery(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.recovery.busy {
+            return;
+        }
+        self.recovery.confirming_discard = None;
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        cx.notify();
+    }
+
+    fn confirm_discard_recovery(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.recovery.busy {
+            return;
+        }
+        let ids: Vec<String> = match &self.recovery.confirming_discard {
+            Some(ConfirmDiscard::Single(id)) => vec![id.clone()],
+            Some(ConfirmDiscard::All) => self
+                .recovery
+                .sessions
+                .iter()
+                .map(|s| s.session_id.clone())
+                .collect(),
+            None => return,
+        };
+        let Some(supervisor) = self.supervisor.clone() else {
+            return;
+        };
+        self.recovery.busy = true;
+        self.recovery.error = None;
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        let (tx, rx) = channel();
+        self.recovery_rx = Some(rx);
+        std::thread::spawn(move || {
+            let mut discarded_ids = Vec::with_capacity(ids.len());
+            let mut error = None;
+            match supervisor.lock() {
+                Ok(sup) => {
+                    for sid in ids {
+                        match chef_rpc::ops::recovery_discard(&sup, &sid) {
+                            Ok(()) => discarded_ids.push(sid),
+                            Err(err) => {
+                                error = Some(format!("{err:?}"));
+                                break;
+                            }
+                        }
+                    }
+                }
+                Err(_) => error = Some("Core không khả dụng".to_string()),
+            }
+            let _ = tx.send(RecoveryOpResult::Discarded {
+                discarded_ids,
+                error,
+            });
+        });
+        cx.notify();
+    }
+
+    fn later_recovery(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.recovery.close();
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        self.focus_active(window, cx);
+        cx.notify();
+    }
+
+    fn poll_recovery(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        let Some(rx) = self.recovery_rx.as_ref() else {
+            return false;
+        };
+        let op = match rx.try_recv() {
+            Ok(op) => op,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return false,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.recovery_rx = None;
+                self.recovery.busy = false;
+                crate::debug::set_recovery(self.recovery.to_debug_json());
+                return true;
+            }
+        };
+        self.recovery_rx = None;
+        match op {
+            RecoveryOpResult::Listed(Ok(sessions)) => {
+                self.recovery.open_with(sessions);
+            }
+            RecoveryOpResult::Listed(Err(err)) => {
+                self.recovery.busy = false;
+                self.recovery.error = Some(err);
+            }
+            RecoveryOpResult::Restored {
+                session_id,
+                result: Ok(restored),
+            } => {
+                self.recovery.remove_session(&session_id);
+                self.insert_restored_tab(&restored, window, cx);
+            }
+            RecoveryOpResult::Restored {
+                result: Err(err), ..
+            } => {
+                self.recovery.busy = false;
+                self.recovery.error = Some(err);
+            }
+            RecoveryOpResult::Discarded {
+                discarded_ids,
+                error,
+            } => {
+                for sid in discarded_ids {
+                    self.recovery.remove_session(&sid);
+                }
+                if let Some(err) = error {
+                    self.recovery.busy = false;
+                    self.recovery.error = Some(err);
+                }
+            }
+        }
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        true
+    }
+
+    fn poll_jobs(&mut self) -> bool {
+        let mut changed = false;
+        if let Some(rx) = self.core_events.as_ref() {
+            while let Ok(event) = rx.try_recv() {
+                if let chef_rpc::Event::Notification(note) = event {
+                    if note.method == "job.started" {
+                        if let Some(job_id) =
+                            note.params.get("jobId").and_then(serde_json::Value::as_str)
+                        {
+                            let op_id = note
+                                .params
+                                .get("opId")
+                                .and_then(serde_json::Value::as_str)
+                                .unwrap_or("job");
+                            let session_id = note
+                                .params
+                                .get("sessionId")
+                                .and_then(serde_json::Value::as_str)
+                                .map(str::to_string);
+                            self.job_store.track(
+                                job_id,
+                                JobMeta {
+                                    op_id: op_id.to_string(),
+                                    title: job_title_for_op(op_id),
+                                    session_id,
+                                    silent: false,
+                                },
+                            );
+                            changed = true;
+                        }
+                    } else if is_job_notification(&note.method)
+                        && self
+                            .job_store
+                            .handle_notification(&note.method, &note.params)
+                    {
+                        changed = true;
+                    }
+                }
+            }
+        }
+        for cmd in crate::debug::take_job_commands() {
+            match cmd {
+                crate::debug::DebugJobCommand::Track {
+                    job_id,
+                    op_id,
+                    title,
+                } => {
+                    self.debug_job_ids.insert(job_id.clone());
+                    self.job_store.track(
+                        job_id,
+                        JobMeta {
+                            op_id,
+                            title,
+                            session_id: None,
+                            silent: false,
+                        },
+                    );
+                    changed = true;
+                }
+                crate::debug::DebugJobCommand::Notify { method, params } => {
+                    if self.job_store.handle_notification(&method, &params) {
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if changed {
+            crate::debug::set_jobs(self.job_store.to_debug_json(self.jobs_open));
+        }
+        changed
+    }
+
+    fn cancel_job(&mut self, job_id: String, cx: &mut Context<Self>) {
+        if self.debug_job_ids.remove(&job_id) {
+            self.job_store
+                .handle_notification("job.cancelled", &serde_json::json!({ "jobId": job_id }));
+            crate::debug::set_jobs(self.job_store.to_debug_json(self.jobs_open));
+            cx.notify();
+            return;
+        }
+        if let Some(supervisor) = self.supervisor.clone() {
+            std::thread::spawn(move || {
+                if let Ok(sup) = supervisor.lock() {
+                    let _ = chef_rpc::ops::cancel(&sup, &job_id);
+                }
+            });
         }
     }
 
@@ -497,7 +972,17 @@ impl DocumentHost {
                     .timer(Duration::from_millis(30))
                     .await;
                 let alive = this.update(cx, |host, cx| {
-                    if !host.closing.is_empty() {
+                    let jobs_changed = host.poll_jobs();
+                    let ready_close = host
+                        .viewers
+                        .values()
+                        .any(|v| v.read(cx).has_ready_to_close());
+                    crate::debug::set_tabs(host.tabs_debug(cx));
+                    if jobs_changed
+                        || ready_close
+                        || host.recovery_rx.is_some()
+                        || !host.closing.is_empty()
+                    {
                         cx.notify();
                     }
                 });
@@ -543,12 +1028,15 @@ fn open_errors_message(errors: &[String]) -> Option<String> {
 impl Render for DocumentHost {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.begin_poll(cx);
+        self.poll_jobs();
+        self.poll_ready_to_close(window, cx);
         self.poll_closing(window, cx);
-        if self.tabs.active_id().is_none() {
-            // Viewer đang hiện tự mở khung đăng ký điều khiển; ở màn hình Start thì cửa sổ làm việc đó,
-            // nếu không danh sách điều khiển (và tỉ lệ màn hình) của kênh debug không được làm mới.
-            chef_ui::a11y::begin_frame(window.scale_factor());
-        }
+        self.poll_recovery(window, cx);
+        chef_ui::a11y::begin_frame(window.scale_factor());
+        HOST_FRAME.store(
+            self.tabs.active_id().is_some(),
+            std::sync::atomic::Ordering::SeqCst,
+        );
         self.palette_window = Some(window.window_handle());
         if !self.appearance_observer_installed {
             self._subscriptions
@@ -705,6 +1193,30 @@ impl Render for DocumentHost {
                     .child(SharedString::from(message.clone())),
             );
         }
+        let dark = crate::theme::is_dark(mode);
+        crate::debug::set_close_prompt(
+            self.close_prompt.open,
+            self.close_prompt.tab_id,
+            if self.close_prompt.open {
+                Some(self.close_prompt.name.as_str())
+            } else {
+                None
+            },
+        );
+        crate::debug::set_recovery(self.recovery.to_debug_json());
+        crate::debug::set_jobs(self.job_store.to_debug_json(self.jobs_open));
+        let host_for_toggle = cx.entity();
+        let jobs_toggle = build_jobs_toggle(
+            JobsToggleProps::from_store(&self.job_store, self.jobs_open, dark),
+            JobsToggleCallbacks::new().on_toggle(move |_, cx| {
+                host_for_toggle.update(cx, |host, cx| {
+                    host.jobs_open = !host.jobs_open;
+                    crate::debug::set_jobs(host.job_store.to_debug_json(host.jobs_open));
+                    cx.notify();
+                });
+            }),
+        );
+        strip = strip.child(div().flex_1()).child(jobs_toggle);
         let has_active = active.is_some();
         if !has_active && window.focused(cx).is_none() {
             window.focus(&self.focus, cx);
@@ -712,7 +1224,6 @@ impl Render for DocumentHost {
         let body = if let Some(viewer) = active.clone() {
             div().flex_1().child(viewer).into_any_element()
         } else {
-            let dark = crate::theme::is_dark(mode);
             crate::debug::set_theme_dark(dark);
             crate::start::build(
                 cx.entity(),
@@ -725,6 +1236,7 @@ impl Render for DocumentHost {
         };
         let root = div()
             .id("document-host")
+            .relative()
             .flex()
             .flex_col()
             .w_full()
@@ -762,6 +1274,74 @@ impl Render for DocumentHost {
         } else {
             root.child(body)
         };
+        if self.jobs_open {
+            let host_close = cx.entity();
+            let host_clear = cx.entity();
+            let host_cancel = cx.entity();
+            let host_dismiss = cx.entity();
+            let panel = build_jobs_panel(
+                JobsPanelProps::from_store(&self.job_store, dark),
+                JobsPanelCallbacks::new()
+                    .on_close(move |_, cx| {
+                        host_close.update(cx, |host, cx| {
+                            host.jobs_open = false;
+                            crate::debug::set_jobs(host.job_store.to_debug_json(host.jobs_open));
+                            cx.notify();
+                        });
+                    })
+                    .on_clear_finished(move |_, cx| {
+                        host_clear.update(cx, |host, cx| {
+                            host.job_store.clear_finished();
+                            crate::debug::set_jobs(host.job_store.to_debug_json(host.jobs_open));
+                            cx.notify();
+                        });
+                    })
+                    .on_cancel(move |job_id, _, cx| {
+                        host_cancel.update(cx, |host, cx| {
+                            host.cancel_job(job_id, cx);
+                        });
+                    })
+                    .on_dismiss(move |job_id, _, cx| {
+                        host_dismiss.update(cx, |host, cx| {
+                            host.job_store.dismiss(&job_id);
+                            crate::debug::set_jobs(host.job_store.to_debug_json(host.jobs_open));
+                            cx.notify();
+                        });
+                    }),
+            );
+            root = root.child(
+                div()
+                    .id("jobs-panel-anchor")
+                    .absolute()
+                    .top(px(44.0))
+                    .right(px(8.0))
+                    .child(panel),
+            );
+        }
+        if self.close_prompt.open {
+            let entity = cx.entity();
+            root = root.child(self.close_prompt.render_dialog(
+                dark,
+                &entity,
+                Self::cancel_close_prompt,
+                Self::discard_close_prompt,
+                Self::save_close_prompt,
+            ));
+        }
+        if self.recovery.open {
+            let entity = cx.entity();
+            root = root.child(self.recovery.render_dialog(
+                dark,
+                window,
+                cx,
+                &entity,
+                Self::restore_recovery_session,
+                Self::request_discard_recovery,
+                Self::confirm_discard_recovery,
+                Self::cancel_discard_recovery,
+                Self::later_recovery,
+            ));
+        }
         if self.palette_open {
             let dark = crate::theme::is_dark(mode);
             let items = palette_results

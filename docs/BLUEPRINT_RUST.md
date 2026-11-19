@@ -96,6 +96,38 @@ Các giá trị dưới đây là **giá trị khởi điểm**, không phải n
 - `coreMB` = 0: chưa có lõi nào được khởi động trong kịch bản này (lõi lười, §4). Chưa đo cùng kịch bản với Electron có lõi (R1.38), nên chưa so sánh tổng. Số Electron đã có (1351 MB ở 350 màn hình) là chỉ riêng tiến trình Electron.
 - Working set không thấy bộ nhớ GPU (texture nằm ngoài working set). R1.35 sẽ ghi `Dedicated Usage` và `Shared Usage` từ `\GPU Process Memory(pid_*)` ở ba mốc của runner, tách tổng PID của Chef Native và chef-core. Trường nào không có bộ đếm hoặc PID path sẽ in `unavailable`, không coi là 0. Chưa có số GPU hay kết luận; ghi kèm phiên bản Windows và driver GPU vì Microsoft ghi nhận bộ đếm có thể sai trên một số hệ thống Windows 10 từ bản 1709 trở lên ([KB 4490156](https://learn.microsoft.com/en-us/troubleshoot/windows-client/performance/gpu-process-memory-counters-report-wrong-value)). Chỉ dùng DXGI nếu phép đo Windows cho thấy bộ nhớ GPU tăng theo số trang đã cuộn.
 
+**Số đo M1/M3 trên Windows (2026-11-15, `pages1000.pdf` 1000 trang tại `C:\Users\phamm\AppData\Local\ChefPDF\perf-fixtures\pages1000.pdf`, `scripts/measure-native-memory.ps1`, build debug, cửa sổ ngoài màn hình `[-20000,-20000,-17900,-18495]`, DPR `1.75`, GPU `AMD Radeon(TM) 860M Graphics`, Driver `32.0.13058.8001`, AdapterRAM `512 MB`):**
+- Đã sửa `scripts/measure-native-memory.ps1:197` để xử lý log rỗng/null trước khi stderr flush.
+- `-NoCore` (`mode=no-core`, `coreProcesses=0`, `coreMB=0`):
+  - `open`: `nativeMB=151.8`, `renders=4`, `cached=2`, `viewportH=719.43`, `scrollY=0`, `firstPage=0`
+  - `after-scroll-350`: `nativeMB=257.2`, `renders=719`, `cached=4`, `scrollY=251799.02`, `firstPage=206`
+  - `return-top`: `nativeMB=245.9`, `renders=1417`, `cached=2`, `scrollY=0`, `firstPage=0`
+- Có lõi (`mode=core-active` sau `action rotatepage`, `coreProcesses=3`):
+  - `open`: `nativeMB=166.6`, `coreMB=146.4`, `renders=9`, `cached=2`, `scrollY=0`, `firstPage=0`
+  - `after-scroll-350`: `nativeMB=300.7`, `coreMB=146.3`, `renders=710`, `cached=3`, `scrollY=251799.02`, `firstPage=207`
+  - `return-top`: `nativeMB=229.2`, `coreMB=146.3`, `renders=1416`, `cached=2`, `scrollY=0`, `firstPage=0`
+- Bộ đếm GPU (`nativeGpuDedicatedMB`, `nativeGpuSharedMB`, `coreGpuDedicatedMB`, `coreGpuSharedMB`): `unavailable` trên máy/driver Windows này ở cả ba mốc trong hai lượt đo, nên R1.35 chưa có số bộ nhớ GPU trực tiếp; tuy nhiên `cached` trở về `2` và `nativeMB` giảm sau khi về đầu (`257.2 -> 245.9 MB` khi không lõi; `300.7 -> 229.2 MB` khi có lõi).
+
+**Số đo Điểm kiểm M3 (R3.15, 2026-11-15, sau khi hoàn tất R3.09 `JobPanel`, R3.13 khôi phục crash và R3.14 đóng phiên an toàn; cùng fixture `pages1000.pdf`, build debug):**
+- `-NoCore` (`mode=no-core`, `coreProcesses=0`, `coreMB=0`):
+  - `open`: `nativeMB=153.7`, `coreMB=0`, `coreProcesses=0`, `renders=4`, `cached=2`, `pending=0`, `viewportH=719.43`, `scrollY=0`, `firstPage=0`
+  - `after-scroll-350`: `nativeMB=260.0`, `coreMB=0`, `coreProcesses=0`, `renders=705`, `cached=4`, `pending=0`, `viewportH=719.43`, `scrollY=251799.02`, `firstPage=206`
+  - `return-top`: `nativeMB=248.3`, `coreMB=0`, `coreProcesses=0`, `renders=1415`, `cached=2`, `pending=0`, `viewportH=719.43`, `scrollY=0`, `firstPage=0`
+- Có lõi (`mode=core-active` sau `action rotatepage`, `coreProcesses=3`):
+  - `open`: `nativeMB=168.6`, `coreMB=146.5`, `coreProcesses=3`, `renders=12`, `cached=2`, `pending=0`, `viewportH=719.43`, `scrollY=0`, `firstPage=0`
+  - `after-scroll-350`: `nativeMB=288.4`, `coreMB=146.4`, `coreProcesses=3`, `renders=732`, `cached=3`, `pending=0`, `viewportH=719.43`, `scrollY=251799.02`, `firstPage=207`
+  - `return-top`: `nativeMB=276.5`, `coreMB=146.4`, `coreProcesses=3`, `renders=1442`, `cached=2`, `pending=0`, `viewportH=719.43`, `scrollY=0`, `firstPage=0`
+- **Đánh giá R5, R6 và rà soát M4–M9 (R3.15):**
+  - **R5 (Lõi lười):** bất biến `coreMB = 0` (`coreProcesses = 0`) khi chỉ xem được giữ nguyên sau khi nối kiểm tra khôi phục crash lúc khởi động (`recovery::has_unclosed_sessions` đọc `sessions/*/meta.json` bằng Rust thuần, không gọi `Supervisor` khi không có phiên dở). Khi đóng hết phiên và không còn job, lõi tự tắt sau `idle_stop` (10 phút mặc định). Giữ nguyên cấu hình R5.
+  - **R6 (Import lười trong lõi):** sau `page.rotate`, cây `chef-core` ổn định ở `146.4–146.5 MB` (sát mức rảnh `142.5 MB` của R1.39, không nạp `cv2`, `onnxruntime`, `pyHanko`). Giữ nguyên R6.
+  - **M4–M9:** chuỗi nền M3 (`Supervisor`, `session.open/save/undo/redo/close`, `recovery`, `ops.run` + `JobWaiter` + `JobStore`/`JobPanel`, `chef-contracts` 194 struct từ `ops.schema.json`, chuyển viewer sang rev file giữ vị trí ở R3.06) đã thông suốt. M4–M9 giữ nguyên thứ tự và cấu trúc trong `PLAN_RUST.md` / `TASKS_RUST.md`; việc ước lượng lại kích thước các task hộp thoại M5 vẫn đặt sau `R5.02` (renderer hộp thoại từ schema).
+
+**Số đo R1.35 (2026-11-16, bộ đếm GPU đã đọc được; `pages1000.pdf`, build debug, cửa sổ ngoài màn hình, DPR `1`, `scripts/measure-native-memory.ps1` sau khi sửa cách đọc `\GPU Process Memory`):**
+- Bản sửa: trước đây đọc theo từng PID nên một PID không có entry (chef-core không dùng GPU) làm mọi giá trị thành `unavailable`. Nay đọc một lần toàn bộ counter set và lọc theo PID; PID không có entry tính 0; `unavailable` chỉ khi không đọc được counter set.
+- `-NoCore`: `nativeGpuDedicatedMB` `6,9 → 7 → 7`; `nativeGpuSharedMB` `41,3 → 53,3 → 57,3` (mở / cuộn 350 màn hình / về đầu); `cached` `2 → 3 → 2`.
+- Có lõi: `nativeGpuDedicatedMB` `6,9 → 11 → 11`; `nativeGpuSharedMB` `41,3 → 49,3 → 49,3`; `coreGpuDedicatedMB = 0`; `coreGpuSharedMB = 0` (lượt về đầu ghi `unavailable`: lần đọc đó lỗi tạm, chưa điều tra).
+- Kết luận chưa đủ để đóng R1.35 tiêu chí 2: bộ nhớ GPU chia sẻ tăng khoảng 16 MB khi cuộn 350 màn hình và không giảm khi về đầu; dedicated gần như phẳng. Chưa rõ phần tăng này là texture của bitmap đã bỏ hay vùng đệm của GPUI. Cần cuộn lâu hơn (ví dụ 700 màn hình) để xem có tiếp tục tăng theo số trang đã cuộn không.
+
 ## 3. Lõi xử lý: mô hình thao tác (Operation)
 
 **Không đổi** so với BLUEPRINT §3. Lõi Python giữ nguyên `Params` (Pydantic), registry, job runner và hợp đồng.

@@ -19,6 +19,6 @@ mod supervisor;
 
 pub use client::{CallError, Client, ExitInfo, Notification};
 #[cfg(windows)]
-pub use supervisor::{CoreCommand, CoreStatus, Event, Supervisor, SupervisorConfig};
+pub use supervisor::{CoreCommand, CoreStatus, Event, JobWaiter, Supervisor, SupervisorConfig};
 #[cfg(not(windows))]
-pub use supervisor::{CoreStatus, Event, Supervisor};
+pub use supervisor::{CoreStatus, Event, JobWaiter, Supervisor};

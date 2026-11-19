@@ -188,20 +188,79 @@ try {
             if (-not $capture.ok -or -not (Test-Path -LiteralPath $capturePath -PathType Leaf)) {
                 throw "Probe screenshot failed for ${key}: $($capture | ConvertTo-Json -Compress)"
             }
+            # WGC chụp cả khung và thanh tiêu đề. Cắt về đúng vùng client để so với Electron (cùng viewport).
+            if (-not ('ProbeClientCrop' -as [type])) {
+                Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+
+public static class ProbeClientCrop {
+    [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+    [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+    public delegate bool EnumProc(IntPtr h, IntPtr p);
+
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc cb, IntPtr p);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h, out RECT r);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr h, ref POINT p);
+    [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int attr, out RECT r, int size);
+
+    // Cửa sổ hiện của tiến trình có vùng client lớn nhất (trang thử chỉ có một cửa sổ hiện).
+    public static IntPtr FindVisibleWindow(uint pid) {
+        IntPtr best = IntPtr.Zero; long bestArea = -1;
+        EnumWindows((h, p) => {
+            uint wp; GetWindowThreadProcessId(h, out wp);
+            if (wp != pid || !IsWindowVisible(h)) return true;
+            RECT c; GetClientRect(h, out c);
+            long area = (long)(c.R - c.L) * (c.B - c.T);
+            if (area > bestArea) { bestArea = area; best = h; }
+            return true;
+        }, IntPtr.Zero);
+        return best;
+    }
+
+    // [offX, offY, width, height] của vùng client trong ảnh WGC (WGC bắt đầu từ khung hiển thị).
+    public static int[] ClientBox(IntPtr h) {
+        RECT ext; DwmGetWindowAttribute(h, 9, out ext, Marshal.SizeOf(typeof(RECT)));
+        POINT o = new POINT { X = 0, Y = 0 }; ClientToScreen(h, ref o);
+        RECT c; GetClientRect(h, out c);
+        return new int[] { o.X - ext.L, o.Y - ext.T, c.R - c.L, c.B - c.T };
+    }
+}
+'@
+            }
+            Add-Type -AssemblyName System.Drawing
+            $probeHwnd = [ProbeClientCrop]::FindVisibleWindow([uint32]$process.Id)
+            if ($probeHwnd -eq [IntPtr]::Zero) { throw "Probe window not found for ${key}; log: $log" }
+            $box = [ProbeClientCrop]::ClientBox($probeHwnd)
+            $src = [System.Drawing.Bitmap]::FromFile($capturePath)
+            try {
+                if ($box[0] -lt 0 -or $box[1] -lt 0 -or $box[0] + $box[2] -gt $src.Width -or $box[1] + $box[3] -gt $src.Height) {
+                    throw "Client box $($box -join ',') outside capture $($src.Width)x$($src.Height) for ${key}"
+                }
+                $cropped = $src.Clone([System.Drawing.Rectangle]::new($box[0], $box[1], $box[2], $box[3]), $src.PixelFormat)
+            } finally { $src.Dispose() }
+            $cropTmp = "$capturePath.crop.bmp"
+            try { $cropped.Save($cropTmp, [System.Drawing.Imaging.ImageFormat]::Bmp) } finally { $cropped.Dispose() }
+            Move-Item -LiteralPath $cropTmp -Destination $capturePath -Force
+            $clientW = $box[2]; $clientH = $box[3]
+
             $captures.Add([pscustomobject]@{
                 name = $key
                 theme = $theme
                 logicalWidth = $width
                 logicalHeight = 1600
                 devicePixelRatio = [double]$state.controls.scale
-                widthPx = [int]$capture.width
-                heightPx = [int]$capture.height
+                widthPx = [int]$clientW
+                heightPx = [int]$clientH
                 format = 'bmp'
                 visible = [bool]$VisibleProbe
                 file = [IO.Path]::GetFileName($capturePath)
-                sha256 = (Get-FileHash -LiteralPath $capturePath -Algorithm SHA256).Hash.ToLowerInvariant()
+                sha256 = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([IO.File]::ReadAllBytes($capturePath))).Replace('-', '').ToLowerInvariant()
             })
-            Write-Output "CAPTURED $key $($capture.width)x$($capture.height)"
+            Write-Output "CAPTURED $key ${clientW}x${clientH} (WGC frame $($capture.width)x$($capture.height), client-cropped)"
 
             if ($MeasurePointer) {
                 $button = $state.controls.controls | Where-Object { $_.id -eq 'probe-primary' } | Select-Object -First 1

@@ -35,12 +35,19 @@ pub fn set_viewer_stats(_: usize, _: usize, _: usize) {}
 pub fn set_viewer_cache_images(_: impl IntoIterator<Item = (usize, usize)>) {}
 pub fn set_cache_invalidation(_: serde_json::Value) {}
 pub fn set_source_warning(_: Option<(&str, &str)>) {}
-pub fn set_sidebar_thumbnail_count(_: usize) {}
-pub fn set_sidebar_state(_: bool, _: usize) {}
+pub fn set_sidebar_thumbnail_count(_: usize, _: usize) {}
+pub fn set_sidebar_state(_: bool, _: bool, _: usize) {}
+pub fn set_sidebar_scroll_y(_: f32) {}
 pub fn take_actions() -> Vec<String> {
     Vec::new()
 }
+pub fn take_keystrokes() -> Vec<String> {
+    Vec::new()
+}
 pub fn take_scroll_screens() -> Vec<f32> {
+    Vec::new()
+}
+pub fn take_sidebar_scrolls() -> Vec<f32> {
     Vec::new()
 }
 pub fn set_scroll_progress(_: u32, _: u32, _: bool) {}
@@ -52,3 +59,25 @@ pub fn set_password(_: bool, _: bool, _: bool, _: bool, _: bool) {}
 pub fn set_properties(_: Option<serde_json::Value>) {}
 pub fn set_message(_: Option<&str>) {}
 pub fn set_settings(_: &str, _: &str, _: Option<&str>, _: bool) {}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum DebugJobCommand {
+    Track {
+        job_id: String,
+        op_id: String,
+        title: String,
+    },
+    Notify {
+        method: String,
+        params: serde_json::Value,
+    },
+}
+
+pub fn set_close_prompt(_: bool, _: Option<usize>, _: Option<&str>) {}
+pub fn set_recovery(_: serde_json::Value) {}
+pub fn set_jobs(_: serde_json::Value) {}
+pub fn set_shutdown_hook(_: impl Fn() + Send + Sync + 'static) {}
+pub fn run_shutdown_hook() {}
+pub fn take_job_commands() -> Vec<DebugJobCommand> {
+    Vec::new()
+}

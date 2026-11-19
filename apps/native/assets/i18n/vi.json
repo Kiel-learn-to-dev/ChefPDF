@@ -563,6 +563,7 @@
     "label": "Thanh bên",
     "notes": "Ghi chú",
     "thumbnails": "Trang",
+    "grid": "Lưới",
     "outline": "Mục lục",
     "hide": "Ẩn thanh bên",
     "goToPage": "Đến trang {{page}}",

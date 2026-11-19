@@ -151,6 +151,81 @@ static FILE_DIALOG: std::sync::LazyLock<std::sync::Mutex<String>> =
 static PALETTE: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
     std::sync::Mutex::new("{\"open\":false,\"query\":\"\",\"selected\":0,\"results\":[]}".into())
 });
+static CLOSE_PROMPT: std::sync::LazyLock<std::sync::Mutex<String>> =
+    std::sync::LazyLock::new(|| {
+        std::sync::Mutex::new("{\"open\":false,\"tabId\":null,\"name\":null}".into())
+    });
+static RECOVERY: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
+    std::sync::Mutex::new(
+        "{\"open\":false,\"busy\":false,\"confirmingDiscard\":null,\"error\":null,\"sessions\":[]}"
+            .into(),
+    )
+});
+static JOBS: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
+    std::sync::Mutex::new("{\"open\":false,\"runningCount\":0,\"items\":[]}".into())
+});
+type ShutdownHook = Box<dyn Fn() + Send + Sync>;
+static SHUTDOWN_HOOK: std::sync::LazyLock<std::sync::Mutex<Option<ShutdownHook>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(None));
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum DebugJobCommand {
+    Track {
+        job_id: String,
+        op_id: String,
+        title: String,
+    },
+    Notify {
+        method: String,
+        params: serde_json::Value,
+    },
+}
+
+static JOB_COMMANDS: std::sync::Mutex<std::collections::VecDeque<DebugJobCommand>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+
+pub fn set_close_prompt(open: bool, tab_id: Option<usize>, name: Option<&str>) {
+    let val = serde_json::json!({
+        "open": open,
+        "tabId": if open { tab_id } else { None },
+        "name": if open { name } else { None },
+    });
+    if let Ok(mut current) = CLOSE_PROMPT.lock() {
+        *current = val.to_string();
+    }
+}
+
+pub fn set_recovery(value: serde_json::Value) {
+    if let Ok(mut current) = RECOVERY.lock() {
+        *current = value.to_string();
+    }
+}
+
+pub fn set_jobs(value: serde_json::Value) {
+    if let Ok(mut current) = JOBS.lock() {
+        *current = value.to_string();
+    }
+}
+
+pub fn set_shutdown_hook(hook: impl Fn() + Send + Sync + 'static) {
+    if let Ok(mut current) = SHUTDOWN_HOOK.lock() {
+        *current = Some(Box::new(hook));
+    }
+}
+
+pub fn run_shutdown_hook() {
+    let hook = SHUTDOWN_HOOK.lock().ok().and_then(|mut g| g.take());
+    if let Some(hook) = hook {
+        hook();
+    }
+}
+
+pub fn take_job_commands() -> Vec<DebugJobCommand> {
+    match JOB_COMMANDS.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
 
 /// Snapshot of document tab identity, selection, dirty state, and retained page images.
 pub fn set_tabs(tabs: serde_json::Value) {
@@ -209,7 +284,11 @@ static CACHE_INVALIDATION: std::sync::LazyLock<std::sync::Mutex<String>> =
 static SOURCE_WARNING: std::sync::LazyLock<std::sync::Mutex<String>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new("null".into()));
 static SIDEBAR_THUMBNAILS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static SIDEBAR_THUMBNAIL_PENDING: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
 static SIDEBAR_OUTLINE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static SIDEBAR_GRID: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static SIDEBAR_SCROLL_Y: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 static SIDEBAR_BOOKMARKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 pub fn set_viewer_stats(cached: usize, pending: usize, cached_bytes: usize) {
@@ -250,13 +329,19 @@ pub fn set_source_warning(warning: Option<(&str, &str)>) {
 }
 
 /// Number of retained page thumbnails in the active document's sidebar (R2.22).
-pub fn set_sidebar_thumbnail_count(count: usize) {
+pub fn set_sidebar_thumbnail_count(count: usize, pending: usize) {
     SIDEBAR_THUMBNAILS.store(count as u64, std::sync::atomic::Ordering::Relaxed);
+    SIDEBAR_THUMBNAIL_PENDING.store(pending as u64, std::sync::atomic::Ordering::Relaxed);
 }
 
-pub fn set_sidebar_state(outline: bool, bookmark_count: usize) {
+pub fn set_sidebar_state(outline: bool, grid: bool, bookmark_count: usize) {
     SIDEBAR_OUTLINE.store(outline, std::sync::atomic::Ordering::Relaxed);
+    SIDEBAR_GRID.store(grid, std::sync::atomic::Ordering::Relaxed);
     SIDEBAR_BOOKMARKS.store(bookmark_count as u64, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn set_sidebar_scroll_y(scroll_y: f32) {
+    SIDEBAR_SCROLL_Y.store(scroll_y.to_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Tên action được phép gửi qua lệnh `action`. Luồng GPUI đổi tên thành action thật (main.rs).
@@ -319,11 +404,17 @@ pub const ACTION_NAMES: &[&str] = &[
 /// nên tổ hợp phím như Shift+mũi tên được kiểm đúng đường keymap (PostMessage không đặt được Shift).
 static ACTIONS: std::sync::Mutex<std::collections::VecDeque<String>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
+/// Hàng đợi tổ hợp phím (ví dụ `ctrl-z`) chờ luồng GPUI gọi `Window::dispatch_keystroke`. Đi qua
+/// keymap của GPUI như phím thật, không cần cửa sổ có foreground (xem TASKS_RUST R3.11).
+static KEYSTROKES: std::sync::Mutex<std::collections::VecDeque<String>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
 /// Số màn hình cần cuộn (chỉ nhận lệnh qua debug pipe E2E).
 static SCROLL_SCREENS: std::sync::Mutex<std::collections::VecDeque<f32>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
 /// (bước mục tiêu, bước hoàn tất, đang thực thi), để runner đợi cuộn có nhịp xong.
 static SCROLL_PROGRESS: std::sync::Mutex<(u32, u32, bool)> = std::sync::Mutex::new((0, 0, false));
+static SIDEBAR_SCROLL: std::sync::Mutex<std::collections::VecDeque<f32>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
 
 /// Lấy các action đang chờ (gọi từ luồng GPUI).
 pub fn take_actions() -> Vec<String> {
@@ -333,9 +424,24 @@ pub fn take_actions() -> Vec<String> {
     }
 }
 
+/// Lấy các tổ hợp phím đang chờ (gọi từ luồng GPUI).
+pub fn take_keystrokes() -> Vec<String> {
+    match KEYSTROKES.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
 /// Lấy các lệnh cuộn chính xác đang chờ để chạy trên luồng GPUI.
 pub fn take_scroll_screens() -> Vec<f32> {
     match SCROLL_SCREENS.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn take_sidebar_scrolls() -> Vec<f32> {
+    match SIDEBAR_SCROLL.lock() {
         Ok(mut queue) => queue.drain(..).collect(),
         Err(_) => Vec::new(),
     }
@@ -769,7 +875,7 @@ fn state(hwnd: isize) -> String {
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarOutline\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
         cursor_json(),
         THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
@@ -794,7 +900,10 @@ fn state(hwnd: isize) -> String {
             .unwrap_or_else(|_| "null".into()),
         PENDING.load(std::sync::atomic::Ordering::Relaxed),
         SIDEBAR_THUMBNAILS.load(std::sync::atomic::Ordering::Relaxed),
+        SIDEBAR_THUMBNAIL_PENDING.load(std::sync::atomic::Ordering::Relaxed),
         SIDEBAR_OUTLINE.load(std::sync::atomic::Ordering::Relaxed),
+        SIDEBAR_GRID.load(std::sync::atomic::Ordering::Relaxed),
+        f32::from_bits(SIDEBAR_SCROLL_Y.load(std::sync::atomic::Ordering::Relaxed)),
         SIDEBAR_BOOKMARKS.load(std::sync::atomic::Ordering::Relaxed),
         START_RECENTS
             .lock()
@@ -818,6 +927,19 @@ fn state(hwnd: isize) -> String {
             .lock()
             .map(|palette| palette.clone())
             .unwrap_or_else(|_| "{}".into()),
+        CLOSE_PROMPT
+            .lock()
+            .map(|cp| cp.clone())
+            .unwrap_or_else(|_| "{\"open\":false,\"tabId\":null,\"name\":null}".into()),
+        RECOVERY
+            .lock()
+            .map(|rec| rec.clone())
+            .unwrap_or_else(|_| {
+                "{\"open\":false,\"busy\":false,\"confirmingDiscard\":null,\"error\":null,\"sessions\":[]}".into()
+            }),
+        JOBS.lock()
+            .map(|jobs| jobs.clone())
+            .unwrap_or_else(|_| "{\"open\":false,\"runningCount\":0,\"items\":[]}".into()),
         controls_json(),
         chef_ui::motion::reduced(),
         settings_json(),
@@ -907,7 +1029,48 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             Err(e) => format!("{{\"ok\":false,\"error\":{e:?}}}"),
         },
         "quit" => {
+            run_shutdown_hook();
             std::process::exit(0);
+        }
+        "jobtrack" => {
+            let mut parts = arg.splitn(3, ' ');
+            let job_id = parts.next().unwrap_or("").trim();
+            let op_id = parts.next().unwrap_or("").trim();
+            let title = parts
+                .next()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .unwrap_or(op_id);
+            if job_id.is_empty() || op_id.is_empty() {
+                return "{\"ok\":false,\"error\":\"jobtrack cần <jobId> <opId> [title]\"}".into();
+            }
+            if let Ok(mut queue) = JOB_COMMANDS.lock() {
+                queue.push_back(DebugJobCommand::Track {
+                    job_id: job_id.to_string(),
+                    op_id: op_id.to_string(),
+                    title: title.to_string(),
+                });
+            }
+            "{\"ok\":true}".into()
+        }
+        "jobnotify" => {
+            let Some((method, json_raw)) = arg.split_once(' ') else {
+                return "{\"ok\":false,\"error\":\"jobnotify cần <method> <jsonParams>\"}".into();
+            };
+            let method = method.trim();
+            if !chef_ui::jobs_panel::is_job_notification(method) {
+                return format!("{{\"ok\":false,\"error\":\"method không hợp lệ: {method}\"}}");
+            }
+            let Ok(params) = serde_json::from_str::<serde_json::Value>(json_raw.trim()) else {
+                return "{\"ok\":false,\"error\":\"jsonParams không hợp lệ\"}".into();
+            };
+            if let Ok(mut queue) = JOB_COMMANDS.lock() {
+                queue.push_back(DebugJobCommand::Notify {
+                    method: method.to_string(),
+                    params,
+                });
+            }
+            "{\"ok\":true}".into()
         }
         // Gõ chuỗi như bàn phím (WM_CHAR cho từng đơn vị UTF-16). Không phải đường IME composition.
         "char" => {
@@ -963,6 +1126,16 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             }
             "{\"ok\":true}".into()
         }
+        // Đưa một tổ hợp phím (cú pháp GPUI, ví dụ `ctrl-z`) vào hàng đợi keymap.
+        "keystroke" => match gpui::Keystroke::parse(arg) {
+            Ok(_) => {
+                if let Ok(mut queue) = KEYSTROKES.lock() {
+                    queue.push_back(arg.to_string());
+                }
+                "{\"ok\":true}".into()
+            }
+            Err(_) => format!("{{\"ok\":false,\"error\":\"tổ hợp phím không hợp lệ: {arg}\"}}"),
+        },
         "resetrendertiming" => {
             reset_render_timing();
             "{\"ok\":true}".into()
@@ -986,6 +1159,17 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             }
             _ => "{\"ok\":false,\"error\":\"scrollscreens cần số hữu hạn trong phạm vi 10000\"}"
                 .into(),
+        },
+        "scrollsidebar" => match arg.parse::<f32>() {
+            Ok(screens) if screens.is_finite() && screens != 0.0 && screens.abs() <= 10_000.0 => {
+                if let Ok(mut queue) = SIDEBAR_SCROLL.lock() {
+                    queue.push_back(screens);
+                    "{\"ok\":true}".into()
+                } else {
+                    "{\"ok\":false,\"error\":\"không khóa được hàng đợi cuộn lưới\"}".into()
+                }
+            }
+            _ => "{\"ok\":false,\"error\":\"scrollsidebar cần số hữu hạn khác 0\"}".into(),
         },
         _ => format!("{{\"ok\":false,\"error\":\"lệnh không hỗ trợ: {cmd}\"}}"),
     }
@@ -1098,6 +1282,16 @@ mod tests {
             reply.contains("lệnh không hỗ trợ: nhay_mua"),
             "trả lời: {reply}"
         );
+    }
+
+    #[test]
+    fn keystroke_command_queues_a_valid_gpui_keystroke_and_rejects_bad_syntax() {
+        let ok = dispatch("dung_token keystroke ctrl-z", "dung_token", 0);
+        assert!(ok.contains("\"ok\":true"), "{ok}");
+        assert!(super::take_keystrokes().contains(&"ctrl-z".to_string()));
+        let bad = dispatch("dung_token keystroke ctrl-z-x", "dung_token", 0);
+        assert!(bad.contains("\"ok\":false"), "{bad}");
+        assert!(!super::take_keystrokes().contains(&"ctrl-z-x".to_string()));
     }
 
     #[test]

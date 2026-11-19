@@ -19,6 +19,20 @@ pub enum CoreStatus {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     Status(CoreStatus),
+    Notification(crate::client::Notification),
+}
+
+#[derive(Clone, Default)]
+pub struct JobWaiter;
+
+impl JobWaiter {
+    pub fn wait_notification(
+        &self,
+        _job_id: &str,
+        _timeout: Duration,
+    ) -> Result<Option<crate::client::Notification>, CallError> {
+        Err(CallError::Closed)
+    }
 }
 
 pub struct Supervisor {
@@ -35,6 +49,22 @@ impl Supervisor {
 
     pub fn events(&self) -> &Receiver<Event> {
         &self.events
+    }
+
+    pub fn subscribe(&self) -> Receiver<Event> {
+        let (sender, events) = channel();
+        drop(sender);
+        events
+    }
+
+    pub fn waiter(&self) -> JobWaiter {
+        JobWaiter
+    }
+
+    pub fn notify_job_started(&self, _job_id: &str, _op_id: &str, _session_id: Option<&str>) {}
+
+    pub fn status(&self) -> CoreStatus {
+        CoreStatus::Stopped
     }
 
     pub fn request(&self, _method: &str, _params: &Value) -> Result<Value, CallError> {

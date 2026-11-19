@@ -64,26 +64,25 @@ function Get-ProcessSnapshot([int] $RootPid) {
 
 function Get-GpuMetricMB([int[]] $ProcessIds, [string] $Metric) {
   if ($ProcessIds.Count -eq 0) { return 'unavailable' }
-  $counterPaths = foreach ($processId in $ProcessIds) { "\GPU Process Memory(pid_${processId}*)\$Metric Usage" }
+  # One read of the whole counter set. Asking for a PID that has no GPU entry makes Get-Counter
+  # throw, which used to report every value as unavailable. A PID missing from the listing uses no
+  # GPU memory, so it adds 0; 'unavailable' means the counter set itself cannot be read.
   try {
-    $samples = @(Get-Counter -Counter $counterPaths -MaxSamples 1 -ErrorAction Stop | ForEach-Object CounterSamples)
+    $samples = @(Get-Counter -Counter "\GPU Process Memory(*)\$Metric Usage" -MaxSamples 1 -ErrorAction Stop | ForEach-Object CounterSamples)
   } catch {
     return 'unavailable'
   }
 
   $totalBytes = [double]0
-  $found = [System.Collections.Generic.HashSet[int]]::new()
   $pattern = '(?i)GPU Process Memory\(pid_(\d+)(?:_[^)]*)?\)\\' + [regex]::Escape($Metric) + ' Usage$'
   foreach ($sample in $samples) {
     if ($sample.Path -match $pattern) {
       $processId = [int]$Matches[1]
       if (($ProcessIds -contains $processId) -and $null -ne $sample.CookedValue) {
         $totalBytes += [double]$sample.CookedValue
-        [void]$found.Add($processId)
       }
     }
   }
-  if (@($ProcessIds | Where-Object { $found.Contains($_) }).Count -ne $ProcessIds.Count) { return 'unavailable' }
   return [math]::Round($totalBytes / 1MB, 1)
 }
 
@@ -195,6 +194,7 @@ try {
   Wait-For {
     if ($proc.HasExited) { throw "chef-app exited with code $($proc.ExitCode): $(Get-Content $log -Raw)" }
     $text = if (Test-Path $log) { Get-Content $log -Raw } else { '' }
+    if (-not $text) { return $false }
     $pipe = [regex]::Match($text, 'chef-native-\d+').Value
     $token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
     if (-not $pipe -or -not $token) { return $false }

@@ -7,7 +7,7 @@
 //!
 //! Khi lõi chết, mọi yêu cầu đang chờ nhận lỗi ngay (xem `client.rs`), còn yêu cầu mới chờ tới `ready_wait`.
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
@@ -116,6 +116,7 @@ struct State {
     /// sẽ mất các revision chưa lưu.
     busy: HashSet<String>,
     jobs: JobLedger,
+    subscribers: Vec<Sender<Event>>,
 }
 
 /// Tracks job holds for one core process. A terminal notification can arrive before the request
@@ -128,6 +129,8 @@ struct JobLedger {
     running: HashSet<String>,
     completed_before_registration: HashSet<String>,
     early_completion_order: VecDeque<String>,
+    terminals: HashMap<String, Notification>,
+    terminal_order: VecDeque<String>,
 }
 
 impl JobLedger {
@@ -137,6 +140,8 @@ impl JobLedger {
         self.running.clear();
         self.completed_before_registration.clear();
         self.early_completion_order.clear();
+        self.terminals.clear();
+        self.terminal_order.clear();
         self.run_epoch
     }
 
@@ -170,12 +175,32 @@ impl JobLedger {
         true
     }
 
+    fn record_terminal(&mut self, epoch: u64, job_id: &str, notification: Notification) {
+        if !self.active || epoch != self.run_epoch {
+            return;
+        }
+        while !self.terminals.contains_key(job_id)
+            && self.terminals.len() >= EARLY_COMPLETED_JOBS_MAX
+        {
+            let Some(oldest) = self.terminal_order.pop_front() else {
+                break;
+            };
+            self.terminals.remove(&oldest);
+        }
+        if !self.terminals.contains_key(job_id) {
+            self.terminal_order.push_back(job_id.to_owned());
+        }
+        self.terminals.insert(job_id.to_owned(), notification);
+    }
+
     fn clear_run(&mut self, epoch: u64) {
         if self.run_epoch == epoch {
             self.active = false;
             self.running.clear();
             self.completed_before_registration.clear();
             self.early_completion_order.clear();
+            self.terminals.clear();
+            self.terminal_order.clear();
         }
     }
 }
@@ -183,6 +208,44 @@ impl JobLedger {
 struct Shared {
     state: Mutex<State>,
     changed: Condvar,
+}
+
+/// Bộ chờ kết quả job dùng chung trạng thái với [`Supervisor`] mà không cần giữ khóa `Mutex<Supervisor>`
+/// hay rút sự kiện khỏi `Supervisor::events()`.
+#[derive(Clone)]
+pub struct JobWaiter {
+    shared: Arc<Shared>,
+    run_epoch: u64,
+}
+
+impl JobWaiter {
+    /// Chờ thông báo kết thúc (`job.finished`, `job.failed`, `job.cancelled`) của `job_id`.
+    /// Trả `Ok(Some(notification))` khi job kết thúc, `Ok(None)` khi hết `timeout`,
+    /// hoặc `Err(CallError::Closed)` khi `Supervisor` đã dừng.
+    pub fn wait_notification(
+        &self,
+        job_id: &str,
+        timeout: Duration,
+    ) -> Result<Option<Notification>, CallError> {
+        let deadline = Instant::now() + timeout;
+        let mut state = lock(&self.shared);
+        loop {
+            if !state.jobs.active || state.jobs.run_epoch != self.run_epoch {
+                return Err(CallError::Closed);
+            }
+            if let Some(note) = state.jobs.terminals.get(job_id).cloned() {
+                return Ok(Some(note));
+            }
+            if state.stopping || state.finished {
+                return Err(CallError::Closed);
+            }
+            let now = Instant::now();
+            if now >= deadline {
+                return Ok(None);
+            }
+            state = wait_for(&self.shared, state, deadline - now);
+        }
+    }
 }
 
 fn lock(shared: &Shared) -> MutexGuard<'_, State> {
@@ -200,16 +263,28 @@ fn wait_for<'a>(
     }
 }
 
-fn finish_job_on_run(shared: &Shared, job_id: &str, epoch: u64) {
+fn finish_job_on_run_with_note(
+    shared: &Shared,
+    job_id: &str,
+    epoch: u64,
+    terminal: Option<Notification>,
+) {
     let mut state = lock(shared);
     if !state.jobs.finish(epoch, job_id) {
         return;
+    }
+    if let Some(note) = terminal {
+        state.jobs.record_terminal(epoch, job_id, note);
     }
     if !state.jobs.running.contains(job_id) {
         state.busy.remove(&format!("job:{job_id}"));
     }
     state.last_activity = Instant::now();
     shared.changed.notify_all();
+}
+
+fn finish_job_on_run(shared: &Shared, job_id: &str, epoch: u64) {
+    finish_job_on_run_with_note(shared, job_id, epoch, None);
 }
 
 fn register_job_on_run(shared: &Shared, job_id: &str, epoch: u64) -> bool {
@@ -233,8 +308,15 @@ fn observe_terminal_job(shared: &Shared, epoch: u64, notification: &Notification
         return;
     }
     if let Some(job_id) = notification.params.get("jobId").and_then(Value::as_str) {
-        finish_job_on_run(shared, job_id, epoch);
+        finish_job_on_run_with_note(shared, job_id, epoch, Some(notification.clone()));
     }
+}
+
+fn broadcast_to_subscribers(shared: &Shared, event: &Event) {
+    let mut state = lock(shared);
+    state
+        .subscribers
+        .retain(|tx| tx.send(event.clone()).is_ok());
 }
 
 fn forward_notification(
@@ -244,7 +326,9 @@ fn forward_notification(
     notification: Notification,
 ) -> bool {
     observe_terminal_job(shared, epoch, &notification);
-    events.send(Event::Notification(notification)).is_ok()
+    let event = Event::Notification(notification);
+    broadcast_to_subscribers(shared, &event);
+    events.send(event).is_ok()
 }
 
 fn clear_run_jobs(shared: &Shared, epoch: u64) {
@@ -293,6 +377,7 @@ impl Supervisor {
                 last_activity: Instant::now(),
                 busy: HashSet::new(),
                 jobs: JobLedger::default(),
+                subscribers: Vec::new(),
             }),
             changed: Condvar::new(),
         });
@@ -311,6 +396,36 @@ impl Supervisor {
     /// Sự kiện cho UI: trạng thái và thông báo, theo đúng thứ tự xảy ra.
     pub fn events(&self) -> &Receiver<Event> {
         &self.events
+    }
+
+    /// Đăng ký nhận toàn bộ sự kiện (`Status` và `Notification`) trên một kênh riêng.
+    /// Không tranh chấp với `events()` hay `wait_job`.
+    pub fn subscribe(&self) -> Receiver<Event> {
+        let (tx, rx) = channel();
+        lock(&self.shared).subscribers.push(tx);
+        rx
+    }
+
+    /// Tạo bộ chờ kết quả job mà không cần giữ khóa `Supervisor`.
+    pub fn waiter(&self) -> JobWaiter {
+        let state = lock(&self.shared);
+        JobWaiter {
+            shared: Arc::clone(&self.shared),
+            run_epoch: state.jobs.run_epoch,
+        }
+    }
+
+    /// Phát thông báo nội bộ `job.started` tới các subscriber khi `ops::start` đăng ký thành công một job.
+    pub fn notify_job_started(&self, job_id: &str, op_id: &str, session_id: Option<&str>) {
+        let event = Event::Notification(Notification {
+            method: "job.started".to_owned(),
+            params: json!({
+                "jobId": job_id,
+                "opId": op_id,
+                "sessionId": session_id,
+            }),
+        });
+        broadcast_to_subscribers(&self.shared, &event);
     }
 
     pub fn status(&self) -> CoreStatus {
@@ -457,6 +572,7 @@ fn run_monitor(config: SupervisorConfig, shared: Arc<Shared>, events: Sender<Eve
         state.client = None;
         state.ready = false;
         state.finished = true;
+        state.subscribers.clear();
     }
     shared.changed.notify_all();
 }
@@ -693,8 +809,15 @@ fn stop_idle(client: &Client, exit: &Receiver<ExitInfo>) -> Option<i32> {
 }
 
 fn publish(shared: &Shared, events: &Sender<Event>, status: CoreStatus) {
-    lock(shared).status = status;
-    let _ = events.send(Event::Status(status));
+    let event = Event::Status(status);
+    {
+        let mut state = lock(shared);
+        state.status = status;
+        state
+            .subscribers
+            .retain(|tx| tx.send(event.clone()).is_ok());
+    }
+    let _ = events.send(event);
 }
 
 #[cfg(test)]
@@ -715,6 +838,7 @@ mod tests {
                 last_activity: Instant::now(),
                 busy: HashSet::new(),
                 jobs: JobLedger::default(),
+                subscribers: Vec::new(),
             }),
             changed: Condvar::new(),
         })
@@ -824,6 +948,116 @@ mod tests {
         assert!(state.busy.contains("session-kept"));
         assert!(state.busy.contains("job:reused-id"));
         assert!(state.jobs.running.contains("reused-id"));
+    }
+
+    #[test]
+    fn waiter_from_previous_run_stops_when_restarted_run_reuses_job_id() {
+        let shared = job_test_shared();
+        let old_epoch = lock(&shared).jobs.begin_run();
+        assert!(register_job_on_run(&shared, "reused-id", old_epoch));
+        let old_waiter = JobWaiter {
+            shared: Arc::clone(&shared),
+            run_epoch: old_epoch,
+        };
+        let (ready_tx, ready_rx) = channel();
+        let handle = thread::spawn(move || {
+            ready_tx.send(()).unwrap();
+            old_waiter.wait_notification("reused-id", Duration::from_secs(5))
+        });
+        ready_rx.recv().unwrap();
+
+        clear_run_jobs(&shared, old_epoch);
+        let new_epoch = lock(&shared).jobs.begin_run();
+        assert!(register_job_on_run(&shared, "reused-id", new_epoch));
+        let new_terminal = Notification {
+            method: "job.finished".to_owned(),
+            params: json!({ "jobId": "reused-id", "result": { "run": 2 } }),
+        };
+        let (tx, _rx) = channel();
+        assert!(forward_notification(
+            &shared,
+            new_epoch,
+            &tx,
+            new_terminal.clone()
+        ));
+
+        // An old waiter must be woken by run invalidation and must not consume the new run's
+        // terminal notification, even when the core reuses the same job ID.
+        assert_eq!(handle.join().unwrap(), Err(CallError::Closed));
+        let new_waiter = JobWaiter {
+            shared: Arc::clone(&shared),
+            run_epoch: new_epoch,
+        };
+        assert_eq!(
+            new_waiter.wait_notification("reused-id", Duration::ZERO),
+            Ok(Some(new_terminal))
+        );
+    }
+
+    #[test]
+    fn subscribers_and_waiter_receive_all_notifications_for_concurrent_jobs() {
+        let shared = job_test_shared();
+        let epoch = lock(&shared).jobs.begin_run();
+        let (sub_tx1, sub_rx1) = channel();
+        let (sub_tx2, sub_rx2) = channel();
+        {
+            let mut state = lock(&shared);
+            state.subscribers.push(sub_tx1);
+            state.subscribers.push(sub_tx2);
+        }
+        assert!(register_job_on_run(&shared, "job-a", epoch));
+        assert!(register_job_on_run(&shared, "job-b", epoch));
+
+        let waiter_a = JobWaiter {
+            shared: Arc::clone(&shared),
+            run_epoch: epoch,
+        };
+        let waiter_b = JobWaiter {
+            shared: Arc::clone(&shared),
+            run_epoch: epoch,
+        };
+        let handle_a =
+            thread::spawn(move || waiter_a.wait_notification("job-a", Duration::from_secs(5)));
+        let handle_b =
+            thread::spawn(move || waiter_b.wait_notification("job-b", Duration::from_secs(5)));
+
+        let (tx, rx) = channel();
+        let prog_a = Notification {
+            method: "job.progress".to_owned(),
+            params: json!({ "jobId": "job-a", "done": 1, "total": 2 }),
+        };
+        let fin_b = Notification {
+            method: "job.finished".to_owned(),
+            params: json!({ "jobId": "job-b", "result": { "ok": 2 } }),
+        };
+        let fail_a = Notification {
+            method: "job.failed".to_owned(),
+            params: json!({ "jobId": "job-a", "error": { "message": "boom" } }),
+        };
+
+        for note in [&prog_a, &fin_b, &fail_a] {
+            assert!(forward_notification(&shared, epoch, &tx, (*note).clone()));
+        }
+
+        let res_a = handle_a.join().unwrap().unwrap().unwrap();
+        let res_b = handle_b.join().unwrap().unwrap().unwrap();
+        assert_eq!(res_a, fail_a);
+        assert_eq!(res_b, fin_b);
+
+        for receiver in [&rx, &sub_rx1, &sub_rx2] {
+            assert_eq!(
+                receiver.try_recv().unwrap(),
+                Event::Notification(prog_a.clone())
+            );
+            assert_eq!(
+                receiver.try_recv().unwrap(),
+                Event::Notification(fin_b.clone())
+            );
+            assert_eq!(
+                receiver.try_recv().unwrap(),
+                Event::Notification(fail_a.clone())
+            );
+        }
     }
 
     fn quiet_log() -> Arc<dyn Fn(&str) + Send + Sync> {

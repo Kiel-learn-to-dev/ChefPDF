@@ -16,10 +16,13 @@ use chef_pdf::render::{Bookmark, DocId, Job, PageImage, RenderHandle, Reply};
 use chef_pdf::search;
 use chef_pdf::text::{CharBox, PageText, char_at};
 use chef_rpc::{CallError, Supervisor};
+use chef_ui::a11y::{self, Registered};
 use chef_ui::button::{Button, Size as ButtonSize, Variant};
 use chef_ui::text_input::{TextInput, TextInputEvent};
+use chef_ui::thumbnail::ThumbnailShimmer;
 use chef_viewer::{
     cache::LruCache,
+    grid::GridLayout,
     reload,
     scroll::Layout,
     sidebar::SidebarLayout,
@@ -158,6 +161,9 @@ const SIDEBAR_HEADER_H: f32 = 40.0;
 const THUMBNAIL_WIDTH: f32 = 150.0;
 const THUMBNAIL_GAP: f32 = 10.0;
 const THUMBNAIL_RASTER_WIDTH: u32 = 150;
+const GRID_CELL_WIDTH: f32 = 82.0;
+const GRID_GAP: f32 = 8.0;
+const GRID_RASTER_WIDTH: u32 = 76;
 
 pub struct Viewer {
     handle: RenderHandle,
@@ -197,6 +203,8 @@ pub struct Viewer {
     dirty: bool,
     edit_blocked: bool,
     tab_closing: bool,
+    close_after_save: bool,
+    ready_to_close: bool,
     retry_reload_focus: FocusHandle,
     source_warning: Option<Verdict>,
     source_warning_review: FocusHandle,
@@ -227,6 +235,7 @@ pub struct Viewer {
     page_mode: PageMode,
     slideshow_restore_fullscreen: Option<bool>,
     sidebar_layout: Option<SidebarLayout>,
+    page_grid: Option<GridLayout>,
     /// Vừa chiều rộng khi true (mặc định). Ctrl+=, Ctrl+− tắt chế độ này; Ctrl+0 bật lại.
     fit_width: bool,
     fit_page: bool,
@@ -241,6 +250,7 @@ pub struct Viewer {
     stale: std::collections::HashSet<usize>,
     bookmarks: Vec<Bookmark>,
     sidebar_outline: bool,
+    sidebar_grid: bool,
     sidebar_scroll_y: f32,
     sidebar_visible: Vec<usize>,
     thumbnail_cache: HashMap<usize, Arc<RenderImage>>,
@@ -362,6 +372,14 @@ impl DocKind {
 }
 
 impl Viewer {
+    fn clear_thumbnail_state(&mut self) {
+        self.thumbnail_pending.clear();
+        for (_, image) in self.thumbnail_cache.drain() {
+            self.to_drop.push(image);
+        }
+        self.sidebar_visible.clear();
+    }
+
     fn retry_revision_reload(&mut self, cx: &mut Context<Self>) {
         if !self.edit_blocked || self.operation_pending {
             return;
@@ -452,11 +470,31 @@ impl Viewer {
         });
         if let Some(path) = path {
             self.begin_edit(EditOperation::Save(Some(path.display().to_string())), cx);
+        } else {
+            self.close_after_save = false;
         }
+    }
+
+    pub fn save_for_close(&mut self, cx: &mut Context<Self>) {
+        self.close_after_save = true;
+        if self.source_path.is_some() {
+            self.begin_edit(EditOperation::Save(None), cx);
+        } else {
+            self.begin_save_as(cx);
+        }
+    }
+
+    pub fn take_ready_to_close(&mut self) -> bool {
+        std::mem::take(&mut self.ready_to_close)
+    }
+
+    pub fn has_ready_to_close(&self) -> bool {
+        self.ready_to_close
     }
 
     fn begin_edit(&mut self, operation: EditOperation, cx: &mut Context<Self>) {
         if self.tab_closing {
+            self.close_after_save = false;
             self.message = Some(i18n::t("editor.sessionClosing"));
             cx.notify();
             return;
@@ -465,11 +503,13 @@ impl Viewer {
             return;
         }
         if self.switch_rx.is_some() {
+            self.close_after_save = false;
             self.message = Some(i18n::t("editor.sessionClosing"));
             cx.notify();
             return;
         }
         if self.edit_blocked {
+            self.close_after_save = false;
             self.message = Some(i18n::t("editor.reloadRequired"));
             cx.notify();
             return;
@@ -486,21 +526,29 @@ impl Viewer {
                 return;
             }
             EditOperation::Save(_) if self.session_id.is_none() => {
+                self.close_after_save = false;
                 self.message = Some(i18n::t("editor.nothingToSave"));
                 cx.notify();
                 return;
             }
             _ => {}
         }
-        let (Some(supervisor), Some(source), Some(guard)) = (
-            self.supervisor.clone(),
-            self.source_path.clone(),
-            self.source_fingerprint.clone(),
-        ) else {
+        let Some(supervisor) = self.supervisor.clone() else {
+            self.close_after_save = false;
             self.message = Some(i18n::t("editor.coreUnavailable"));
             cx.notify();
             return;
         };
+        let source_and_guard = self
+            .source_path
+            .clone()
+            .zip(self.source_fingerprint.clone());
+        if self.session_id.is_none() && source_and_guard.is_none() {
+            self.close_after_save = false;
+            self.message = Some(i18n::t("editor.coreUnavailable"));
+            cx.notify();
+            return;
+        }
         self.operation_pending = true;
         let generation = self.document_generation;
         let render_handle = self.handle.clone();
@@ -518,7 +566,10 @@ impl Viewer {
                 let session_id = if let Some(id) = existing_session {
                     id
                 } else {
-                    match crate::session::open(&sup, &source, &guard, password.as_ref()) {
+                    let Some((source, guard)) = source_and_guard.as_ref() else {
+                        return Err(i18n::t("editor.coreUnavailable"));
+                    };
+                    match crate::session::open(&sup, source, guard, password.as_ref()) {
                         Ok(opened) => opened.session_id,
                         Err(crate::session::OpenError::SourceChanged(v)) => {
                             let _ = tx.send(OperationResult::SourceChanged {
@@ -539,19 +590,24 @@ impl Viewer {
                 let is_save = matches!(&operation, EditOperation::Save(_));
                 let reply = match operation {
                     EditOperation::Rotate => {
-                        let id = match chef_rpc::ops::start(
+                        let (id, waiter) = match chef_rpc::ops::start(
                             &sup,
                             "page.rotate",
                             Some(&session_id),
                             &serde_json::json!({"pages":[0],"angle":90}),
                         ) {
-                            Ok(id) => id,
+                            Ok(id) => (id, sup.waiter()),
                             Err(error) => {
                                 refresh_required = edit_error_needs_reload(&error);
                                 return Err(call_error_text(error));
                             }
                         };
-                        match chef_rpc::ops::wait_job(&sup, &id, Duration::from_secs(120)) {
+                        drop(sup);
+                        match chef_rpc::ops::wait_job_with_waiter(
+                            &waiter,
+                            &id,
+                            Duration::from_secs(120),
+                        ) {
                             chef_rpc::ops::JobEnd::Finished(v) => v,
                             chef_rpc::ops::JobEnd::Failed(error) => {
                                 return Err(call_error_text(CallError::Rpc(error)));
@@ -569,20 +625,26 @@ impl Viewer {
                         }
                     }
                     EditOperation::Undo => {
-                        chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
+                        let res = chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
                             refresh_required = edit_error_needs_reload(&error);
                             call_error_text(error)
-                        })?
+                        });
+                        drop(sup);
+                        res?
                     }
                     EditOperation::Redo => {
-                        chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
+                        let res = chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
                             refresh_required = edit_error_needs_reload(&error);
                             call_error_text(error)
-                        })?
+                        });
+                        drop(sup);
+                        res?
                     }
                     EditOperation::Save(path) => {
-                        chef_rpc::ops::save(&sup, &session_id, path.as_deref())
-                            .map_err(call_error_text)?
+                        let res = chef_rpc::ops::save(&sup, &session_id, path.as_deref())
+                            .map_err(call_error_text);
+                        drop(sup);
+                        res?
                     }
                 };
                 if is_save {
@@ -629,7 +691,6 @@ impl Viewer {
                     .and_then(serde_json::Value::as_str)
                     .map(PathBuf::from)
                     .ok_or_else(|| i18n::t("editor.revisionMissing"))?;
-                drop(sup);
                 let (doc, sizes) = load_revision(&render_handle, revision_path.clone())?;
                 let changed = reply.get("changedPages").cloned();
                 let SessionFlags {
@@ -677,6 +738,7 @@ impl Viewer {
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.operation_rx = None;
                 self.operation_pending = false;
+                self.close_after_save = false;
                 self.edit_blocked = true;
                 self.dirty = true;
                 if self.session_id.is_some() {
@@ -754,6 +816,12 @@ impl Viewer {
                         THUMBNAIL_WIDTH,
                         THUMBNAIL_GAP,
                     ));
+                    self.page_grid = Some(GridLayout::new(
+                        &display_sizes,
+                        2,
+                        GRID_CELL_WIDTH,
+                        GRID_GAP,
+                    ));
                     if self.selection.is_some_and(|selection| {
                         selection.anchor.0 >= sizes.len() || selection.focus.0 >= sizes.len()
                     }) {
@@ -813,6 +881,12 @@ impl Viewer {
                     self.source_path = Some(path.clone());
                     self.source_fingerprint = source_guard::fingerprint(&path).ok();
                 }
+                if self.close_after_save {
+                    self.close_after_save = false;
+                    if !self.dirty {
+                        self.ready_to_close = true;
+                    }
+                }
                 self.message = Some(
                     if warnings.iter().any(|warning| {
                         warning.contains("original owner password could not be preserved")
@@ -834,6 +908,7 @@ impl Viewer {
                 generation,
                 verdict,
             } => {
+                self.close_after_save = false;
                 if generation != self.document_generation {
                     return true;
                 }
@@ -845,6 +920,7 @@ impl Viewer {
                 message,
                 refresh_required,
             } => {
+                self.close_after_save = false;
                 if generation != self.document_generation {
                     if let (Some(supervisor), Some(session_id)) =
                         (self.supervisor.clone(), session_id)
@@ -946,6 +1022,8 @@ impl Viewer {
             dirty: false,
             edit_blocked: false,
             tab_closing: false,
+            close_after_save: false,
+            ready_to_close: false,
             retry_reload_focus: cx.focus_handle(),
             source_warning: None,
             source_warning_review,
@@ -978,6 +1056,7 @@ impl Viewer {
             page_mode: PageMode::Continuous,
             slideshow_restore_fullscreen: None,
             sidebar_layout: None,
+            page_grid: None,
             fit_width: true,
             fit_page: false,
             scroll_y: 0.0,
@@ -988,6 +1067,7 @@ impl Viewer {
             stale: std::collections::HashSet::new(),
             bookmarks: Vec::new(),
             sidebar_outline: false,
+            sidebar_grid: false,
             sidebar_scroll_y: 0.0,
             sidebar_visible: Vec::new(),
             thumbnail_cache: HashMap::new(),
@@ -1003,6 +1083,111 @@ impl Viewer {
         }
         viewer.start_poll(cx);
         viewer
+    }
+
+    /// Mở một phiên đã được `recovery.restore` khôi phục (TASKS_RUST R3.13).
+    pub fn open_restored(
+        handle: RenderHandle,
+        restored: &serde_json::Value,
+        supervisor: Option<Arc<Mutex<Supervisor>>>,
+        settings: Entity<SettingsPanel>,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let mut viewer = Self::open(handle, None, supervisor, settings, cx);
+        viewer.apply_restored_session(restored);
+        viewer
+    }
+
+    fn apply_restored_session(&mut self, restored: &serde_json::Value) {
+        let state = restored.get("state").unwrap_or(restored);
+        let Some(session_id) = state
+            .get("sessionId")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string)
+        else {
+            self.message = Some(i18n::t("editor.operationFailed"));
+            return;
+        };
+        let Some(revision_path) = state
+            .get("revisionPath")
+            .and_then(serde_json::Value::as_str)
+            .map(PathBuf::from)
+        else {
+            self.message = Some(i18n::t("editor.revisionMissing"));
+            return;
+        };
+        let source_path = state
+            .get("sourcePath")
+            .and_then(serde_json::Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(PathBuf::from);
+        let (doc, sizes) = match load_revision(&self.handle, revision_path.clone()) {
+            Ok(loaded) => loaded,
+            Err(e) => {
+                self.message = Some(e);
+                return;
+            }
+        };
+        let bookmarks = self
+            .call(|id, reply| Job::Bookmarks { id, doc, reply })
+            .unwrap_or_default();
+        self.kind = self.sample_kind(doc, sizes.len());
+        self.clear_document_state();
+        if let Some(previous) = self.doc.replace(doc) {
+            self.close_render_doc(previous);
+        }
+        self.doc_path = Some(revision_path);
+        self.source_fingerprint = source_path
+            .as_deref()
+            .and_then(|p| source_guard::fingerprint(p).ok());
+        self.source_path = source_path;
+        self.source_password = None;
+        if let Some(sup) = self.supervisor.as_ref().and_then(|sup| sup.lock().ok()) {
+            sup.session_opened(&session_id);
+        }
+        self.session_id = Some(session_id);
+        self.operation_rx = None;
+        self.operation_pending = false;
+        self.document_generation = self.document_generation.wrapping_add(1);
+        let SessionFlags {
+            can_undo,
+            can_redo,
+            dirty,
+        } = SessionFlags::read(state);
+        self.can_undo = can_undo;
+        self.can_redo = can_redo;
+        self.dirty = dirty;
+        self.source_warning = None;
+        self.page_sizes = sizes.clone();
+        let display_sizes = oriented_sizes(&sizes, self.view_rotation);
+        self.sidebar_layout = Some(SidebarLayout::new(
+            &display_sizes,
+            THUMBNAIL_WIDTH,
+            THUMBNAIL_GAP,
+        ));
+        self.page_grid = Some(GridLayout::new(
+            &display_sizes,
+            2,
+            GRID_CELL_WIDTH,
+            GRID_GAP,
+        ));
+        self.spread = Some(SpreadLayout::new(
+            display_sizes.clone(),
+            self.page_mode,
+            PAGE_GAP,
+            PAGE_GAP,
+            1.0,
+        ));
+        self.layout = Some(Layout::new(display_sizes, PAGE_GAP, 1.0));
+        self.fit_width = true;
+        self.fit_page = false;
+        self.scroll_y = 0.0;
+        self.bookmarks = bookmarks;
+        self.sidebar_outline = !self.bookmarks.is_empty();
+        self.sidebar_grid = false;
+        self.sidebar_scroll_y = 0.0;
+        self.sidebar_visible.clear();
+        self.message = None;
     }
 
     /// Mở một file. Nếu file cần mật khẩu thì hỏi mật khẩu (R2.26); lỗi khác hiện ở thông báo.
@@ -1244,6 +1429,12 @@ impl Viewer {
             THUMBNAIL_WIDTH,
             THUMBNAIL_GAP,
         ));
+        self.page_grid = Some(GridLayout::new(
+            &display_sizes,
+            2,
+            GRID_CELL_WIDTH,
+            GRID_GAP,
+        ));
         self.spread = Some(SpreadLayout::new(
             display_sizes.clone(),
             self.page_mode,
@@ -1280,6 +1471,7 @@ impl Viewer {
         self.fit_page = false;
         self.bookmarks.clear();
         self.sidebar_layout = None;
+        self.page_grid = None;
         self.sidebar_scroll_y = 0.0;
         self.sidebar_visible.clear();
     }
@@ -1869,6 +2061,7 @@ impl Viewer {
             old_zoom,
         ));
         self.sidebar_layout = Some(SidebarLayout::new(&sizes, THUMBNAIL_WIDTH, THUMBNAIL_GAP));
+        self.page_grid = Some(GridLayout::new(&sizes, 2, GRID_CELL_WIDTH, GRID_GAP));
         self.pending.clear();
         self.thumbnail_pending.clear();
         for (_, image) in self.thumbnail_cache.drain() {
@@ -1995,11 +2188,8 @@ impl Viewer {
         self.dirty
     }
 
-    pub fn tab_close_blocked(&self) -> bool {
-        self.dirty
-            || self.operation_pending
-            || self.operation_rx.is_some()
-            || self.switch_rx.is_some()
+    pub fn tab_is_busy(&self) -> bool {
+        self.operation_pending || self.operation_rx.is_some() || self.switch_rx.is_some()
     }
 
     pub fn set_tab_closing(&mut self, closing: bool) {
@@ -2023,7 +2213,7 @@ impl Viewer {
         self.pending.clear();
         self.thumbnail_pending.clear();
         self.sidebar_visible.clear();
-        crate::debug::set_sidebar_thumbnail_count(0);
+        crate::debug::set_sidebar_thumbnail_count(0, 0);
         for (_, image) in self.thumbnail_cache.drain() {
             let _ = window.drop_image(image);
         }
@@ -2296,8 +2486,13 @@ impl Render for Viewer {
                 }));
             self.appearance_observer_installed = true;
         }
-        // Đầu khung: xóa danh sách điều khiển của khung trước, để lệnh `state` không đọc bản cũ.
-        chef_ui::a11y::begin_frame(window.scale_factor());
+        // Khi chạy trong DocumentHost, host đã gọi `begin_frame` ở đầu khung vẽ để giữ cả điều khiển
+        // thanh tab / jobs-toggle lẫn Viewer. Nếu GPUI chỉ vẽ lại riêng Viewer (ví dụ animation frame),
+        // mở khung mới và yêu cầu vẽ lại toàn cửa sổ ở nhịp kế tiếp để đồng bộ điều khiển của host.
+        if !crate::tabs_host::take_host_frame() {
+            chef_ui::a11y::begin_frame(window.scale_factor());
+            window.defer(cx, |window, _| window.refresh());
+        }
         let vp = window.viewport_size();
         // `viewport` giữ nghĩa cũ (vùng trang cộng sidebar, thanh công cụ, thanh dưới) nhưng lấy từ
         // khung vùng trang đã đo, để phần trừ đi ở các công thức ra đúng kích thước thật.
@@ -2975,10 +3170,20 @@ impl Render for Viewer {
             .as_ref()
             .expect("sidebar layout follows document layout");
         let sidebar_height = (vh - SIDEBAR_HEADER_H).max(0.0);
-        let visible_thumbnail_rows = if self.sidebar_outline {
+        for screens in crate::debug::take_sidebar_scrolls() {
+            self.sidebar_scroll_y += screens * sidebar_height;
+        }
+        let visible_thumbnail_rows = if self.sidebar_outline || self.sidebar_grid {
             self.sidebar_scroll_y = self.sidebar_scroll_y.clamp(
                 0.0,
-                (self.bookmarks.len() as f32 * 28.0 - sidebar_height).max(0.0),
+                (if self.sidebar_outline {
+                    self.bookmarks.len() as f32 * 28.0
+                } else {
+                    self.page_grid
+                        .as_ref()
+                        .map_or(0.0, GridLayout::total_height)
+                } - sidebar_height)
+                    .max(0.0),
             );
             Vec::new()
         } else {
@@ -2988,9 +3193,36 @@ impl Render for Viewer {
             );
             sidebar_layout.visible_rows(self.sidebar_scroll_y, sidebar_height)
         };
-        self.sidebar_visible = visible_thumbnail_rows
+        crate::debug::set_sidebar_scroll_y(self.sidebar_scroll_y);
+        let visible_thumbnail_cells: Vec<(usize, f32, f32, f32, f32)> =
+            if self.sidebar_grid && !self.sidebar_outline {
+                self.page_grid
+                    .as_ref()
+                    .map(|layout| {
+                        layout
+                            .visible_cells(self.sidebar_scroll_y, sidebar_height)
+                            .into_iter()
+                            .map(|cell| {
+                                (
+                                    cell.page_index,
+                                    cell.left,
+                                    cell.top,
+                                    cell.width,
+                                    cell.height,
+                                )
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            } else {
+                visible_thumbnail_rows
+                    .iter()
+                    .map(|row| (row.page_index, 0.0, row.top, row.width, row.height))
+                    .collect()
+            };
+        self.sidebar_visible = visible_thumbnail_cells
             .iter()
-            .map(|row| row.page_index)
+            .map(|(page_index, _, _, _, _)| *page_index)
             .collect();
         let visible_thumbnail_set: std::collections::HashSet<usize> =
             self.sidebar_visible.iter().copied().collect();
@@ -3007,19 +3239,25 @@ impl Render for Viewer {
         }
         self.thumbnail_pending
             .retain(|index, _| visible_thumbnail_set.contains(index));
-        for row in &visible_thumbnail_rows {
-            if self.thumbnail_cache.contains_key(&row.page_index)
-                || self.thumbnail_pending.contains_key(&row.page_index)
+        for (page_index, _, _, width, height) in &visible_thumbnail_cells {
+            if self.thumbnail_cache.contains_key(page_index)
+                || self.thumbnail_pending.contains_key(page_index)
             {
                 continue;
             }
             let Some(doc) = self.doc else { break };
-            let width = (THUMBNAIL_RASTER_WIDTH as f32 * scale).round().max(1.0) as u32;
+            let cell_width = *width;
+            let raster_width = if self.sidebar_grid {
+                GRID_RASTER_WIDTH
+            } else {
+                THUMBNAIL_RASTER_WIDTH
+            };
+            let width = (raster_width as f32 * scale).round().max(1.0) as u32;
             let (raw_w, raw_h) = self
                 .page_sizes
-                .get(row.page_index)
+                .get(*page_index)
                 .copied()
-                .unwrap_or((row.width, row.height));
+                .unwrap_or((cell_width, *height));
             let height = (width as f32 * raw_h / raw_w).round().max(1.0) as u32;
             let (tx, rx) = channel();
             let id = self.handle.next_id();
@@ -3028,18 +3266,25 @@ impl Render for Viewer {
                 .send(Job::Render {
                     id,
                     doc,
-                    index: row.page_index,
+                    index: *page_index,
                     width,
                     height,
                     reply: tx,
                 })
                 .is_ok()
             {
-                self.thumbnail_pending.insert(row.page_index, rx);
+                self.thumbnail_pending.insert(*page_index, rx);
             }
         }
-        crate::debug::set_sidebar_thumbnail_count(self.thumbnail_cache.len());
-        crate::debug::set_sidebar_state(self.sidebar_outline, self.bookmarks.len());
+        crate::debug::set_sidebar_thumbnail_count(
+            self.thumbnail_cache.len(),
+            self.thumbnail_pending.len(),
+        );
+        crate::debug::set_sidebar_state(
+            self.sidebar_outline,
+            self.sidebar_grid,
+            self.bookmarks.len(),
+        );
 
         crate::debug::set_viewer_stats(
             self.cache.len(),
@@ -3196,12 +3441,29 @@ impl Render for Viewer {
             })
             .children(children);
         let pages_toggle = cx.listener(|this, _: &MouseDownEvent, _window, cx| {
+            if this.sidebar_grid {
+                this.clear_thumbnail_state();
+            }
             this.sidebar_outline = false;
+            this.sidebar_grid = false;
+            this.sidebar_scroll_y = 0.0;
+            cx.notify();
+        });
+        let grid_toggle = cx.listener(|this, _: &MouseDownEvent, _window, cx| {
+            if !this.sidebar_grid {
+                this.clear_thumbnail_state();
+            }
+            this.sidebar_outline = false;
+            this.sidebar_grid = true;
             this.sidebar_scroll_y = 0.0;
             cx.notify();
         });
         let outline_toggle = cx.listener(|this, _: &MouseDownEvent, _window, cx| {
+            if this.sidebar_grid {
+                this.clear_thumbnail_state();
+            }
             this.sidebar_outline = true;
+            this.sidebar_grid = false;
             this.sidebar_scroll_y = 0.0;
             cx.notify();
         });
@@ -3222,7 +3484,7 @@ impl Render for Viewer {
                     .px(px(8.0))
                     .py(px(5.0))
                     .cursor_pointer()
-                    .bg(rgb(if !self.sidebar_outline {
+                    .bg(rgb(if !self.sidebar_outline && !self.sidebar_grid {
                         palette.surface
                     } else {
                         palette.canvas
@@ -3230,6 +3492,21 @@ impl Render for Viewer {
                     .text_color(rgb(palette.text))
                     .child(i18n::t("sidebar.thumbnails"))
                     .on_mouse_down(MouseButton::Left, pages_toggle),
+            )
+            .child(
+                div()
+                    .id("sidebar-grid")
+                    .px(px(8.0))
+                    .py(px(5.0))
+                    .cursor_pointer()
+                    .bg(rgb(if self.sidebar_grid {
+                        palette.surface
+                    } else {
+                        palette.canvas
+                    }))
+                    .text_color(rgb(palette.text))
+                    .child(i18n::t("sidebar.grid"))
+                    .on_mouse_down(MouseButton::Left, grid_toggle),
             )
             .child(
                 div()
@@ -3246,6 +3523,39 @@ impl Render for Viewer {
                     .child(i18n::t("sidebar.outline"))
                     .on_mouse_down(MouseButton::Left, outline_toggle),
             );
+        for (id, name, checked) in [
+            (
+                "sidebar-pages",
+                i18n::t("sidebar.thumbnails"),
+                !self.sidebar_outline && !self.sidebar_grid,
+            ),
+            ("sidebar-grid", i18n::t("sidebar.grid"), self.sidebar_grid),
+            (
+                "sidebar-outline",
+                i18n::t("sidebar.outline"),
+                self.sidebar_outline,
+            ),
+        ] {
+            a11y::register(Registered {
+                id: id.into(),
+                role: "button",
+                name,
+                disabled: false,
+                focused: false,
+                hovered: false,
+                checked: Some(if checked { "true" } else { "false" }),
+                value: None,
+                bounds: None,
+            });
+        }
+        sidebar_header = sidebar_header.on_children_prepainted(|bounds, _, _| {
+            for (id, bounds) in ["sidebar-pages", "sidebar-grid", "sidebar-outline"]
+                .into_iter()
+                .zip(bounds.iter())
+            {
+                a11y::set_bounds(id, *bounds);
+            }
+        });
         let sidebar_scroll = cx.listener(|this, ev: &ScrollWheelEvent, _window, cx| {
             cx.stop_propagation();
             let delta = ev.delta.pixel_delta(px(LINE_PX)).y.as_f32();
@@ -3300,41 +3610,74 @@ impl Render for Viewer {
                 sidebar_rows.push(row.into_any_element());
             }
         } else {
-            for row in &visible_thumbnail_rows {
-                let top = row.top - self.sidebar_scroll_y;
-                let child = match self.thumbnail_cache.get(&row.page_index).cloned() {
+            for &(page_index, left, cell_top, cell_width, cell_height) in &visible_thumbnail_cells {
+                let top = cell_top - self.sidebar_scroll_y;
+                let tile_width = if self.sidebar_grid {
+                    cell_width
+                } else {
+                    SIDEBAR_WIDTH
+                };
+                let child = match self.thumbnail_cache.get(&page_index).cloned() {
                     Some(image) => img(image)
-                        .w(px(row.width))
-                        .h(px(row.height))
+                        .w(px(cell_width))
+                        .h(px(cell_height))
                         .border_1()
                         .border_color(rgb(palette.border))
                         .into_any_element(),
                     None => div()
-                        .w(px(row.width))
-                        .h(px(row.height))
-                        .bg(rgb(palette.surface))
+                        .relative()
+                        .w(px(cell_width))
+                        .h(px(cell_height))
+                        .overflow_hidden()
                         .border_1()
                         .border_color(rgb(palette.border))
+                        .child(
+                            ThumbnailShimmer::new(
+                                format!("thumbnail-shimmer-{page_index}"),
+                                cell_width,
+                                cell_height,
+                            )
+                            .reduced_motion(chef_ui::motion::reduced()),
+                        )
                         .into_any_element(),
                 };
-                let page_index = row.page_index;
                 let navigate = cx.listener(move |this, _: &MouseDownEvent, _window, cx| {
                     this.go_to_page(page_index);
                     cx.notify();
                 });
+                let control_id = format!("thumbnail-{}", page_index + 1);
+                a11y::register(Registered {
+                    id: control_id.clone(),
+                    role: "button",
+                    name: format!("{} {}", i18n::t("sidebar.thumbnails"), page_index + 1),
+                    disabled: false,
+                    focused: false,
+                    hovered: false,
+                    checked: None,
+                    value: None,
+                    bounds: None,
+                });
+                let tile = div()
+                    .id(control_id.clone())
+                    .absolute()
+                    .left(px(left))
+                    .top(px(top))
+                    .w(px(tile_width))
+                    .h(px(cell_height))
+                    .flex()
+                    .justify_center()
+                    .cursor_pointer()
+                    .child(child)
+                    .on_mouse_down(MouseButton::Left, navigate);
                 sidebar_rows.push(
                     div()
-                        .id(format!("thumbnail-{}", page_index + 1))
-                        .absolute()
-                        .left(px(0.0))
-                        .top(px(top))
-                        .w_full()
-                        .h(px(row.height))
-                        .flex()
-                        .justify_center()
-                        .cursor_pointer()
-                        .child(child)
-                        .on_mouse_down(MouseButton::Left, navigate)
+                        .flex_none()
+                        .child(tile)
+                        .on_children_prepainted(move |bounds, _, _| {
+                            if let Some(bounds) = bounds.first() {
+                                a11y::set_bounds(&control_id, *bounds);
+                            }
+                        })
                         .into_any_element(),
                 );
             }

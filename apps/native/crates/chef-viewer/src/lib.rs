@@ -2,6 +2,7 @@
 //! Phần vẽ nằm trong chef-app; crate này không phụ thuộc GPUI để kiểm thử được riêng.
 
 pub mod cache;
+pub mod grid;
 pub mod reload;
 pub mod scroll;
 pub mod sidebar;

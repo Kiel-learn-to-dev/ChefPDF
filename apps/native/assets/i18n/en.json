@@ -564,6 +564,7 @@
     "label": "Sidebar",
     "notes": "Notes",
     "thumbnails": "Pages",
+    "grid": "Grid",
     "outline": "Outline",
     "hide": "Hide sidebar",
     "goToPage": "Go to page {{page}}",

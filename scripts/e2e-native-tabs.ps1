@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   R2.15 host tab E2E: open three PDF argv files, switch, reject a dirty close, close a clean tab,
   and assert that inactive viewers retain no page bitmaps.
@@ -144,34 +144,40 @@ public static class ChefTabsWindowInput {
         [ChefTabsWindowInput]::keybd_event($key, 0, 2, [UIntPtr]::Zero)
         [ChefTabsWindowInput]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
     }
-    function Click-TabById([int]$id) {
-        $snapshot = State
+    function Click-ControlById([string]$controlId) {
+        $script:targetControl = $null
+        WaitFor {
+            $script:targetSnapshot = State
+            $c = $script:targetSnapshot.controls.controls | Where-Object { $_.id -eq $controlId } | Select-Object -First 1
+            if ($null -ne $c -and $null -ne $c.bounds) {
+                $script:targetControl = $c
+                return $true
+            }
+            return $false
+        } "control bounds for id $controlId"
+        $snapshot = $script:targetSnapshot
+        $control = $script:targetControl
+        $scale = [double]$snapshot.controls.scale
+        $x = [int](($control.bounds[0] + $control.bounds[2] / 2) * $scale)
+        $y = [int](($control.bounds[1] + $control.bounds[3] / 2) * $scale)
         if ($env:CHEF_E2E_OS_INPUT -ne '1') {
-            $target = -1; $active = -1
-            for ($index = 0; $index -lt $snapshot.tabs.Count; $index++) {
-                if ($snapshot.tabs[$index].id -eq $id) { $target = $index }
-                if ($snapshot.tabs[$index].active) { $active = $index }
-            }
-            if ($target -lt 0) { throw "tab id $id is missing" }
-            if ($active -lt 0) { throw 'no active tab found' }
-            for ($step = 0; $step -lt $snapshot.tabs.Count -and $active -ne $target; $step++) {
-                Send 'action tabnext' | Out-Null
-                $active = ($active + 1) % $snapshot.tabs.Count
-            }
+            Send "mouse move $x $y" | Out-Null
+            Send "mouse down $x $y" | Out-Null
+            Send "mouse up $x $y" | Out-Null
             return
         }
-        $control = $snapshot.controls.controls | Where-Object { $_.id -eq "doc-tab-$id" } | Select-Object -First 1
-        if ($null -eq $control -or $null -eq $control.bounds) { throw "tab control bounds are missing for id $id" }
-        $scale = [double]$snapshot.controls.scale
         $point = [ChefTabsPoint]::new()
-        $point.X = [int](($control.bounds[0] + $control.bounds[2] / 2) * $scale)
-        $point.Y = [int](($control.bounds[1] + $control.bounds[3] / 2) * $scale)
+        $point.X = $x
+        $point.Y = $y
         $hwnd = [IntPtr]::new([long]$snapshot.hwnd)
-        if (-not [ChefTabsWindowInput]::ClientToScreen($hwnd, [ref]$point)) { throw "ClientToScreen failed for tab $id" }
+        if (-not [ChefTabsWindowInput]::ClientToScreen($hwnd, [ref]$point)) { throw "ClientToScreen failed for $controlId" }
         [void][ChefTabsWindowInput]::SetCursorPos($point.X, $point.Y)
         Start-Sleep -Milliseconds 60
         [ChefTabsWindowInput]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)
         [ChefTabsWindowInput]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
+    }
+    function Click-TabById([int]$id) {
+        Click-ControlById "doc-tab-$id"
     }
 
     WaitFor { $s = State; $s.tabs.Count -eq 3 -and $s.tabs[2].active -and $s.tabs[2].cachedPages -gt 0 } 'three argv tabs, last active, and rendered bitmap'
@@ -190,7 +196,16 @@ public static class ChefTabsWindowInput {
     WaitFor { $s = State; $s.tabs[0].dirty } 'first tab becomes dirty after edit'
     FocusViewerCanvas
     Send-CtrlKey 0x57 # Ctrl+W
-    WaitFor { $s = State; $s.tabs.Count -eq 3 -and $s.tabs[0].active -and $s.tabs[0].dirty -and $s.tabMessage -match 'Lưu thay đổi' } 'dirty active tab close is rejected'
+    WaitFor {
+        $s = State
+        $s.tabs.Count -eq 3 -and $s.tabs[0].active -and $s.tabs[0].dirty -and
+        $s.closePrompt.open -eq $true -and $s.closePrompt.tabId -eq $s.tabs[0].id
+    } 'dirty active tab close opens closePrompt'
+    Click-ControlById 'close-prompt-cancel'
+    WaitFor {
+        $s = State
+        (-not $s.closePrompt.open) -and $s.tabs.Count -eq 3 -and $s.tabs[0].active -and $s.tabs[0].dirty
+    } 'cancelling closePrompt keeps dirty active tab open'
 
     Send-CtrlTab
     WaitFor { $s = State; $s.tabs[1].active } 'switch away while retaining the dirty tab'

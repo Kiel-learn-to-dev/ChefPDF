@@ -5,7 +5,7 @@ use std::time::Duration;
 use serde_json::Value;
 
 use crate::client::CallError;
-use crate::supervisor::Supervisor;
+use crate::supervisor::{JobWaiter, Supervisor};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum JobEnd {
@@ -29,6 +29,10 @@ pub fn wait_job(_sup: &Supervisor, _job_id: &str, _timeout: Duration) -> JobEnd 
     JobEnd::Stopped
 }
 
+pub fn wait_job_with_waiter(_waiter: &JobWaiter, _job_id: &str, _timeout: Duration) -> JobEnd {
+    JobEnd::Stopped
+}
+
 pub fn cancel(_sup: &Supervisor, _job_id: &str) -> Result<(), CallError> {
     Err(CallError::Closed)
 }
@@ -42,5 +46,17 @@ pub fn redo(_sup: &Supervisor, _session_id: &str) -> Result<Value, CallError> {
 }
 
 pub fn save(_sup: &Supervisor, _session_id: &str, _path: Option<&str>) -> Result<Value, CallError> {
+    Err(CallError::Closed)
+}
+
+pub fn recovery_list(_sup: &Supervisor) -> Result<Vec<Value>, CallError> {
+    Err(CallError::Closed)
+}
+
+pub fn recovery_restore(_sup: &Supervisor, _session_id: &str) -> Result<Value, CallError> {
+    Err(CallError::Closed)
+}
+
+pub fn recovery_discard(_sup: &Supervisor, _session_id: &str) -> Result<(), CallError> {
     Err(CallError::Closed)
 }
