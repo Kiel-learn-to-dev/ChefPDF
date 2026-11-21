@@ -575,7 +575,7 @@
     "cancel": "Hủy",
     "empty": "Tài liệu chưa có dấu trang."
   },
-  "notes": {
+  "notes": { "filterKind": "Loại", "filterAuthor": "Người", "filterAll": "Tất cả", "exportCsv": "Xuất CSV", "flatten": "Làm phẳng ghi chú",
     "open": "Ghi chú",
     "title": "Ghi chú và bình luận",
     "noDocument": "Hãy mở PDF trước khi sửa ghi chú.",

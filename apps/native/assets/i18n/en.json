@@ -575,7 +575,7 @@
     "cancel": "Cancel",
     "empty": "This document has no bookmarks yet."
   },
-  "notes": {
+  "notes": { "filterKind": "Type", "filterAuthor": "Author", "filterAll": "All", "exportCsv": "Export CSV", "flatten": "Flatten notes",
     "open": "Notes",
     "title": "Notes and comments",
     "noDocument": "Open a PDF before editing notes.",

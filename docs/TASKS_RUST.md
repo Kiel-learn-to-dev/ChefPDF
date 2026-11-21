@@ -1315,9 +1315,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** E2E `annots`, `forms` (làm phẳng); test.
 - **Phụ thuộc:** R4.18
 - **File:** `apps/native/crates/chef-app/src/notes_list.rs`
-- **E2E:** `annots`
+- **E2E:** `annots`, `scripts/e2e-native-notes-list.ps1`
 - **Tính năng:** G4, G5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Hộp thoại Ghi chú có nút lọc theo loại (tất cả/Text/FreeText) và theo người, Xuất CSV (`annots.export` ra `<tên file>-notes.csv` cạnh file gốc, không làm bẩn tài liệu) và Làm phẳng ghi chú (`annots.flatten` qua pipeline revision). `notes_list.rs` có 2 unit test. `scripts/e2e-native-notes-list.ps1` trên Windows đạt: lọc đúng, CSV đủ 9 cột và 2 dòng, làm phẳng xong PDF không còn chú thích Text/FreeText. Đóng task.
+- **Trạng thái:** ✅
 
 ### M4.3 Form
 

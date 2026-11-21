@@ -254,6 +254,7 @@ pub struct Viewer {
     notes_open: bool,
     notes_ticket: u64,
     note_form_mode: Option<crate::notes::FormMode>,
+    note_filter: crate::notes_list::NoteFilter,
     /// Hộp thoại Thuộc tính (Ctrl+D): số liệu đã đọc lúc mở, và tiêu điểm nút đóng.
     props_open: bool,
     props_view: Option<properties::View>,
@@ -1863,6 +1864,49 @@ impl Viewer {
         }
     }
 
+    fn cycle_note_kind(&mut self, cx: &mut Context<Self>) {
+        self.note_filter.cycle_kind();
+        cx.notify();
+    }
+
+    fn cycle_note_author(&mut self, cx: &mut Context<Self>) {
+        self.note_filter.cycle_author(&self.notes);
+        cx.notify();
+    }
+
+    fn flatten_notes(&mut self, cx: &mut Context<Self>) {
+        self.note_form_mode = None;
+        self.begin_edit(
+            EditOperation::NoteMutation {
+                op_id: "annots.flatten",
+                params: crate::notes_list::flatten_params(),
+            },
+            cx,
+        );
+    }
+
+    fn export_notes_csv(&mut self, cx: &mut Context<Self>) {
+        let Some(doc) = self.source_path.clone().or_else(|| self.doc_path.clone()) else {
+            return;
+        };
+        let output = crate::notes_list::csv_output_path(&doc);
+        match crate::notes_list::export_csv_params(&output, self.note_filter.kind.as_deref()) {
+            Ok(params) => {
+                self.note_form_mode = None;
+                self.begin_edit(
+                    EditOperation::NoteMutation {
+                        op_id: "annots.export",
+                        params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
     fn mark_note_completed(&mut self, id: &str, cx: &mut Context<Self>) {
         match crate::notes::completed_params(id) {
             Ok(params) => {
@@ -2523,6 +2567,7 @@ impl Viewer {
             notes: Vec::new(),
             notes_open: false,
             notes_ticket: 0,
+            note_filter: crate::notes_list::NoteFilter::default(),
             note_form_mode: None,
             props_open: false,
             props_view: None,
@@ -4524,7 +4569,8 @@ impl Render for Viewer {
                 }
                 _ => None,
             });
-            let rows = self.notes.iter().enumerate().map(|(index, note)| {
+            let filtered_notes = self.note_filter.apply(&self.notes);
+            let rows = filtered_notes.into_iter().enumerate().map(|(index, note)| {
                 let row_entity = entity.clone();
                 let id = note.id.clone();
                 let selected = selected_id.as_deref() == Some(note.id.as_str());
@@ -4581,6 +4627,10 @@ impl Render for Viewer {
             let add_text_entity = entity.clone();
             let reply_entity = entity.clone();
             let complete_entity = entity.clone();
+            let kind_entity = entity.clone();
+            let author_entity = entity.clone();
+            let export_entity = entity.clone();
+            let flatten_entity = entity.clone();
             let apply_entity = entity.clone();
             let close_entity = entity.clone();
             let reply_id = selected_id.clone();
@@ -4631,6 +4681,57 @@ impl Render for Viewer {
                                                 cx,
                                             )
                                         });
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-filter-kind", cx.focus_handle())
+                                    .label(format!(
+                                        "{}: {}",
+                                        i18n::t("notes.filterKind"),
+                                        self.note_filter
+                                            .kind
+                                            .clone()
+                                            .unwrap_or_else(|| i18n::t("notes.filterAll"))
+                                    ))
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        kind_entity.update(cx, |this, cx| this.cycle_note_kind(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-filter-author", cx.focus_handle())
+                                    .label(format!(
+                                        "{}: {}",
+                                        i18n::t("notes.filterAuthor"),
+                                        self.note_filter
+                                            .author
+                                            .clone()
+                                            .unwrap_or_else(|| i18n::t("notes.filterAll"))
+                                    ))
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        author_entity
+                                            .update(cx, |this, cx| this.cycle_note_author(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-export-csv", cx.focus_handle())
+                                    .label(i18n::t("notes.exportCsv"))
+                                    .disabled(self.operation_pending)
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        export_entity
+                                            .update(cx, |this, cx| this.export_notes_csv(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-flatten", cx.focus_handle())
+                                    .label(i18n::t("notes.flatten"))
+                                    .disabled(self.operation_pending || self.notes.is_empty())
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        flatten_entity
+                                            .update(cx, |this, cx| this.flatten_notes(cx));
                                     }),
                             )
                             .child(
