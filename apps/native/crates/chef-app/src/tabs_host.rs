@@ -21,7 +21,7 @@ use gpui::{
     Render, SharedString, Subscription, Window, actions, div, prelude::*, px, rgb,
 };
 
-use crate::close::UnsavedClosePrompt;
+use crate::close::{CloseTabStatus, UnsavedClosePrompt, WindowCloseStep, next_window_close_step};
 use crate::commands::{self, Command, CommandRegistry};
 use crate::recovery::{ConfirmDiscard, RecoverableSession, RecoveryModal};
 use crate::settings_dialog::{self, SettingsPanel};
@@ -57,6 +57,9 @@ enum RecoveryOpResult {
 fn job_title_for_op(op_id: &str) -> String {
     match op_id {
         "page.rotate" => chef_ui::i18n::t("toolbar.rotateRight"),
+        "page.delete" => chef_ui::i18n::t("ops.delete"),
+        "page.duplicate" => chef_ui::i18n::t("ops.duplicate"),
+        "page.extract" => chef_ui::i18n::t("ops.extract"),
         _ => op_id.to_string(),
     }
 }
@@ -75,6 +78,8 @@ pub struct DocumentHost {
     closing: HashMap<TabId, Closing>,
     close_message: Option<String>,
     close_prompt: UnsavedClosePrompt,
+    window_closing: bool,
+    advancing_window_close: bool,
     recovery: RecoveryModal,
     recovery_rx: Option<Receiver<RecoveryOpResult>>,
     job_store: JobStore,
@@ -122,6 +127,7 @@ impl DocumentHost {
         let recovery = RecoveryModal::new(cx);
         let job_store = JobStore::new();
         crate::debug::set_close_prompt(false, None, None);
+        crate::debug::set_window_closing(false);
         crate::debug::set_recovery(recovery.to_debug_json());
         crate::debug::set_jobs(job_store.to_debug_json(false));
         let mut host = Self {
@@ -132,6 +138,8 @@ impl DocumentHost {
             closing: HashMap::new(),
             close_message: None,
             close_prompt,
+            window_closing: false,
+            advancing_window_close: false,
             recovery,
             recovery_rx: None,
             job_store,
@@ -288,6 +296,9 @@ impl DocumentHost {
 
     /// Open each valid PDF in a new tab; report invalid paths while continuing with the rest.
     pub fn open_paths(&mut self, paths: Vec<PathBuf>, window: &mut Window, cx: &mut Context<Self>) {
+        if self.window_closing {
+            self.set_window_closing(false);
+        }
         if self
             .tabs
             .active_id()
@@ -398,6 +409,9 @@ impl DocumentHost {
     }
 
     pub(crate) fn open_dialog(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.window_closing {
+            self.set_window_closing(false);
+        }
         if self
             .tabs
             .active_id()
@@ -510,7 +524,140 @@ impl DocumentHost {
         }
     }
 
+    fn set_window_closing(&mut self, closing: bool) {
+        self.window_closing = closing;
+        crate::debug::set_window_closing(closing);
+    }
+
+    fn find_tab_id(&self, raw_tab_id: usize) -> Option<TabId> {
+        self.tabs
+            .tabs()
+            .iter()
+            .find(|t| t.id().get() as usize == raw_tab_id)
+            .map(|t| t.id())
+    }
+
+    fn close_tab_statuses(&self, cx: &App) -> Vec<CloseTabStatus> {
+        self.tabs
+            .tabs()
+            .iter()
+            .map(|tab| {
+                let id = tab.id();
+                let (dirty, busy, saving_for_close) = self
+                    .viewers
+                    .get(&id)
+                    .map(|viewer| {
+                        let v = viewer.read(cx);
+                        (v.tab_is_dirty(), v.tab_is_busy(), v.is_saving_for_close())
+                    })
+                    .unwrap_or((tab.is_dirty(), false, false));
+                CloseTabStatus {
+                    id: id.get() as usize,
+                    dirty,
+                    busy,
+                    saving_for_close,
+                    closing: self.closing.contains_key(&id),
+                }
+            })
+            .collect()
+    }
+
+    pub fn handle_window_close_request(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if self.close_prompt.open {
+            self.set_window_closing(true);
+            cx.notify();
+            return false;
+        }
+        let statuses = self.close_tab_statuses(cx);
+        match next_window_close_step(&statuses, false) {
+            WindowCloseStep::CloseWindow => {
+                self.set_window_closing(false);
+                true
+            }
+            WindowCloseStep::BlockBusy => {
+                self.close_message =
+                    Some("Lưu thay đổi hoặc chờ thao tác hiện tại trước khi đóng thẻ.".into());
+                cx.notify();
+                false
+            }
+            _ => {
+                self.set_window_closing(true);
+                self.advance_window_close(window, cx, true)
+            }
+        }
+    }
+
+    fn advance_window_close(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        allow_immediate_return: bool,
+    ) -> bool {
+        if self.advancing_window_close {
+            return false;
+        }
+        self.advancing_window_close = true;
+        let outcome = loop {
+            if !self.window_closing {
+                break false;
+            }
+            let statuses = self.close_tab_statuses(cx);
+            match next_window_close_step(&statuses, self.close_prompt.open) {
+                WindowCloseStep::CloseWindow => {
+                    self.set_window_closing(false);
+                    if allow_immediate_return {
+                        break true;
+                    }
+                    window.defer(cx, |window, _| window.remove_window());
+                    break false;
+                }
+                WindowCloseStep::Wait => break false,
+                WindowCloseStep::BlockBusy => {
+                    self.set_window_closing(false);
+                    self.close_message =
+                        Some("Lưu thay đổi hoặc chờ thao tác hiện tại trước khi đóng thẻ.".into());
+                    cx.notify();
+                    break false;
+                }
+                WindowCloseStep::PromptDirty(raw_id) => {
+                    if let Some(tab_id) = self.find_tab_id(raw_id) {
+                        if self.tabs.active_id() != Some(tab_id) {
+                            self.activate(tab_id, window, cx);
+                        }
+                        let title = self
+                            .viewers
+                            .get(&tab_id)
+                            .map(|v| v.read(cx).tab_title())
+                            .unwrap_or_else(|| "Untitled".to_string());
+                        self.close_prompt
+                            .open_for(raw_id, title.clone(), window, cx);
+                        crate::debug::set_close_prompt(true, Some(raw_id), Some(&title));
+                        cx.notify();
+                    } else {
+                        self.set_window_closing(false);
+                    }
+                    break false;
+                }
+                WindowCloseStep::CloseClean(raw_id) => {
+                    if let Some(tab_id) = self.find_tab_id(raw_id) {
+                        self.close_tab_clean_or_discard(tab_id, window, cx);
+                    } else {
+                        self.set_window_closing(false);
+                        break false;
+                    }
+                }
+            }
+        };
+        self.advancing_window_close = false;
+        outcome
+    }
+
     fn cancel_close_prompt(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.set_window_closing(false);
         self.close_prompt.close();
         crate::debug::set_close_prompt(false, None, None);
         self.focus_active(window, cx);
@@ -525,13 +672,7 @@ impl DocumentHost {
     ) {
         self.close_prompt.close();
         crate::debug::set_close_prompt(false, None, None);
-        if let Some(id) = self
-            .tabs
-            .tabs()
-            .iter()
-            .find(|t| t.id().get() as usize == raw_tab_id)
-            .map(|t| t.id())
-        {
+        if let Some(id) = self.find_tab_id(raw_tab_id) {
             self.close_tab_clean_or_discard(id, window, cx);
         }
     }
@@ -544,12 +685,7 @@ impl DocumentHost {
     ) {
         self.close_prompt.close();
         crate::debug::set_close_prompt(false, None, None);
-        if let Some(id) = self
-            .tabs
-            .tabs()
-            .iter()
-            .find(|t| t.id().get() as usize == raw_tab_id)
-            .map(|t| t.id())
+        if let Some(id) = self.find_tab_id(raw_tab_id)
             && let Some(viewer) = self.viewers.get(&id).cloned()
         {
             viewer.update(cx, |v, cx| v.save_for_close(cx));
@@ -558,6 +694,14 @@ impl DocumentHost {
     }
 
     fn poll_ready_to_close(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        let aborted = self.viewers.values().fold(false, |acc, viewer| {
+            acc | viewer.update(cx, |v, _| v.take_save_for_close_aborted())
+        });
+        let mut changed = false;
+        if aborted && self.window_closing {
+            self.set_window_closing(false);
+            changed = true;
+        }
         let ready_ids: Vec<TabId> = self
             .viewers
             .iter()
@@ -568,7 +712,7 @@ impl DocumentHost {
             })
             .collect();
         if ready_ids.is_empty() {
-            return false;
+            return changed;
         }
         for id in ready_ids {
             self.close_tab_clean_or_discard(id, window, cx);
@@ -898,9 +1042,13 @@ impl DocumentHost {
             );
         } else {
             crate::debug::set_viewer_stats(0, 0, 0);
+            crate::debug::set_page_selection(&[], None, None);
         }
         crate::debug::set_tabs(self.tabs_debug(cx));
         cx.notify();
+        if self.window_closing && !self.advancing_window_close {
+            self.advance_window_close(window, cx, false);
+        }
     }
 
     fn poll_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
@@ -926,6 +1074,7 @@ impl DocumentHost {
                     if let Some(viewer) = self.viewers.get(&id) {
                         viewer.update(cx, |viewer, _| viewer.set_tab_closing(false));
                     }
+                    self.set_window_closing(false);
                     self.close_message = Some(error);
                 }
             }
@@ -973,13 +1122,18 @@ impl DocumentHost {
                     .await;
                 let alive = this.update(cx, |host, cx| {
                     let jobs_changed = host.poll_jobs();
-                    let ready_close = host
+                    let ready_close = host.viewers.values().any(|v| {
+                        let v = v.read(cx);
+                        v.has_ready_to_close() || v.has_save_for_close_aborted()
+                    });
+                    let pending_open = host
                         .viewers
                         .values()
-                        .any(|v| v.read(cx).has_ready_to_close());
+                        .any(|v| v.read(cx).has_pending_open_tabs());
                     crate::debug::set_tabs(host.tabs_debug(cx));
                     if jobs_changed
                         || ready_close
+                        || pending_open
                         || host.recovery_rx.is_some()
                         || !host.closing.is_empty()
                     {
@@ -992,6 +1146,20 @@ impl DocumentHost {
             }
         })
         .detach();
+    }
+
+    fn poll_pending_open_tabs(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        let mut paths = Vec::new();
+        for tab in self.tabs.tabs() {
+            if let Some(viewer) = self.viewers.get(&tab.id()) {
+                paths.extend(viewer.update(cx, |v, _| v.take_pending_open_tabs()));
+            }
+        }
+        if paths.is_empty() {
+            return false;
+        }
+        self.open_paths(paths, window, cx);
+        true
     }
 
     fn record_recent_path(&mut self, path: &std::path::Path, cx: &mut Context<Self>) {
@@ -1032,6 +1200,7 @@ impl Render for DocumentHost {
         self.poll_ready_to_close(window, cx);
         self.poll_closing(window, cx);
         self.poll_recovery(window, cx);
+        self.poll_pending_open_tabs(window, cx);
         chef_ui::a11y::begin_frame(window.scale_factor());
         HOST_FRAME.store(
             self.tabs.active_id().is_some(),
@@ -1107,6 +1276,7 @@ impl Render for DocumentHost {
             (settings.recent_files(), settings.mode())
         };
         if active.is_none() {
+            crate::debug::set_page_selection(&[], None, None);
             crate::debug::set_start_recents(
                 recent_files
                     .iter()

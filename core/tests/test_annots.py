@@ -269,6 +269,152 @@ def test_update_regenerates_the_appearance(harness: Harness, tmp_path: Path) -> 
     assert any(p[1] > 200 and p[0] < 200 for p in _rgb_list(crop)), "green, not yellow"
 
 
+def test_update_many_markup_ids_is_atomic_and_refreshes_all_ids(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = vietnamese_pdf(tmp_path / "vi.pdf")
+    sid = _sid(harness, src)
+    rects = [_find_rect(harness, sid, "Hà Nội"), _find_rect(harness, sid, "Chef PDF")]
+    added = harness.op(
+        "annots.addTextMarkup",
+        {"pageIndex": 0, "kind": "highlight", "rects": rects, "color": "#ffff00"},
+        sid,
+    )["data"]
+    assert len(added["ids"]) == 2
+
+    updated = harness.op(
+        "annots.update",
+        {"ids": added["ids"], "color": "#00ff00"},
+        sid,
+    )["data"]
+    assert len(updated["ids"]) == 2
+    assert {annot["colour"] for annot in _annots(harness, sid)} == {"#00ff00"}
+    with pytest.raises(RpcFailure):
+        harness.op(
+            "annots.update",
+            {"ids": [updated["ids"][0], "A0:stale000000:1"], "color": "#ff0000"},
+            sid,
+        )
+    assert {annot["colour"] for annot in _annots(harness, sid)} == {"#00ff00"}
+
+
+def test_text_markup_and_color_update_are_atomic_across_pages(
+    harness: Harness, tmp_path: Path
+) -> None:
+    src = vietnamese_pdf(tmp_path / "markup-pages.pdf")
+    with pikepdf.open(src, allow_overwriting_input=True) as pdf:
+        pdf.pages.append(pdf.pages[0])
+        pdf.save(src)
+    sid = _sid(harness, src)
+    rect = _find_rect(harness, sid, "Chef PDF")
+    added = harness.op(
+        "annots.addTextMarkup",
+        {
+            "kind": "highlight",
+            "pages": [
+                {"pageIndex": 0, "rects": [rect]},
+                {"pageIndex": 1, "rects": [rect]},
+            ],
+            "color": "#ffff00",
+        },
+        sid,
+    )
+    assert added["changedPages"] == [0, 1]
+    ids = added["data"]["ids"]
+    assert len(ids) == 2
+    for page_index in (0, 1):
+        assert len(_annots(harness, sid, pageIndex=page_index)) == 1
+
+    updated = harness.op("annots.update", {"ids": ids, "color": "#00ff00"}, sid)["data"]
+    assert len(updated["ids"]) == 2
+    for page_index in (0, 1):
+        assert [a["colour"] for a in _annots(harness, sid, pageIndex=page_index)] == ["#00ff00"]
+
+    with pytest.raises(RpcFailure):
+        harness.op(
+            "annots.update",
+            {"ids": [updated["ids"][0], "A99:stale000000:0"], "color": "#ff0000"},
+            sid,
+        )
+    for page_index in (0, 1):
+        assert [a["colour"] for a in _annots(harness, sid, pageIndex=page_index)] == ["#00ff00"]
+
+
+@pytest.mark.parametrize("kind", ["underline", "strike", "squiggly"])
+def test_rotated_markup_appearance_renders_along_text_baseline(
+    harness: Harness, tmp_path: Path, kind: str
+) -> None:
+    src = vietnamese_pdf(tmp_path / f"rotated-{kind}.pdf", rotate=90)
+    sid = _sid(harness, src)
+    rect = _find_rect(harness, sid, "Chef PDF")
+    harness.op(
+        "annots.addTextMarkup",
+        {"pageIndex": 0, "kind": kind, "rects": [rect], "color": "#ff0000", "opacity": 1.0},
+        sid,
+    )
+    (annot,) = _annots(harness, sid)
+    image = _pixels(_revision(harness, sid)).convert("RGB")
+    x0, top, x1, bottom = annot["rect"]
+    crop = image.crop(
+        (
+            max(0, int(x0) - 2),
+            max(0, int(top) - 2),
+            min(image.width, int(x1) + 3),
+            min(image.height, int(bottom) + 3),
+        )
+    )
+    pixels = list(crop.get_flattened_data())
+    red = [
+        (index % crop.width, index // crop.width)
+        for index, pixel in enumerate(pixels)
+        if pixel[0] > 180 and pixel[1] < 100 and pixel[2] < 100
+    ]
+    assert len(red) > 5, f"rotated {kind} appearance should render in the chosen color"
+    red_width = max(x for x, _ in red) - min(x for x, _ in red) + 1
+    red_height = max(y for _, y in red) - min(y for _, y in red) + 1
+    assert red_height >= red_width * 2, (
+        f"rotated {kind} should follow the text baseline vertically; "
+        f"red stroke bounds were {red_width}x{red_height} pixels; "
+        f"rect={annot['rect']}, quads={annot['quads']}"
+    )
+
+
+@pytest.mark.parametrize("kind", ["underline", "strike", "squiggly"])
+def test_narrow_markup_box_keeps_horizontal_text_baseline(
+    harness: Harness, tmp_path: Path, kind: str
+) -> None:
+    src = vietnamese_pdf(tmp_path / f"narrow-{kind}.pdf")
+    sid = _sid(harness, src)
+    harness.op(
+        "annots.addTextMarkup",
+        {
+            "pageIndex": 0,
+            "kind": kind,
+            "rects": [[100.0, 100.0, 108.0, 140.0]],
+            "color": "#ff0000",
+            "opacity": 1.0,
+        },
+        sid,
+    )
+    (annot,) = _annots(harness, sid)
+    image = _pixels(_revision(harness, sid)).convert("RGB")
+    x0, top, x1, bottom = annot["rect"]
+    crop = image.crop((int(x0) - 2, int(top) - 2, int(x1) + 3, int(bottom) + 3))
+    pixels = list(crop.get_flattened_data())
+    red = [
+        (index % crop.width, index // crop.width)
+        for index, pixel in enumerate(pixels)
+        if pixel[0] > 180 and pixel[1] < 100 and pixel[2] < 100
+    ]
+    assert len(red) > 5
+    red_width = max(x for x, _ in red) - min(x for x, _ in red) + 1
+    red_height = max(y for _, y in red) - min(y for _, y in red) + 1
+    assert red_width >= red_height, (
+        f"narrow {kind} selection should keep a horizontal baseline; "
+        f"red stroke bounds were {red_width}x{red_height} pixels"
+    )
+
+
 def test_reply_threads_and_status_is_set(harness: Harness, tmp_path: Path) -> None:
     src = vietnamese_pdf(tmp_path / "vi.pdf")
     sid = _sid(harness, src)

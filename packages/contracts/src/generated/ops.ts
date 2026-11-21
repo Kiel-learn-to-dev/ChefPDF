@@ -46,6 +46,11 @@ export interface AnchorRef {
   rect: number[];
 }
 
+export interface AnnotsTextMarkupPage {
+  pageIndex: number;
+  rects: number[][];
+}
+
 export interface BackgroundStyle {
   /** @default "#FFFFFF" */
   color?: string;
@@ -846,12 +851,14 @@ export interface AnnotsAddShapeParams {
 
 /** Highlight, underline, strike-out or squiggly under rects or under found text. */
 export interface AnnotsAddTextMarkupParams {
-  pageIndex: number;
+  pageIndex?: number;
   kind: 'highlight' | 'underline' | 'strike' | 'squiggly';
   /** Displayed boxes [left, top, right, bottom], one per line. */
   rects?: number[][];
   /** Text to mark (text model). */
   find?: string;
+  /** Displayed text boxes grouped by page, atomically. */
+  pages?: AnnotsTextMarkupPage[];
   /** @default false */
   allMatches?: boolean;
   color?: string;
@@ -923,9 +930,10 @@ export interface AnnotsSetStatusParams {
   status: 'accepted' | 'rejected' | 'cancelled' | 'completed' | 'none';
 }
 
-/** Change the text, author, colour, opacity or (for notes, free text, ink, shapes) the rect. */
+/** Change one annotation by `id` or several current-revision IDs atomically by `ids`. */
 export interface AnnotsUpdateParams {
-  id: string;
+  id?: string;
+  ids?: string[];
   contents?: string;
   author?: string;
   color?: string;

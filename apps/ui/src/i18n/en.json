@@ -710,6 +710,7 @@
     "extract": "Extract",
     "extractSuffix": "pages",
     "extracted": "Pages extracted to a new file",
+    "extractOutputSameFile": "The output file must differ from the source PDF and the open revision.",
     "openInViewer": "View this page",
     "insertBlankBefore": "Insert blank page before",
     "insertBlankAfter": "Insert blank page after",

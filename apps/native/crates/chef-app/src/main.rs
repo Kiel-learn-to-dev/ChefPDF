@@ -17,7 +17,9 @@ use gpui::{
 use gpui_platform::application;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
+mod annots;
 mod assets;
+pub mod bookmarks;
 #[cfg(windows)]
 mod capture;
 mod close;
@@ -32,12 +34,15 @@ mod dialogs;
 #[cfg(not(windows))]
 #[path = "dialogs_stub.rs"]
 mod dialogs;
+mod draw;
 mod drop;
 mod find;
 #[cfg(windows)]
 mod instance;
 mod logging;
 mod night;
+pub mod notes;
+mod page_ops;
 mod password;
 mod probe;
 mod properties;
@@ -300,6 +305,7 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "cancel" => Box::new(t::Cancel),
         "focussearch" => Box::new(viewer::FocusSearch),
         "selectalltext" => Box::new(viewer::SelectAllText),
+        "selectalltextdocument" => Box::new(viewer::SelectAllTextDocument),
         "copyselection" => Box::new(viewer::CopySelection),
         "zoomin" => Box::new(viewer::ZoomIn),
         "zoomout" => Box::new(viewer::ZoomOut),
@@ -330,7 +336,21 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "tabprev" => Box::new(tabs_host::PreviousTab),
         "closetab" => Box::new(tabs_host::CloseTab),
         "openproperties" => Box::new(viewer::OpenProperties),
+        "editbookmarks" => Box::new(viewer::EditBookmarks),
         "rotatepage" => Box::new(viewer::RotatePage),
+        "rotatepageleft" => Box::new(viewer::RotatePageLeft),
+        "deletepages" => Box::new(viewer::DeletePages),
+        "duplicatepages" => Box::new(viewer::DuplicatePages),
+        "extractpages" => Box::new(viewer::ExtractPages),
+        "insertblankbefore" => Box::new(viewer::InsertBlankBefore),
+        "insertblankafter" => Box::new(viewer::InsertBlankAfter),
+        "insertpagesfromfile" => Box::new(viewer::InsertPagesFromFile),
+        "replaceselectedpages" => Box::new(viewer::ReplaceSelectedPages),
+        "selectallpages" => Box::new(viewer::SelectAllPages),
+        "invertpageselection" => Box::new(viewer::InvertPageSelection),
+        "selectoddpages" => Box::new(viewer::SelectOddPages),
+        "selectevenpages" => Box::new(viewer::SelectEvenPages),
+        "clearpageselection" => Box::new(viewer::ClearPageSelection),
         "undoedit" => Box::new(viewer::UndoEdit),
         "redoedit" => Box::new(viewer::RedoEdit),
         "saveedit" => Box::new(viewer::SaveEdit),
@@ -500,6 +520,11 @@ fn main() {
                     .expect("mở cửa sổ E2E thất bại");
                 let (hwnd, scale) = window
                     .update(cx, |host, window, cx| {
+                        let entity = cx.entity();
+                        window.on_window_should_close(cx, move |window, cx| {
+                            entity
+                                .update(cx, |host, cx| host.handle_window_close_request(window, cx))
+                        });
                         host.focus_active(window, cx);
                         hwnd_of(window)
                     })
@@ -573,6 +598,50 @@ fn main() {
                                 }
                             });
                         }
+                        let clicks = debug::take_clicks();
+                        if !clicks.is_empty() {
+                            let any: gpui::AnyWindowHandle = window.into();
+                            let _ = any.update(cx, |_, window, cx| {
+                                let scale = window.scale_factor().max(0.1);
+                                for click in clicks {
+                                    let position = gpui::point(
+                                        px(click.x as f32 / scale),
+                                        px(click.y as f32 / scale),
+                                    );
+                                    let button = if click.right {
+                                        gpui::MouseButton::Right
+                                    } else {
+                                        gpui::MouseButton::Left
+                                    };
+                                    let modifiers = gpui::Modifiers {
+                                        control: click.ctrl,
+                                        alt: click.alt,
+                                        shift: click.shift,
+                                        platform: click.platform,
+                                        function: false,
+                                    };
+                                    window.dispatch_event(
+                                        gpui::PlatformInput::MouseDown(gpui::MouseDownEvent {
+                                            button,
+                                            position,
+                                            modifiers,
+                                            click_count: 1,
+                                            first_mouse: false,
+                                        }),
+                                        cx,
+                                    );
+                                    window.dispatch_event(
+                                        gpui::PlatformInput::MouseUp(gpui::MouseUpEvent {
+                                            button,
+                                            position,
+                                            modifiers,
+                                            click_count: 1,
+                                        }),
+                                        cx,
+                                    );
+                                }
+                            });
+                        }
                         if alive.is_err() {
                             break;
                         }
@@ -627,7 +696,14 @@ fn main() {
                     dispatch_instance_requests(server, window, cx);
                 }
                 window
-                    .update(cx, |host, window, cx| host.focus_active(window, cx))
+                    .update(cx, |host, window, cx| {
+                        let entity = cx.entity();
+                        window.on_window_should_close(cx, move |window, cx| {
+                            entity
+                                .update(cx, |host, cx| host.handle_window_close_request(window, cx))
+                        });
+                        host.focus_active(window, cx);
+                    })
                     .expect("cập nhật cửa sổ thất bại");
             }
         });

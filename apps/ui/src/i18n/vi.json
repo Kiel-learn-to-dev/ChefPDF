@@ -705,6 +705,7 @@
     "extract": "Trích ra",
     "extractSuffix": "trang",
     "extracted": "Đã trích trang ra file mới",
+    "extractOutputSameFile": "Tệp đích không được trùng với tệp PDF nguồn hoặc bản đang mở.",
     "openInViewer": "Mở trang này để xem",
     "insertBlankBefore": "Chèn trang trắng phía trước",
     "insertBlankAfter": "Chèn trang trắng phía sau",

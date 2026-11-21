@@ -181,25 +181,57 @@ def update_annot(
     opacity: float | None,
     box: tuple[float, float, float, float] | None,
 ) -> str:
-    page, index, annot = resolve_annot(pdf, ANNOT_PREFIX, ident)
-    subtype = _check_updatable(annot, ident)
-    frame = page_frame(page)
-    if contents is not None:
-        annot.Contents = text_string(contents)
-    if author is not None:
-        annot.T = text_string(author)
-    if colour is not None:
-        annot.C = colour_array(colour)
-    if opacity is not None:
-        annot.CA = round(opacity, 4)
-    if box is not None:
-        if subtype in ("Text", "FreeText", "Square", "Circle", "Ink"):
-            annot.Rect = Array([round(v, 4) for v in user_rect(frame, box)])
-        else:
+    return update_annots(
+        pdf,
+        [ident],
+        contents=contents,
+        author=author,
+        colour=colour,
+        opacity=opacity,
+        box=box,
+    )[0]
+
+
+def update_annots(
+    pdf: pikepdf.Pdf,
+    idents: list[str],
+    *,
+    contents: str | None,
+    author: str | None,
+    colour: str | None,
+    opacity: float | None,
+    box: tuple[float, float, float, float] | None,
+) -> list[str]:
+    """Update several current-revision IDs atomically, then return their refreshed IDs."""
+    if not idents or len(set(idents)) != len(idents):
+        raise invalid_params("INVALID_IDS", {"ids": idents})
+    resolved = []
+    for ident in idents:
+        page, index, annot = resolve_annot(pdf, ANNOT_PREFIX, ident)
+        subtype = _check_updatable(annot, ident)
+        if box is not None and subtype not in ("Text", "FreeText", "Square", "Circle", "Ink"):
             raise invalid_params("RECT_NOT_EDITABLE", {"subtype": subtype})
-    annot.M = pdf_date()
-    build_appearance(pdf, annot)
-    return make_id(ANNOT_PREFIX, _page_index(pdf, page), annot_digest(page), index)
+        resolved.append((page, index, annot))
+
+    for page, _index, annot in resolved:
+        if contents is not None:
+            annot.Contents = text_string(contents)
+        if author is not None:
+            annot.T = text_string(author)
+        if colour is not None:
+            annot.C = colour_array(colour)
+        if opacity is not None:
+            annot.CA = round(opacity, 4)
+        if box is not None:
+            frame = page_frame(page)
+            annot.Rect = Array([round(v, 4) for v in user_rect(frame, box)])
+        annot.M = pdf_date()
+        build_appearance(pdf, annot)
+
+    return [
+        make_id(ANNOT_PREFIX, _page_index(pdf, page), annot_digest(page), index)
+        for page, index, _annot in resolved
+    ]
 
 
 def _page_index(pdf: pikepdf.Pdf, page: pikepdf.Page) -> int:

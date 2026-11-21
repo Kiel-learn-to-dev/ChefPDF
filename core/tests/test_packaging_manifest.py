@@ -15,8 +15,8 @@ CORE = Path(__file__).resolve().parents[1]
 PACKAGE = CORE / "chef_core"
 RESOURCES = PACKAGE / "resources"
 BUILD_SCRIPT = CORE.parent / "packaging" / "build-core.mjs"
-# Written by the app at run time (session meta), never shipped with the package.
-RUNTIME_FILES = {"meta.json"}
+# Written by the app at run time, or generated outside the Python package for Rust contract typing.
+NON_PACKAGE_FILES = {"meta.json", "ops.schema.json"}
 DATA_LITERAL = re.compile(r'"([A-Za-z0-9_.-]+\.(?:json|ttf|otf|txt|pem|p12|pfx|crt|cer))"')
 
 
@@ -50,7 +50,7 @@ def test_numeric_dependencies_are_declared_for_the_bundle() -> None:
 
 
 def test_resource_files_the_code_names_are_in_the_repository() -> None:
-    names = _code_literals() - RUNTIME_FILES
+    names = _code_literals() - NON_PACKAGE_FILES
     assert names, "the scan should find the data files the code names"
     missing = sorted(name for name in names if not _shipped(name))
     assert missing == [], f"referenced by code but not in the repository: {missing}"

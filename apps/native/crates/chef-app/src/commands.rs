@@ -27,10 +27,23 @@ pub enum CommandAction {
     RotateViewLeft,
     RotateViewRight,
     RotatePage,
+    RotatePageLeft,
+    DeletePages,
+    DuplicatePages,
+    ExtractPages,
+    InsertBlankBefore,
+    InsertBlankAfter,
+    InsertPagesFromFile,
+    ReplaceSelectedPages,
+    SelectAllPages,
+    InvertPageSelection,
+    SelectOddPages,
+    SelectEvenPages,
     Undo,
     Redo,
     Save,
     Settings,
+    EditBookmarks,
     Unavailable,
     ViewContinuous,
     ViewTwoPage,
@@ -51,10 +64,23 @@ impl CommandAction {
             Self::RotateViewLeft => Box::new(v::RotateViewLeft),
             Self::RotateViewRight => Box::new(v::RotateViewRight),
             Self::RotatePage => Box::new(v::RotatePage),
+            Self::RotatePageLeft => Box::new(v::RotatePageLeft),
+            Self::DeletePages => Box::new(v::DeletePages),
+            Self::DuplicatePages => Box::new(v::DuplicatePages),
+            Self::ExtractPages => Box::new(v::ExtractPages),
+            Self::InsertBlankBefore => Box::new(v::InsertBlankBefore),
+            Self::InsertBlankAfter => Box::new(v::InsertBlankAfter),
+            Self::InsertPagesFromFile => Box::new(v::InsertPagesFromFile),
+            Self::ReplaceSelectedPages => Box::new(v::ReplaceSelectedPages),
+            Self::SelectAllPages => Box::new(v::SelectAllPages),
+            Self::InvertPageSelection => Box::new(v::InvertPageSelection),
+            Self::SelectOddPages => Box::new(v::SelectOddPages),
+            Self::SelectEvenPages => Box::new(v::SelectEvenPages),
             Self::Undo => Box::new(v::UndoEdit),
             Self::Redo => Box::new(v::RedoEdit),
             Self::Save => Box::new(v::SaveEdit),
             Self::Settings => Box::new(v::OpenSettings),
+            Self::EditBookmarks => Box::new(v::EditBookmarks),
             Self::ViewContinuous => Box::new(v::SetContinuous),
             Self::ViewTwoPage => Box::new(v::SetTwoPage),
             Self::ViewBook => Box::new(v::SetBook),
@@ -193,6 +219,13 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
     let mut commands = CommandRegistry::new();
     for command in [
         Command::new(
+            "bookmarks.edit",
+            t("bookmarks.edit"),
+            t("palette.group.pages"),
+            A::EditBookmarks,
+        )
+        .keywords(["bookmarks", "outline", "muc luc", "dau trang"]),
+        Command::new(
             "file.open",
             t("commands.openPdf"),
             t("palette.group.file"),
@@ -283,6 +316,90 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
             A::RotatePage,
         )
         .keywords(["rotate", "xoay trang"]),
+        Command::new(
+            "pages.rotateLeft",
+            t("pages.rotateLeft"),
+            t("palette.group.pages"),
+            A::RotatePageLeft,
+        )
+        .keywords(["rotate left", "xoay trai"]),
+        Command::new(
+            "pages.delete",
+            t("pages.delete"),
+            t("palette.group.pages"),
+            A::DeletePages,
+        )
+        .keywords(["delete", "xoa trang"]),
+        Command::new(
+            "pages.duplicate",
+            t("pages.duplicate"),
+            t("palette.group.pages"),
+            A::DuplicatePages,
+        )
+        .keywords(["duplicate", "nhan ban"]),
+        Command::new(
+            "pages.extract",
+            t("pages.extract"),
+            t("palette.group.pages"),
+            A::ExtractPages,
+        )
+        .keywords(["extract", "trich trang"]),
+        Command::new(
+            "pages.insertBlankBefore",
+            t("pages.insertBlankBefore"),
+            t("palette.group.pages"),
+            A::InsertBlankBefore,
+        )
+        .keywords(["insert blank page", "chen trang trang truoc"]),
+        Command::new(
+            "pages.insertBlankAfter",
+            t("pages.insertBlankAfter"),
+            t("palette.group.pages"),
+            A::InsertBlankAfter,
+        )
+        .keywords(["insert blank page", "chen trang trang sau"]),
+        Command::new(
+            "pages.insertFromFile",
+            t("pages.insertFromFile"),
+            t("palette.group.pages"),
+            A::InsertPagesFromFile,
+        )
+        .keywords(["insert from pdf", "chen trang tu pdf"]),
+        Command::new(
+            "pages.replace",
+            t("pageTools.cmd.replace"),
+            t("palette.group.pages"),
+            A::ReplaceSelectedPages,
+        )
+        .keywords(["replace page", "thay trang"]),
+        Command::new(
+            "pages.selectAll",
+            t("pageMenu.selectAll"),
+            t("palette.group.pages"),
+            A::SelectAllPages,
+        )
+        .keywords(["select all", "chon tat ca"]),
+        Command::new(
+            "pages.invertSelection",
+            t("pageMenu.invertSelection"),
+            t("palette.group.pages"),
+            A::InvertPageSelection,
+        )
+        .keywords(["invert", "dao chon"]),
+        Command::new(
+            "pages.selectOdd",
+            t("pageMenu.selectOdd"),
+            t("palette.group.pages"),
+            A::SelectOddPages,
+        )
+        .keywords(["odd", "trang le"]),
+        Command::new(
+            "pages.selectEven",
+            t("pageMenu.selectEven"),
+            t("palette.group.pages"),
+            A::SelectEvenPages,
+        )
+        .keywords(["even", "trang chan"]),
         Command::new(
             "edit.undo",
             t("commands.undo"),

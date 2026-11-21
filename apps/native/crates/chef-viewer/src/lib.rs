@@ -5,6 +5,7 @@ pub mod cache;
 pub mod grid;
 pub mod reload;
 pub mod scroll;
+pub mod selection;
 pub mod sidebar;
 pub mod spread;
 

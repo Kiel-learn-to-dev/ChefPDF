@@ -1,4 +1,15 @@
 {
+  "draw": {
+    "tool": "Vẽ",
+    "off": "Tắt",
+    "rectangle": "Chữ nhật",
+    "line": "Đường thẳng",
+    "arrow": "Mũi tên",
+    "ellipse": "Elip",
+    "pen": "Bút",
+    "color": "Màu",
+    "width": "Nét"
+  },
   "watch": {
     "title": "Thư mục tự động",
     "description": "Theo dõi một thư mục, đợi PDF ghi xong rồi chạy quy trình đã chọn.",
@@ -549,6 +560,48 @@
     "rotateViewRight": "Xoay khung nhìn phải"
     ,"modeContinuous": "Xem liên tục", "modeTwoPage": "Xem hai trang", "modeBook": "Xem kiểu sách", "modeSlideshow": "Trình chiếu"
   },
+  "bookmarks": {
+    "edit": "Sửa mục lục",
+    "title": "Mục lục",
+    "titlePlaceholder": "Tên dấu trang",
+    "closeBeforeEdit": "Đóng hộp thoại mục lục trước khi sửa tài liệu.",
+    "noDocument": "Hãy mở PDF trước khi sửa mục lục.",
+    "staleDraft": "Tài liệu đã thay đổi. Hãy mở lại hộp thoại mục lục.",
+    "selectFirst": "Hãy chọn một dấu trang trước.",
+    "newTitle": "Dấu trang",
+    "add": "Thêm",
+    "delete": "Xóa",
+    "apply": "Áp dụng",
+    "cancel": "Hủy",
+    "empty": "Tài liệu chưa có dấu trang."
+  },
+  "notes": {
+    "open": "Ghi chú",
+    "title": "Ghi chú và bình luận",
+    "noDocument": "Hãy mở PDF trước khi sửa ghi chú.",
+    "closeBeforeEdit": "Đóng hộp thoại ghi chú trước khi sửa tài liệu.",
+    "selectNoteFirst": "Hãy chọn ghi chú trước.",
+    "chooseAction": "Hãy chọn thao tác ghi chú trước.",
+    "contentPlaceholder": "Nội dung bình luận",
+    "authorPlaceholder": "Tác giả",
+    "empty": "Tài liệu chưa có ghi chú.",
+    "addNote": "Thêm ghi chú dán",
+    "addText": "Thêm hộp chữ",
+    "reply": "Trả lời",
+    "replies": "trả lời",
+    "complete": "Đánh dấu hoàn tất",
+    "save": "Lưu",
+    "cancel": "Đóng"
+  },
+  "annots": {
+    "highlight": "Tô sáng",
+    "underline": "Gạch chân",
+    "strike": "Gạch ngang",
+    "changeColor": "Đổi màu tô sáng",
+    "selectTextFirst": "Hãy chọn chữ trước khi đánh dấu.",
+    "singlePageSelection": "Hiện chỉ có thể đánh dấu chữ trên một trang mỗi lần.",
+    "markupNotFound": "Không tìm thấy vùng tô sáng khớp với phần chữ đã chọn."
+  },
   "pageMenu": {
     "createPdf": "Tạo PDF từ {{count}} trang đã chọn",
     "selectAll": "Chọn tất cả",
@@ -717,6 +770,7 @@
     "extract": "Trích ra",
     "extractSuffix": "trang",
     "extracted": "Đã trích trang ra file mới",
+    "extractOutputSameFile": "Tệp đích không được trùng với tệp PDF nguồn hoặc bản đang mở.",
     "openInViewer": "Mở trang này để xem",
     "insertBlankBefore": "Chèn trang trắng phía trước",
     "insertBlankAfter": "Chèn trang trắng phía sau",

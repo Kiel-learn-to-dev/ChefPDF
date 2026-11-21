@@ -1,4 +1,15 @@
 {
+  "draw": {
+    "tool": "Draw",
+    "off": "Off",
+    "rectangle": "Rectangle",
+    "line": "Line",
+    "arrow": "Arrow",
+    "ellipse": "Ellipse",
+    "pen": "Pen",
+    "color": "Color",
+    "width": "Width"
+  },
   "watch": {
     "title": "Watched folder",
     "description": "Watch a folder, wait for PDFs to finish writing, then run the selected workflow.",
@@ -549,6 +560,48 @@
     "rotateViewRight": "Rotate view right"
     ,"modeContinuous": "Continuous view", "modeTwoPage": "Two-page view", "modeBook": "Book view", "modeSlideshow": "Slideshow"
   },
+  "bookmarks": {
+    "edit": "Edit bookmarks",
+    "title": "Bookmarks",
+    "titlePlaceholder": "Bookmark title",
+    "closeBeforeEdit": "Close the bookmark editor before editing the document.",
+    "noDocument": "Open a PDF before editing bookmarks.",
+    "staleDraft": "The document changed. Reopen the bookmark editor.",
+    "selectFirst": "Select a bookmark first.",
+    "newTitle": "Bookmark",
+    "add": "Add",
+    "delete": "Delete",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "empty": "This document has no bookmarks yet."
+  },
+  "notes": {
+    "open": "Notes",
+    "title": "Notes and comments",
+    "noDocument": "Open a PDF before editing notes.",
+    "closeBeforeEdit": "Close the notes editor before editing the document.",
+    "selectNoteFirst": "Select a note first.",
+    "chooseAction": "Choose a note action first.",
+    "contentPlaceholder": "Comment",
+    "authorPlaceholder": "Author",
+    "empty": "This document has no notes yet.",
+    "addNote": "Add sticky note",
+    "addText": "Add text box",
+    "reply": "Reply",
+    "replies": "replies",
+    "complete": "Mark complete",
+    "save": "Save",
+    "cancel": "Close"
+  },
+  "annots": {
+    "highlight": "Highlight",
+    "underline": "Underline",
+    "strike": "Strike through",
+    "changeColor": "Change highlight color",
+    "selectTextFirst": "Select text before adding markup.",
+    "singlePageSelection": "Text markup currently supports one page at a time.",
+    "markupNotFound": "No matching highlight was found for the selected text."
+  },
   "pageMenu": {
     "createPdf_one": "Create PDF from {{count}} selected page",
     "createPdf_other": "Create PDF from {{count}} selected pages",
@@ -722,6 +775,7 @@
     "extract": "Extract",
     "extractSuffix": "pages",
     "extracted": "Pages extracted to a new file",
+    "extractOutputSameFile": "The output file must differ from the source PDF and the open revision.",
     "openInViewer": "View this page",
     "insertBlankBefore": "Insert blank page before",
     "insertBlankAfter": "Insert blank page after",

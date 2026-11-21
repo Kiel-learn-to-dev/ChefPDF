@@ -151,9 +151,19 @@ static FILE_DIALOG: std::sync::LazyLock<std::sync::Mutex<String>> =
 static PALETTE: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
     std::sync::Mutex::new("{\"open\":false,\"query\":\"\",\"selected\":0,\"results\":[]}".into())
 });
-static CLOSE_PROMPT: std::sync::LazyLock<std::sync::Mutex<String>> =
+#[derive(Clone, Default)]
+struct ClosePromptState {
+    open: bool,
+    tab_id: Option<usize>,
+    name: Option<String>,
+    window_closing: bool,
+}
+
+static CLOSE_PROMPT: std::sync::LazyLock<std::sync::Mutex<ClosePromptState>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(ClosePromptState::default()));
+static PAGE_SELECTION: std::sync::LazyLock<std::sync::Mutex<String>> =
     std::sync::LazyLock::new(|| {
-        std::sync::Mutex::new("{\"open\":false,\"tabId\":null,\"name\":null}".into())
+        std::sync::Mutex::new("{\"selected\":[],\"anchor\":null,\"focus\":null}".into())
     });
 static RECOVERY: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
     std::sync::Mutex::new(
@@ -185,14 +195,40 @@ static JOB_COMMANDS: std::sync::Mutex<std::collections::VecDeque<DebugJobCommand
     std::sync::Mutex::new(std::collections::VecDeque::new());
 
 pub fn set_close_prompt(open: bool, tab_id: Option<usize>, name: Option<&str>) {
-    let val = serde_json::json!({
-        "open": open,
-        "tabId": if open { tab_id } else { None },
-        "name": if open { name } else { None },
-    });
     if let Ok(mut current) = CLOSE_PROMPT.lock() {
+        current.open = open;
+        current.tab_id = if open { tab_id } else { None };
+        current.name = if open { name.map(str::to_string) } else { None };
+    }
+}
+
+pub fn set_window_closing(closing: bool) {
+    if let Ok(mut current) = CLOSE_PROMPT.lock() {
+        current.window_closing = closing;
+    }
+}
+
+pub fn set_page_selection(selected: &[usize], anchor: Option<usize>, focus: Option<usize>) {
+    let val = serde_json::json!({
+        "selected": selected,
+        "anchor": anchor,
+        "focus": focus,
+    });
+    if let Ok(mut current) = PAGE_SELECTION.lock() {
         *current = val.to_string();
     }
+}
+
+fn close_prompt_json() -> String {
+    let state = CLOSE_PROMPT.lock().ok();
+    let s = state.as_deref();
+    serde_json::json!({
+        "open": s.is_some_and(|st| st.open),
+        "tabId": s.and_then(|st| if st.open { st.tab_id } else { None }),
+        "name": s.and_then(|st| if st.open { st.name.as_deref() } else { None }),
+        "windowClosing": s.is_some_and(|st| st.window_closing),
+    })
+    .to_string()
 }
 
 pub fn set_recovery(value: serde_json::Value) {
@@ -288,6 +324,7 @@ static SIDEBAR_THUMBNAIL_PENDING: std::sync::atomic::AtomicU64 =
     std::sync::atomic::AtomicU64::new(0);
 static SIDEBAR_OUTLINE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 static SIDEBAR_GRID: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static SIDEBAR_DRAG_TARGET: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(-1);
 static SIDEBAR_SCROLL_Y: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 static SIDEBAR_BOOKMARKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
@@ -340,6 +377,13 @@ pub fn set_sidebar_state(outline: bool, grid: bool, bookmark_count: usize) {
     SIDEBAR_BOOKMARKS.store(bookmark_count as u64, std::sync::atomic::Ordering::Relaxed);
 }
 
+pub fn set_sidebar_drag_target(target: Option<usize>) {
+    SIDEBAR_DRAG_TARGET.store(
+        target.map_or(-1, |index| index as i64),
+        std::sync::atomic::Ordering::Relaxed,
+    );
+}
+
 pub fn set_sidebar_scroll_y(scroll_y: f32) {
     SIDEBAR_SCROLL_Y.store(scroll_y.to_bits(), std::sync::atomic::Ordering::Relaxed);
 }
@@ -363,6 +407,7 @@ pub const ACTION_NAMES: &[&str] = &[
     "cancel",
     "focussearch",
     "selectalltext",
+    "selectalltextdocument",
     "copyselection",
     "zoomin",
     "zoomout",
@@ -387,6 +432,7 @@ pub const ACTION_NAMES: &[&str] = &[
     "tabprev",
     "closetab",
     "openproperties",
+    "editbookmarks",
     "rotatepage",
     "undoedit",
     "redoedit",
@@ -398,7 +444,74 @@ pub const ACTION_NAMES: &[&str] = &[
     "viewslideshow",
     "slidenext",
     "slideprevious",
+    "selectallpages",
+    "invertpageselection",
+    "selectoddpages",
+    "selectevenpages",
+    "clearpageselection",
+    "rotatepageleft",
+    "deletepages",
+    "duplicatepages",
+    "extractpages",
+    "insertblankbefore",
+    "insertblankafter",
+    "insertpagesfromfile",
+    "replaceselectedpages",
 ];
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DebugClick {
+    pub x: i32,
+    pub y: i32,
+    pub shift: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub platform: bool,
+    pub right: bool,
+}
+
+static CLICKS: std::sync::Mutex<std::collections::VecDeque<DebugClick>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+
+pub fn take_clicks() -> Vec<DebugClick> {
+    match CLICKS.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+fn parse_click(arg: &str) -> Result<DebugClick, String> {
+    let mut parts = arg.split_whitespace();
+    let x = parts
+        .next()
+        .and_then(|v| v.parse::<i32>().ok())
+        .ok_or_else(|| "click cần tọa độ x y".to_string())?;
+    let y = parts
+        .next()
+        .and_then(|v| v.parse::<i32>().ok())
+        .ok_or_else(|| "click cần tọa độ x y".to_string())?;
+    let mut click = DebugClick {
+        x,
+        y,
+        ..Default::default()
+    };
+    if let Some(mods) = parts.next() {
+        for token in mods.split('+').filter(|t| !t.is_empty()) {
+            match token.to_ascii_lowercase().as_str() {
+                "shift" => click.shift = true,
+                "ctrl" | "control" => click.ctrl = true,
+                "alt" => click.alt = true,
+                "meta" | "platform" | "cmd" => click.platform = true,
+                "right" => click.right = true,
+                other => return Err(format!("modifier không hỗ trợ: {other}")),
+            }
+        }
+    }
+    if parts.next().is_some() {
+        return Err("click chỉ nhận <x> <y> [mods]".into());
+    }
+    Ok(click)
+}
 
 /// Hàng đợi action chờ luồng GPUI chạy. Đường đi: pipe -> hàng đợi -> `window.dispatch_action`,
 /// nên tổ hợp phím như Shift+mũi tên được kiểm đúng đường keymap (PostMessage không đặt được Shift).
@@ -465,6 +578,7 @@ type ViewState = (
     f32,
     bool,
     usize,
+    usize,
     &'static str,
     &'static str,
     Vec<usize>,
@@ -479,6 +593,7 @@ pub struct ViewSnapshot {
     pub viewport_h: f32,
     pub fit_width: bool,
     pub first_page: usize,
+    pub page_count: usize,
     pub kind: &'static str,
     pub mode: &'static str,
     pub visible_pages: Vec<usize>,
@@ -507,6 +622,7 @@ pub fn set_view(snapshot: ViewSnapshot) {
             snapshot.viewport_h,
             snapshot.fit_width,
             snapshot.first_page,
+            snapshot.page_count,
             snapshot.kind,
             snapshot.mode,
             snapshot.visible_pages,
@@ -525,6 +641,7 @@ fn view_json() -> String {
             viewport_h,
             fit_width,
             first_page,
+            page_count,
             kind,
             mode,
             visible_pages,
@@ -532,7 +649,7 @@ fn view_json() -> String {
             fit_page,
             rotation,
         )) => format!(
-            "{{\"zoom\":{zoom:.4},\"scrollY\":{scroll_y:.2},\"viewportH\":{viewport_h:.2},\"fitWidth\":{fit_width},\"fitPage\":{fit_page},\"rotation\":{rotation},\"firstPage\":{first_page},\"kind\":{},\"night\":{},\"mode\":{},\"pageMode\":{},\"visiblePages\":{},\"fullscreen\":{fullscreen}}}",
+            "{{\"zoom\":{zoom:.4},\"scrollY\":{scroll_y:.2},\"viewportH\":{viewport_h:.2},\"fitWidth\":{fit_width},\"fitPage\":{fit_page},\"rotation\":{rotation},\"firstPage\":{first_page},\"pageCount\":{page_count},\"kind\":{},\"night\":{},\"mode\":{},\"pageMode\":{},\"visiblePages\":{},\"fullscreen\":{fullscreen}}}",
             json_str(kind),
             NIGHT.load(std::sync::atomic::Ordering::Relaxed),
             json_str(mode),
@@ -662,6 +779,7 @@ unsafe extern "system" {
 const IDC_ARROW: u16 = 32512;
 const IDC_HAND: u16 = 32649;
 
+const WM_CLOSE: u32 = 0x0010;
 const WM_KEYDOWN: u32 = 0x0100;
 const WM_KEYUP: u32 = 0x0101;
 const WM_CHAR: u32 = 0x0102;
@@ -875,7 +993,7 @@ fn state(hwnd: isize) -> String {
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
         cursor_json(),
         THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
@@ -903,6 +1021,7 @@ fn state(hwnd: isize) -> String {
         SIDEBAR_THUMBNAIL_PENDING.load(std::sync::atomic::Ordering::Relaxed),
         SIDEBAR_OUTLINE.load(std::sync::atomic::Ordering::Relaxed),
         SIDEBAR_GRID.load(std::sync::atomic::Ordering::Relaxed),
+        SIDEBAR_DRAG_TARGET.load(std::sync::atomic::Ordering::Relaxed),
         f32::from_bits(SIDEBAR_SCROLL_Y.load(std::sync::atomic::Ordering::Relaxed)),
         SIDEBAR_BOOKMARKS.load(std::sync::atomic::Ordering::Relaxed),
         START_RECENTS
@@ -927,10 +1046,11 @@ fn state(hwnd: isize) -> String {
             .lock()
             .map(|palette| palette.clone())
             .unwrap_or_else(|_| "{}".into()),
-        CLOSE_PROMPT
+        close_prompt_json(),
+        PAGE_SELECTION
             .lock()
-            .map(|cp| cp.clone())
-            .unwrap_or_else(|_| "{\"open\":false,\"tabId\":null,\"name\":null}".into()),
+            .map(|ps| ps.clone())
+            .unwrap_or_else(|_| "{\"selected\":[],\"anchor\":null,\"focus\":null}".into()),
         RECOVERY
             .lock()
             .map(|rec| rec.clone())
@@ -1032,6 +1152,13 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             run_shutdown_hook();
             std::process::exit(0);
         }
+        "closewindow" => {
+            if hwnd != 0 {
+                // SAFETY: gửi WM_CLOSE tới cửa sổ GPUI còn sống.
+                unsafe { PostMessageW(hwnd, WM_CLOSE, 0, 0) };
+            }
+            "{\"ok\":true}".into()
+        }
         "jobtrack" => {
             let mut parts = arg.splitn(3, ' ');
             let job_id = parts.next().unwrap_or("").trim();
@@ -1116,6 +1243,15 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
                 _ => "{\"ok\":false,\"error\":\"mouse cần tọa độ x y\"}".into(),
             }
         }
+        "click" => match parse_click(arg) {
+            Ok(click) => {
+                if let Ok(mut queue) = CLICKS.lock() {
+                    queue.push_back(click);
+                }
+                "{\"ok\":true}".into()
+            }
+            Err(error) => format!("{{\"ok\":false,\"error\":{}}}", json_str(&error)),
+        },
         // Đưa một action vào hàng đợi; luồng GPUI sẽ chạy nó (xem ACTION_NAMES).
         "action" => {
             if !ACTION_NAMES.contains(&arg) {
@@ -1344,5 +1480,43 @@ mod tests {
         assert!(dispatch("dung_token scrollscreens 0", "dung_token", 0).contains("ok\":false"));
         assert!(dispatch("dung_token scrollscreens NaN", "dung_token", 0).contains("\"ok\":false"));
         assert!(take_scroll_screens().is_empty());
+    }
+
+    #[test]
+    fn closewindow_command_requires_token_and_returns_ok_with_null_hwnd() {
+        assert_eq!(
+            dispatch("sai_token closewindow", "dung_token", 0),
+            "{\"ok\":false,\"error\":\"unauthorized\"}"
+        );
+        assert_eq!(
+            dispatch("dung_token closewindow", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+    }
+
+    #[test]
+    fn click_command_parses_modifiers_and_rejects_bad_arguments() {
+        assert_eq!(
+            dispatch("dung_token click 120 240 ctrl+shift", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        let clicks = super::take_clicks();
+        assert_eq!(clicks.len(), 1);
+        assert_eq!(
+            clicks[0],
+            super::DebugClick {
+                x: 120,
+                y: 240,
+                shift: true,
+                ctrl: true,
+                alt: false,
+                platform: false,
+                right: false,
+            }
+        );
+        assert!(dispatch("dung_token click 120", "dung_token", 0).contains("\"ok\":false"));
+        assert!(
+            dispatch("dung_token click 120 240 bogus", "dung_token", 0).contains("\"ok\":false")
+        );
     }
 }

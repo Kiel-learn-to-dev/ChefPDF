@@ -9,6 +9,40 @@ use gpui::{
     rgba,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CloseTabStatus {
+    pub id: usize,
+    pub dirty: bool,
+    pub busy: bool,
+    pub saving_for_close: bool,
+    pub closing: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowCloseStep {
+    CloseWindow,
+    Wait,
+    BlockBusy,
+    PromptDirty(usize),
+    CloseClean(usize),
+}
+
+pub fn next_window_close_step(tabs: &[CloseTabStatus], prompt_open: bool) -> WindowCloseStep {
+    if prompt_open || tabs.iter().any(|tab| tab.closing || tab.saving_for_close) {
+        return WindowCloseStep::Wait;
+    }
+    if tabs.iter().any(|tab| tab.busy) {
+        return WindowCloseStep::BlockBusy;
+    }
+    if tabs.is_empty() {
+        return WindowCloseStep::CloseWindow;
+    }
+    if let Some(dirty) = tabs.iter().find(|tab| tab.dirty) {
+        return WindowCloseStep::PromptDirty(dirty.id);
+    }
+    WindowCloseStep::CloseClean(tabs[0].id)
+}
+
 /// Trạng thái hộp thoại hỏi Lưu / Không lưu / Hủy khi đóng thẻ bẩn (`id = "unsaved-close-dialog"`).
 pub struct UnsavedClosePrompt {
     pub open: bool,
@@ -109,5 +143,84 @@ impl UnsavedClosePrompt {
             .on_dismiss(move |window, cx| {
                 host_esc.update(cx, |this, cx| on_cancel(this, window, cx));
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CloseTabStatus, WindowCloseStep, next_window_close_step};
+
+    fn tab(id: usize) -> CloseTabStatus {
+        CloseTabStatus {
+            id,
+            dirty: false,
+            busy: false,
+            saving_for_close: false,
+            closing: false,
+        }
+    }
+
+    #[test]
+    fn empty_tabs_close_window_immediately() {
+        assert_eq!(
+            next_window_close_step(&[], false),
+            WindowCloseStep::CloseWindow
+        );
+    }
+
+    #[test]
+    fn prompt_or_in_flight_close_waits() {
+        assert_eq!(
+            next_window_close_step(&[tab(1)], true),
+            WindowCloseStep::Wait
+        );
+        let closing = CloseTabStatus {
+            closing: true,
+            ..tab(1)
+        };
+        assert_eq!(
+            next_window_close_step(&[closing, tab(2)], false),
+            WindowCloseStep::Wait
+        );
+        let saving = CloseTabStatus {
+            saving_for_close: true,
+            ..tab(2)
+        };
+        assert_eq!(
+            next_window_close_step(&[tab(1), saving], false),
+            WindowCloseStep::Wait
+        );
+    }
+
+    #[test]
+    fn busy_non_close_operation_blocks_window_close() {
+        let busy = CloseTabStatus {
+            busy: true,
+            ..tab(2)
+        };
+        assert_eq!(
+            next_window_close_step(&[tab(1), busy], false),
+            WindowCloseStep::BlockBusy
+        );
+    }
+
+    #[test]
+    fn dirty_tabs_are_prompted_before_closing_clean_tabs() {
+        let dirty = CloseTabStatus {
+            dirty: true,
+            ..tab(3)
+        };
+        assert_eq!(
+            next_window_close_step(&[tab(1), tab(2), dirty], false),
+            WindowCloseStep::PromptDirty(3)
+        );
+    }
+
+    #[test]
+    fn clean_tabs_close_sequentially_from_first() {
+        assert_eq!(
+            next_window_close_step(&[tab(4), tab(7)], false),
+            WindowCloseStep::CloseClean(4)
+        );
     }
 }

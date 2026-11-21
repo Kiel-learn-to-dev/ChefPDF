@@ -20,6 +20,9 @@ $dataDir = Join-Path $work 'userdata'
 $log = Join-Path $work 'app.log'
 $doc1 = Join-Path $work 'close-1.pdf'
 $doc2 = Join-Path $work 'close-2.pdf'
+$winA = Join-Path $work 'win-a.pdf'
+$winB = Join-Path $work 'win-b.pdf'
+$winC = Join-Path $work 'win-c.pdf'
 
 $oldE2E = $env:CHEF_E2E
 $oldUserData = $env:CHEF_USER_DATA_DIR
@@ -29,6 +32,7 @@ $passed = $false
 $script:pipe = $null
 $script:token = $null
 $script:fails = 0
+$script:runIndex = 0
 
 function Restore-Env([string]$Name, [AllowNull()][string]$Value) {
     if ($null -eq $Value) { Remove-Item "Env:$Name" -ErrorAction SilentlyContinue }
@@ -135,6 +139,51 @@ function Get-PdfRotation([string]$Path) {
     }
 }
 
+function Start-CloseApp([string[]]$Files, [int]$ExpectedTabs) {
+    $script:runIndex++
+    $script:log = Join-Path $work ("app-$($script:runIndex).log")
+    $script:pipe = $null
+    $script:token = $null
+    $env:CHEF_E2E = '1'
+    $env:CHEF_USER_DATA_DIR = $dataDir
+    $env:CHEF_E2E_SAVE_AS_PATH = $null
+    $arguments = ($Files | ForEach-Object { '"{0}"' -f $_ }) -join ' '
+    try {
+        $script:proc = Start-Process -FilePath $Exe -ArgumentList $arguments -PassThru -RedirectStandardError $script:log -WindowStyle Hidden
+    } finally {
+        Restore-Env 'CHEF_E2E' $oldE2E
+        Restore-Env 'CHEF_USER_DATA_DIR' $oldUserData
+        Restore-Env 'CHEF_E2E_SAVE_AS_PATH' $oldSaveAs
+    }
+
+    WaitFor {
+        if (-not (Test-Path -LiteralPath $script:log)) { return $false }
+        $text = [string](Get-Content -LiteralPath $script:log -Raw -ErrorAction SilentlyContinue)
+        $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
+        $script:token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
+        if (-not $script:pipe -or -not $script:token) { return $false }
+        try {
+            $s = State
+            return ($s.tabs.Count -eq $ExpectedTabs -and $null -ne $s.view)
+        } catch {
+            return $false
+        }
+    } "$ExpectedTabs tab(s) ready" 60
+}
+
+function Assert-CleanShutdown([int[]]$CorePids, [string]$Label) {
+    if (-not $proc.WaitForExit(15000)) { throw "chef-app did not exit cleanly after $Label" }
+    Expect "$Label exits with code 0" ($proc.ExitCode -eq 0) "exit code was $($proc.ExitCode)"
+    Expect "$Label leaves zero session directories" ((Get-SessionDirs).Count -eq 0) "remaining session dirs: $((Get-SessionDirs).Count)"
+    $exitDeadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        $liveCore = @($CorePids | Where-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue })
+        if ($liveCore.Count -eq 0) { break }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTime]::UtcNow -lt $exitDeadline)
+    Expect "$Label leaves zero chef-core processes" ($liveCore.Count -eq 0) ("remaining core PIDs: $($liveCore -join ',')")
+}
+
 try {
     New-Item -ItemType Directory -Force -Path $work | Out-Null
     $fixture = @'
@@ -146,38 +195,15 @@ for path in sys.argv[1:]:
 '@
     Push-Location (Join-Path $repo 'core')
     try {
-        & uv run --no-project python -c $fixture $doc1 $doc2
+        & uv run --no-project python -c $fixture $doc1 $doc2 $winA $winB $winC
         if ($LASTEXITCODE -ne 0) { throw 'fixture generation failed' }
     } finally {
         Pop-Location
     }
     $doc1Hash = (Get-FileHash -LiteralPath $doc1 -Algorithm SHA256).Hash
+    $winCHash = (Get-FileHash -LiteralPath $winC -Algorithm SHA256).Hash
 
-    $env:CHEF_E2E = '1'
-    $env:CHEF_USER_DATA_DIR = $dataDir
-    $env:CHEF_E2E_SAVE_AS_PATH = $null
-    $arguments = ('"{0}" "{1}"' -f $doc1, $doc2)
-    try {
-        $proc = Start-Process -FilePath $Exe -ArgumentList $arguments -PassThru -RedirectStandardError $log -WindowStyle Hidden
-    } finally {
-        Restore-Env 'CHEF_E2E' $oldE2E
-        Restore-Env 'CHEF_USER_DATA_DIR' $oldUserData
-        Restore-Env 'CHEF_E2E_SAVE_AS_PATH' $oldSaveAs
-    }
-
-    WaitFor {
-        if (-not (Test-Path -LiteralPath $log)) { return $false }
-        $text = [string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
-        $script:pipe = [regex]::Match($text, 'chef-native-\d+').Value
-        $script:token = [regex]::Match($text, 'CHEF_DEBUG_TOKEN=([0-9a-f]+)').Groups[1].Value
-        if (-not $script:pipe -or -not $script:token) { return $false }
-        try {
-            $s = State
-            return ($s.tabs.Count -eq 2 -and $null -ne $s.view)
-        } catch {
-            return $false
-        }
-    } 'two tabs ready' 60
+    Start-CloseApp @($doc1, $doc2) 2
 
     # Make active tab (doc2) dirty -> close -> cancel -> close -> save
     Send 'action rotatepage' | Out-Null
@@ -235,6 +261,85 @@ for path in sys.argv[1:]:
         Start-Sleep -Milliseconds 200
     } while ([DateTime]::UtcNow -lt $exitDeadline)
     Expect 'quit leaves zero chef-core processes' ($liveCore.Count -eq 0) ("remaining core PIDs: $($liveCore -join ',')")
+
+    # Native window close (WM_CLOSE): clean-with-session tab (winA) + dirty tab (winB) -> cancel -> save
+    Start-CloseApp @($winA, $winB) 2
+    # Start-CloseApp focuses the last argv tab (winB); switch to winA, make a clean session, then edit winB.
+    Send 'action tabprev' | Out-Null
+    WaitFor {
+        $s = State
+        $tab = $s.tabs | Where-Object { $_.active } | Select-Object -First 1
+        return ($tab -and $tab.title -eq 'win-a.pdf')
+    } 'activate winA'
+    Send 'action rotatepage' | Out-Null
+    WaitFor {
+        $s = State
+        $tab = $s.tabs | Where-Object { $_.active } | Select-Object -First 1
+        return ($tab -and $tab.dirty -and (Get-SessionDirs).Count -eq 1)
+    } 'winA becomes dirty'
+    Send 'action saveedit' | Out-Null
+    WaitFor {
+        $s = State
+        $tab = $s.tabs | Where-Object { $_.active } | Select-Object -First 1
+        return ($tab -and (-not $tab.dirty) -and (Get-SessionDirs).Count -eq 1)
+    } 'winA becomes clean while keeping live session directory'
+
+    Send 'action tabnext' | Out-Null
+    WaitFor {
+        $s = State
+        $tab = $s.tabs | Where-Object { $_.active } | Select-Object -First 1
+        return ($tab -and $tab.title -eq 'win-b.pdf')
+    } 'activate winB'
+    Send 'action rotatepage' | Out-Null
+    WaitFor {
+        $s = State
+        $tab = $s.tabs | Where-Object { $_.active } | Select-Object -First 1
+        return ($tab -and $tab.dirty -and (Get-SessionDirs).Count -eq 2)
+    } 'winB becomes dirty with two active session dirs'
+    $winACorePids = @(Get-CoreProcesses $proc.Id | ForEach-Object { [int]$_.ProcessId } | Sort-Object -Unique)
+
+    Send 'closewindow' | Out-Null
+    WaitFor {
+        $s = State
+        return ($s.closePrompt.open -eq $true -and $s.closePrompt.windowClosing -eq $true)
+    } 'WM_CLOSE opens unsaved close prompt with windowClosing=true'
+    $promptState = (State).closePrompt
+    Expect 'WM_CLOSE does not exit process while dirty tab open' (-not $proc.HasExited) 'process exited unexpectedly'
+    Expect 'WM_CLOSE prompts for dirty win-b.pdf' ($promptState.name -eq 'win-b.pdf') ("prompted for $($promptState.name)")
+
+    Click-Control 'close-prompt-cancel'
+    WaitFor {
+        $s = State
+        return (-not $s.closePrompt.open -and -not $s.closePrompt.windowClosing)
+    } 'cancel clears prompt and aborts window closing'
+    $afterCancel = State
+    Expect 'WM_CLOSE cancel keeps both tabs open' ($afterCancel.tabs.Count -eq 2) ("tabs=$($afterCancel.tabs.Count)")
+    Expect 'WM_CLOSE cancel keeps both session dirs' ((Get-SessionDirs).Count -eq 2) ("sessionDirs=$((Get-SessionDirs).Count)")
+
+    Send 'closewindow' | Out-Null
+    WaitFor { (State).closePrompt.open -eq $true } 'WM_CLOSE reopens close prompt for save-and-exit'
+    Click-Control 'close-prompt-save'
+    Assert-CleanShutdown $winACorePids 'WM_CLOSE save-and-exit'
+    Expect 'WM_CLOSE save-and-exit saved rotation to winB' ((Get-PdfRotation $winB) -eq '90') 'winB rotation not saved'
+
+    # Native window close (WM_CLOSE): single dirty tab (winC) -> discard -> clean exit
+    Start-CloseApp @($winC) 1
+    Send 'action rotatepage' | Out-Null
+    WaitFor {
+        $s = State
+        $tab = $s.tabs | Where-Object { $_.active } | Select-Object -First 1
+        return ($tab -and $tab.dirty -and (Get-SessionDirs).Count -eq 1)
+    } 'winC becomes dirty with active session'
+    $winCCorePids = @(Get-CoreProcesses $proc.Id | ForEach-Object { [int]$_.ProcessId } | Sort-Object -Unique)
+
+    Send 'closewindow' | Out-Null
+    WaitFor {
+        $s = State
+        return ($s.closePrompt.open -eq $true -and $s.closePrompt.windowClosing -eq $true)
+    } 'WM_CLOSE opens prompt for winC discard'
+    Click-Control 'close-prompt-discard'
+    Assert-CleanShutdown $winCCorePids 'WM_CLOSE discard-and-exit'
+    Expect 'WM_CLOSE discard leaves winC untouched' ((Get-FileHash -LiteralPath $winC -Algorithm SHA256).Hash -eq $winCHash) 'winC hash changed after discard'
 
     if ($script:fails -gt 0) { throw "R3.14 close E2E failed with $($script:fails) failure(s)" }
     $passed = $true

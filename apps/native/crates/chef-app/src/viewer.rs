@@ -18,6 +18,9 @@ use chef_pdf::text::{CharBox, PageText, char_at};
 use chef_rpc::{CallError, Supervisor};
 use chef_ui::a11y::{self, Registered};
 use chef_ui::button::{Button, Size as ButtonSize, Variant};
+use chef_ui::dialog::{Dialog, Width};
+use chef_ui::form::TextField;
+use chef_ui::menu::{Menu, MenuEntry};
 use chef_ui::text_input::{TextInput, TextInputEvent};
 use chef_ui::thumbnail::ThumbnailShimmer;
 use chef_viewer::{
@@ -25,6 +28,7 @@ use chef_viewer::{
     grid::GridLayout,
     reload,
     scroll::Layout,
+    selection::{ClickModifiers, PageParity, PageSelection},
     sidebar::SidebarLayout,
     spread::{PageMode, SpreadLayout},
 };
@@ -36,6 +40,7 @@ use gpui::{
 use image::{Frame, RgbaImage};
 
 use crate::find::Find;
+use crate::page_ops::{self, DeleteReject};
 use crate::password;
 use crate::properties;
 use crate::settings_dialog::SettingsPanel;
@@ -48,6 +53,7 @@ actions!(
     [
         FocusSearch,
         SelectAllText,
+        SelectAllTextDocument,
         CopySelection,
         ZoomIn,
         ZoomOut,
@@ -63,7 +69,21 @@ actions!(
         OpenSettings,
         OpenFile,
         OpenProperties,
+        EditBookmarks,
         RotatePage,
+        RotatePageLeft,
+        DeletePages,
+        DuplicatePages,
+        ExtractPages,
+        InsertBlankBefore,
+        InsertBlankAfter,
+        InsertPagesFromFile,
+        ReplaceSelectedPages,
+        SelectAllPages,
+        InvertPageSelection,
+        SelectOddPages,
+        SelectEvenPages,
+        ClearPageSelection,
         UndoEdit,
         RedoEdit,
         SaveEdit,
@@ -183,6 +203,10 @@ pub struct Viewer {
     text_pending: HashMap<usize, Receiver<Reply<PageText>>>,
     selection: Option<Selection>,
     dragging: bool,
+    draw_tool: Option<crate::draw::Tool>,
+    draw_gesture: Option<crate::draw::Gesture>,
+    draw_color: String,
+    draw_width: f32,
     /// Khung vùng trang đo ở lần vẽ trước (x, y, rộng, cao; tọa độ cửa sổ). Viewer nằm dưới thanh
     /// tab và có thể có dải cảnh báo, thanh tìm kiếm, nên không suy ra được từ kích thước cửa sổ.
     content_bounds: Rc<Cell<Option<ContentBounds>>>,
@@ -204,6 +228,7 @@ pub struct Viewer {
     edit_blocked: bool,
     tab_closing: bool,
     close_after_save: bool,
+    save_for_close_aborted: bool,
     ready_to_close: bool,
     retry_reload_focus: FocusHandle,
     source_warning: Option<Verdict>,
@@ -214,6 +239,21 @@ pub struct Viewer {
     redo_focus: FocusHandle,
     save_focus: FocusHandle,
     save_as_focus: FocusHandle,
+    bookmark_title: Entity<TextInput>,
+    bookmark_close_focus: FocusHandle,
+    bookmark_apply_focus: FocusHandle,
+    bookmark_draft: Option<crate::bookmarks::Draft>,
+    bookmark_ticket: u64,
+    bookmark_focus_pending: bool,
+    bookmark_drag_target: Option<(Vec<usize>, bool)>,
+    note_content: Entity<TextInput>,
+    note_author: Entity<TextInput>,
+    note_close_focus: FocusHandle,
+    note_apply_focus: FocusHandle,
+    notes: Vec<crate::notes::Note>,
+    notes_open: bool,
+    notes_ticket: u64,
+    note_form_mode: Option<crate::notes::FormMode>,
     /// Hộp thoại Thuộc tính (Ctrl+D): số liệu đã đọc lúc mở, và tiêu điểm nút đóng.
     props_open: bool,
     props_view: Option<properties::View>,
@@ -253,6 +293,16 @@ pub struct Viewer {
     sidebar_grid: bool,
     sidebar_scroll_y: f32,
     sidebar_visible: Vec<usize>,
+    page_selection: PageSelection,
+    drag_target: Option<usize>,
+    /// Signature fields detected by pdfium; errors fail closed and lock page rewrites.
+    document_signed: bool,
+    /// Right-click page context menu (R4.05), positioned relative to the viewer root.
+    page_context_at: Option<(f32, f32)>,
+    /// Viewer origin and available size in window coordinates, captured after layout.
+    page_context_root: Rc<Cell<Option<ContentBounds>>>,
+    page_context_focus: Vec<FocusHandle>,
+    pending_open_tabs: Vec<PathBuf>,
     thumbnail_cache: HashMap<usize, Arc<RenderImage>>,
     thumbnail_pending: HashMap<usize, Receiver<Reply<PageImage>>>,
     to_drop: Vec<Arc<RenderImage>>,
@@ -263,6 +313,25 @@ pub struct Viewer {
     kind: Option<DocKind>,
 }
 
+enum PostSelection {
+    Keep,
+    AfterDelete(Vec<usize>),
+    AfterDuplicate(Vec<usize>),
+    AfterInsert { at: usize, count: usize },
+    AfterReplace(Vec<usize>),
+    AfterReorder(Vec<usize>),
+}
+
+#[derive(Clone)]
+struct PageDrag {
+    pages: Vec<usize>,
+}
+
+#[derive(Clone)]
+struct BookmarkDrag {
+    path: Vec<usize>,
+}
+
 enum OperationResult {
     Applied {
         generation: u64,
@@ -271,6 +340,18 @@ enum OperationResult {
         doc: DocId,
         sizes: Vec<(f32, f32)>,
         changed_pages: Option<serde_json::Value>,
+        post_selection: PostSelection,
+        notes: Option<Vec<crate::notes::Note>>,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
+    Extracted {
+        generation: u64,
+        session_id: String,
+        output_path: PathBuf,
+        #[allow(dead_code)]
+        warnings: Vec<String>,
         can_undo: bool,
         can_redo: bool,
         dirty: bool,
@@ -294,13 +375,129 @@ enum OperationResult {
         message: String,
         refresh_required: bool,
     },
+    BookmarksLoaded {
+        generation: u64,
+        doc: DocId,
+        path: PathBuf,
+        ticket: u64,
+        session_id: String,
+        tree: Vec<serde_json::Value>,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
+    NotesLoaded {
+        generation: u64,
+        doc: DocId,
+        path: PathBuf,
+        ticket: u64,
+        session_id: String,
+        notes: Vec<crate::notes::Note>,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
 }
 
 enum EditOperation {
-    Rotate,
+    Rotate {
+        pages: Vec<usize>,
+        angle: i64,
+    },
+    Delete {
+        pages: Vec<usize>,
+        page_count: usize,
+    },
+    Duplicate {
+        pages: Vec<usize>,
+    },
+    Extract {
+        pages: Vec<usize>,
+        output_path: String,
+    },
+    InsertBlank {
+        at: usize,
+        count: usize,
+    },
+    InsertFromFile {
+        at: usize,
+        path: String,
+    },
+    Replace {
+        pages: Vec<usize>,
+        path: String,
+    },
+    Reorder {
+        order: Vec<usize>,
+        selected_after: Vec<usize>,
+    },
+    ReadBookmarks {
+        ticket: u64,
+        doc: DocId,
+        path: PathBuf,
+    },
+    ReadNotes {
+        ticket: u64,
+        doc: DocId,
+        path: PathBuf,
+    },
+    NoteMutation {
+        op_id: &'static str,
+        params: serde_json::Value,
+    },
+    SetBookmarks {
+        tree: Vec<serde_json::Value>,
+        base_doc: DocId,
+        base_path: PathBuf,
+        base_generation: u64,
+    },
+    Markup {
+        params: serde_json::Value,
+    },
+    DrawShape {
+        op_id: &'static str,
+        params: serde_json::Value,
+    },
+    MarkupColor {
+        kind: crate::annots::MarkupKind,
+        pages: Vec<(usize, Vec<chef_pdf::text::Rect>)>,
+        color_rgba: u32,
+    },
     Undo,
     Redo,
     Save(Option<String>),
+}
+
+fn run_session_job(
+    sup: std::sync::MutexGuard<'_, Supervisor>,
+    op_id: &str,
+    session_id: &str,
+    params: &serde_json::Value,
+    track_unknown_as_stale: bool,
+) -> Result<serde_json::Value, (String, bool)> {
+    let (id, waiter) = match chef_rpc::ops::start(&sup, op_id, Some(session_id), params) {
+        Ok(id) => (id, sup.waiter()),
+        Err(error) => {
+            let refresh = track_unknown_as_stale && edit_error_needs_reload(&error);
+            return Err((call_error_text(error), refresh));
+        }
+    };
+    drop(sup);
+    match chef_rpc::ops::wait_job_with_waiter(&waiter, &id, Duration::from_secs(120)) {
+        chef_rpc::ops::JobEnd::Finished(v) => Ok(v),
+        chef_rpc::ops::JobEnd::Failed(error) => {
+            Err((call_error_text(CallError::Rpc(error)), false))
+        }
+        chef_rpc::ops::JobEnd::Cancelled => Err((i18n::t("editor.operationFailed"), false)),
+        chef_rpc::ops::JobEnd::TimedOut | chef_rpc::ops::JobEnd::Stopped => {
+            let refresh = track_unknown_as_stale
+                && reload::requires_revision_reconciliation(
+                    reload::MutationKind::RevisionEdit,
+                    reload::MutationOutcome::Unknown,
+                );
+            Err((i18n::t("editor.operationFailed"), refresh))
+        }
+    }
 }
 
 fn call_error_has_unknown_outcome(error: &CallError) -> bool {
@@ -372,12 +569,266 @@ impl DocKind {
 }
 
 impl Viewer {
+    fn open_page_context(
+        &mut self,
+        page: usize,
+        x: f32,
+        y: f32,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.page_selection = self.page_selection.context_select(page);
+        let (origin_x, origin_y, width, height) = self.page_context_root.get().unwrap_or((
+            0.0,
+            0.0,
+            window.viewport_size().width.as_f32(),
+            window.viewport_size().height.as_f32(),
+        ));
+        let menu_x = (x - origin_x).clamp(0.0, (width - 248.0).max(0.0));
+        let menu_y = (y - origin_y).clamp(0.0, (height - 560.0).max(0.0));
+        self.page_context_at = Some((menu_x, menu_y));
+        let focus = self.page_context_focus[0].clone();
+        window.defer(cx, move |window, cx| window.focus(&focus, cx));
+        cx.notify();
+    }
+
+    fn close_page_context(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.page_context_at = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn page_context_menu(&self, x: f32, y: f32, dark: bool, cx: &mut Context<Self>) -> Menu {
+        let entity = cx.entity();
+        let dispatch = entity.clone();
+        let dismiss = entity;
+        let count = self.page_selection.len().max(1);
+        let blocked =
+            self.document_signed || self.edit_blocked || self.operation_pending || self.tab_closing;
+        let all_selected = self.page_selection.len() >= self.page_sizes.len();
+        let focus = &self.page_context_focus;
+        let entries = vec![
+            MenuEntry::new(
+                "page-menu-create-pdf",
+                focus[0].clone(),
+                i18n::tn("pageMenu.createPdf", count as i64, &[]),
+            )
+            .icon("⇧"),
+            MenuEntry::new(
+                "page-menu-open",
+                focus[1].clone(),
+                i18n::t("pages.openInViewer"),
+            )
+            .shortcut("Enter")
+            .icon("↗"),
+            MenuEntry::separator("page-menu-separator-0", focus[18].clone()),
+            MenuEntry::new(
+                "page-menu-select-all",
+                focus[2].clone(),
+                i18n::t("pageMenu.selectAll"),
+            )
+            .shortcut("Mod+A")
+            .icon("☷")
+            .disabled(all_selected),
+            MenuEntry::new(
+                "page-menu-invert",
+                focus[3].clone(),
+                i18n::t("pageMenu.invertSelection"),
+            )
+            .icon("⇄")
+            .disabled(all_selected),
+            MenuEntry::new(
+                "page-menu-odd",
+                focus[4].clone(),
+                i18n::t("pageMenu.selectOdd"),
+            )
+            .icon("☷"),
+            MenuEntry::new(
+                "page-menu-even",
+                focus[5].clone(),
+                i18n::t("pageMenu.selectEven"),
+            )
+            .icon("☷"),
+            MenuEntry::separator("page-menu-separator-1", focus[19].clone()),
+            MenuEntry::new(
+                "page-menu-rotate-left",
+                focus[6].clone(),
+                i18n::t("pages.rotateLeft"),
+            )
+            .icon("↶")
+            .disabled(blocked),
+            MenuEntry::new(
+                "page-menu-rotate-right",
+                focus[7].clone(),
+                i18n::t("pages.rotateRight"),
+            )
+            .icon("↷")
+            .disabled(blocked),
+            MenuEntry::new(
+                "page-menu-duplicate",
+                focus[8].clone(),
+                i18n::t("pages.duplicate"),
+            )
+            .shortcut("Mod+D")
+            .icon("▣")
+            .disabled(blocked),
+            MenuEntry::separator("page-menu-separator-2", focus[20].clone()),
+            MenuEntry::new(
+                "page-menu-stamp",
+                focus[9].clone(),
+                i18n::t("pageMenu.stamp"),
+            )
+            .icon("▤")
+            .disabled(true),
+            MenuEntry::new(
+                "page-menu-compress",
+                focus[10].clone(),
+                i18n::t("pageMenu.compress"),
+            )
+            .icon("⇣")
+            .disabled(true),
+            MenuEntry::new(
+                "page-menu-to-images",
+                focus[11].clone(),
+                i18n::t("pageMenu.toImages"),
+            )
+            .icon("▧")
+            .disabled(true),
+            MenuEntry::separator("page-menu-separator-3", focus[21].clone()),
+            MenuEntry::new(
+                "page-menu-insert-blank-before",
+                focus[12].clone(),
+                i18n::t("pages.insertBlankBefore"),
+            )
+            .icon("＋")
+            .disabled(blocked),
+            MenuEntry::new(
+                "page-menu-insert-blank-after",
+                focus[13].clone(),
+                i18n::t("pages.insertBlankAfter"),
+            )
+            .icon("＋")
+            .disabled(blocked),
+            MenuEntry::new(
+                "page-menu-insert-file",
+                focus[14].clone(),
+                i18n::t("pages.insertFromFile"),
+            )
+            .icon("⇧")
+            .disabled(blocked),
+            MenuEntry::new(
+                "page-menu-insert-images",
+                focus[15].clone(),
+                i18n::t("pages.insertImages"),
+            )
+            .icon("▧")
+            .disabled(true),
+            MenuEntry::new(
+                "page-menu-paste-image",
+                focus[16].clone(),
+                i18n::t("pages.insertClipboard"),
+            )
+            .icon("▣")
+            .disabled(true),
+            MenuEntry::separator("page-menu-separator-4", focus[22].clone()),
+            MenuEntry::new(
+                "page-menu-delete",
+                focus[17].clone(),
+                if count > 1 {
+                    i18n::tn("pages.deleteN", count as i64, &[])
+                } else {
+                    i18n::t("pages.delete")
+                },
+            )
+            .shortcut("Delete")
+            .icon("×")
+            .danger(true)
+            .disabled(blocked || count >= self.page_sizes.len()),
+        ];
+        Menu::new("page-context-menu", i18n::t("pages.gridLabel"), entries)
+            .at(x, y)
+            .width(240.0)
+            .dark(dark)
+            .on_select_id(move |id, window, cx| {
+                dispatch.update(cx, |this, cx| {
+                    this.page_context_at = None;
+                    match id.as_str() {
+                        "page-menu-create-pdf" => this.begin_extract_pages(cx),
+                        "page-menu-open" => {
+                            if let Some(page) = this.page_selection.focus() {
+                                this.go_to_page(page);
+                            }
+                        }
+                        "page-menu-select-all" => {
+                            this.page_selection = PageSelection::select_all(this.page_sizes.len())
+                        }
+                        "page-menu-invert" => {
+                            this.page_selection = this.page_selection.invert(this.page_sizes.len())
+                        }
+                        "page-menu-odd" => {
+                            this.page_selection = PageSelection::select_by_parity(
+                                this.page_sizes.len(),
+                                PageParity::Odd,
+                            )
+                        }
+                        "page-menu-even" => {
+                            this.page_selection = PageSelection::select_by_parity(
+                                this.page_sizes.len(),
+                                PageParity::Even,
+                            )
+                        }
+                        "page-menu-rotate-left" => this.begin_rotate_page(270, cx),
+                        "page-menu-rotate-right" => this.begin_rotate_page(90, cx),
+                        "page-menu-duplicate" => this.begin_duplicate_pages(cx),
+                        "page-menu-insert-blank-before" => this.begin_insert_blank(false, cx),
+                        "page-menu-insert-blank-after" => this.begin_insert_blank(true, cx),
+                        "page-menu-insert-file" => this.begin_insert_from_file(cx),
+                        "page-menu-delete" => this.begin_delete_pages(cx),
+                        _ => {}
+                    }
+                    window.focus(&this.focus, cx);
+                    cx.notify();
+                });
+                window.refresh();
+            })
+            .on_dismiss(move |window, cx| {
+                dismiss.update(cx, |this, cx| this.close_page_context(window, cx))
+            })
+    }
+
     fn clear_thumbnail_state(&mut self) {
         self.thumbnail_pending.clear();
+        self.drag_target = None;
+        crate::debug::set_sidebar_drag_target(None);
         for (_, image) in self.thumbnail_cache.drain() {
             self.to_drop.push(image);
         }
         self.sidebar_visible.clear();
+    }
+
+    fn finish_page_drag(&mut self, drag: &PageDrag, cx: &mut Context<Self>) {
+        let target = self.drag_target.take();
+        crate::debug::set_sidebar_drag_target(None);
+        let Some(target) = target else {
+            cx.notify();
+            return;
+        };
+        if self.document_signed || self.operation_pending || self.edit_blocked || self.tab_closing {
+            cx.notify();
+            return;
+        }
+        let pages: Vec<_> = (0..self.page_sizes.len()).collect();
+        if let Some(plan) = page_ops::reorder_plan(&pages, &drag.pages, target) {
+            self.begin_edit(
+                EditOperation::Reorder {
+                    order: plan.order,
+                    selected_after: plan.selected_after,
+                },
+                cx,
+            );
+        } else {
+            cx.notify();
+        }
     }
 
     fn retry_revision_reload(&mut self, cx: &mut Context<Self>) {
@@ -426,6 +877,8 @@ impl Viewer {
                     doc,
                     sizes,
                     changed_pages: Some(serde_json::Value::String("all".into())),
+                    post_selection: PostSelection::Keep,
+                    notes: None,
                     can_undo,
                     can_redo,
                     dirty,
@@ -471,17 +924,37 @@ impl Viewer {
         if let Some(path) = path {
             self.begin_edit(EditOperation::Save(Some(path.display().to_string())), cx);
         } else {
+            self.abort_close_after_save();
+        }
+    }
+
+    fn abort_close_after_save(&mut self) {
+        if self.close_after_save {
             self.close_after_save = false;
+            self.save_for_close_aborted = true;
         }
     }
 
     pub fn save_for_close(&mut self, cx: &mut Context<Self>) {
+        self.save_for_close_aborted = false;
         self.close_after_save = true;
         if self.source_path.is_some() {
             self.begin_edit(EditOperation::Save(None), cx);
         } else {
             self.begin_save_as(cx);
         }
+    }
+
+    pub fn is_saving_for_close(&self) -> bool {
+        self.close_after_save
+    }
+
+    pub fn has_save_for_close_aborted(&self) -> bool {
+        self.save_for_close_aborted
+    }
+
+    pub fn take_save_for_close_aborted(&mut self) -> bool {
+        std::mem::take(&mut self.save_for_close_aborted)
     }
 
     pub fn take_ready_to_close(&mut self) -> bool {
@@ -492,29 +965,231 @@ impl Viewer {
         self.ready_to_close
     }
 
+    pub fn has_pending_open_tabs(&self) -> bool {
+        !self.pending_open_tabs.is_empty()
+    }
+
+    pub fn take_pending_open_tabs(&mut self) -> Vec<PathBuf> {
+        std::mem::take(&mut self.pending_open_tabs)
+    }
+
+    fn target_pages(&self) -> Vec<usize> {
+        let vh = self.content_height();
+        let current_page = self
+            .spread
+            .as_ref()
+            .and_then(|s| s.visible_pages(self.scroll_y, vh).first().copied())
+            .or_else(|| {
+                self.layout
+                    .as_ref()
+                    .map(|l| *l.visible(self.scroll_y, vh).start())
+            })
+            .unwrap_or(0);
+        self.page_selection
+            .target_pages(current_page, self.page_sizes.len())
+    }
+
+    fn begin_rotate_page(&mut self, angle: i64, cx: &mut Context<Self>) {
+        let pages = self.target_pages();
+        if pages.is_empty() {
+            return;
+        }
+        self.begin_edit(EditOperation::Rotate { pages, angle }, cx);
+    }
+
+    fn begin_delete_pages(&mut self, cx: &mut Context<Self>) {
+        let pages = self.target_pages();
+        match page_ops::delete_params(&pages, self.page_sizes.len()) {
+            Ok(_) => self.begin_edit(
+                EditOperation::Delete {
+                    pages,
+                    page_count: self.page_sizes.len(),
+                },
+                cx,
+            ),
+            Err(DeleteReject::CannotDeleteAll) => {
+                self.message = Some(i18n::t("pages.cannotDeleteAll"));
+                cx.notify();
+            }
+            Err(DeleteReject::EmptySelection | DeleteReject::OutOfRange) => {}
+        }
+    }
+
+    fn begin_duplicate_pages(&mut self, cx: &mut Context<Self>) {
+        let pages = self.target_pages();
+        if pages.is_empty() {
+            return;
+        }
+        self.begin_edit(EditOperation::Duplicate { pages }, cx);
+    }
+
+    fn begin_insert_blank(&mut self, after: bool, cx: &mut Context<Self>) {
+        let targets = self.target_pages();
+        let page = if after {
+            targets.last().copied()
+        } else {
+            targets.first().copied()
+        };
+        let Some(page) = page else {
+            return;
+        };
+        let at = (page + usize::from(after)).min(self.page_sizes.len());
+        self.begin_edit(EditOperation::InsertBlank { at, count: 1 }, cx);
+    }
+
+    fn choose_source_pdf(&self, cx: &Context<Self>) -> Option<PathBuf> {
+        if let Some(path) = std::env::var_os("CHEF_E2E_PAGE_SOURCE") {
+            return Some(PathBuf::from(path));
+        }
+        let initial_dir = self
+            .source_path
+            .as_deref()
+            .and_then(std::path::Path::parent)
+            .map(PathBuf::from)
+            .or_else(|| self.settings.read(cx).save_dir().map(PathBuf::from));
+        crate::dialogs::open_pdfs(initial_dir.as_deref())
+            .into_iter()
+            .next()
+    }
+
+    fn begin_insert_from_file(&mut self, cx: &mut Context<Self>) {
+        let Some(page) = self.target_pages().first().copied() else {
+            return;
+        };
+        let Some(path) = self.choose_source_pdf(cx) else {
+            return;
+        };
+        self.begin_edit(
+            EditOperation::InsertFromFile {
+                at: page,
+                path: path.display().to_string(),
+            },
+            cx,
+        );
+    }
+
+    fn begin_replace_pages(&mut self, cx: &mut Context<Self>) {
+        let pages = self.target_pages();
+        if pages.is_empty() {
+            return;
+        }
+        let Some(path) = self.choose_source_pdf(cx) else {
+            return;
+        };
+        self.begin_edit(
+            EditOperation::Replace {
+                pages,
+                path: path.display().to_string(),
+            },
+            cx,
+        );
+    }
+
+    fn begin_extract_pages(&mut self, cx: &mut Context<Self>) {
+        if self.tab_closing
+            || self.operation_pending
+            || self.switch_rx.is_some()
+            || self.edit_blocked
+        {
+            return;
+        }
+        let pages = self.target_pages();
+        if pages.is_empty() {
+            return;
+        }
+        let e2e_path = (std::env::var("CHEF_E2E").as_deref() == Ok("1"))
+            .then(|| std::env::var_os("CHEF_E2E_EXTRACT_PATH"))
+            .flatten()
+            .map(PathBuf::from);
+        let path = e2e_path.or_else(|| {
+            let source_name = self.tab_title();
+            let suggested = page_ops::suggested_extract_filename(
+                &source_name,
+                &i18n::t("pages.extractSuffix"),
+                &pages,
+            );
+            let initial_dir = self
+                .source_path
+                .as_deref()
+                .and_then(std::path::Path::parent)
+                .map(PathBuf::from)
+                .or_else(|| self.settings.read(cx).save_dir().map(PathBuf::from));
+            crate::dialogs::save_pdf(initial_dir.as_deref(), &suggested)
+        });
+        if let Some(path) = path {
+            if page_ops::output_conflicts_with_protected_path(
+                &path,
+                &[self.source_path.as_deref(), self.doc_path.as_deref()],
+            ) {
+                self.message = Some(i18n::t("pages.extractOutputSameFile"));
+                cx.notify();
+                return;
+            }
+            self.begin_edit(
+                EditOperation::Extract {
+                    pages,
+                    output_path: path.display().to_string(),
+                },
+                cx,
+            );
+        }
+    }
+
     fn begin_edit(&mut self, operation: EditOperation, cx: &mut Context<Self>) {
+        self.draw_gesture = None;
+        if self.bookmark_draft.is_some()
+            && !matches!(&operation, EditOperation::SetBookmarks { .. })
+        {
+            self.message = Some(i18n::t("bookmarks.closeBeforeEdit"));
+            cx.notify();
+            return;
+        }
+        if self.notes_open
+            && !matches!(
+                &operation,
+                EditOperation::ReadNotes { .. } | EditOperation::NoteMutation { .. }
+            )
+        {
+            self.message = Some(i18n::t("notes.closeBeforeEdit"));
+            cx.notify();
+            return;
+        }
         if self.tab_closing {
-            self.close_after_save = false;
+            self.abort_close_after_save();
             self.message = Some(i18n::t("editor.sessionClosing"));
             cx.notify();
             return;
         }
         if self.operation_pending {
+            self.abort_close_after_save();
             return;
         }
         if self.switch_rx.is_some() {
-            self.close_after_save = false;
+            self.abort_close_after_save();
             self.message = Some(i18n::t("editor.sessionClosing"));
             cx.notify();
             return;
         }
         if self.edit_blocked {
-            self.close_after_save = false;
+            self.abort_close_after_save();
             self.message = Some(i18n::t("editor.reloadRequired"));
             cx.notify();
             return;
         }
         match &operation {
+            EditOperation::SetBookmarks {
+                base_doc,
+                base_path,
+                base_generation,
+                ..
+            } if self.doc != Some(*base_doc)
+                || self.doc_path.as_ref() != Some(base_path)
+                || self.document_generation != *base_generation =>
+            {
+                self.message = Some(i18n::t("bookmarks.staleDraft"));
+                cx.notify();
+                return;
+            }
             EditOperation::Undo if self.session_id.is_none() || !self.can_undo => {
                 self.message = Some(i18n::t("editor.nothingToUndo"));
                 cx.notify();
@@ -526,7 +1201,7 @@ impl Viewer {
                 return;
             }
             EditOperation::Save(_) if self.session_id.is_none() => {
-                self.close_after_save = false;
+                self.abort_close_after_save();
                 self.message = Some(i18n::t("editor.nothingToSave"));
                 cx.notify();
                 return;
@@ -534,7 +1209,7 @@ impl Viewer {
             _ => {}
         }
         let Some(supervisor) = self.supervisor.clone() else {
-            self.close_after_save = false;
+            self.abort_close_after_save();
             self.message = Some(i18n::t("editor.coreUnavailable"));
             cx.notify();
             return;
@@ -544,16 +1219,28 @@ impl Viewer {
             .clone()
             .zip(self.source_fingerprint.clone());
         if self.session_id.is_none() && source_and_guard.is_none() {
-            self.close_after_save = false;
+            self.abort_close_after_save();
             self.message = Some(i18n::t("editor.coreUnavailable"));
             cx.notify();
             return;
         }
         self.operation_pending = true;
         let generation = self.document_generation;
+        let page_count = self.page_sizes.len();
         let render_handle = self.handle.clone();
         let existing_session = self.session_id.clone();
         let password = self.source_password.clone();
+        let bookmark_read = match &operation {
+            EditOperation::ReadBookmarks { ticket, doc, path } => {
+                Some((*ticket, *doc, path.clone()))
+            }
+            _ => None,
+        };
+        let notes_read = match &operation {
+            EditOperation::ReadNotes { ticket, doc, path } => Some((*ticket, *doc, path.clone())),
+            _ => None,
+        };
+        let refresh_notes = matches!(&operation, EditOperation::NoteMutation { .. });
         let (tx, rx) = channel();
         self.operation_rx = Some(rx);
         std::thread::spawn(move || {
@@ -588,65 +1275,311 @@ impl Viewer {
                 };
                 active_session_id = Some(session_id.clone());
                 let is_save = matches!(&operation, EditOperation::Save(_));
-                let reply = match operation {
-                    EditOperation::Rotate => {
-                        let (id, waiter) = match chef_rpc::ops::start(
-                            &sup,
-                            "page.rotate",
-                            Some(&session_id),
-                            &serde_json::json!({"pages":[0],"angle":90}),
-                        ) {
-                            Ok(id) => (id, sup.waiter()),
-                            Err(error) => {
-                                refresh_required = edit_error_needs_reload(&error);
-                                return Err(call_error_text(error));
-                            }
-                        };
-                        drop(sup);
-                        match chef_rpc::ops::wait_job_with_waiter(
-                            &waiter,
-                            &id,
-                            Duration::from_secs(120),
-                        ) {
-                            chef_rpc::ops::JobEnd::Finished(v) => v,
-                            chef_rpc::ops::JobEnd::Failed(error) => {
-                                return Err(call_error_text(CallError::Rpc(error)));
-                            }
-                            chef_rpc::ops::JobEnd::Cancelled => {
-                                return Err(i18n::t("editor.operationFailed"));
-                            }
-                            chef_rpc::ops::JobEnd::TimedOut | chef_rpc::ops::JobEnd::Stopped => {
-                                refresh_required = reload::requires_revision_reconciliation(
-                                    reload::MutationKind::RevisionEdit,
-                                    reload::MutationOutcome::Unknown,
-                                );
-                                return Err(i18n::t("editor.operationFailed"));
-                            }
-                        }
-                    }
-                    EditOperation::Undo => {
-                        let res = chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
-                            refresh_required = edit_error_needs_reload(&error);
-                            call_error_text(error)
-                        });
-                        drop(sup);
-                        res?
-                    }
-                    EditOperation::Redo => {
-                        let res = chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
-                            refresh_required = edit_error_needs_reload(&error);
-                            call_error_text(error)
-                        });
-                        drop(sup);
-                        res?
-                    }
-                    EditOperation::Save(path) => {
-                        let res = chef_rpc::ops::save(&sup, &session_id, path.as_deref())
-                            .map_err(call_error_text);
-                        drop(sup);
-                        res?
-                    }
+                let extract_requested_path = match &operation {
+                    EditOperation::Extract { output_path, .. } => Some(output_path.clone()),
+                    _ => None,
                 };
+                let post_selection = match &operation {
+                    EditOperation::Delete { pages, .. } => {
+                        PostSelection::AfterDelete(pages.clone())
+                    }
+                    EditOperation::Duplicate { pages } => {
+                        PostSelection::AfterDuplicate(pages.clone())
+                    }
+                    EditOperation::InsertBlank { at, count } => PostSelection::AfterInsert {
+                        at: *at,
+                        count: *count,
+                    },
+                    EditOperation::InsertFromFile { at, .. } => {
+                        PostSelection::AfterInsert { at: *at, count: 1 }
+                    }
+                    EditOperation::Replace { pages, .. } => {
+                        PostSelection::AfterReplace(pages.clone())
+                    }
+                    EditOperation::Reorder { selected_after, .. } => {
+                        PostSelection::AfterReorder(selected_after.clone())
+                    }
+                    _ => PostSelection::Keep,
+                };
+                let reply =
+                    match operation {
+                        EditOperation::Rotate { pages, angle } => {
+                            let typed = page_ops::rotate_params(&pages, angle)?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.rotate", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::Delete { pages, page_count } => {
+                            let typed = page_ops::delete_params(&pages, page_count).map_err(
+                                |err| match err {
+                                    DeleteReject::CannotDeleteAll => {
+                                        i18n::t("pages.cannotDeleteAll")
+                                    }
+                                    DeleteReject::EmptySelection | DeleteReject::OutOfRange => {
+                                        i18n::t("errors.INVALID_PARAMS")
+                                    }
+                                },
+                            )?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.delete", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::Duplicate { pages } => {
+                            let typed = page_ops::duplicate_params(&pages)?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.duplicate", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::Extract { pages, output_path } => {
+                            let typed = page_ops::extract_params(&pages, &output_path)?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.extract", &session_id, &params, false)
+                                .map_err(|(msg, _)| msg)?
+                        }
+                        EditOperation::InsertBlank { at, count } => {
+                            let typed = page_ops::insert_blank_params(at, page_count, count)
+                                .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.insertBlank", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::InsertFromFile { at, path } => {
+                            let typed =
+                                page_ops::insert_from_file_params(at, page_count, &path, None)
+                                    .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.insertFromFile", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::Replace { pages, path } => {
+                            let typed = page_ops::replace_params(&pages, page_count, &path, None)
+                                .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
+                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                            run_session_job(sup, "page.replace", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::Reorder { order, .. } => {
+                            let params = serde_json::json!({ "order": order });
+                            run_session_job(sup, "page.reorder", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::ReadBookmarks { .. } => run_session_job(
+                            sup,
+                            "bookmarks.get",
+                            &session_id,
+                            &serde_json::json!({}),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?,
+                        EditOperation::ReadNotes { .. } => run_session_job(
+                            sup,
+                            "annots.list",
+                            &session_id,
+                            &serde_json::json!({}),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?,
+                        EditOperation::NoteMutation { op_id, params } => {
+                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                                |(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                },
+                            )?
+                        }
+                        EditOperation::SetBookmarks { tree, .. } => {
+                            let params = crate::bookmarks::set_params(tree);
+                            run_session_job(sup, "bookmarks.set", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::Markup { params } => {
+                            run_session_job(sup, "annots.addTextMarkup", &session_id, &params, true)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
+                        EditOperation::DrawShape { op_id, params } => {
+                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                                |(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                },
+                            )?
+                        }
+                        EditOperation::MarkupColor {
+                            kind,
+                            pages,
+                            color_rgba,
+                        } => {
+                            drop(sup);
+                            let mut ids = Vec::new();
+                            for (page_index, rects) in pages {
+                                let list_params = serde_json::json!({ "pageIndex": page_index });
+                                let listed = run_session_job(
+                                    supervisor
+                                        .lock()
+                                        .map_err(|_| "Không khóa được lõi".to_string())?,
+                                    "annots.list",
+                                    &session_id,
+                                    &list_params,
+                                    false,
+                                )
+                                .map_err(|(msg, _)| msg)?;
+                                ids.extend(
+                                    crate::annots::matching_markup_ids(
+                                        &listed, page_index, kind, &rects,
+                                    )
+                                    .ok_or_else(|| i18n::t("annots.markupNotFound"))?,
+                                );
+                            }
+                            let params =
+                                crate::annots::update_markup_color_params(&ids, color_rgba)?;
+                            run_session_job(
+                                supervisor
+                                    .lock()
+                                    .map_err(|_| "Không khóa được lõi".to_string())?,
+                                "annots.update",
+                                &session_id,
+                                &params,
+                                true,
+                            )
+                            .map_err(|(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            })?
+                        }
+                        EditOperation::Undo => {
+                            let res = chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
+                                refresh_required = edit_error_needs_reload(&error);
+                                call_error_text(error)
+                            });
+                            drop(sup);
+                            res?
+                        }
+                        EditOperation::Redo => {
+                            let res = chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
+                                refresh_required = edit_error_needs_reload(&error);
+                                call_error_text(error)
+                            });
+                            drop(sup);
+                            res?
+                        }
+                        EditOperation::Save(path) => {
+                            let res = chef_rpc::ops::save(&sup, &session_id, path.as_deref())
+                                .map_err(call_error_text);
+                            drop(sup);
+                            res?
+                        }
+                    };
+                if let Some((ticket, doc, path)) = bookmark_read {
+                    let tree = crate::bookmarks::tree_from_reply(&reply)?;
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::BookmarksLoaded {
+                        generation,
+                        doc,
+                        path,
+                        ticket,
+                        session_id,
+                        tree,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
+                if let Some((ticket, doc, path)) = notes_read {
+                    let notes = crate::notes::notes_from_reply(&reply)?;
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::NotesLoaded {
+                        generation,
+                        doc,
+                        path,
+                        ticket,
+                        session_id,
+                        notes,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
+                if let Some(requested_path) = extract_requested_path {
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let output_path = reply
+                        .get("outputs")
+                        .and_then(serde_json::Value::as_array)
+                        .and_then(|items| items.first())
+                        .and_then(serde_json::Value::as_str)
+                        .map(PathBuf::from)
+                        .unwrap_or_else(|| PathBuf::from(requested_path));
+                    let warnings = reply
+                        .get("warnings")
+                        .and_then(serde_json::Value::as_array)
+                        .map(|items| {
+                            items
+                                .iter()
+                                .filter_map(serde_json::Value::as_str)
+                                .map(str::to_owned)
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::Extracted {
+                        generation,
+                        session_id,
+                        output_path,
+                        warnings,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
                 if is_save {
                     let path = reply
                         .get("sourcePath")
@@ -698,6 +1631,33 @@ impl Viewer {
                     can_redo,
                     dirty,
                 } = SessionFlags::read(&state);
+                let notes = if refresh_notes {
+                    let listed = match run_session_job(
+                        supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?,
+                        "annots.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    ) {
+                        Ok(listed) => listed,
+                        Err((message, refresh)) => {
+                            refresh_required |= refresh;
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(message);
+                        }
+                    };
+                    match crate::notes::notes_from_reply(&listed) {
+                        Ok(notes) => Some(notes),
+                        Err(error) => {
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(error);
+                        }
+                    }
+                } else {
+                    None
+                };
                 let applied = OperationResult::Applied {
                     generation,
                     session_id,
@@ -705,6 +1665,8 @@ impl Viewer {
                     doc,
                     sizes,
                     changed_pages: changed,
+                    post_selection,
+                    notes,
                     can_undo,
                     can_redo,
                     dirty,
@@ -728,7 +1690,344 @@ impl Viewer {
         cx.notify();
     }
 
-    fn poll_operation(&mut self) -> bool {
+    fn open_bookmarks_editor(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.message = Some(i18n::t("bookmarks.noDocument"));
+            cx.notify();
+            return;
+        };
+        self.bookmark_ticket = self.bookmark_ticket.wrapping_add(1);
+        self.bookmark_draft = None;
+        self.begin_edit(
+            EditOperation::ReadBookmarks {
+                ticket: self.bookmark_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn close_bookmarks_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.bookmark_ticket = self.bookmark_ticket.wrapping_add(1);
+        self.bookmark_draft = None;
+        self.bookmark_drag_target = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn open_notes_editor(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.message = Some(i18n::t("notes.noDocument"));
+            cx.notify();
+            return;
+        };
+        self.notes_ticket = self.notes_ticket.wrapping_add(1);
+        self.notes_open = false;
+        self.note_form_mode = None;
+        self.begin_edit(
+            EditOperation::ReadNotes {
+                ticket: self.notes_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn close_notes_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.notes_ticket = self.notes_ticket.wrapping_add(1);
+        self.notes_open = false;
+        self.note_form_mode = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn select_note(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(note) = self.notes.iter().find(|note| note.id == id).cloned() else {
+            return;
+        };
+        self.note_form_mode = Some(crate::notes::FormMode::Edit(note.id));
+        self.note_content
+            .update(cx, |input, cx| input.set_text(&note.contents, cx));
+        self.note_author
+            .update(cx, |input, cx| input.set_text(&note.author, cx));
+        let focus = self.note_content.read(cx).focus_handle(cx);
+        window.focus(&focus, cx);
+        cx.notify();
+    }
+
+    fn begin_add_note_form(&mut self, mode: crate::notes::FormMode, cx: &mut Context<Self>) {
+        self.note_form_mode = Some(mode);
+        self.note_content
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.note_author
+            .update(cx, |input, cx| input.set_text("", cx));
+        cx.notify();
+    }
+
+    fn begin_reply_form(&mut self, cx: &mut Context<Self>) {
+        let Some(id) = self.note_form_mode.as_ref().and_then(|mode| match mode {
+            crate::notes::FormMode::Edit(id) | crate::notes::FormMode::Reply(id) => {
+                Some(id.clone())
+            }
+            _ => None,
+        }) else {
+            self.message = Some(i18n::t("notes.selectNoteFirst"));
+            cx.notify();
+            return;
+        };
+        self.note_form_mode = Some(crate::notes::FormMode::Reply(id));
+        self.note_content
+            .update(cx, |input, cx| input.set_text("", cx));
+        cx.notify();
+    }
+
+    fn apply_note_form(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.notes_ticket == 0 {
+            return;
+        }
+        let Some(mode) = self.note_form_mode.clone() else {
+            self.message = Some(i18n::t("notes.chooseAction"));
+            cx.notify();
+            return;
+        };
+        let contents = self.note_content.read(cx).text().to_owned();
+        let author = self.note_author.read(cx).text().to_owned();
+        let page_index = self.target_pages().first().copied().unwrap_or(0);
+        let operation = match mode {
+            crate::notes::FormMode::AddNote => {
+                let (width, height) = self
+                    .page_sizes
+                    .get(page_index)
+                    .copied()
+                    .unwrap_or((612.0, 792.0));
+                let offset = (self
+                    .notes
+                    .iter()
+                    .filter(|note| note.page_index == page_index)
+                    .count()
+                    % 8) as f32
+                    * 18.0;
+                let left = (24.0 + offset).min((width - 24.0).max(0.0));
+                let top = (24.0 + offset).min((height - 24.0).max(0.0));
+                crate::notes::add_note_params(page_index, left, top, &contents, &author)
+                    .map(|params| ("annots.addNote", params))
+            }
+            crate::notes::FormMode::AddFreeText => {
+                let (width, height) = self
+                    .page_sizes
+                    .get(page_index)
+                    .copied()
+                    .unwrap_or((612.0, 792.0));
+                let left = (width * 0.04).min(24.0);
+                let top = (height * 0.04).min(24.0);
+                let right = (width - left).min(left + 256.0);
+                let bottom = (height - top).min(top + 88.0);
+                crate::notes::free_text_params(
+                    page_index,
+                    [left, top, right, bottom],
+                    &contents,
+                    &author,
+                )
+                .map(|params| ("annots.addFreeText", params))
+            }
+            crate::notes::FormMode::Edit(id) => {
+                crate::notes::update_note_params(&id, &contents, &author)
+                    .map(|params| ("annots.update", params))
+            }
+            crate::notes::FormMode::Reply(id) => {
+                crate::notes::reply_params(&id, &contents, &author)
+                    .map(|params| ("annots.reply", params))
+            }
+        };
+        match operation {
+            Ok((op_id, params)) => {
+                self.note_form_mode = None;
+                self.begin_edit(EditOperation::NoteMutation { op_id, params }, cx);
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn mark_note_completed(&mut self, id: &str, cx: &mut Context<Self>) {
+        match crate::notes::completed_params(id) {
+            Ok(params) => {
+                self.note_form_mode = None;
+                self.begin_edit(
+                    EditOperation::NoteMutation {
+                        op_id: "annots.setStatus",
+                        params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn select_bookmark(&mut self, path: Vec<usize>, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(draft) = self.bookmark_draft.as_mut() else {
+            return;
+        };
+        let Some(row) = draft.rows().into_iter().find(|row| row.path == path) else {
+            return;
+        };
+        draft.selected_path = Some(path);
+        self.bookmark_title
+            .update(cx, |input, cx| input.set_text(&row.title, cx));
+        let focus = self.bookmark_title.read(cx).focus_handle(cx);
+        window.focus(&focus, cx);
+        cx.notify();
+    }
+
+    fn add_bookmark(&mut self, cx: &mut Context<Self>) {
+        let page = self.target_pages().first().copied();
+        let Some(draft) = self.bookmark_draft.as_mut() else {
+            return;
+        };
+        let title = format!(
+            "{} {}",
+            i18n::t("bookmarks.newTitle"),
+            draft.rows().len() + 1
+        );
+        match crate::bookmarks::add_root(&mut draft.tree, &title, page) {
+            Ok(path) => {
+                draft.selected_path = Some(path);
+                self.bookmark_title
+                    .update(cx, |input, cx| input.set_text(&title, cx));
+            }
+            Err(error) => self.message = Some(error),
+        }
+        cx.notify();
+    }
+
+    fn delete_bookmark(&mut self, cx: &mut Context<Self>) {
+        let Some(draft) = self.bookmark_draft.as_mut() else {
+            return;
+        };
+        let Some(path) = draft.selected_path.clone() else {
+            self.message = Some(i18n::t("bookmarks.selectFirst"));
+            cx.notify();
+            return;
+        };
+        if let Err(error) = crate::bookmarks::remove(&mut draft.tree, &path) {
+            self.message = Some(error);
+            cx.notify();
+            return;
+        }
+        let rows = draft.rows();
+        let selected = rows
+            .iter()
+            .find(|row| row.path == path)
+            .or_else(|| rows.last())
+            .cloned();
+        draft.selected_path = selected.as_ref().map(|row| row.path.clone());
+        self.bookmark_title.update(cx, |input, cx| {
+            input.set_text(selected.as_ref().map_or("", |row| row.title.as_str()), cx)
+        });
+        cx.notify();
+    }
+
+    fn reorder_bookmark(
+        &mut self,
+        from: Vec<usize>,
+        target: Vec<usize>,
+        after: bool,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(draft) = self.bookmark_draft.as_mut() else {
+            return;
+        };
+        match crate::bookmarks::move_relative(&mut draft.tree, &from, &target, after) {
+            Ok(path) => {
+                let row = draft.rows().into_iter().find(|row| row.path == path);
+                draft.selected_path = Some(path);
+                self.bookmark_title.update(cx, |input, cx| {
+                    input.set_text(row.as_ref().map_or("", |row| row.title.as_str()), cx)
+                });
+            }
+            Err(error) => self.message = Some(error),
+        }
+        cx.notify();
+    }
+
+    fn drop_bookmark(&mut self, drag: &BookmarkDrag, cx: &mut Context<Self>) {
+        let target = self.bookmark_drag_target.take();
+        if let Some((target, after)) = target {
+            self.reorder_bookmark(drag.path.clone(), target, after, cx);
+        } else {
+            cx.notify();
+        }
+    }
+
+    fn apply_bookmark_rename(&mut self, cx: &mut Context<Self>) {
+        let Some(draft) = self.bookmark_draft.as_ref() else {
+            return;
+        };
+        if self.operation_pending
+            || self.switch_rx.is_some()
+            || self.edit_blocked
+            || self.tab_closing
+            || self.doc != Some(draft.base_doc)
+            || self.doc_path.as_ref() != Some(&draft.base_path)
+            || self.document_generation != draft.base_generation
+        {
+            self.bookmark_draft = None;
+            self.message = Some(i18n::t("bookmarks.staleDraft"));
+            cx.notify();
+            return;
+        }
+        let Some(path) = draft.selected_path.clone() else {
+            self.message = Some(i18n::t("bookmarks.selectFirst"));
+            cx.notify();
+            return;
+        };
+        let mut tree = draft.tree.clone();
+        let title = self.bookmark_title.read(cx).text().to_string();
+        if let Err(error) = crate::bookmarks::rename(&mut tree, &path, &title)
+            .and_then(|()| crate::bookmarks::validate_tree(&tree, self.page_sizes.len()))
+        {
+            self.message = Some(error);
+            cx.notify();
+            return;
+        }
+        let (base_doc, base_path, base_generation) = (
+            draft.base_doc,
+            draft.base_path.clone(),
+            draft.base_generation,
+        );
+        self.bookmark_ticket = self.bookmark_ticket.wrapping_add(1);
+        self.bookmark_draft = None;
+        self.viewer_focus_pending = true;
+        self.begin_edit(
+            EditOperation::SetBookmarks {
+                tree,
+                base_doc,
+                base_path,
+                base_generation,
+            },
+            cx,
+        );
+    }
+
+    fn poll_operation(&mut self, cx: &mut Context<Self>) -> bool {
         let Some(rx) = self.operation_rx.as_ref() else {
             return false;
         };
@@ -738,7 +2037,7 @@ impl Viewer {
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.operation_rx = None;
                 self.operation_pending = false;
-                self.close_after_save = false;
+                self.abort_close_after_save();
                 self.edit_blocked = true;
                 self.dirty = true;
                 if self.session_id.is_some() {
@@ -754,6 +2053,85 @@ impl Viewer {
         self.operation_rx = None;
         self.operation_pending = false;
         match result {
+            OperationResult::BookmarksLoaded {
+                generation,
+                doc,
+                path,
+                ticket,
+                session_id,
+                tree,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                if ticket == self.bookmark_ticket
+                    && self.doc == Some(doc)
+                    && self.doc_path.as_ref() == Some(&path)
+                {
+                    if let Err(error) =
+                        crate::bookmarks::validate_tree(&tree, self.page_sizes.len())
+                    {
+                        self.message = Some(error);
+                        return true;
+                    }
+                    let mut draft = crate::bookmarks::Draft {
+                        tree,
+                        selected_path: None,
+                        base_doc: doc,
+                        base_generation: generation,
+                        base_path: path,
+                    };
+                    if let Some(first) = draft.rows().first().cloned() {
+                        draft.selected_path = Some(first.path);
+                        self.bookmark_title
+                            .update(cx, |input, cx| input.set_text(&first.title, cx));
+                    } else {
+                        self.bookmark_title
+                            .update(cx, |input, cx| input.set_text("", cx));
+                    }
+                    self.bookmark_draft = Some(draft);
+                    self.bookmark_focus_pending = true;
+                }
+            }
+            OperationResult::NotesLoaded {
+                generation,
+                doc,
+                path,
+                ticket,
+                session_id,
+                notes,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                if ticket == self.notes_ticket
+                    && self.doc == Some(doc)
+                    && self.doc_path.as_ref() == Some(&path)
+                {
+                    self.notes = notes;
+                    self.notes_open = true;
+                }
+            }
             OperationResult::Applied {
                 generation,
                 session_id,
@@ -761,6 +2139,8 @@ impl Viewer {
                 doc,
                 sizes,
                 changed_pages,
+                post_selection,
+                notes,
                 can_undo,
                 can_redo,
                 dirty,
@@ -776,10 +2156,14 @@ impl Viewer {
                 self.can_undo = can_undo;
                 self.can_redo = can_redo;
                 self.dirty = dirty;
+                if let Some(notes) = notes {
+                    self.notes = notes;
+                }
                 let anchor = self.spread.as_ref().and_then(|spread| {
                     reload::capture_spread(spread, self.scroll_y, self.content_height())
                 });
                 {
+                    let old_page_count = self.page_sizes.len();
                     let changed = reload::changed_pages(changed_pages.as_ref(), sizes.len());
                     let cached_before: std::collections::BTreeMap<usize, usize> = self
                         .cache
@@ -794,13 +2178,25 @@ impl Viewer {
                         }
                         self.texts.remove(&page);
                     }
+                    for page in sizes.len()..old_page_count {
+                        if let Some(image) = self.cache.remove(&page) {
+                            removed_images.insert(page, image.id.0);
+                            self.to_drop.push(image);
+                        }
+                        self.texts.remove(&page);
+                        if let Some(image) = self.thumbnail_cache.remove(&page) {
+                            self.to_drop.push(image);
+                        }
+                    }
+                    self.stale
+                        .retain(|page| *page < sizes.len() && !changed.contains(page));
                     crate::debug::set_cache_invalidation(serde_json::json!({
                         "before": cached_before,
                         "changedPages": changed,
                         "removed": removed_images,
                     }));
                     self.thumbnail_pending
-                        .retain(|page, _| !changed.contains(page));
+                        .retain(|page, _| *page < sizes.len() && !changed.contains(page));
                     for page in &changed {
                         if let Some(image) = self.thumbnail_cache.remove(page) {
                             self.to_drop.push(image);
@@ -810,6 +2206,24 @@ impl Viewer {
                         .call(|id, reply| Job::Bookmarks { id, doc, reply })
                         .unwrap_or_default();
                     self.page_sizes = sizes.clone();
+                    self.page_selection = match post_selection {
+                        PostSelection::Keep => self.page_selection.clamp(sizes.len()),
+                        PostSelection::AfterDelete(deleted) => {
+                            page_ops::selection_after_delete(&deleted, sizes.len())
+                        }
+                        PostSelection::AfterDuplicate(duplicated) => {
+                            page_ops::selection_after_duplicate(&duplicated, sizes.len())
+                        }
+                        PostSelection::AfterInsert { at, count } => {
+                            page_ops::selection_after_insert(at, count, sizes.len())
+                        }
+                        PostSelection::AfterReplace(replaced) => {
+                            page_ops::selection_after_replace(&replaced, sizes.len())
+                        }
+                        PostSelection::AfterReorder(selected) => {
+                            PageSelection::from_pages(selected)
+                        }
+                    };
                     let display_sizes = oriented_sizes(&sizes, self.view_rotation);
                     self.sidebar_layout = Some(SidebarLayout::new(
                         &display_sizes,
@@ -858,6 +2272,32 @@ impl Viewer {
                     self.message = None;
                 }
             }
+            OperationResult::Extracted {
+                generation,
+                session_id,
+                output_path,
+                warnings,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                self.message = Some(if warnings.is_empty() {
+                    i18n::t("pages.extracted")
+                } else {
+                    format!("{}: {}", i18n::t("pages.extracted"), warnings.join("; "))
+                });
+                self.pending_open_tabs.push(output_path);
+            }
             OperationResult::Saved {
                 generation,
                 session_id,
@@ -882,9 +2322,11 @@ impl Viewer {
                     self.source_fingerprint = source_guard::fingerprint(&path).ok();
                 }
                 if self.close_after_save {
-                    self.close_after_save = false;
                     if !self.dirty {
+                        self.close_after_save = false;
                         self.ready_to_close = true;
+                    } else {
+                        self.abort_close_after_save();
                     }
                 }
                 self.message = Some(
@@ -908,7 +2350,7 @@ impl Viewer {
                 generation,
                 verdict,
             } => {
-                self.close_after_save = false;
+                self.abort_close_after_save();
                 if generation != self.document_generation {
                     return true;
                 }
@@ -920,7 +2362,7 @@ impl Viewer {
                 message,
                 refresh_required,
             } => {
-                self.close_after_save = false;
+                self.abort_close_after_save();
                 if generation != self.document_generation {
                     if let (Some(supervisor), Some(session_id)) =
                         (self.supervisor.clone(), session_id)
@@ -988,6 +2430,32 @@ impl Viewer {
         let redo_focus = cx.focus_handle();
         let save_focus = cx.focus_handle();
         let save_as_focus = cx.focus_handle();
+        let bookmark_title = cx.new(|cx| TextInput::new(cx, i18n::t("bookmarks.titlePlaceholder")));
+        let bookmark_subscription = cx.subscribe(
+            &bookmark_title,
+            |this: &mut Viewer, _, event: &TextInputEvent, cx| match event {
+                TextInputEvent::Changed => cx.notify(),
+                TextInputEvent::Submit => this.apply_bookmark_rename(cx),
+                TextInputEvent::SubmitBack | TextInputEvent::Cancel => {}
+            },
+        );
+        let bookmark_close_focus = cx.focus_handle();
+        let bookmark_apply_focus = cx.focus_handle();
+        let note_content = cx.new(|cx| TextInput::new(cx, i18n::t("notes.contentPlaceholder")));
+        let note_author = cx.new(|cx| TextInput::new(cx, i18n::t("notes.authorPlaceholder")));
+        let note_subscription = cx.subscribe(&note_content, |_, _, event: &TextInputEvent, cx| {
+            if matches!(event, TextInputEvent::Changed) {
+                cx.notify();
+            }
+        });
+        let note_author_subscription =
+            cx.subscribe(&note_author, |_, _, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    cx.notify();
+                }
+            });
+        let note_close_focus = cx.focus_handle();
+        let note_apply_focus = cx.focus_handle();
         let mut viewer = Viewer {
             handle,
             supervisor,
@@ -998,6 +2466,9 @@ impl Viewer {
                 zoom_subscription,
                 settings_subscription,
                 password_subscription,
+                bookmark_subscription,
+                note_subscription,
+                note_author_subscription,
             ],
             appearance_observer_installed: false,
             settings,
@@ -1007,6 +2478,10 @@ impl Viewer {
             text_pending: HashMap::new(),
             selection: None,
             dragging: false,
+            draw_tool: None,
+            draw_gesture: None,
+            draw_color: "#E53935".to_string(),
+            draw_width: 2.0,
             content_bounds: Rc::new(Cell::new(None)),
             doc_path: None,
             source_path: None,
@@ -1023,6 +2498,7 @@ impl Viewer {
             edit_blocked: false,
             tab_closing: false,
             close_after_save: false,
+            save_for_close_aborted: false,
             ready_to_close: false,
             retry_reload_focus: cx.focus_handle(),
             source_warning: None,
@@ -1033,6 +2509,21 @@ impl Viewer {
             redo_focus,
             save_focus,
             save_as_focus,
+            bookmark_title,
+            bookmark_close_focus,
+            bookmark_apply_focus,
+            bookmark_draft: None,
+            bookmark_ticket: 0,
+            bookmark_focus_pending: false,
+            bookmark_drag_target: None,
+            note_content,
+            note_author,
+            note_close_focus,
+            note_apply_focus,
+            notes: Vec::new(),
+            notes_open: false,
+            notes_ticket: 0,
+            note_form_mode: None,
             props_open: false,
             props_view: None,
             props_close: cx.focus_handle(),
@@ -1070,6 +2561,13 @@ impl Viewer {
             sidebar_grid: false,
             sidebar_scroll_y: 0.0,
             sidebar_visible: Vec::new(),
+            page_selection: PageSelection::empty(),
+            drag_target: None,
+            document_signed: false,
+            page_context_at: None,
+            page_context_root: Rc::new(Cell::new(None)),
+            page_context_focus: (0..23).map(|_| cx.focus_handle()).collect(),
+            pending_open_tabs: Vec::new(),
             thumbnail_cache: HashMap::new(),
             thumbnail_pending: HashMap::new(),
             to_drop: Vec::new(),
@@ -1128,6 +2626,9 @@ impl Viewer {
                 return;
             }
         };
+        let document_signed = self
+            .call(|id, reply| Job::HasSignatures { id, doc, reply })
+            .unwrap_or(true);
         let bookmarks = self
             .call(|id, reply| Job::Bookmarks { id, doc, reply })
             .unwrap_or_default();
@@ -1136,6 +2637,7 @@ impl Viewer {
         if let Some(previous) = self.doc.replace(doc) {
             self.close_render_doc(previous);
         }
+        self.document_signed = document_signed;
         self.doc_path = Some(revision_path);
         self.source_fingerprint = source_path
             .as_deref()
@@ -1393,6 +2895,10 @@ impl Viewer {
             password,
             reply,
         })?;
+        // If pdfium cannot inspect signature fields, keep the document read-only.
+        let document_signed = self
+            .call(|id, reply| Job::HasSignatures { id, doc, reply })
+            .unwrap_or(true);
         let count = self.call(|id, reply| Job::PageCount { id, doc, reply })?;
         let mut sizes = Vec::with_capacity(count);
         for index in 0..count {
@@ -1410,6 +2916,7 @@ impl Viewer {
             self.close_render_doc(previous);
         }
         self.doc = Some(doc);
+        self.document_signed = document_signed;
         self.doc_path = Some(path.clone());
         self.source_path = Some(path);
         self.source_fingerprint = Some(fingerprint);
@@ -1474,6 +2981,9 @@ impl Viewer {
         self.page_grid = None;
         self.sidebar_scroll_y = 0.0;
         self.sidebar_visible.clear();
+        self.page_selection = PageSelection::empty();
+        self.page_context_at = None;
+        self.document_signed = false;
     }
 
     /// Queue a close behind all currently queued pdfium work, so document handles do not leak.
@@ -1497,7 +3007,7 @@ impl Viewer {
                         let thumbnails = viewer.poll_thumbnails();
                         let found = viewer.poll_find();
                         let texts = viewer.poll_text();
-                        let operation = viewer.poll_operation();
+                        let operation = viewer.poll_operation(cx);
                         let switched = viewer.poll_session_switch(cx);
                         let scanning = viewer.scanning();
                         if images
@@ -1735,6 +3245,112 @@ impl Viewer {
         None
     }
 
+    /// Convert a pointer on any visible page to the displayed-page coordinate space used by annots.
+    /// This does not read the text layer, so scanned pages can be drawn on too.
+    fn point_to_page(&self, pos: Point<Pixels>) -> Option<(usize, [f32; 2])> {
+        let layout = self.layout.as_ref()?;
+        let (vw, _) = self.viewport;
+        let (left, top, _, _) =
+            self.content_bounds
+                .get()
+                .unwrap_or((SIDEBAR_WIDTH, TOOLBAR_H, 0.0, 0.0));
+        let (x, y) = (pos.x.as_f32() - left, pos.y.as_f32() - top);
+        let zoom = layout.zoom();
+        let pages = self
+            .spread
+            .as_ref()
+            .map(|spread| spread.visible_pages(self.scroll_y, self.content_height()))
+            .unwrap_or_else(|| {
+                layout
+                    .visible(self.scroll_y, self.content_height())
+                    .collect()
+            });
+        for page in pages {
+            let (page_view_width, page_view_height) = layout.page_px(page);
+            let (page_left, page_top) = self
+                .spread
+                .as_ref()
+                .and_then(|spread| spread.page_rect(page, (vw - SIDEBAR_WIDTH).max(1.0)))
+                .map(|rect| (rect.x, rect.y - self.scroll_y))
+                .unwrap_or_else(|| {
+                    (
+                        ((vw - page_view_width) / 2.0).max(0.0),
+                        layout.page_top(page) - self.scroll_y,
+                    )
+                });
+            let view_x = (x - page_left) / zoom;
+            let view_y = (y - page_top) / zoom;
+            if view_x < 0.0
+                || view_y < 0.0
+                || view_x > page_view_width / zoom
+                || view_y > page_view_height / zoom
+            {
+                continue;
+            }
+            let (page_width, page_height) = self.page_sizes.get(page).copied()?;
+            let (display_x, display_y) =
+                display_to_pdf(view_x, view_y, page_width, page_height, self.view_rotation);
+            return Some((page, [display_x, display_y]));
+        }
+        None
+    }
+
+    fn cycle_draw_tool(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        self.draw_tool = match self.draw_tool {
+            None => Some(crate::draw::Tool::Rectangle),
+            Some(crate::draw::Tool::Rectangle) => Some(crate::draw::Tool::Line),
+            Some(crate::draw::Tool::Line) => Some(crate::draw::Tool::Arrow),
+            Some(crate::draw::Tool::Arrow) => Some(crate::draw::Tool::Ellipse),
+            Some(crate::draw::Tool::Ellipse) => Some(crate::draw::Tool::Pen),
+            Some(crate::draw::Tool::Pen) => None,
+        };
+        self.draw_gesture = None;
+        self.selection = None;
+        cx.notify();
+    }
+
+    fn cycle_draw_color(&mut self, cx: &mut Context<Self>) {
+        self.draw_color = match self.draw_color.as_str() {
+            "#E53935" => "#1565C0".to_string(),
+            "#1565C0" => "#2E7D32".to_string(),
+            _ => "#E53935".to_string(),
+        };
+        cx.notify();
+    }
+
+    fn cycle_draw_width(&mut self, cx: &mut Context<Self>) {
+        self.draw_width = if self.draw_width < 3.0 { 4.0 } else { 2.0 };
+        cx.notify();
+    }
+
+    fn finish_draw_gesture(&mut self, cx: &mut Context<Self>) {
+        let Some(gesture) = self.draw_gesture.take() else {
+            return;
+        };
+        if gesture.generation != self.document_generation || gesture.drag_distance() < 2.0 {
+            cx.notify();
+            return;
+        }
+        let Some(tool) = self.draw_tool else {
+            cx.notify();
+            return;
+        };
+        match crate::draw::operation_params(
+            tool,
+            gesture.page_index,
+            &gesture,
+            &self.draw_color,
+            self.draw_width,
+        ) {
+            Ok((op_id, params)) => self.begin_edit(EditOperation::DrawShape { op_id, params }, cx),
+            Err(error) => self.message = Some(error),
+        }
+        cx.notify();
+    }
+
     fn rect_to_view(
         &self,
         page: usize,
@@ -1749,6 +3365,24 @@ impl Viewer {
 
     fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
+        if self.draw_tool.is_some() {
+            if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+                return;
+            }
+            self.selection = None;
+            self.dragging = false;
+            self.draw_gesture =
+                self.point_to_page(ev.position)
+                    .map(|(page_index, point)| crate::draw::Gesture {
+                        generation: self.document_generation,
+                        page_index,
+                        start: point,
+                        end: point,
+                        points: vec![point],
+                    });
+            cx.notify();
+            return;
+        }
         self.selection = self.point_to_char(ev.position).map(|p| Selection {
             anchor: p,
             focus: p,
@@ -1758,6 +3392,34 @@ impl Viewer {
     }
 
     fn on_mouse_move(&mut self, ev: &MouseMoveEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.draw_gesture.is_some() {
+            if self
+                .draw_gesture
+                .as_ref()
+                .is_some_and(|gesture| gesture.generation != self.document_generation)
+            {
+                self.draw_gesture = None;
+                cx.notify();
+                return;
+            }
+            if let Some((page_index, point)) = self.point_to_page(ev.position)
+                && let Some(gesture) = self.draw_gesture.as_mut()
+                && page_index == gesture.page_index
+            {
+                gesture.end = point;
+                if self.draw_tool == Some(crate::draw::Tool::Pen)
+                    && gesture.points.len() < 2048
+                    && gesture
+                        .points
+                        .last()
+                        .is_none_or(|previous| crate::draw::distance(*previous, point) >= 1.5)
+                {
+                    gesture.points.push(point);
+                }
+                cx.notify();
+            }
+            return;
+        }
         if !self.dragging {
             return;
         }
@@ -1769,7 +3431,26 @@ impl Viewer {
         }
     }
 
-    fn on_mouse_up(&mut self, _ev: &MouseUpEvent, _window: &mut Window, _cx: &mut Context<Self>) {
+    fn on_mouse_up(&mut self, ev: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.draw_gesture.is_some() {
+            if let Some((page_index, point)) = self.point_to_page(ev.position)
+                && let Some(gesture) = self.draw_gesture.as_mut()
+                && page_index == gesture.page_index
+            {
+                gesture.end = point;
+                if self.draw_tool == Some(crate::draw::Tool::Pen)
+                    && gesture.points.len() < 2048
+                    && gesture
+                        .points
+                        .last()
+                        .is_none_or(|previous| crate::draw::distance(*previous, point) >= 1.5)
+                {
+                    gesture.points.push(point);
+                }
+            }
+            self.finish_draw_gesture(cx);
+            return;
+        }
         self.dragging = false;
     }
 
@@ -1800,6 +3481,24 @@ impl Viewer {
             });
         }
         cx.notify();
+    }
+
+    fn select_all_text_document(&mut self, cx: &mut Context<Self>) {
+        let Some(last_page) = self.page_sizes.len().checked_sub(1) else {
+            return;
+        };
+        let first = (0..=last_page).find_map(|page| {
+            self.text_of(page)
+                .and_then(|text| (!text.chars.is_empty()).then_some((page, 0)))
+        });
+        let last = (0..=last_page).rev().find_map(|page| {
+            self.text_of(page)
+                .and_then(|text| text.chars.len().checked_sub(1).map(|index| (page, index)))
+        });
+        if let (Some(anchor), Some(focus)) = (first, last) {
+            self.selection = Some(Selection { anchor, focus });
+            cx.notify();
+        }
     }
 
     /// Ctrl+C: đưa chữ đã chọn lên clipboard (Unicode). Xuống dòng khi sang dòng mới, và giữa các trang.
@@ -1835,6 +3534,73 @@ impl Viewer {
             }
         }
         cx.write_to_clipboard(ClipboardItem::new_string(out));
+    }
+
+    fn selected_markup_rects(&mut self) -> Result<Vec<(usize, Vec<chef_pdf::text::Rect>)>, String> {
+        let Some(selection) = self.selection else {
+            return Err(i18n::t("annots.selectTextFirst"));
+        };
+        let ((first_page, first), (last_page, last)) = selection.ordered();
+        for page_index in first_page..=last_page {
+            if self.text_of(page_index).is_none() {
+                return Err(i18n::t("editor.coreUnavailable"));
+            }
+        }
+        let page_texts: Vec<_> = (first_page..=last_page)
+            .filter_map(|page_index| {
+                self.texts
+                    .get(&page_index)
+                    .map(|text| (page_index, text.chars.as_slice()))
+            })
+            .collect();
+        crate::annots::selected_rects_across_pages(
+            &page_texts,
+            (first_page, first),
+            (last_page, last),
+        )
+        .map_err(|_| i18n::t("annots.selectTextFirst"))
+    }
+
+    fn begin_text_markup(&mut self, kind: crate::annots::MarkupKind, cx: &mut Context<Self>) {
+        let pages = match self.selected_markup_rects() {
+            Ok(selection) => selection,
+            Err(message) => {
+                self.message = Some(message);
+                cx.notify();
+                return;
+            }
+        };
+        let highlight = theme::palette(theme::is_dark(self.settings.read(cx).mode())).highlight;
+        match crate::annots::add_text_markup_pages_params(kind, &pages, highlight) {
+            Ok(params) => self.begin_edit(EditOperation::Markup { params }, cx),
+            Err(_) => {
+                self.message = Some(i18n::t("annots.selectTextFirst"));
+                cx.notify();
+            }
+        }
+    }
+
+    fn begin_change_text_markup_color(
+        &mut self,
+        kind: crate::annots::MarkupKind,
+        cx: &mut Context<Self>,
+    ) {
+        let pages = match self.selected_markup_rects() {
+            Ok(selection) => selection,
+            Err(message) => {
+                self.message = Some(message);
+                cx.notify();
+                return;
+            }
+        };
+        self.begin_edit(
+            EditOperation::MarkupColor {
+                kind,
+                pages,
+                color_rgba: 0xFF8A00FF,
+            },
+            cx,
+        );
     }
 
     fn scanning(&self) -> bool {
@@ -1898,6 +3664,7 @@ impl Viewer {
 
     /// Đặt zoom và giữ nguyên điểm ở giữa vùng nhìn (trên trang) sau khi đổi.
     fn set_zoom(&mut self, zoom: f32) {
+        self.draw_gesture = None;
         let vh = self.content_height();
         let Some(layout) = self.layout.as_mut() else {
             return;
@@ -2032,6 +3799,7 @@ impl Viewer {
     }
 
     fn rotate_view(&mut self, delta: i8, cx: &mut Context<Self>) {
+        self.draw_gesture = None;
         let Some(layout) = self.layout.as_ref() else {
             return;
         };
@@ -2085,6 +3853,7 @@ impl Viewer {
 
     /// PageDown và PageUp: đưa đầu trang kế (hoặc trước) lên đầu vùng nhìn.
     fn go_page(&mut self, delta: isize) {
+        self.draw_gesture = None;
         let vh = self.content_height();
         let Some(layout) = self.layout.as_ref() else {
             return;
@@ -2133,6 +3902,7 @@ impl Viewer {
     }
 
     fn set_page_mode(&mut self, mode: PageMode, cx: &mut Context<Self>) {
+        self.draw_gesture = None;
         let viewport_h = self.content_height();
         self.page_mode = mode;
         if let Some(spread) = self.spread.as_mut() {
@@ -2526,6 +4296,14 @@ impl Render for Viewer {
                 window.refresh();
             });
         }
+        if self.bookmark_focus_pending {
+            self.bookmark_focus_pending = false;
+            let focus = self.bookmark_title.read(cx).focus_handle(cx);
+            window.defer(cx, move |window, cx| {
+                window.focus(&focus, cx);
+                window.refresh();
+            });
+        }
         crate::debug::set_password(
             self.password_open,
             self.password_wrong,
@@ -2574,6 +4352,349 @@ impl Render for Viewer {
             })
         } else {
             crate::debug::set_properties(None);
+            None
+        };
+        let bookmark_dialog = self.bookmark_draft.as_ref().map(|draft| {
+            let rows = draft.rows();
+            let selected = draft.selected_path.clone();
+            let list = if rows.is_empty() {
+                div()
+                    .id("bookmarks-empty")
+                    .w_full()
+                    .py(px(24.))
+                    .text_color(rgb(palette.text_2))
+                    .child(i18n::t("bookmarks.empty"))
+            } else {
+                div()
+                    .id("bookmarks-list")
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.))
+                    .w_full()
+                    .max_h(px(320.))
+                    .overflow_y_scroll()
+                    .on_drop(cx.listener(|this, drag: &BookmarkDrag, _window, cx| {
+                        this.drop_bookmark(drag, cx);
+                    }))
+                    .children(rows.into_iter().map(|row| {
+                        let path = row.path.clone();
+                        let drag_path = path.clone();
+                        let target_path = path.clone();
+                        let label = format!(
+                            "{}{}{}",
+                            "  ".repeat(row.depth),
+                            row.title,
+                            row.page
+                                .map(|page| format!("  · {}", page + 1))
+                                .unwrap_or_default()
+                        );
+                        let is_selected = selected.as_ref() == Some(&path);
+                        let is_drop_target = self
+                            .bookmark_drag_target
+                            .as_ref()
+                            .is_some_and(|(target, _)| target == &path);
+                        let row_entity = entity.clone();
+                        let row = Button::new(
+                            format!(
+                                "bookmark-row-{}",
+                                path.iter()
+                                    .map(usize::to_string)
+                                    .collect::<Vec<_>>()
+                                    .join("-"),
+                            ),
+                            cx.focus_handle(),
+                        )
+                        .label(label)
+                        .variant(if is_selected {
+                            Variant::Secondary
+                        } else {
+                            Variant::Ghost
+                        })
+                        .dark(dark)
+                        .on_click(move |_, window, cx| {
+                            let path = path.clone();
+                            row_entity
+                                .update(cx, move |this, cx| this.select_bookmark(path, window, cx));
+                        });
+                        let drag_move = cx.listener(
+                            move |this, event: &gpui::DragMoveEvent<BookmarkDrag>, _window, cx| {
+                                let local_y = event.event.position.y.as_f32()
+                                    - event.bounds.origin.y.as_f32();
+                                let after = local_y >= event.bounds.size.height.as_f32() / 2.0;
+                                let next = Some((target_path.clone(), after));
+                                if this.bookmark_drag_target != next {
+                                    this.bookmark_drag_target = next;
+                                    cx.notify();
+                                }
+                            },
+                        );
+                        let mut container = div()
+                            .id(format!(
+                                "bookmark-drag-{}",
+                                drag_path
+                                    .iter()
+                                    .map(usize::to_string)
+                                    .collect::<Vec<_>>()
+                                    .join("-"),
+                            ))
+                            .w_full()
+                            .child(row)
+                            .on_drag(BookmarkDrag { path: drag_path }, |_, _, _, cx| {
+                                cx.new(|_| gpui::Empty)
+                            })
+                            .on_drag_move(drag_move);
+                        if is_drop_target {
+                            container = container.border_2().border_color(rgb(palette.accent));
+                        }
+                        container
+                    }))
+            };
+            let close_entity = entity.clone();
+            let cancel_entity = entity.clone();
+            let apply_entity = entity.clone();
+            let add_entity = entity.clone();
+            let delete_entity = entity.clone();
+            let title_focus = self.bookmark_title.read(cx).focus_handle(cx);
+            let controls = div()
+                .flex()
+                .gap(px(8.))
+                .mb(px(12.))
+                .child(
+                    Button::new("bookmarks-add", cx.focus_handle())
+                        .label(i18n::t("bookmarks.add"))
+                        .dark(dark)
+                        .on_click(move |_, _, cx| {
+                            add_entity.update(cx, |this, cx| this.add_bookmark(cx));
+                        }),
+                )
+                .child(
+                    Button::new("bookmarks-delete", cx.focus_handle())
+                        .label(i18n::t("bookmarks.delete"))
+                        .disabled(selected.is_none())
+                        .dark(dark)
+                        .on_click(move |_, _, cx| {
+                            delete_entity.update(cx, |this, cx| this.delete_bookmark(cx));
+                        }),
+                );
+            Dialog::new("bookmarks", i18n::t("bookmarks.title"), Width::Md, dark)
+                .close(
+                    "bookmarks-close",
+                    self.bookmark_close_focus.clone(),
+                    i18n::t("common.close"),
+                )
+                .tab_order(vec![title_focus, self.bookmark_apply_focus.clone()])
+                .return_focus(self.focus.clone())
+                .on_dismiss(move |window, cx| {
+                    close_entity.update(cx, |this, cx| this.close_bookmarks_editor(window, cx));
+                })
+                .child(controls)
+                .child(list)
+                .child(
+                    TextField::new(
+                        "bookmarks-title",
+                        i18n::t("bookmarks.titlePlaceholder"),
+                        self.bookmark_title.clone(),
+                    )
+                    .dark(dark),
+                )
+                .action(
+                    Button::new("bookmarks-cancel", self.bookmark_close_focus.clone())
+                        .label(i18n::t("bookmarks.cancel"))
+                        .dark(dark)
+                        .on_click(move |_, window, cx| {
+                            cancel_entity
+                                .update(cx, |this, cx| this.close_bookmarks_editor(window, cx));
+                        }),
+                )
+                .action(
+                    Button::new("bookmarks-apply", self.bookmark_apply_focus.clone())
+                        .label(i18n::t("bookmarks.apply"))
+                        .variant(Variant::Primary)
+                        .disabled(selected.is_none() || self.operation_pending)
+                        .dark(dark)
+                        .on_click(move |_, _, cx| {
+                            apply_entity.update(cx, |this, cx| this.apply_bookmark_rename(cx));
+                        }),
+                )
+        });
+        let notes_dialog = if self.notes_open {
+            let selected_id = self.note_form_mode.as_ref().and_then(|mode| match mode {
+                crate::notes::FormMode::Edit(id) | crate::notes::FormMode::Reply(id) => {
+                    Some(id.clone())
+                }
+                _ => None,
+            });
+            let rows = self.notes.iter().enumerate().map(|(index, note)| {
+                let row_entity = entity.clone();
+                let id = note.id.clone();
+                let selected = selected_id.as_deref() == Some(note.id.as_str());
+                let status = note
+                    .status
+                    .as_deref()
+                    .map(|status| format!(" · {status}"))
+                    .unwrap_or_default();
+                let reply_count = if note.replies.is_empty() {
+                    String::new()
+                } else {
+                    format!(" · {} {}", note.replies.len(), i18n::t("notes.replies"))
+                };
+                Button::new(format!("notes-row-{index}"), cx.focus_handle())
+                    .label(format!(
+                        "{} · {} · {}{}{}",
+                        note.page_index + 1,
+                        note.subtype,
+                        note.contents,
+                        status,
+                        reply_count
+                    ))
+                    .variant(if selected {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .on_click(move |_, window, cx| {
+                        row_entity.update(cx, |this, cx| this.select_note(&id, window, cx));
+                    })
+            });
+            let list = if self.notes.is_empty() {
+                div()
+                    .id("notes-empty")
+                    .w_full()
+                    .py(px(20.))
+                    .text_color(rgb(palette.text_2))
+                    .child(i18n::t("notes.empty"))
+                    .into_any_element()
+            } else {
+                div()
+                    .id("notes-list")
+                    .w_full()
+                    .max_h(px(220.))
+                    .overflow_y_scroll()
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.))
+                    .children(rows)
+                    .into_any_element()
+            };
+            let add_entity = entity.clone();
+            let add_text_entity = entity.clone();
+            let reply_entity = entity.clone();
+            let complete_entity = entity.clone();
+            let apply_entity = entity.clone();
+            let close_entity = entity.clone();
+            let reply_id = selected_id.clone();
+            let complete_id = selected_id;
+            let cancel_entity = entity.clone();
+            Some(
+                Dialog::new("notes", i18n::t("notes.title"), Width::Md, dark)
+                    .close(
+                        "notes-close",
+                        self.note_close_focus.clone(),
+                        i18n::t("common.close"),
+                    )
+                    .tab_order(vec![
+                        self.note_content.read(cx).focus_handle(cx),
+                        self.note_author.read(cx).focus_handle(cx),
+                        self.note_apply_focus.clone(),
+                    ])
+                    .return_focus(self.focus.clone())
+                    .on_dismiss(move |window, cx| {
+                        close_entity.update(cx, |this, cx| this.close_notes_editor(window, cx));
+                    })
+                    .child(list)
+                    .child(
+                        div()
+                            .flex()
+                            .gap(px(8.))
+                            .child(
+                                Button::new("notes-add", cx.focus_handle())
+                                    .label(i18n::t("notes.addNote"))
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        add_entity.update(cx, |this, cx| {
+                                            this.begin_add_note_form(
+                                                crate::notes::FormMode::AddNote,
+                                                cx,
+                                            )
+                                        });
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-add-text", cx.focus_handle())
+                                    .label(i18n::t("notes.addText"))
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        add_text_entity.update(cx, |this, cx| {
+                                            this.begin_add_note_form(
+                                                crate::notes::FormMode::AddFreeText,
+                                                cx,
+                                            )
+                                        });
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-reply", cx.focus_handle())
+                                    .label(i18n::t("notes.reply"))
+                                    .disabled(reply_id.is_none() || self.operation_pending)
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        reply_entity
+                                            .update(cx, |this, cx| this.begin_reply_form(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("notes-complete", cx.focus_handle())
+                                    .label(i18n::t("notes.complete"))
+                                    .disabled(complete_id.is_none() || self.operation_pending)
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        if let Some(id) = complete_id.as_deref() {
+                                            complete_entity.update(cx, |this, cx| {
+                                                this.mark_note_completed(id, cx)
+                                            });
+                                        }
+                                    }),
+                            ),
+                    )
+                    .child(
+                        TextField::new(
+                            "notes-content",
+                            i18n::t("notes.contentPlaceholder"),
+                            self.note_content.clone(),
+                        )
+                        .dark(dark),
+                    )
+                    .child(
+                        TextField::new(
+                            "notes-author",
+                            i18n::t("notes.authorPlaceholder"),
+                            self.note_author.clone(),
+                        )
+                        .dark(dark),
+                    )
+                    .action(
+                        Button::new("notes-cancel", self.note_close_focus.clone())
+                            .label(i18n::t("notes.cancel"))
+                            .dark(dark)
+                            .on_click(move |_, window, cx| {
+                                cancel_entity
+                                    .update(cx, |this, cx| this.close_notes_editor(window, cx));
+                            }),
+                    )
+                    .action(
+                        Button::new("notes-apply", self.note_apply_focus.clone())
+                            .label(i18n::t("notes.save"))
+                            .variant(Variant::Primary)
+                            .disabled(self.operation_pending || self.note_form_mode.is_none())
+                            .dark(dark)
+                            .on_click(move |_, _, cx| {
+                                apply_entity.update(cx, |this, cx| this.apply_note_form(cx));
+                            }),
+                    )
+                    .into_any_element(),
+            )
+        } else {
             None
         };
         let scanning = self.scanning();
@@ -2667,6 +4788,138 @@ impl Render for Viewer {
             .text_color(rgb(palette.text))
             .border_b_1()
             .border_color(rgb(palette.border))
+            .when(self.selection.is_some(), |toolbar| {
+                let highlight_entity = entity.clone();
+                let underline_entity = entity.clone();
+                let strike_entity = entity.clone();
+                let color_entity = entity.clone();
+                let disabled = self.operation_pending
+                    || self.switch_rx.is_some()
+                    || self.edit_blocked
+                    || self.doc.is_none();
+                toolbar
+                    .child(
+                        Button::new("markup-highlight", cx.focus_handle())
+                            .label(i18n::t("annots.highlight"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .disabled(disabled)
+                            .on_click(move |_, _, cx| {
+                                highlight_entity.update(cx, |this, cx| {
+                                    this.begin_text_markup(crate::annots::MarkupKind::Highlight, cx)
+                                })
+                            }),
+                    )
+                    .child(
+                        Button::new("markup-underline", cx.focus_handle())
+                            .label(i18n::t("annots.underline"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .disabled(disabled)
+                            .on_click(move |_, _, cx| {
+                                underline_entity.update(cx, |this, cx| {
+                                    this.begin_text_markup(crate::annots::MarkupKind::Underline, cx)
+                                })
+                            }),
+                    )
+                    .child(
+                        Button::new("markup-strike", cx.focus_handle())
+                            .label(i18n::t("annots.strike"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .disabled(disabled)
+                            .on_click(move |_, _, cx| {
+                                strike_entity.update(cx, |this, cx| {
+                                    this.begin_text_markup(crate::annots::MarkupKind::Strike, cx)
+                                })
+                            }),
+                    )
+                    .child(
+                        Button::new("markup-change-color", cx.focus_handle())
+                            .label(i18n::t("annots.changeColor"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .disabled(disabled)
+                            .on_click(move |_, _, cx| {
+                                color_entity.update(cx, |this, cx| {
+                                    this.begin_change_text_markup_color(
+                                        crate::annots::MarkupKind::Highlight,
+                                        cx,
+                                    )
+                                })
+                            }),
+                    )
+            })
+            .child(
+                Button::new("draw-tool", cx.focus_handle())
+                    .label(format!(
+                        "{}: {}",
+                        i18n::t("draw.tool"),
+                        i18n::t(match self.draw_tool {
+                            Some(crate::draw::Tool::Rectangle) => "draw.rectangle",
+                            Some(crate::draw::Tool::Line) => "draw.line",
+                            Some(crate::draw::Tool::Arrow) => "draw.arrow",
+                            Some(crate::draw::Tool::Ellipse) => "draw.ellipse",
+                            Some(crate::draw::Tool::Pen) => "draw.pen",
+                            None => "draw.off",
+                        })
+                    ))
+                    .size(ButtonSize::Sm)
+                    .variant(if self.draw_tool.is_some() {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let draw_entity = entity.clone();
+                        move |_, _, cx| draw_entity.update(cx, |this, cx| this.cycle_draw_tool(cx))
+                    }),
+            )
+            .child(
+                Button::new("draw-color", cx.focus_handle())
+                    .label(format!("{} {}", i18n::t("draw.color"), self.draw_color))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(self.operation_pending || self.switch_rx.is_some())
+                    .on_click({
+                        let draw_entity = entity.clone();
+                        move |_, _, cx| draw_entity.update(cx, |this, cx| this.cycle_draw_color(cx))
+                    }),
+            )
+            .child(
+                Button::new("draw-width", cx.focus_handle())
+                    .label(format!("{} {}", i18n::t("draw.width"), self.draw_width))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(self.operation_pending || self.switch_rx.is_some())
+                    .on_click({
+                        let draw_entity = entity.clone();
+                        move |_, _, cx| draw_entity.update(cx, |this, cx| this.cycle_draw_width(cx))
+                    }),
+            )
+            .child(
+                Button::new("notes-manager", cx.focus_handle())
+                    .label(i18n::t("notes.open"))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| entity.update(cx, |this, cx| this.open_notes_editor(cx))
+                    }),
+            )
             .child(
                 Button::new("viewer-rotate", self.rotate_focus.clone())
                     .label(i18n::t("editor.rotateFirst"))
@@ -2680,9 +4933,7 @@ impl Render for Viewer {
                     )
                     .on_click({
                         let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |this, cx| this.begin_edit(EditOperation::Rotate, cx))
-                        }
+                        move |_, _, cx| entity.update(cx, |this, cx| this.begin_rotate_page(90, cx))
                     }),
             )
             .child(
@@ -2864,6 +5115,10 @@ impl Render for Viewer {
                     .text_color(rgb(palette.text_2))
                     .child(label),
             );
+        let page_context = self
+            .page_context_at
+            .map(|(x, y)| self.page_context_menu(x, y, dark, cx));
+        let page_context_root = self.page_context_root.clone();
         let root =
             div()
                 .size_full()
@@ -2873,11 +5128,27 @@ impl Render for Viewer {
                 .bg(rgb(palette.canvas))
                 .key_context("Viewer")
                 .track_focus(&self.focus)
+                .on_children_prepainted(move |bounds, window, _| {
+                    if let Some(first) = bounds.first() {
+                        let viewport = window.viewport_size();
+                        let x = first.origin.x.as_f32();
+                        let y = first.origin.y.as_f32();
+                        page_context_root.set(Some((
+                            x,
+                            y,
+                            (viewport.width.as_f32() - x).max(0.0),
+                            (viewport.height.as_f32() - y).max(0.0),
+                        )));
+                    }
+                })
                 .on_action(cx.listener(|this, _: &FocusSearch, window, cx| {
                     this.focus_search(window, cx);
                 }))
                 .on_action(cx.listener(|this, _: &SelectAllText, _window, cx| {
                     this.select_all_text(cx);
+                }))
+                .on_action(cx.listener(|this, _: &SelectAllTextDocument, _window, cx| {
+                    this.select_all_text_document(cx);
                 }))
                 .on_action(cx.listener(|this, _: &CopySelection, _window, cx| {
                     this.copy_selection(cx);
@@ -2941,7 +5212,11 @@ impl Render for Viewer {
                     this.enter_slideshow(window, cx)
                 }))
                 .on_action(cx.listener(|this, _: &ExitSlideshow, window, cx| {
-                    if this.page_mode == PageMode::Slideshow {
+                    if this.draw_tool.is_some() || this.draw_gesture.is_some() {
+                        this.draw_tool = None;
+                        this.draw_gesture = None;
+                        cx.notify();
+                    } else if this.page_mode == PageMode::Slideshow {
                         this.exit_slideshow(window, cx);
                     }
                 }))
@@ -2956,8 +5231,57 @@ impl Render for Viewer {
                 .on_action(cx.listener(|this, _: &OpenProperties, window, cx| {
                     this.open_properties(window, cx);
                 }))
-                .on_action(cx.listener(|this, _: &RotatePage, _window, cx| {
-                    this.begin_edit(EditOperation::Rotate, cx)
+                .on_action(cx.listener(|this, _: &EditBookmarks, _window, cx| {
+                    this.open_bookmarks_editor(cx);
+                }))
+                .on_action(
+                    cx.listener(|this, _: &RotatePage, _window, cx| this.begin_rotate_page(90, cx)),
+                )
+                .on_action(cx.listener(|this, _: &RotatePageLeft, _window, cx| {
+                    this.begin_rotate_page(270, cx)
+                }))
+                .on_action(
+                    cx.listener(|this, _: &DeletePages, _window, cx| this.begin_delete_pages(cx)),
+                )
+                .on_action(cx.listener(|this, _: &DuplicatePages, _window, cx| {
+                    this.begin_duplicate_pages(cx)
+                }))
+                .on_action(cx.listener(|this, _: &InsertBlankBefore, _window, cx| {
+                    this.begin_insert_blank(false, cx)
+                }))
+                .on_action(cx.listener(|this, _: &InsertBlankAfter, _window, cx| {
+                    this.begin_insert_blank(true, cx)
+                }))
+                .on_action(cx.listener(|this, _: &InsertPagesFromFile, _window, cx| {
+                    this.begin_insert_from_file(cx)
+                }))
+                .on_action(cx.listener(|this, _: &ReplaceSelectedPages, _window, cx| {
+                    this.begin_replace_pages(cx)
+                }))
+                .on_action(
+                    cx.listener(|this, _: &ExtractPages, _window, cx| this.begin_extract_pages(cx)),
+                )
+                .on_action(cx.listener(|this, _: &SelectAllPages, _window, cx| {
+                    this.page_selection = PageSelection::select_all(this.page_sizes.len());
+                    cx.notify();
+                }))
+                .on_action(cx.listener(|this, _: &InvertPageSelection, _window, cx| {
+                    this.page_selection = this.page_selection.invert(this.page_sizes.len());
+                    cx.notify();
+                }))
+                .on_action(cx.listener(|this, _: &SelectOddPages, _window, cx| {
+                    this.page_selection =
+                        PageSelection::select_by_parity(this.page_sizes.len(), PageParity::Odd);
+                    cx.notify();
+                }))
+                .on_action(cx.listener(|this, _: &SelectEvenPages, _window, cx| {
+                    this.page_selection =
+                        PageSelection::select_by_parity(this.page_sizes.len(), PageParity::Even);
+                    cx.notify();
+                }))
+                .on_action(cx.listener(|this, _: &ClearPageSelection, _window, cx| {
+                    this.page_selection = PageSelection::empty();
+                    cx.notify();
                 }))
                 .on_action(cx.listener(|this, _: &UndoEdit, _window, cx| {
                     this.begin_edit(EditOperation::Undo, cx)
@@ -2973,6 +5297,7 @@ impl Render for Viewer {
                     this.retry_revision_reload(cx)
                 }))
                 .on_scroll_wheel(cx.listener(|this, ev: &ScrollWheelEvent, _window, cx| {
+                    this.draw_gesture = None;
                     let dy = ev.delta.pixel_delta(px(LINE_PX)).y.as_f32();
                     this.scroll_by(dy);
                     cx.notify();
@@ -3015,7 +5340,9 @@ impl Render for Viewer {
                         .child(text),
                 )
                 .children(props_dialog)
-                .children(password_dialog);
+                .children(password_dialog)
+                .children(bookmark_dialog)
+                .children(notes_dialog);
         };
         if self.fit_width && self.page_mode != PageMode::Slideshow && page_viewport_w > 0.0 {
             let fit = if let Some(spread) = self.spread.as_ref() {
@@ -3304,6 +5631,7 @@ impl Render for Viewer {
             fit_page: self.fit_page,
             rotation: self.view_rotation,
             first_page: visible.first().copied().unwrap_or(0),
+            page_count,
             kind: self.kind.map_or("", |k| k.as_str()),
             mode: match self.page_mode {
                 PageMode::Continuous => "continuous",
@@ -3314,6 +5642,11 @@ impl Render for Viewer {
             visible_pages: visible.clone(),
             fullscreen: window.is_fullscreen(),
         });
+        crate::debug::set_page_selection(
+            self.page_selection.selected(),
+            self.page_selection.anchor(),
+            self.page_selection.focus(),
+        );
         crate::debug::set_find(
             self.find.query(),
             self.find.total(),
@@ -3397,6 +5730,27 @@ impl Render for Viewer {
                             .into_any_element(),
                     );
                 }
+            }
+            if let Some(gesture) = self.draw_gesture.as_ref()
+                && gesture.page_index == i
+            {
+                let [left, top, right, bottom] = gesture.rect();
+                let (left, top, right, bottom) = self.rect_to_view(i, left, top, right, bottom);
+                children.push(
+                    div()
+                        .absolute()
+                        .left(px(x + left * zoom))
+                        .top(px(y + top * zoom))
+                        .w(px(((right - left) * zoom).max(1.0)))
+                        .h(px(((bottom - top) * zoom).max(1.0)))
+                        .border_1()
+                        .border_color(rgb(palette.text))
+                        .when(
+                            self.draw_tool == Some(crate::draw::Tool::Ellipse),
+                            |preview| preview.rounded_full(),
+                        )
+                        .into_any_element(),
+                );
             }
         }
         if let Some(text) = self.message.clone() {
@@ -3562,6 +5916,15 @@ impl Render for Viewer {
             this.sidebar_scroll_y = (this.sidebar_scroll_y - delta).max(0.0);
             cx.notify();
         });
+        let cancel_drag = cx.listener(|this, _: &MouseUpEvent, _window, cx| {
+            if this.drag_target.take().is_some() {
+                crate::debug::set_sidebar_drag_target(None);
+                cx.notify();
+            }
+        });
+        let drop_page = cx.listener(|this, drag: &PageDrag, _window, cx| {
+            this.finish_page_drag(drag, cx);
+        });
         let mut sidebar_rows = Vec::new();
         // Các hàng nằm trong khung "sidebar-scroll", vốn đã ở dưới tiêu đề sidebar: tọa độ tính từ 0.
         if self.sidebar_outline {
@@ -3617,33 +5980,65 @@ impl Render for Viewer {
                 } else {
                     SIDEBAR_WIDTH
                 };
-                let child = match self.thumbnail_cache.get(&page_index).cloned() {
-                    Some(image) => img(image)
-                        .w(px(cell_width))
-                        .h(px(cell_height))
-                        .border_1()
-                        .border_color(rgb(palette.border))
-                        .into_any_element(),
-                    None => div()
-                        .relative()
-                        .w(px(cell_width))
-                        .h(px(cell_height))
-                        .overflow_hidden()
-                        .border_1()
-                        .border_color(rgb(palette.border))
-                        .child(
-                            ThumbnailShimmer::new(
-                                format!("thumbnail-shimmer-{page_index}"),
-                                cell_width,
-                                cell_height,
-                            )
-                            .reduced_motion(chef_ui::motion::reduced()),
-                        )
-                        .into_any_element(),
+                let is_selected = self.page_selection.contains(page_index);
+                let frame_border = if is_selected {
+                    rgb(palette.accent)
+                } else {
+                    rgb(palette.border)
                 };
-                let navigate = cx.listener(move |this, _: &MouseDownEvent, _window, cx| {
-                    this.go_to_page(page_index);
+                let child = match self.thumbnail_cache.get(&page_index).cloned() {
+                    Some(image) => {
+                        let el = img(image).w(px(cell_width)).h(px(cell_height));
+                        if is_selected {
+                            el.border_2().border_color(frame_border)
+                        } else {
+                            el.border_1().border_color(frame_border)
+                        }
+                        .into_any_element()
+                    }
+                    None => {
+                        let el = div()
+                            .relative()
+                            .w(px(cell_width))
+                            .h(px(cell_height))
+                            .overflow_hidden()
+                            .border_color(frame_border)
+                            .child(
+                                ThumbnailShimmer::new(
+                                    format!("thumbnail-shimmer-{page_index}"),
+                                    cell_width,
+                                    cell_height,
+                                )
+                                .reduced_motion(chef_ui::motion::reduced()),
+                            );
+                        if is_selected {
+                            el.border_2()
+                        } else {
+                            el.border_1()
+                        }
+                        .into_any_element()
+                    }
+                };
+                let select_or_go = cx.listener(move |this, ev: &gpui::ClickEvent, _window, cx| {
+                    let modifiers = ev.modifiers();
+                    let mods = ClickModifiers {
+                        shift: modifiers.shift,
+                        toggle: modifiers.control || modifiers.platform,
+                    };
+                    this.page_selection = this.page_selection.click_select(page_index, mods);
+                    if !mods.shift && !mods.toggle {
+                        this.go_to_page(page_index);
+                    }
                     cx.notify();
+                });
+                let context_click = cx.listener(move |this, ev: &MouseDownEvent, window, cx| {
+                    this.open_page_context(
+                        page_index,
+                        ev.position.x.as_f32(),
+                        ev.position.y.as_f32(),
+                        window,
+                        cx,
+                    );
                 });
                 let control_id = format!("thumbnail-{}", page_index + 1);
                 a11y::register(Registered {
@@ -3653,11 +6048,11 @@ impl Render for Viewer {
                     disabled: false,
                     focused: false,
                     hovered: false,
-                    checked: None,
+                    checked: Some(if is_selected { "true" } else { "false" }),
                     value: None,
                     bounds: None,
                 });
-                let tile = div()
+                let mut tile = div()
                     .id(control_id.clone())
                     .absolute()
                     .left(px(left))
@@ -3668,7 +6063,49 @@ impl Render for Viewer {
                     .justify_center()
                     .cursor_pointer()
                     .child(child)
-                    .on_mouse_down(MouseButton::Left, navigate);
+                    .on_click(select_or_go)
+                    .on_mouse_down(MouseButton::Right, context_click);
+                if self.sidebar_grid
+                    && !self.document_signed
+                    && !self.edit_blocked
+                    && !self.operation_pending
+                    && !self.tab_closing
+                {
+                    let drag_pages = if is_selected {
+                        self.page_selection.selected().to_vec()
+                    } else {
+                        vec![page_index]
+                    };
+                    tile = tile
+                        .cursor_move()
+                        .on_drag(PageDrag { pages: drag_pages }, |_, _, _, cx| {
+                            cx.new(|_| gpui::Empty)
+                        })
+                        .on_drag_move(cx.listener(
+                            move |this, event: &gpui::DragMoveEvent<PageDrag>, _window, cx| {
+                                let x = event.event.position.x.as_f32()
+                                    - event.bounds.origin.x.as_f32()
+                                    + left;
+                                let y = event.event.position.y.as_f32()
+                                    - event.bounds.origin.y.as_f32()
+                                    + top
+                                    + this.sidebar_scroll_y;
+                                let target =
+                                    this.page_grid.as_ref().and_then(|grid| grid.page_at(x, y));
+                                if this.drag_target != target {
+                                    this.drag_target = target;
+                                    crate::debug::set_sidebar_drag_target(target);
+                                    cx.notify();
+                                }
+                            },
+                        ))
+                }
+                if self.drag_target == Some(page_index) {
+                    tile = tile.border_2().border_color(rgb(palette.accent));
+                }
+                if is_selected {
+                    tile = tile.bg(rgba(palette.selection));
+                }
                 sidebar_rows.push(
                     div()
                         .flex_none()
@@ -3714,6 +6151,8 @@ impl Render for Viewer {
                     .flex_1()
                     .overflow_hidden()
                     .on_scroll_wheel(sidebar_scroll)
+                    .on_mouse_up_out(MouseButton::Left, cancel_drag)
+                    .on_drop(drop_page)
                     .children(sidebar_rows),
             );
         let body = div()
@@ -3778,6 +6217,9 @@ impl Render for Viewer {
             .child(footer)
             .children(props_dialog)
             .children(password_dialog)
+            .children(bookmark_dialog)
+            .children(notes_dialog)
+            .children(page_context)
     }
 }
 

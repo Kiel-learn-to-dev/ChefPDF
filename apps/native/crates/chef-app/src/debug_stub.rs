@@ -10,6 +10,7 @@ pub struct ViewSnapshot {
     pub viewport_h: f32,
     pub fit_width: bool,
     pub first_page: usize,
+    pub page_count: usize,
     pub kind: &'static str,
     pub mode: &'static str,
     pub visible_pages: Vec<usize>,
@@ -37,11 +38,26 @@ pub fn set_cache_invalidation(_: serde_json::Value) {}
 pub fn set_source_warning(_: Option<(&str, &str)>) {}
 pub fn set_sidebar_thumbnail_count(_: usize, _: usize) {}
 pub fn set_sidebar_state(_: bool, _: bool, _: usize) {}
+pub fn set_sidebar_drag_target(_: Option<usize>) {}
 pub fn set_sidebar_scroll_y(_: f32) {}
 pub fn take_actions() -> Vec<String> {
     Vec::new()
 }
 pub fn take_keystrokes() -> Vec<String> {
+    Vec::new()
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DebugClick {
+    pub x: i32,
+    pub y: i32,
+    pub shift: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub platform: bool,
+    pub right: bool,
+}
+
+pub fn take_clicks() -> Vec<DebugClick> {
     Vec::new()
 }
 pub fn take_scroll_screens() -> Vec<f32> {
@@ -74,6 +90,8 @@ pub enum DebugJobCommand {
 }
 
 pub fn set_close_prompt(_: bool, _: Option<usize>, _: Option<&str>) {}
+pub fn set_window_closing(_: bool) {}
+pub fn set_page_selection(_: &[usize], _: Option<usize>, _: Option<usize>) {}
 pub fn set_recovery(_: serde_json::Value) {}
 pub fn set_jobs(_: serde_json::Value) {}
 pub fn set_shutdown_hook(_: impl Fn() + Send + Sync + 'static) {}

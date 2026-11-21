@@ -59,6 +59,12 @@ pub enum Job {
         doc: DocId,
         reply: Sender<Reply<usize>>,
     },
+    /// Whether the PDF contains digital signature fields (R4.05).
+    HasSignatures {
+        id: u64,
+        doc: DocId,
+        reply: Sender<Reply<bool>>,
+    },
     /// Thuộc tính tài liệu (R2.27): phiên bản, số trang, khổ trang đầu, metadata.
     Properties {
         id: u64,
@@ -177,6 +183,13 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
                     .map(|d| d.pages().len() as usize);
+                let _ = reply.send(Reply { id, result });
+            }
+            Job::HasSignatures { id, doc, reply } => {
+                let result = docs
+                    .get(&doc)
+                    .ok_or_else(|| format!("không có tài liệu {doc}"))
+                    .map(|d| !d.signatures().is_empty());
                 let _ = reply.send(Reply { id, result });
             }
             Job::Properties { id, doc, reply } => {

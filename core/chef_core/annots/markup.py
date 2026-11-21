@@ -78,6 +78,13 @@ def _num(v: float) -> str:
     return f"{v:.4f}".rstrip("0").rstrip(".") if abs(v) > 1e-9 else "0"
 
 
+def _unit(vector: Point) -> Point:
+    length = math.hypot(*vector)
+    if length <= 1e-9:
+        return (0.0, 0.0)
+    return (vector[0] / length, vector[1] / length)
+
+
 def _fill_ops(value: str) -> str:
     r, g, b = rgb_of(value)
     return f"{_num(r)} {_num(g)} {_num(b)} rg"
@@ -154,27 +161,54 @@ def _markup_appearance(pdf: pikepdf.Pdf, annot: Dictionary) -> tuple[Rect, bytes
         ops.append("/GS0 gs")
         ops.append(_stroke_ops(colour))
         for ul, ur, ll, lr in quads:
-            height = max(ul[1] - ll[1], 1.0)
+            upper_mid = ((ul[0] + ur[0]) / 2, (ul[1] + ur[1]) / 2)
+            lower_mid = ((ll[0] + lr[0]) / 2, (ll[1] + lr[1]) / 2)
+            inward = _unit((upper_mid[0] - lower_mid[0], upper_mid[1] - lower_mid[1]))
+            baseline = _unit((lr[0] - ll[0], lr[1] - ll[1]))
+            baseline_length = math.dist(ll, lr)
+            height = max(math.dist(upper_mid, lower_mid), 1.0)
             if subtype == "Underline":
                 width = max(0.6, height * 0.07)
-                y = ll[1] + width / 2
-                ops.append(f"{_num(width)} w {_num(ll[0])} {_num(y)} m {_num(lr[0])} {_num(y)} l S")
+                offset = width / 2
+                start = (ll[0] + inward[0] * offset, ll[1] + inward[1] * offset)
+                end = (lr[0] + inward[0] * offset, lr[1] + inward[1] * offset)
+                ops.append(
+                    f"{_num(width)} w {_num(start[0])} {_num(start[1])} m "
+                    f"{_num(end[0])} {_num(end[1])} l S"
+                )
             elif subtype == "StrikeOut":
                 width = max(0.6, height * 0.06)
-                y = (ul[1] + ll[1]) / 2
-                ops.append(f"{_num(width)} w {_num(ul[0])} {_num(y)} m {_num(ur[0])} {_num(y)} l S")
+                start = ((ul[0] + ll[0]) / 2, (ul[1] + ll[1]) / 2)
+                end = ((ur[0] + lr[0]) / 2, (ur[1] + lr[1]) / 2)
+                ops.append(
+                    f"{_num(width)} w {_num(start[0])} {_num(start[1])} m "
+                    f"{_num(end[0])} {_num(end[1])} l S"
+                )
             else:  # Squiggly
                 amp = max(0.8, height * 0.08)
                 step = max(1.4, height * 0.16)
-                y0 = ll[1] + amp / 2
+                if baseline_length <= 1e-9:
+                    continue
                 pts: list[Point] = []
-                x = ll[0]
+                distance = 0.0
                 k = 0
-                while x < lr[0]:
-                    pts.append((x, y0 + (amp if k % 2 else 0.0)))
-                    x += step
+                while distance < baseline_length:
+                    offset = amp / 2 + (amp if k % 2 == 0 else 0.0)
+                    pts.append(
+                        (
+                            ll[0] + baseline[0] * distance + inward[0] * offset,
+                            ll[1] + baseline[1] * distance + inward[1] * offset,
+                        )
+                    )
+                    distance += step
                     k += 1
-                pts.append((lr[0], y0 + (amp if k % 2 else 0.0)))
+                offset = amp / 2 + (amp if k % 2 == 0 else 0.0)
+                pts.append(
+                    (
+                        lr[0] + inward[0] * offset,
+                        lr[1] + inward[1] * offset,
+                    )
+                )
                 path = f"{_num(pts[0][0])} {_num(pts[0][1])} m"
                 path += "".join(f" {_num(px)} {_num(py)} l" for px, py in pts[1:])
                 ops.append(f"{_num(max(0.5, height * 0.05))} w {path} S")

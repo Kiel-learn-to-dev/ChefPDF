@@ -28,7 +28,7 @@ Checkpoint sau mỗi 2–3 task và cuối mỗi mốc là **điểm kiểm** đ
 | CH-R1 | **Chuyển trang web sang PDF** (`web2pdfRender.ts` dùng `printToPDF` của Chromium, bản Rust không có Chromium). Chọn một: (a) giữ một tiến trình Electron nhỏ, chỉ chạy khi dùng tính năng này; (b) dùng WebView2 có sẵn của Windows qua CDP; (c) bỏ tính năng, ghi vào "Thay đổi sau khi chốt" của FEATURES | R5.16 (❌) | **Đã chốt (c), 2026-11-09:** bỏ tính năng, ghi FEATURES M5 và D78 |
 | CH-R2 | Độ tương phản của token (D72): có đổi màu `--c-text-3`, `--c-success`, `--c-warning` khi chữ không đạt 4,5:1 không | Không chặn; quyết định ở M9 | Giữ nguyên, ghi nhận |
 | CH-R3 | Lọc `invert` của trang đọc tối và `grayscale` trong Start (`StartScreen.css`) | R2.28, R2.16 | **Đã chốt:** đảo màu bitmap trên CPU (D79); giữ `grayscale(0.6)` và `opacity: 0.7` chỉ trên icon của ô bị vô hiệu hóa `.tile.is-disabled .tile__icon`, không lọc toàn màn hình. |
-| CH-R4 | `cargo deny check` từng đỏ vì 10 cảnh báo unmaintained từ phụ thuộc bắc cầu của GPUI. Các ID đã kiểm tra lại ngày 2026-11-14; đều là advisory unmaintained, không phải vulnerability/unsound. | Không chặn tính năng; được chốt D90 | **Đã chốt 2026-11-14:** chủ dự án chọn ignore đúng 10 ID, mỗi ID có lý do trong `apps/native/deny.toml`; rà lại khi nâng GPUI hoặc advisory thay đổi (D90) |
+| CH-R4 | `cargo deny check` từng đỏ vì advisory `unmaintained` từ phụ thuộc bắc cầu GPUI/PDFium. | Không chặn tính năng; được chốt D90/D91 | **Đã chốt:** 10 ID gốc theo D90 và thêm đúng `RUSTSEC-2026-0543` cho `chrono` theo D91; chỉ rà lại khi advisory hoặc đồ thị dependency thay đổi |
 
 ## Việc thủ công của chủ dự án
 
@@ -56,7 +56,7 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 | M7 | Sửa chữ và đoạn | 13 | 2 | 0 | 10 | 0 | — |
 | M8 | Chụp và xử lý ảnh | 23 | 0 | 1 | 21 | 0 | — |
 | M9 | Hoàn thiện | 17 | 1 | 6 | 8 | 0 | — |
-| **Tổng** | | **269** | 15 | 76 | 157 | 7 | — |
+| **Tổng** | | **269** | 14 | 79 | 155 | 7 | — |
 
 Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
 
@@ -68,7 +68,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 2. **(Đã xong, 2026-11-16: R3.02, R3.04, R3.05, R3.06, R3.08, R3.11, R3.12 đều ✅.)** Lát cắt dọc M3, trước phần còn lại của M2: R3.02 → R3.04 → R3.05 → R3.06 → R3.08 (chỉ `page.rotate`) → R3.11 → R3.12. Lý do: khoảng 170 task của M4–M8 phụ thuộc chuỗi này, và R3.06 (đổi viewer từ file gốc sang rev file) là rủi ro kiến trúc lớn nhất chưa kiểm. Demo của lát cắt: mở file, xoay một trang, viewer giữ vị trí, hoàn tác, lưu; chỉ xem thì không có tiến trình `chef-core`.
 3. **Gom đuôi M1 rồi làm Điểm kiểm M1:** R2.33 (script chạy gộp E2E), R1.43 (so probe với Electron, đóng R1.13, R1.15, R1.16, R1.17, R1.19), R1.37 và R1.38 (cần lõi chạy từ bước 2 để có `coreMB`), R1.35 (bộ đếm GPU), R1.12 (tiêu chí 2), R1.32 (tiêu chí 3). R1.05 giữ 🔄 đến khi xác minh workflow/native build trên HEAD và branch protection; hiện tạm hoãn package build theo yêu cầu.
 4. **Phần còn lại của M2:** các task 🔄 còn lại (R2.02, R2.16, R2.17, R2.19, R2.21, R2.26, R2.28), rồi R2.32. R2.15, R2.18, R2.20, R2.22, R2.31 đã ✅.
-5. **Phần còn lại của M3:** R3.09 và R3.14 (🔄). R3.03, R3.07, R3.11, R3.13, R3.15 đã ✅. Sau đó M4 đến M9 theo thứ tự cũ; M4 bắt đầu bằng R4.01 (🔄) vì R4.02–R4.06 phụ thuộc chuỗi này.
+5. **Phần còn lại của M3:** R3.09 (🔄). R3.03, R3.07, R3.11, R3.13, R3.14, R3.15 đã ✅. Sau đó M4 đến M9 theo thứ tự cũ; ở M4 hiện R4.01 (🔄), R4.02–R4.04 đã ✅, tiếp theo là R4.05–R4.06.
 
 ---
 
@@ -1020,7 +1020,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-ui/src/jobs_panel.rs`, `scripts/e2e-native-jobs.ps1`
 - **E2E:** `scripts/e2e-native-jobs.ps1`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-15) Triển khai `JobStore` + `JobPanel` (`jobs-toggle`, `jobs-panel`, `job-cancel-<id>`, `job-dismiss-<id>`, `jobs-clear-finished`, `jobs-panel-close`) và quạt thông báo RPC (`job.started`, `job.progress`, `job.finished`, `job.failed`, `job.cancelled`) qua `Supervisor::try_recv_notification`. Chạy `pwsh -NoProfile -File scripts/e2e-native-jobs.ps1` trên Windows: 8/8 kiểm tra ĐẠT (`FAILS: 0`), gồm `page.rotate` thật hoàn tất trong `JobStore`, mở panel qua `jobs-toggle`, tiến độ `job.progress` 2/5 (= 0,4), hủy qua `job-cancel-*`, giữ lỗi `job.failed` đến khi bấm `job-dismiss-*`, xóa danh sách đã xong và đóng panel. Ghi nhận: click `jobs-toggle` chuyển focus khỏi `Viewer` nên `action rotatepage` cần được gọi khi `Viewer` đang focus. Còn mở: `ui-audit` so ảnh `JobPanel`.
+- **Ghi chú:** (2026-11-15) Triển khai `JobStore` + `JobPanel` (`jobs-toggle`, `jobs-panel`, `job-cancel-<id>`, `job-dismiss-<id>`, `jobs-clear-finished`, `jobs-panel-close`) và quạt thông báo RPC (`job.started`, `job.progress`, `job.finished`, `job.failed`, `job.cancelled`) qua `Supervisor::try_recv_notification`. Chạy `pwsh -NoProfile -File scripts/e2e-native-jobs.ps1` trên Windows: 8/8 kiểm tra ĐẠT (`FAILS: 0`), gồm `page.rotate` thật hoàn tất trong `JobStore`, mở panel qua `jobs-toggle`, tiến độ `job.progress` 2/5 (= 0,4), hủy qua `job-cancel-*`, giữ lỗi `job.failed` đến khi bấm `job-dismiss-*`, xóa danh sách đã xong và đóng panel. Ghi nhận: click `jobs-toggle` chuyển focus khỏi `Viewer` nên `action rotatepage` cần được gọi khi `Viewer` đang focus. (2026-11-21) Chạy lại E2E vẫn 8/8 PASS. Còn mở: `ui-audit` so ảnh `JobPanel`.
 - **Trạng thái:** 🔄
 
 ### R3.10 · Ánh xạ lỗi sang thông báo tiếng Việt · S
@@ -1082,7 +1082,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** —
 - **Ghi chú:** (2026-11-15) Chạy `pwsh -NoProfile -File scripts/e2e-native-close.ps1` trên Windows: 7/7 kiểm tra ĐẠT (`FAILS: 0`): tab dirty bấm đóng mở `unsaved-close-dialog`, hủy giữ nguyên tab và thư mục phiên, lưu-và-đóng ghi xoay vào `doc2` và xóa thư mục phiên, bỏ thay đổi xóa thư mục phiên và giữ nguyên SHA-256 `doc1`, thoát app để lại 0 tiến trình `chef-core`.
 - **Ghi chú:** (2026-11-19, rà trước commit) Các kiểm tra trên bao phủ đóng tab và shutdown qua debug. Nút X/Alt+F4 của cửa sổ native chưa đi qua xác nhận lưu và `session.close`; chưa đủ tiêu chí đóng app an toàn. Chuyển lại 🔄, cần nối callback đóng cửa sổ và kiểm E2E tương ứng.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-19) Nối `window.on_window_should_close` sang `tabs_host::handle_window_close_request` / `advance_window_close` dùng `close::next_window_close_step` (5 unit test trong `close::tests`), hỏi xác nhận tab dirty trước khi đóng tab sạch và đóng toàn bộ phiên / dừng `chef-core` sạch khi lưu hoặc bỏ thay đổi. `debug.rs` thêm `closewindow` (gửi `WM_CLOSE`) và `closePrompt.windowClosing`. `scripts/e2e-native-close.ps1` đạt 19/19 kiểm tra (`FAILS: 0`) cho đóng tab, `WM_CLOSE` đa tab (tab sạch có phiên + tab dirty hủy/lưu) và đơn tab bỏ thay đổi, để lại 0 thư mục phiên và 0 tiến trình `chef-core`.
+- **Trạng thái:** ✅
 
 ### R3.15 · Điểm kiểm M3 · —
 - **Mô tả:** đo RAM ba mốc có lõi và không có lõi; kiểm tra việc lõi chỉ chạy sau thao tác (R3.03); cập nhật R5 và R6 nếu số liệu khác dự đoán.
@@ -1120,9 +1121,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** E2E `page-menu` (phần chọn); test.
 - **Phụ thuộc:** R4.01
 - **File:** `apps/native/crates/chef-viewer/src/selection.rs`
-- **E2E:** `page-menu`
+- **E2E:** `page-menu`, `scripts/e2e-native-page-selection.ps1`
 - **Tính năng:** C14 (chọn), C13 (chọn)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-19) Thêm `apps/native/crates/chef-viewer/src/selection.rs` (11 unit test; `chef-viewer` 42/42 test đạt), nối vùng chọn dùng chung và đồng bộ `a11y` `checked` giữa danh sách thanh bên và lưới 2 cột trong `viewer.rs` (Shift, Ctrl, Ctrl+Shift, đảo chọn, chẵn/lẻ, chọn tất cả, bỏ chọn), cùng lệnh debug `click` kèm modifier. `scripts/e2e-native-page-selection.ps1` trên Windows đạt 7/7 kiểm tra (`FAILS: 0`).
+- **Trạng thái:** ✅
 
 ### R4.03 · Thao tác trang: xoay, xóa, nhân bản, trích ra · M
 - **Mô tả:** gọi operation `page.*` của lõi cho xoay, xóa, nhân bản và trích ra file mới (mở ở tab mới, không đụng file gốc, như D38).
@@ -1130,29 +1132,32 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** E2E `tools5-pages`; test SHA-256.
 - **Phụ thuộc:** R4.02, R3.08
 - **File:** `apps/native/crates/chef-app/src/page_ops.rs`
-- **E2E:** `tools5-pages`, `page-menu`
+- **E2E:** `tools5-pages`, `page-menu`, `scripts/e2e-native-page-ops.ps1`
 - **Tính năng:** C2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-19) Thêm `apps/native/crates/chef-app/src/page_ops.rs` dùng `chef-contracts::ops_types` (6 unit test `page_ops::tests`), nối với `viewer.rs` / `tabs_host.rs` cho đa trang `page.rotate` ±90°, `page.delete` (chặn xóa hết trang + xóa cache thumbnail khi số trang giảm), `page.duplicate`, và `page.extract` (mở tab mới ở trạng thái active, không đụng file nguồn), kèm remap vùng chọn và undo/redo. `scripts/e2e-native-page-ops.ps1` trên Windows đạt 16/16 kiểm tra (`FAILS: 0`, SHA-256 và nội dung file nguồn giữ nguyên).
+- **Trạng thái:** ✅
 
 ### R4.04 · Chèn trang và thay thế trang · S
-- **Mô tả:** chèn trang trắng hoặc từ file khác (`page.insert`), thay trang X bằng trang từ file khác (`page.replace`).
-- **Tiêu chí:** (1) vị trí chèn đúng; (2) thay trang giữ số trang còn lại; (3) có undo.
-- **Kiểm chứng:** E2E `tools5-pages`; test.
+- **Mô tả:** chèn trang trắng (`page.insertBlank`) hoặc trang từ PDF (`page.insertFromFile`) tại vị trí đã chọn; thay trang đã chọn bằng các trang từ PDF (`page.replace`).
+- **Tiêu chí:** (1) chèn trước đúng trang, cho phép nối cuối; (2) trang không bị thay giữ nguyên thứ tự, số trang thay thế có thể khác số trang đích; (3) có undo.
+- **Kiểm chứng:** `scripts/e2e-native-page-ops.ps1`; test.
 - **Phụ thuộc:** R4.03
 - **File:** `apps/native/crates/chef-app/src/page_ops.rs`
-- **E2E:** `tools5-pages`
+- **E2E:** `scripts/e2e-native-page-ops.ps1`
 - **Tính năng:** C3, C6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-19; bổ sung 2026-11-20) Thêm helper tham số có kiểu và remap vùng chọn trong `page_ops.rs`; nối action trong command palette và viewer với ba operation lõi, dùng hộp chọn PDF hiện có cho nguồn. File nguồn có mật khẩu hiện chưa hỗ trợ prompt riêng. `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (280/280), build, `cargo deny check bans licenses sources` và PowerShell parse đạt. `scripts/e2e-native-page-ops.ps1` chạy lại ngày 2026-11-20 đạt `FAILS: 0`, gồm chèn trắng sau trang cuối của vùng chọn nhiều trang, thao tác context menu, undo và SHA-256/nội dung nguồn không đổi. Unit test helper đạt 9/9 trước đó; kiểm tra hiện tại `cargo test -p chef-app --locked` đạt 97/97.
+- **Trạng thái:** ✅
 
 ### R4.05 · Menu chuột phải trên trang đã chọn · M
 - **Mô tả:** menu như `pageMenu.tsx`: mở trang, chọn tất cả, đảo chọn, chọn trang lẻ và chẵn, tạo PDF từ các trang đã chọn, xoay, nhân bản, chèn, xóa, và các mục đóng dấu, nén, xuất ảnh (phần đóng dấu và nén nối vào M5). Mục bị khóa khi file đã ký.
 - **Tiêu chí:** (1) số trang trong nhãn đúng ("Tạo PDF từ 3 trang đã chọn"); (2) mục bị khóa khi file đã ký; (3) menu khớp E2E `page-menu`.
 - **Kiểm chứng:** E2E `page-menu` (4 test); ui-audit.
 - **Phụ thuộc:** R4.02, R2.06
-- **File:** `apps/native/crates/chef-app/src/page_menu.rs`
-- **E2E:** `page-menu`
+- **File:** `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-ui/src/menu.rs`
+- **E2E:** `scripts/e2e-native-page-ops.ps1`, `scripts/e2e-native-page-menu.ps1`
 - **Tính năng:** C13
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-20) Đã nối menu chuột phải vào thumbnail list/grid, giữ vùng chọn khi bấm phải lên trang đã chọn và chọn riêng trang khi bấm ngoài vùng chọn; menu có mở trang, tạo PDF từ trang chọn, chọn tất cả/đảo/lẻ/chẵn, xoay hai chiều, nhân bản, chèn trang trắng/từ file/ảnh/clipboard và xóa. Thứ tự, shortcut và nhãn xóa một/nhiều trang đã căn theo Electron. Tạo PDF dùng luồng trích trang đang có, mở kết quả ở tab mới; cảnh báo từ lõi được đưa lên thông báo. `chef-ui::Menu` dispatch theo ID mục ổn định; pdfium dò chữ ký khi mở hoặc khôi phục phiên, menu khóa các thao tác ghi nếu có chữ ký hoặc không lấy được trạng thái. E2E kiểm menu trên tài liệu thường và PDF có chữ ký (khóa xoay/xóa, vẫn cho tạo PDF); chèn ảnh/clipboard và đóng dấu/nén/xuất ảnh đang disabled tới khi nối M5. Separator chung đã khớp các nhóm của Electron; Xóa có màu nguy hiểm và menu nhận glyph biểu tượng theo từng mục. `cargo check -p chef-app --locked` đạt. Còn ui-audit để kiểm glyph/style trực quan và đối chiếu kích thước menu; task giữ 🔄.
+- **Trạng thái:** 🔄
 
 ### R4.06 · Tạo PDF từ các trang đã chọn · S
 - **Mô tả:** trích các trang đã chọn ra file mới, mở ở tab mới, không đụng file gốc (D38), có thể lưu thành file.
@@ -1160,18 +1165,21 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** E2E `page-menu` (test tạo PDF).
 - **Phụ thuộc:** R4.05, R4.03
 - **File:** `apps/native/crates/chef-app/src/page_ops.rs`
-- **E2E:** `page-menu`
+- **E2E:** `scripts/e2e-native-page-ops.ps1`, `scripts/e2e-native-page-menu.ps1`
 - **Tính năng:** C14
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-20) Đã nối mục “Tạo PDF từ N trang đã chọn” vào luồng `page.extract`, luồng trích hiện có tự mở file đầu ra ở tab mới. Native guard từ chối đường dẫn đầu ra trùng file nguồn/revision (kể cả alias/hard link) để tránh ghi đè; unit test kiểm đường dẫn trùng, alias và hard link đạt. E2E kiểm nội dung PDF mới và SHA-256 nguồn giữ nguyên (`FAILS: 0`); core test và `e2e-native-page-menu.ps1` xác nhận trích PDF có chữ ký được, mở ở tab mới, nguồn giữ nguyên hash.
+- **Trạng thái:** ✅
 
 ### R4.07 · Kéo thả đổi thứ tự trang · M
 - **Mô tả:** kéo trang trong lưới để đổi thứ tự, có chỉ báo chỗ thả. Gom thành một revision (BLUEPRINT_RUST §4).
 - **Tiêu chí:** (1) kéo đổi thứ tự đúng; (2) một lần kéo là một revision; (3) hủy kéo giữa chừng không đổi gì.
 - **Kiểm chứng:** E2E; test.
 - **Phụ thuộc:** R4.03
-- **File:** `apps/native/crates/chef-ui/src/drag.rs`
+- **File:** `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/page_ops.rs`
+- **E2E:** `scripts/e2e-native-page-ops.ps1`
 - **Tính năng:** C2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-20) GPUI drag trên lưới gom trang đang chọn thành khối, giữ thứ tự tương đối, hiện viền ở ô đích và gửi một `page.reorder` khi thả; thả vào trang đang kéo hoặc ra ngoài lưới không tạo revision. `reorder_plan` kiểm permutation/đích/đầu vào và chỉ số chọn sau kéo. Unit tests 2/2; `e2e-native-page-ops.ps1` đạt `FAILS: 0`, kiểm nội dung đổi từ P1|P2|P3|P4 thành P1|P3|P2|P4, đúng một revision, vùng chọn theo trang mới, hủy kéo giữ nguyên revision và nội dung.
+- **Trạng thái:** ✅
 
 ### M4.1 Xem song song và đối tượng
 
@@ -1203,7 +1211,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/bookmarks.rs`
 - **E2E:** `toc`
 - **Tính năng:** D3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Đã nối command palette và hộp thoại sửa outline: đọc cây đầy đủ qua `bookmarks.get`, giữ nguyên trường đích/style/trạng thái mở, kiểm tra giới hạn core, rồi ghi một revision qua `bookmarks.set`; undo đi qua pipeline revision hiện có. Draft gắn với `doc`, generation và đường dẫn revision; khi editor mở thì các edit khác bị chặn để tránh áp dụng cây cũ sau reorder/undo. E2E `scripts/e2e-native-bookmarks.ps1` đạt 10/10: đọc outline, kéo đổi thứ tự, thêm/xóa, đổi tên, Apply và undo khôi phục nguyên cây; `core/tests/test_page_ops.py::test_reorder_keeps_outline` xác minh bookmark vẫn trỏ đúng trang sau khi đổi thứ tự trang. 7 unit test bookmark; `cargo test -p chef-app --locked` đạt 106/106 và `cargo clippy -p chef-app --locked --all-targets -- -D warnings` đạt. Đóng task.
+- **Trạng thái:** ✅
 
 ### R4.11 · Chọn đối tượng và hit-test · M
 - **Mô tả:** vạch thước của lớp overlay (`repeating-linear-gradient` ở `overlay.css:252`, vẽ bằng quad). Click chọn chữ, ảnh, hình vẽ có sẵn trong trang. Viền khung chọn, nhích bằng mũi tên, xóa bằng Delete, đưa lên trên và xuống dưới. Danh sách đối tượng lấy từ pdfium (`FPDFPage_CountObjects`) và lớp overlay.
@@ -1270,12 +1279,13 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 ### R4.17 · Đánh dấu chữ: tô sáng, gạch chân, gạch ngang · M
 - **Mô tả:** chọn chữ rồi chọn kiểu đánh dấu. Tạo chú thích loại highlight, underline, strikeout (`annots.py`). Màu theo `--c-highlight`.
 - **Tiêu chí:** (1) đánh dấu nằm đúng hộp chữ đã chọn; (2) mở lại file vẫn thấy; (3) đổi màu có undo.
-- **Kiểm chứng:** E2E `annots`; đọc lại bằng pdfium.
+- **Kiểm chứng:** `scripts/e2e-native-annotations.ps1`; đọc lại PDF.
 - **Phụ thuộc:** R2.25b, R3.12
 - **File:** `apps/native/crates/chef-app/src/annots.rs`
-- **E2E:** `annots`
+- **E2E:** `scripts/e2e-native-annotations.ps1`
 - **Tính năng:** G1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Đã nối highlight/underline/strike theo vùng chọn chữ và màu từ palette `highlight`. Core chuẩn hóa thứ tự quad theo `/Rotate`; appearance dùng đúng cạnh semantic, có PDFium tests cho text xoay 90° và vùng chọn hẹp. `annots.addTextMarkup.pages` tạo dấu xuyên nhiều trang bằng một revision; đổi màu lấy ID mới theo trang rồi cập nhật toàn bộ atomically, giữ opacity. Native E2E trên PDF hai trang xác nhận 4 markup, đổi màu và undo cả hai trang; E2E `/Rotate 90` hai dòng xác nhận tọa độ, lưu, màu và undo. Core `test_annots` 25/25, `test_codegen` 7/7, packaging manifest 7/7; `chef-app` 116/116, fmt, clippy, build, codegen check và contracts typecheck đạt. Đã thêm exact exception `RUSTSEC-2026-0543` theo D91 sau khi chủ dự án duyệt; `cargo deny check` xanh.
+- **Trạng thái:** ✅
 
 ### R4.18 · Ghi chú dán và hộp chữ bình luận · M
 - **Mô tả:** tạo ghi chú dạng note, sửa nội dung, trả lời, đánh dấu đã xử lý (`annots.py`, `annots_export.py`).
@@ -1285,7 +1295,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/notes.rs`
 - **E2E:** `annots`
 - **Tính năng:** G2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Đã nối dialog ghi chú vào pipeline revision: tạo/sửa note, reply, đánh dấu completed, tạo FreeText và refresh danh sách bằng ID mới sau mỗi mutation. Note mới dùng trang đang xem/chọn và vị trí được rải để tránh chồng. Sau review, complete xóa lựa chọn ID cũ; lỗi refresh sau commit giữ cờ reconcile và đóng render doc mới. Native E2E lưu/đọc PDF xác nhận sửa nội dung/tác giả, reply thread, trạng thái completed, FreeText và đóng/mở lại app rồi đọc note. `chef-app` 118/118 tại thời điểm phần này xong, fmt, clippy và E2E đạt; `cargo deny check` xanh sau D91.
+- **Trạng thái:** ✅
 
 ### R4.19 · Vẽ: bút, đường thẳng, mũi tên, hình chữ nhật, elip · M
 - **Mô tả:** công cụ vẽ với các hình cơ bản, màu và độ dày nét, lưu thành chú thích hình vẽ.
@@ -1295,7 +1306,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/draw.rs`
 - **E2E:** `annots`
 - **Tính năng:** G3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Đã nối rectangle/line/arrow/ellipse/pen; dùng trang hiển thị không cần text layer, chuẩn hóa kéo ngược, preview và một operation revision mỗi gesture. Pen bỏ điểm quá sát và giới hạn 2.048 điểm; Escape, đổi trang, zoom/cuộn và thao tác revision hủy gesture. Nút công cụ tuần tự giữ toolbar gọn; màu và độ dày có điều khiển riêng. Native E2E vẽ cả năm loại trên trang scan `/Rotate 90`, đổi màu/độ dày rồi lưu, xác minh subtype, geometry, arrowhead, style và appearance bằng PDFium. `chef-app` 122/122, fmt, clippy, build, E2E và `cargo deny check` đạt.
+- **Trạng thái:** ✅
 
 ### R4.20 · Danh sách ghi chú và làm phẳng ghi chú · S
 - **Mô tả:** bảng liệt kê ghi chú, lọc theo loại hoặc người, đánh dấu đã xử lý, xuất bảng tổng hợp CSV (phần CSV để M5e nếu dùng chung). Làm phẳng biến ghi chú thành nội dung cố định.
@@ -2976,6 +2988,7 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 | 2026-11-11 | R7.08, R7.09 | R7.08 ❌, gộp vào R7.09 | Hai task là cùng một lần MAN-1 |
 | 2026-11-11 | R8.11 | Phụ thuộc đổi từ R8.12 sang R8.01 | Gỡ phụ thuộc vòng R8.11 ↔ R8.12 |
 | 2026-11-14 | CH-R4 / D90 | Chốt bỏ qua đúng 10 advisory `unmaintained` theo ID, mỗi mục có lý do trong deny.toml | Chủ dự án chọn; ID được xác minh lại bằng cargo-deny 0.20.2 trên đồ thị hiện tại |
+| 2026-11-21 | CH-R4 / D91 | Thêm đúng `RUSTSEC-2026-0543` cho chrono; `cargo deny check` xanh | Chủ dự án duyệt exact exception sau khi cargo-deny xác nhận no safe upgrade; không đổi các gate khác |
 | 2026-11-14 | R3.06 | Chuyển ⬜ → 🔄 | Có nền helper và UI reload revision; tiêu chí E2E Windows chưa xác nhận |
 | 2026-11-14 | R2.33 | Chuyển ⬜ → 🔄 | Runner và self-test có; chưa chạy bộ E2E giao diện Windows |
 | 2026-11-14 | R1.43 | Ghi nhận phụ thuộc còn thiếu | Manifest có băm nhưng ảnh Electron không nằm trong repo/thư mục `CHEF_VISUAL_REFS`; chưa có driver chụp probe native cho R2.02. Giữ mở, không đánh dấu so ảnh khi thiếu cặp ảnh và report |
@@ -3023,6 +3036,15 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 | 2026-11-15 | R3.15 | Đóng Điểm kiểm M3 ✅ | Đo lại RAM trên `pages1000.pdf` sau M3 (`-NoCore` giữ `coreMB=0`, `core-active` ổn định `coreMB=146.4–146.5`, `cached` về `2`); R5/R6 và thứ tự M4–M9 giữ nguyên |
 | 2026-11-15 | R2.20, R4.01 | Đóng R2.20 ✅ (E2E 3/3 PASS, lỗi trước không tái hiện); R4.01 ⬜ → 🔄 (hình học lưới) | Chạy lại `e2e-native-spread` nhiều lần; R4.01 có 8 test đơn vị, phần giao diện và ui-audit còn lại |
 | 2026-11-15 | R2.31, R3.11 | Đóng R2.31 ✅ và R3.11 ✅ qua kênh debug `keystroke` (keymap GPUI) | Phím vật lý bị chặn bởi flyout shell giữ foreground; lỗi re-entrant trong pump đã sửa (AnyWindowHandle). R2.31 có script keymap 11/11 PASS |
+| 2026-11-19 | R3.14, R4.02, R4.03 | Đóng R3.14 ✅ (guard `WM_CLOSE`), R4.02 ✅ (chọn nhiều trang), R4.03 ✅ (xoay/xóa/nhân bản/trích trang) | `close` 19/19, `page-selection` 7/7, `page-ops` 16/16 đều PASS; `cargo test --workspace` 277/277 PASS; `e2e-native-all` chạy trong desktop cô lập `exebox` có 33/37 script đạt (1 thiếu 12 refs Electron, 3 lỗi foreground/WGC do môi trường desktop không tương tác) |
+| 2026-11-19 | R4.04 | Đóng ✅ | `page_ops::tests` 9/9; `clippy -p chef-app`, fmt, build đạt; `e2e-native-page-ops` 24/24 PASS trên Windows |
+| 2026-11-20 | R4.06 | Đóng ✅ | `chef-app` unit tests 97/97; E2E `e2e-native-page-ops` đạt `FAILS: 0` với nội dung/hash nguồn; core signed extraction test 1/1; `e2e-native-page-menu` signed extraction đạt 5/5; guard same-file, alias, hard link test 1/1 |
+| 2026-11-20 | R4.07 | Đóng ✅ | `reorder_plan` unit tests 2/2; E2E kiểm nội dung sau kéo, đúng một revision và hủy kéo không đổi tài liệu (`FAILS: 0`) |
+| 2026-11-21 | R4.10 | Đóng ✅ | Bookmark editor E2E 10/10; `chef-app` tests 106/106; clippy sạch; core `test_reorder_keeps_outline` xác minh đích bookmark theo đúng trang sau reorder |
+| 2026-11-21 | CH-R4 / D91 | Thêm exact exception `RUSTSEC-2026-0543`; full `cargo deny check` xanh | Chủ dự án duyệt ngoại lệ duy nhất sau khi cargo-deny ghi nhận không có nâng cấp an toàn |
+| 2026-11-21 | R4.17 | Đóng ✅ | E2E hai trang tạo 4 dấu, đổi màu nguyên tử và undo cả hai trang; PDFium hướng stroke xoay/hẹp đạt; core 25/25, native 116/116, fmt, clippy, build, codegen, contracts typecheck và cargo deny đạt |
+| 2026-11-21 | R4.18 | Đóng ✅ | Dialog/pipeline revision cho create/edit/reply/completed/FreeText; E2E lưu PDF, xác minh 5 hành vi rồi mở lại app và đọc content/author; native 118/118, fmt, clippy, cargo deny đạt |
+| 2026-11-21 | R4.19 | Đóng ✅ | Năm công cụ, style color/width; E2E scan `/Rotate 90` xác minh PDF geometry/style và PDFium appearance; native 122/122, fmt, clippy, build, cargo deny đạt |
 
 ### Điểm kiểm M1 (cuối mốc)
 

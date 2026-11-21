@@ -107,6 +107,7 @@ pub struct Palette {
     pub canvas: u32,
     pub surface: u32,
     pub border: u32,
+    pub accent: u32,
     pub text: u32,
     pub text_2: u32,
     /// Tô sáng khớp tìm kiếm và khớp đang chọn, dạng RRGGBBAA (gpui::rgba).
@@ -122,6 +123,7 @@ pub fn palette(dark: bool) -> Palette {
             canvas: hex(chef_theme::dark::C_CANVAS),
             surface: hex(chef_theme::dark::C_SURFACE),
             border: hex(chef_theme::dark::C_BORDER),
+            accent: hex(chef_theme::dark::C_ACCENT),
             text: hex(chef_theme::dark::C_TEXT),
             text_2: hex(chef_theme::dark::C_TEXT_2),
             highlight: rgba_hex(chef_theme::dark::C_HIGHLIGHT),
@@ -133,6 +135,7 @@ pub fn palette(dark: bool) -> Palette {
             canvas: hex(chef_theme::light::C_CANVAS),
             surface: hex(chef_theme::light::C_SURFACE),
             border: hex(chef_theme::light::C_BORDER),
+            accent: hex(chef_theme::light::C_ACCENT),
             text: hex(chef_theme::light::C_TEXT),
             text_2: hex(chef_theme::light::C_TEXT_2),
             highlight: rgba_hex(chef_theme::light::C_HIGHLIGHT),

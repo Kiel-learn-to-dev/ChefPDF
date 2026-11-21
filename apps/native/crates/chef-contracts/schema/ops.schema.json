@@ -451,9 +451,16 @@
       "description": "Highlight, underline, strike-out or squiggly under rects or under found text.",
       "properties": {
         "pageIndex": {
-          "minimum": 0,
-          "title": "Pageindex",
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pageindex"
         },
         "kind": {
           "enum": [
@@ -496,6 +503,22 @@
           "description": "Text to mark (text model).",
           "title": "Find"
         },
+        "pages": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/definitions/AnnotsTextMarkupPage"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Displayed text boxes grouped by page, atomically.",
+          "title": "Pages"
+        },
         "allMatches": {
           "title": "Allmatches",
           "type": "boolean"
@@ -528,7 +551,6 @@
         }
       },
       "required": [
-        "pageIndex",
         "kind"
       ],
       "title": "AnnotsAddTextMarkupParams",
@@ -821,13 +843,62 @@
       "title": "AnnotsSetStatusParams",
       "type": "object"
     },
+    "AnnotsTextMarkupPage": {
+      "additionalProperties": false,
+      "properties": {
+        "pageIndex": {
+          "minimum": 0,
+          "title": "Pageindex",
+          "type": "integer"
+        },
+        "rects": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "minItems": 1,
+          "title": "Rects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pageIndex",
+        "rects"
+      ],
+      "title": "AnnotsTextMarkupPage",
+      "type": "object"
+    },
     "AnnotsUpdateParams": {
       "additionalProperties": false,
-      "description": "Change the text, author, colour, opacity or (for notes, free text, ink, shapes) the rect.",
+      "description": "Change one annotation by ``id`` or several current-revision IDs atomically by ``ids``.",
       "properties": {
         "id": {
-          "title": "Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id"
+        },
+        "ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ids"
         },
         "contents": {
           "anyOf": [
@@ -893,9 +964,6 @@
           "title": "Rect"
         }
       },
-      "required": [
-        "id"
-      ],
       "title": "AnnotsUpdateParams",
       "type": "object"
     },

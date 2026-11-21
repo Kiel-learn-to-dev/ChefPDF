@@ -16,7 +16,8 @@ Destructive (each returns the new id, or ids of the page, which change with ever
 - ``annots.addInk`` {pageIndex, strokes: [[[x, y], ...], ...], color, width, opacity, author}.
 - ``annots.addShape`` {pageIndex, kind line|arrow|rect|ellipse, rect? | points?, color, fill?,
   width, author}. points is [x1, y1, x2, y2].
-- ``annots.update`` {id, contents?, author?, color?, opacity?, rect?}.
+- ``annots.update`` {id | ids, contents?, author?, color?, opacity?, rect?}; ids updates current
+  annotation IDs atomically and returns refreshed ids.
 - ``annots.remove`` {ids}; ``annots.removeAll`` {kinds?, pageIndex?}.
 - ``annots.reply`` {id, text, author, color?}: a Text annotation answering the parent.
 - ``annots.setStatus`` {id, status accepted|rejected|cancelled|completed|none}.
@@ -49,7 +50,7 @@ from chef_core.annots.review import (
     remove_annots,
     reply,
     set_status,
-    update_annot,
+    update_annots,
 )
 from chef_core.errors import invalid_params
 from chef_core.models import WireModel
@@ -86,12 +87,17 @@ def _page_check(pdf: Any, index: int) -> None:
 def _user_quad(
     frame: Any, left: float, top: float, right: float, bottom: float
 ) -> list[tuple[float, float]]:
-    return [
+    # Preserve PDF's semantic UL, UR, LL, LR order after mapping a displayed box into
+    # unrotated user space. In particular, displayed left/right and top/bottom swap at 90°.
+    corners = (
         user_point(frame, left, top),
         user_point(frame, right, top),
         user_point(frame, left, bottom),
         user_point(frame, right, bottom),
-    ]
+    )
+    order = {0: (0, 1, 2, 3), 90: (1, 3, 0, 2), 180: (3, 2, 1, 0), 270: (2, 0, 3, 1)}
+    rotation = frame.rotation % 360
+    return [corners[index] for index in order.get(rotation, order[0])]
 
 
 def _find_quads(
@@ -156,15 +162,23 @@ def annots_list(ctx: OpContext, p: AnnotsListParams) -> OpOutput:
 # -- markup -----------------------------------------------------------------------------------
 
 
+class AnnotsTextMarkupPage(WireModel):
+    page_index: int = Field(ge=0)
+    rects: list[list[float]] = Field(min_length=1)
+
+
 class AnnotsAddTextMarkupParams(WireModel):
     """Highlight, underline, strike-out or squiggly under rects or under found text."""
 
-    page_index: int = Field(ge=0)
+    page_index: int | None = Field(default=None, ge=0)
     kind: MarkupKind
     rects: list[list[float]] | None = Field(
         default=None, description="Displayed boxes [left, top, right, bottom], one per line."
     )
     find: str | None = Field(default=None, min_length=1, description="Text to mark (text model).")
+    pages: list[AnnotsTextMarkupPage] | None = Field(
+        default=None, min_length=1, description="Displayed text boxes grouped by page, atomically."
+    )
     all_matches: bool = False
     color: str | None = Field(default=None, pattern=HEX_PATTERN)
     opacity: float = Field(default=1.0, ge=0, le=1)
@@ -181,34 +195,48 @@ class AnnotsAddTextMarkupParams(WireModel):
 )
 def annots_add_text_markup(ctx: OpContext, p: AnnotsAddTextMarkupParams) -> OpOutput:
     _need(ctx, "annots.addTextMarkup")
-    if (p.rects is None) == (p.find is None):
+    if p.pages is not None:
+        if p.page_index is not None or p.rects is not None or p.find is not None:
+            raise invalid_params("MARKUP_NEEDS_RECTS_OR_FIND", {})
+        groups_by_page = [(item.page_index, item.rects) for item in p.pages]
+    elif (p.rects is None) == (p.find is None) or p.page_index is None:
         raise invalid_params("MARKUP_NEEDS_RECTS_OR_FIND", {})
-    ids: list[str] = []
+    else:
+        groups_by_page = [(p.page_index, p.rects)]
+    indices: list[tuple[int, int]] = []
     with ctx.open_input() as pdf:
-        _page_check(pdf, p.page_index)
-        if p.find is not None:
-            groups = _find_quads(pdf, p.page_index, p.find, p.all_matches)
-        else:
-            frame = page_frame(pdf.pages[p.page_index])
-            groups = [_user_quad(frame, *map(float, r)) for r in p.rects or []]
-        for quad in groups:
-            annot = markup_dict(
-                pdf,
-                p.kind,
-                [quad],
-                colour=p.color,
-                opacity=p.opacity,
-                contents=p.contents,
-                author=p.author,
-            )
-            index = add_annot(pdf, pdf.pages[p.page_index], annot)
-            ids.append(
-                make_id(ANNOT_PREFIX, p.page_index, annot_digest(pdf.pages[p.page_index]), index)
-            )
-        if groups:
+        changed_pages: set[int] = set()
+        for page_index, rects in groups_by_page:
+            _page_check(pdf, page_index)
+            if p.find is not None:
+                groups = _find_quads(pdf, page_index, p.find, p.all_matches)
+            else:
+                frame = page_frame(pdf.pages[page_index])
+                groups = [
+                    _user_quad(frame, *map(float, rect)) for rect in rects or []
+                ]
+            for quad in groups:
+                annot = markup_dict(
+                    pdf,
+                    p.kind,
+                    [quad],
+                    colour=p.color,
+                    opacity=p.opacity,
+                    contents=p.contents,
+                    author=p.author,
+                )
+                index = add_annot(pdf, pdf.pages[page_index], annot)
+                indices.append((page_index, index))
+                changed_pages.add(page_index)
+        if changed_pages:
             ctx.save_document(pdf)
+        digests = {page_index: annot_digest(pdf.pages[page_index]) for page_index in changed_pages}
+        ids = [
+            make_id(ANNOT_PREFIX, page_index, digests[page_index], index)
+            for page_index, index in indices
+        ]
     return OpOutput(
-        changed_pages=[p.page_index] if groups else [], data={"count": len(groups), "ids": ids}
+        changed_pages=sorted(changed_pages), data={"count": len(ids), "ids": ids}
     )
 
 
@@ -398,9 +426,10 @@ def annots_add_shape(ctx: OpContext, p: AnnotsAddShapeParams) -> OpOutput:
 
 
 class AnnotsUpdateParams(WireModel):
-    """Change the text, author, colour, opacity or (for notes, free text, ink, shapes) the rect."""
+    """Change one annotation by ``id`` or several current-revision IDs atomically by ``ids``."""
 
-    id: str
+    id: str | None = None
+    ids: list[str] | None = Field(default=None, min_length=1)
     contents: str | None = None
     author: str | None = None
     color: str | None = Field(default=None, pattern=HEX_PATTERN)
@@ -417,6 +446,8 @@ class AnnotsUpdateParams(WireModel):
 )
 def annots_update(ctx: OpContext, p: AnnotsUpdateParams) -> OpOutput:
     _need(ctx, "annots.update")
+    if (p.id is None) == (p.ids is None):
+        raise invalid_params("UPDATE_NEEDS_ID", {})
     box = None
     if p.rect is not None:
         x0, t, x1, b = p.rect
@@ -424,17 +455,29 @@ def annots_update(ctx: OpContext, p: AnnotsUpdateParams) -> OpOutput:
             raise invalid_params("INVALID_RECT", {"rect": p.rect})
         box = (x0, t, x1, b)
     with ctx.open_input() as pdf:
-        new_id = update_annot(
-            pdf,
-            p.id,
-            contents=p.contents,
-            author=p.author,
-            colour=p.color,
-            opacity=p.opacity,
-            box=box,
-        )
+        if p.id is not None:
+            new_ids = update_annots(
+                pdf,
+                [p.id],
+                contents=p.contents,
+                author=p.author,
+                colour=p.color,
+                opacity=p.opacity,
+                box=box,
+            )
+        else:
+            new_ids = update_annots(
+                pdf,
+                p.ids or [],
+                contents=p.contents,
+                author=p.author,
+                colour=p.color,
+                opacity=p.opacity,
+                box=box,
+            )
         ctx.save_document(pdf)
-    return OpOutput(changed_pages="all", data={"id": new_id})
+    data = {"id": new_ids[0]} if p.id is not None else {"ids": new_ids}
+    return OpOutput(changed_pages="all", data=data)
 
 
 class AnnotsRemoveParams(WireModel):

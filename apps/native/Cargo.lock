@@ -743,6 +743,7 @@ dependencies = [
 name = "chef-app"
 version = "0.1.0"
 dependencies = [
+ "chef-contracts",
  "chef-pdf",
  "chef-rpc",
  "chef-theme",
@@ -752,6 +753,7 @@ dependencies = [
  "gpui_platform",
  "image",
  "raw-window-handle",
+ "same-file",
  "serde_json",
  "windows 0.57.0",
  "zeroize",

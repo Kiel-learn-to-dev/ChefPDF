@@ -150,4 +150,5 @@ ignore = [
     { id = "RUSTSEC-2026-0371", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của zbus_names qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
     { id = "RUSTSEC-2026-0370", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của zvariant qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
     { id = "RUSTSEC-2026-0372", reason = "D90: Chủ dự án chấp nhận cảnh báo unmaintained của zvariant_derive qua phụ thuộc bắc cầu trong GPUI đã ghim; advisory không có bản nâng cấp an toàn cho đồ thị hiện tại. Rà lại khi nâng GPUI." },
+    { id = "RUSTSEC-2026-0543", reason = "D91: Chủ dự án phê duyệt bỏ qua đúng advisory unmaintained mới của chrono 0.4.45 đang được kéo bắc cầu bởi GPUI/PDFium; cargo-deny báo không có nâng cấp an toàn. Rà lại khi advisory, GPUI hoặc đồ thị phụ thuộc thay đổi." },
 ]

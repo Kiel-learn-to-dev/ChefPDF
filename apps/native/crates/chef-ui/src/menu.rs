@@ -72,9 +72,12 @@ pub struct MenuEntry {
     id: ElementId,
     focus: FocusHandle,
     label: SharedString,
+    icon: Option<SharedString>,
     shortcut: Option<SharedString>,
+    danger: bool,
     disabled: bool,
     checked: Option<bool>,
+    separator: bool,
     children: Vec<MenuEntry>,
 }
 
@@ -88,14 +91,37 @@ impl MenuEntry {
             id: id.into(),
             focus,
             label: label.into(),
+            icon: None,
             shortcut: None,
+            danger: false,
             disabled: false,
             checked: None,
+            separator: false,
             children: Vec::new(),
         }
     }
 
-    /// Phím tắt hiển thị bên phải, ví dụ "Ctrl+O".
+    /// A non-interactive divider between related menu actions.
+    pub fn separator(id: impl Into<ElementId>, focus: FocusHandle) -> Self {
+        let mut entry = Self::new(id, focus, "");
+        entry.separator = true;
+        entry.disabled = true;
+        entry
+    }
+
+    /// Optional leading glyph, for example "↻" or "＋".
+    pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
+        self.icon = Some(icon.into());
+        self
+    }
+
+    /// Styles a destructive action using the theme's danger color.
+    pub fn danger(mut self, danger: bool) -> Self {
+        self.danger = danger;
+        self
+    }
+
+    /// Shortcut displayed at the right, for example "Ctrl+O".
     pub fn shortcut(mut self, shortcut: impl Into<SharedString>) -> Self {
         self.shortcut = Some(shortcut.into());
         self
@@ -120,6 +146,7 @@ impl MenuEntry {
 }
 
 type IndexFn = Rc<dyn Fn(usize, &mut Window, &mut App)>;
+type IdFn = Rc<dyn Fn(String, &mut Window, &mut App)>;
 type DismissFn = Rc<dyn Fn(&mut Window, &mut App)>;
 type LayoutFn = Rc<dyn Fn(gpui::Bounds<gpui::Pixels>, &mut App)>;
 
@@ -155,6 +182,7 @@ struct Colors {
     text_2: u32,
     hover: u32,
     accent: u32,
+    danger: u32,
 }
 
 impl Colors {
@@ -167,6 +195,7 @@ impl Colors {
                 text_2: pack(dark::C_TEXT_2),
                 hover: pack(dark::C_HOVER),
                 accent: pack(dark::C_ACCENT),
+                danger: pack(dark::C_DANGER),
             }
         } else {
             Colors {
@@ -176,6 +205,7 @@ impl Colors {
                 text_2: pack(light::C_TEXT_2),
                 hover: pack(light::C_HOVER),
                 accent: pack(light::C_ACCENT),
+                danger: pack(light::C_DANGER),
             }
         }
     }
@@ -262,6 +292,7 @@ pub struct Menu {
     dark: bool,
     dismiss_on_outside: bool,
     on_select: Option<IndexFn>,
+    on_select_id: Option<IdFn>,
     on_dismiss: Option<DismissFn>,
     on_layout: Option<LayoutFn>,
 }
@@ -282,6 +313,7 @@ impl Menu {
             dark: false,
             dismiss_on_outside: true,
             on_select: None,
+            on_select_id: None,
             on_dismiss: None,
             on_layout: None,
         }
@@ -323,6 +355,16 @@ impl Menu {
     /// nếu cần ổn định, dùng khóa theo `id` (ghi ở D84).
     pub fn on_select(mut self, listener: impl Fn(usize, &mut Window, &mut App) + 'static) -> Self {
         self.on_select = Some(Rc::new(listener));
+        self
+    }
+
+    /// Dispatch the selected leaf by its stable `MenuEntry` id. Unlike `on_select`, this does not
+    /// change when a submenu is expanded or collapsed.
+    pub fn on_select_id(
+        mut self,
+        listener: impl Fn(String, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_select_id = Some(Rc::new(listener));
         self
     }
 
@@ -517,7 +559,9 @@ impl RenderOnce for Menu {
             let entry_id = entry.id.clone();
             a11y::register(Registered {
                 id: a11y::element_id_text(&entry.id),
-                role: if entry.checked.is_some() {
+                role: if entry.separator {
+                    "separator"
+                } else if entry.checked.is_some() {
                     "menuitemradio"
                 } else {
                     "menuitem"
@@ -531,6 +575,24 @@ impl RenderOnce for Menu {
                 value: entry.shortcut.as_ref().map(|s| s.to_string()),
                 bounds: None,
             });
+            if entry.separator {
+                let row_key = a11y::element_id_text(&entry_id);
+                let row = div()
+                    .id(entry.id.clone())
+                    .h(px(9.))
+                    .my(px(3.))
+                    .mx(px(shared::SPACE_2))
+                    .border_t_1()
+                    .border_color(rgba(c.border));
+                panel = panel.child(div().flex_none().child(row).on_children_prepainted(
+                    move |bounds, _, _| {
+                        if let Some(b) = bounds.first() {
+                            a11y::set_bounds(&row_key, *b);
+                        }
+                    },
+                ));
+                continue;
+            }
             let mut row = div()
                 .id(entry.id.clone())
                 .flex()
@@ -540,20 +602,31 @@ impl RenderOnce for Menu {
                 .px(px(shared::SPACE_4))
                 .rounded(px(shared::RADIUS_SM))
                 .text_size(px(shared::TEXT_MD))
-                .text_color(rgba(c.text));
+                .text_color(rgba(if entry.danger { c.danger } else { c.text }));
             if depth > 0 {
                 row = row.pl(px(shared::SPACE_4 * 3.0));
             }
-            // Dấu chọn: một ô cố định để chữ các mục thẳng hàng, dù mục có chọn hay không.
-            if let Some(on) = entry.checked {
+            // Cột biểu tượng cố định để nhãn các mục luôn thẳng hàng.
+            if let Some(icon) = entry.icon.clone() {
                 row = row.child(
                     div()
-                        .w(px(14.))
+                        .w(px(16.))
+                        .flex()
+                        .justify_center()
+                        .text_color(rgba(if entry.danger { c.danger } else { c.text_2 }))
+                        .child(icon),
+                );
+            } else if let Some(on) = entry.checked {
+                row = row.child(
+                    div()
+                        .w(px(16.))
                         .flex()
                         .justify_center()
                         .text_color(rgba(c.accent))
                         .child(if on { "✓" } else { "" }),
                 );
+            } else {
+                row = row.child(div().w(px(16.)));
             }
             row = row.child(div().flex_1().min_w_0().child(entry.label.clone()));
             if let Some(shortcut) = entry.shortcut.clone() {
@@ -590,6 +663,13 @@ impl RenderOnce for Menu {
                         } else {
                             open_child(&sub, &child_nav, top, window, cx);
                         }
+                    });
+                } else if let Some(listener) = self.on_select_id.clone() {
+                    let sub = sub.clone();
+                    let stable_id = a11y::element_id_text(&entry_id);
+                    row = row.on_click(move |_, window, cx| {
+                        sub.update(cx, |s, _| s.open = None);
+                        listener(stable_id.clone(), window, cx)
                     });
                 } else if let Some(listener) = self.on_select.clone() {
                     let sub = sub.clone();
