@@ -1240,10 +1240,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) vùng tẩy đúng hình; (2) màu nền giấy tự dò đúng; (3) có undo.
 - **Kiểm chứng:** E2E `erase` (phần tẩy vùng trong PDF có chữ) — chú ý `erase` là spec của M8, ở đây chỉ kiểm tẩy trên PDF thường.
 - **Phụ thuộc:** R4.11
-- **File:** `apps/native/crates/chef-viewer/src/erase_tool.rs`
-- **E2E:** `content-v06`
+- **File:** `apps/native/crates/chef-app/src/draw.rs` (`Tool::Erase`), `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-erase.ps1`
+- **E2E:** `content-v06`, `scripts/e2e-native-erase.ps1`
 - **Tính năng:** D5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm công cụ `Tẩy vùng` vào vòng chọn công cụ vẽ (sau Bút): kéo một hình chữ nhật, gọi `content.eraseRegion` với `mode=cover`, `color=auto` (màu nền giấy do lõi dò) qua pipeline revision nên có undo. Vùng kéo ngược được chuẩn hóa, vùng dưới 1 pt bị từ chối (unit test `erase_tool_covers_the_region_with_the_detected_paper_colour`). `chef-app` 127/127, clippy sạch. `scripts/e2e-native-erase.ps1` trên Windows đạt: sau khi tẩy, vùng chữ không còn điểm tối nào, phần chữ ngoài vùng giữ nguyên (2132 điểm tối), `Ctrl+Z` khôi phục chữ. Giới hạn: mới có chế độ chữ nhật (chưa tẩy tự do) và E2E chỉ kiểm nền trắng, chưa kiểm dò màu nền khác trắng hay chọn màu tay.
+- **Trạng thái:** ✅
 
 ### R4.14 · Thay ảnh và chỉnh ảnh trong PDF · M
 - **Mô tả:** thay một ảnh bằng ảnh khác giữ vị trí và kích thước (D6). Cắt, xoay, lật, xóa nền, sáng và tương phản ngay trong PDF (D7). Operation `content.image.*`.

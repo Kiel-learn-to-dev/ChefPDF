@@ -9,6 +9,7 @@ pub enum Tool {
     Arrow,
     Ellipse,
     Pen,
+    Erase,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -124,6 +125,24 @@ pub fn operation_params(
                 }),
             ))
         }
+        Tool::Erase => {
+            let rect = gesture.rect();
+            if rect.iter().any(|v| !v.is_finite() || *v < 0.0)
+                || rect[2] - rect[0] < 1.0
+                || rect[3] - rect[1] < 1.0
+            {
+                return Err("The erase region is invalid".into());
+            }
+            Ok((
+                "content.eraseRegion",
+                json!({
+                    "pageIndex": page_index,
+                    "rect": rect,
+                    "mode": "cover",
+                    "color": "auto",
+                }),
+            ))
+        }
         Tool::Pen => {
             validate_style(color, width)?;
             if gesture.points.len() < 2
@@ -216,5 +235,26 @@ mod tests {
         let (pen_op, pen) = operation_params(Tool::Pen, 0, &gesture, "#123456", 3.0).unwrap();
         assert_eq!(pen_op, "annots.addInk");
         assert_eq!(pen["strokes"][0].as_array().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn erase_tool_covers_the_region_with_the_detected_paper_colour() {
+        let gesture = Gesture {
+            generation: 1,
+            page_index: 0,
+            start: [40.0, 30.0],
+            end: [10.0, 90.0],
+            points: vec![],
+        };
+        let (op, params) = operation_params(Tool::Erase, 0, &gesture, "#E53935", 2.0).unwrap();
+        assert_eq!(op, "content.eraseRegion");
+        assert_eq!(params["mode"], "cover");
+        assert_eq!(params["color"], "auto");
+        assert_eq!(params["rect"], json!([10.0, 30.0, 40.0, 90.0]));
+        let flat = Gesture {
+            end: [40.5, 30.2],
+            ..gesture
+        };
+        assert!(operation_params(Tool::Erase, 0, &flat, "#E53935", 2.0).is_err());
     }
 }

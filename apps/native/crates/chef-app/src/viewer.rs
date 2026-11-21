@@ -3439,7 +3439,8 @@ impl Viewer {
             Some(crate::draw::Tool::Line) => Some(crate::draw::Tool::Arrow),
             Some(crate::draw::Tool::Arrow) => Some(crate::draw::Tool::Ellipse),
             Some(crate::draw::Tool::Ellipse) => Some(crate::draw::Tool::Pen),
-            Some(crate::draw::Tool::Pen) => None,
+            Some(crate::draw::Tool::Pen) => Some(crate::draw::Tool::Erase),
+            Some(crate::draw::Tool::Erase) => None,
         };
         self.draw_gesture = None;
         self.selection = None;
@@ -5158,6 +5159,7 @@ impl Render for Viewer {
                             Some(crate::draw::Tool::Arrow) => "draw.arrow",
                             Some(crate::draw::Tool::Ellipse) => "draw.ellipse",
                             Some(crate::draw::Tool::Pen) => "draw.pen",
+                            Some(crate::draw::Tool::Erase) => "draw.erase",
                             None => "draw.off",
                         })
                     ))
