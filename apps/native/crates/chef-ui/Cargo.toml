@@ -17,3 +17,6 @@ zeroize = "1"
 serde_json = "1"
 # Token màu và kích thước của nút (TASKS_RUST R2.03). Sinh từ tokens.css.
 chef-theme = { path = "../chef-theme" }
+
+[dev-dependencies]
+chef-contracts = { path = "../chef-contracts" }

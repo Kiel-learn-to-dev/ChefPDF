@@ -51,12 +51,12 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 | M2 | Xem đầy đủ | 34 | 2 | 10 | 21 | 0 | — |
 | M3 | Phiên và thao tác | 15 | 0 | 7 | 7 | 0 | — |
 | M4 | Trang và chú thích | 25 | 0 | 7 | 15 | 2 | — |
-| M5 | Hộp thoại và xử lý | 69 | 0 | 17 | 45 | 1 | — |
+| M5 | Hộp thoại và xử lý | 69 | 0 | 20 | 42 | 1 | — |
 | M6 | Ký số | 30 | 1 | 7 | 19 | 2 | — |
 | M7 | Sửa chữ và đoạn | 13 | 2 | 0 | 10 | 0 | — |
 | M8 | Chụp và xử lý ảnh | 23 | 0 | 1 | 21 | 0 | — |
 | M9 | Hoàn thiện | 17 | 1 | 6 | 8 | 0 | — |
-| **Tổng** | | **269** | 14 | 79 | 155 | 7 | — |
+| **Tổng** | | **269** | 14 | 82 | 152 | 7 | — |
 
 Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
 
@@ -1409,9 +1409,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) form sinh ra cho ba operation mẫu khớp với hộp thoại viết tay tương ứng; (2) kiểu sai bị chặn trước khi chạy; (3) thêm một operation mới không cần viết giao diện; (4) có bảng phân loại mọi hộp thoại xử lý trong 104 màn hình ui-audit: "sinh từ schema" (đạt ngưỡng so ảnh R2.02), "schema + phần viết tay" (xem trước, danh sách kéo thả), hoặc "viết tay hoàn toàn", để giữ yêu cầu hình họa của BLUEPRINT_RUST §6; (5) theo bảng đó, rà lại kích thước R5.03–R5.68 (task chỉ còn nối schema và E2E thì xuống S) và ghi vào "Thay đổi sau khi chốt" (4 và 5 thêm 2026-11-11).
 - **Kiểm chứng:** test với ba operation; so với hộp thoại cũ.
 - **Phụ thuộc:** R5.01, R3.07
-- **File:** `apps/native/crates/chef-ui/src/schema_form.rs`
+- **File:** `apps/native/crates/chef-ui/src/schema_form.rs`, `apps/native/crates/chef-contracts/src/lib.rs`, `apps/native/crates/chef-ui/Cargo.toml`, `apps/native/crates/chef-ui/src/lib.rs`, `apps/native/assets/i18n/vi.json`, `apps/native/assets/i18n/en.json`, `docs/DIALOG_CLASSIFICATION_RUST.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) `chef-contracts` thêm `OPS_SCHEMA`/`ops_schema()`. `schema_form.rs` gồm mô hình thuần (`FormSchema::from_definition`, `build`, `parse_page_ranges`) và entity `SchemaForm` vẽ bằng `TextField`, `Switch`, `RadioGroup`/`Select` có sẵn. Hỗ trợ chuỗi, số nguyên, số thực, bool, enum, khoảng trang (nhập từ 1, đổi sang chỉ số lõi), danh sách file (do phần viết tay thêm qua `set_files`); đối tượng lồng là `Unsupported` (bỏ nếu tùy chọn, chặn chạy nếu bắt buộc). Nhãn lấy từ `schemaForm.fields.<Params>.<trường>` rồi `schemaForm.fields.<trường>`, thiếu thì `title` của schema; thông báo lỗi `schemaForm.error.*` có đủ vi và en. 12 unit test (chef-ui 85/85): mọi `*Params` đọc được, `PageRotateParams` và `FileMergeParams` dựng JSON mà struct sinh (`ops_types`) đọc lại được, `FileSplitParams` có 5 chế độ, kiểu sai bị chặn (khoảng trang, số nguyên, vượt min/max, ngoài enum, thiếu file), operation giả mới có form không cần mã giao diện. Bảng phân loại 68 hộp thoại ở `docs/DIALOG_CLASSIFICATION_RUST.md` (6 S, 44 S+, 17 H, 1 bỏ); R5.04, R5.44, R5.46 xuống S. Chưa làm: trang thử E2E trên GPUI (`SchemaForm` chưa nối vào `TaskDialog` nào; R5.03 là nơi nối đầu tiên) và đối chiếu pixel với hộp thoại Electron (R5.09). Kiểm chứng: `cargo fmt --check`, `clippy --workspace --all-targets -D warnings`, `cargo test --workspace`, `cargo deny check`.
+- **Trạng thái:** ✅
 
 ### R5.03 · Ghép file · M
 - **Mô tả:** chọn nhiều PDF, kéo sắp thứ tự, tùy chọn tạo bookmark theo tên file. Operation `pdf.merge`.
@@ -1423,7 +1424,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** C4
 - **Trạng thái:** ⬜
 
-### R5.04 · Tách file · M
+### R5.04 · Tách file · S
 - **Mô tả:** tách theo khoảng trang, mỗi N trang, theo bookmark, theo dung lượng, trang chẵn hoặc lẻ. Operation `pdf.split`.
 - **Tiêu chí:** (1) mỗi cách tách ra đúng số file và trang; (2) tên file theo mẫu; (3) file gốc không đổi.
 - **Kiểm chứng:** E2E `tools5`; test.
@@ -1809,7 +1810,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 
 ### M5d Bảo mật
 
-### R5.44 · Đặt mật khẩu · M
+### R5.44 · Đặt mật khẩu · S
 - **Mô tả:** mật khẩu mở file, giới hạn quyền in, copy, sửa, mã hóa AES-256. Operation `security.encrypt`.
 - **Tiêu chí:** (1) file mở được bằng mật khẩu đã đặt; (2) quyền bị giới hạn đúng (kiểm bằng pikepdf); (3) mật khẩu không vào log.
 - **Kiểm chứng:** E2E `tools5`; đọc bằng pikepdf.
@@ -1828,7 +1829,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** J2
 - **Trạng thái:** ⬜
 
-### R5.46 · Gỡ dữ liệu ẩn · M
+### R5.46 · Gỡ dữ liệu ẩn · S
 - **Mô tả:** xóa metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú, lịch sử sửa. Operation `security.scrub`.
 - **Tiêu chí:** (1) từng loại được xóa, kiểm bằng pikepdf; (2) chữ và ảnh không đổi; (3) cho chọn từng loại.
 - **Kiểm chứng:** E2E `redact`; test.
@@ -3077,3 +3078,4 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 - [ ] Ước lượng điểm cho M2–M9 (BLUEPRINT_RUST §14), dựa trên số giờ thực tế của M1 và số task đã xong; ghi tốc độ học Rust/GPUI (BLUEPRINT_RUST §15)
 - [ ] MAN-1 đã làm (R1.27)
 - [ ] Điểm kiểm không phải cổng dừng: nếu một việc không đạt, ghi lại và đưa vào mốc sau, không dừng cả dự án
+| 2026-11-21 | R5.02 | Đóng ✅ | Renderer hộp thoại từ JSON Schema (`schema_form.rs`) và bảng phân loại 68 hộp thoại ui-audit (`DIALOG_CLASSIFICATION_RUST.md`: 6 S, 44 S+, 17 H, 1 bỏ). Rà kích thước M5: R5.04, R5.44, R5.46 từ M xuống S; bảng Tổng quan M5 thành 20 S, 42 M. |

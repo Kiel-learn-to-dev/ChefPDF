@@ -809,6 +809,7 @@ version = "0.1.0"
 name = "chef-ui"
 version = "0.1.0"
 dependencies = [
+ "chef-contracts",
  "chef-theme",
  "gpui",
  "serde_json",

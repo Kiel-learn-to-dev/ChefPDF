@@ -10,6 +10,7 @@ pub mod jobs_panel;
 pub mod menu;
 pub mod motion;
 pub mod palette;
+pub mod schema_form;
 pub mod select;
 pub mod tabs;
 pub mod task_dialog;

@@ -12,6 +12,14 @@ pub mod ops_types {
     include!(concat!(env!("OUT_DIR"), "/ops_types.rs"));
 }
 
+/// Schema gốc của mọi `Params` (`schema/ops.schema.json`), cho renderer hộp thoại (R5.02).
+pub const OPS_SCHEMA: &str = include_str!("../schema/ops.schema.json");
+
+/// `OPS_SCHEMA` đã đọc thành JSON.
+pub fn ops_schema() -> serde_json::Value {
+    serde_json::from_str(OPS_SCHEMA).expect("ops.schema.json hợp lệ (kiểm bằng test)")
+}
+
 #[cfg(test)]
 mod tests {
     use super::layout_types::Paragraph;
