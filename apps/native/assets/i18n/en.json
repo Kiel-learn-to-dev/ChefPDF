@@ -1,5 +1,5 @@
 {
-  "draw": {
+  "objects": { "select": "Select object", "on": "On" }, "draw": {
     "tool": "Draw",
     "off": "Off",
     "rectangle": "Rectangle",

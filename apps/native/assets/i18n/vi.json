@@ -1,5 +1,5 @@
 {
-  "draw": {
+  "objects": { "select": "Chọn đối tượng", "on": "Bật" }, "draw": {
     "tool": "Vẽ",
     "off": "Tắt",
     "rectangle": "Chữ nhật",

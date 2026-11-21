@@ -1219,10 +1219,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) click chọn đúng đối tượng đầu tiên dưới con trỏ; (2) Delete xóa được ngay sau khi chọn (lỗi `remapSelection` đã biết ở NOTES nên có test); (3) bấm chữ thì bỏ chọn ảnh.
 - **Kiểm chứng:** E2E `objects`, `overlay`; test.
 - **Phụ thuộc:** R2.25a, R4.03
-- **File:** `apps/native/crates/chef-viewer/src/objects.rs`
+- **File:** `apps/native/crates/chef-app/src/objects.rs` (logic thuần), `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-objects.ps1`
 - **E2E:** `objects`, `overlay`
 - **Tính năng:** D4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Nút `Chọn đối tượng` bật chế độ chọn: click gọi `content.hitTest` (đối tượng trên cùng dưới con trỏ, không tính form) và vẽ viền `object-selection` quanh bbox. Khi có đối tượng chọn, key context `ObjectSelected` bật Delete (`content.delete`), mũi tên nhích 1 pt (`content.move`, sau đó tự chọn lại bằng id mới của revision nên Delete vẫn chạy được) và Ctrl+] / Ctrl+[ đưa lên trên / xuống dưới (`content.reorder`). Click vùng trống bỏ chọn; tắt chế độ thì xóa chọn nên click chữ ở chế độ thường không giữ chọn ảnh. `objects.rs` có 2 unit test, `chef-app` 126/126, clippy sạch. `scripts/e2e-native-objects.ps1` trên Windows đạt: chọn khối màu, nhích phải (tọa độ 51 trong content stream), Delete ngay sau nhích (không còn `re`), click vùng trống rồi Delete không xóa gì. Ghi chú: module nằm ở `chef-app` thay vì `chef-viewer`; chưa có ui-audit cho màu viền và chưa có E2E `overlay`.
+- **Trạng thái:** ✅
 
 ### R4.12 · Kéo khung, nắm và xoay đối tượng · M
 - **Mô tả:** tám nắm góc và cạnh để đổi kích thước, nắm xoay, kéo khung di chuyển. Mỗi thao tác là một operation.

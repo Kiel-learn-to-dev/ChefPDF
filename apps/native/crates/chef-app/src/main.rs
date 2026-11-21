@@ -43,6 +43,7 @@ mod logging;
 mod night;
 pub mod notes;
 mod notes_list;
+mod objects;
 mod page_ops;
 mod password;
 mod probe;

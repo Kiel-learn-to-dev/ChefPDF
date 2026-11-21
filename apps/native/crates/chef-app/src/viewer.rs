@@ -95,7 +95,14 @@ actions!(
         SetSlideshow,
         SlideNext,
         SlidePrevious,
-        ExitSlideshow
+        ExitSlideshow,
+        ObjectDelete,
+        ObjectNudgeLeft,
+        ObjectNudgeRight,
+        ObjectNudgeUp,
+        ObjectNudgeDown,
+        ObjectToFront,
+        ObjectToBack
     ]
 );
 
@@ -124,6 +131,13 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("ctrl-y", RedoEdit, Some("Viewer")),
         KeyBinding::new("ctrl-s", SaveEdit, Some("Viewer")),
         KeyBinding::new("ctrl-shift-r", RetryRevisionReload, Some("Viewer")),
+        KeyBinding::new("delete", ObjectDelete, Some("ObjectSelected")),
+        KeyBinding::new("left", ObjectNudgeLeft, Some("ObjectSelected")),
+        KeyBinding::new("right", ObjectNudgeRight, Some("ObjectSelected")),
+        KeyBinding::new("up", ObjectNudgeUp, Some("ObjectSelected")),
+        KeyBinding::new("down", ObjectNudgeDown, Some("ObjectSelected")),
+        KeyBinding::new("ctrl-]", ObjectToFront, Some("ObjectSelected")),
+        KeyBinding::new("ctrl-[", ObjectToBack, Some("ObjectSelected")),
     ]);
 }
 
@@ -204,6 +218,9 @@ pub struct Viewer {
     selection: Option<Selection>,
     dragging: bool,
     draw_tool: Option<crate::draw::Tool>,
+    object_mode: bool,
+    object_sel: Option<crate::objects::ObjectSel>,
+    object_rehit: Option<(usize, [f32; 2])>,
     draw_gesture: Option<crate::draw::Gesture>,
     draw_color: String,
     draw_width: f32,
@@ -398,6 +415,14 @@ enum OperationResult {
         can_redo: bool,
         dirty: bool,
     },
+    ObjectHit {
+        generation: u64,
+        session_id: String,
+        selection: Option<crate::objects::ObjectSel>,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
 }
 
 enum EditOperation {
@@ -445,6 +470,10 @@ enum EditOperation {
     NoteMutation {
         op_id: &'static str,
         params: serde_json::Value,
+    },
+    HitObject {
+        page_index: usize,
+        point: [f32; 2],
     },
     SetBookmarks {
         tree: Vec<serde_json::Value>,
@@ -1241,6 +1270,10 @@ impl Viewer {
             EditOperation::ReadNotes { ticket, doc, path } => Some((*ticket, *doc, path.clone())),
             _ => None,
         };
+        let object_hit = match &operation {
+            EditOperation::HitObject { page_index, .. } => Some(*page_index),
+            _ => None,
+        };
         let refresh_notes = matches!(&operation, EditOperation::NoteMutation { .. });
         let (tx, rx) = channel();
         self.operation_rx = Some(rx);
@@ -1407,6 +1440,17 @@ impl Viewer {
                             refresh_required = refresh;
                             msg
                         })?,
+                        EditOperation::HitObject { page_index, point } => run_session_job(
+                            sup,
+                            "content.hitTest",
+                            &session_id,
+                            &crate::objects::hit_params(page_index, point),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?,
                         EditOperation::NoteMutation { op_id, params } => {
                             run_session_job(sup, op_id, &session_id, &params, true).map_err(
                                 |(msg, refresh)| {
@@ -1518,6 +1562,24 @@ impl Viewer {
                         ticket,
                         session_id,
                         tree,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
+                if let Some(page_index) = object_hit {
+                    let selection = crate::objects::selection_from_reply(&reply, page_index)?;
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::ObjectHit {
+                        generation,
+                        session_id,
+                        selection,
                         can_undo,
                         can_redo,
                         dirty,
@@ -2147,6 +2209,26 @@ impl Viewer {
                     self.bookmark_focus_pending = true;
                 }
             }
+            OperationResult::ObjectHit {
+                generation,
+                session_id,
+                selection,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                self.object_sel = selection;
+            }
             OperationResult::NotesLoaded {
                 generation,
                 doc,
@@ -2314,6 +2396,10 @@ impl Viewer {
                         self.find.set_query(&query);
                     }
                     self.message = None;
+                    self.object_sel = None;
+                    if let Some((page_index, point)) = self.object_rehit.take() {
+                        self.begin_edit(EditOperation::HitObject { page_index, point }, cx);
+                    }
                 }
             }
             OperationResult::Extracted {
@@ -2523,6 +2609,9 @@ impl Viewer {
             selection: None,
             dragging: false,
             draw_tool: None,
+            object_mode: false,
+            object_sel: None,
+            object_rehit: None,
             draw_gesture: None,
             draw_color: "#E53935".to_string(),
             draw_width: 2.0,
@@ -3357,6 +3446,75 @@ impl Viewer {
         cx.notify();
     }
 
+    fn toggle_object_mode(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        self.object_mode = !self.object_mode;
+        self.object_sel = None;
+        self.object_rehit = None;
+        if self.object_mode {
+            self.draw_tool = None;
+            self.draw_gesture = None;
+            self.selection = None;
+        }
+        cx.notify();
+    }
+
+    fn begin_object_hit(&mut self, ev_position: Point<Pixels>, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        let Some((page_index, point)) = self.point_to_page(ev_position) else {
+            self.object_sel = None;
+            cx.notify();
+            return;
+        };
+        self.begin_edit(EditOperation::HitObject { page_index, point }, cx);
+    }
+
+    fn object_delete(&mut self, cx: &mut Context<Self>) {
+        let Some(sel) = self.object_sel.take() else {
+            return;
+        };
+        self.object_rehit = None;
+        self.begin_edit(
+            EditOperation::DrawShape {
+                op_id: "content.delete",
+                params: crate::objects::delete_params(&sel.id),
+            },
+            cx,
+        );
+    }
+
+    fn object_nudge(&mut self, dx: f32, dy: f32, cx: &mut Context<Self>) {
+        let Some(sel) = self.object_sel.clone() else {
+            return;
+        };
+        let center = sel.center();
+        self.object_rehit = Some((sel.page_index, [center[0] + dx, center[1] + dy]));
+        self.begin_edit(
+            EditOperation::DrawShape {
+                op_id: "content.move",
+                params: crate::objects::move_params(&sel.id, dx, dy),
+            },
+            cx,
+        );
+    }
+
+    fn object_reorder(&mut self, order: crate::objects::Order, cx: &mut Context<Self>) {
+        let Some(sel) = self.object_sel.clone() else {
+            return;
+        };
+        self.object_rehit = Some((sel.page_index, sel.center()));
+        self.begin_edit(
+            EditOperation::DrawShape {
+                op_id: "content.reorder",
+                params: crate::objects::reorder_params(&sel.id, order),
+            },
+            cx,
+        );
+    }
     fn cycle_draw_color(&mut self, cx: &mut Context<Self>) {
         self.draw_color = match self.draw_color.as_str() {
             "#E53935" => "#1565C0".to_string(),
@@ -3410,6 +3568,13 @@ impl Viewer {
 
     fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
+        if self.object_mode {
+            self.selection = None;
+            self.dragging = false;
+            self.begin_object_hit(ev.position, cx);
+            cx.notify();
+            return;
+        }
         if self.draw_tool.is_some() {
             if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
                 return;
@@ -4952,6 +5117,37 @@ impl Render for Viewer {
                     )
             })
             .child(
+                Button::new("object-select", cx.focus_handle())
+                    .label(format!(
+                        "{}: {}",
+                        i18n::t("objects.select"),
+                        i18n::t(if self.object_mode {
+                            "objects.on"
+                        } else {
+                            "draw.off"
+                        })
+                    ))
+                    .size(ButtonSize::Sm)
+                    .variant(if self.object_mode {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let object_entity = entity.clone();
+                        move |_, _, cx| {
+                            object_entity.update(cx, |this, cx| this.toggle_object_mode(cx))
+                        }
+                    }),
+            )
+            .child(
                 Button::new("draw-tool", cx.focus_handle())
                     .label(format!(
                         "{}: {}",
@@ -5227,7 +5423,11 @@ impl Render for Viewer {
                 .flex_col()
                 .overflow_hidden()
                 .bg(rgb(palette.canvas))
-                .key_context("Viewer")
+                .key_context(if self.object_sel.is_some() {
+                    "Viewer ObjectSelected"
+                } else {
+                    "Viewer"
+                })
                 .track_focus(&self.focus)
                 .on_children_prepainted(move |bounds, window, _| {
                     if let Some(first) = bounds.first() {
@@ -5344,6 +5544,27 @@ impl Render for Viewer {
                 .on_action(
                     cx.listener(|this, _: &DeletePages, _window, cx| this.begin_delete_pages(cx)),
                 )
+                .on_action(
+                    cx.listener(|this, _: &ObjectDelete, _window, cx| this.object_delete(cx)),
+                )
+                .on_action(cx.listener(|this, _: &ObjectNudgeLeft, _window, cx| {
+                    this.object_nudge(-1.0, 0.0, cx)
+                }))
+                .on_action(cx.listener(|this, _: &ObjectNudgeRight, _window, cx| {
+                    this.object_nudge(1.0, 0.0, cx)
+                }))
+                .on_action(cx.listener(|this, _: &ObjectNudgeUp, _window, cx| {
+                    this.object_nudge(0.0, -1.0, cx)
+                }))
+                .on_action(cx.listener(|this, _: &ObjectNudgeDown, _window, cx| {
+                    this.object_nudge(0.0, 1.0, cx)
+                }))
+                .on_action(cx.listener(|this, _: &ObjectToFront, _window, cx| {
+                    this.object_reorder(crate::objects::Order::Front, cx)
+                }))
+                .on_action(cx.listener(|this, _: &ObjectToBack, _window, cx| {
+                    this.object_reorder(crate::objects::Order::Back, cx)
+                }))
                 .on_action(cx.listener(|this, _: &DuplicatePages, _window, cx| {
                     this.begin_duplicate_pages(cx)
                 }))
@@ -5831,6 +6052,24 @@ impl Render for Viewer {
                             .into_any_element(),
                     );
                 }
+            }
+            if let Some(sel) = self.object_sel.as_ref()
+                && sel.page_index == i
+            {
+                let [left, top, right, bottom] = sel.bbox;
+                let (left, top, right, bottom) = self.rect_to_view(i, left, top, right, bottom);
+                children.push(
+                    div()
+                        .id("object-selection")
+                        .absolute()
+                        .left(px(x + left * zoom))
+                        .top(px(y + top * zoom))
+                        .w(px(((right - left) * zoom).max(1.0)))
+                        .h(px(((bottom - top) * zoom).max(1.0)))
+                        .border_2()
+                        .border_color(rgb(palette.accent))
+                        .into_any_element(),
+                );
             }
             if let Some(gesture) = self.draw_gesture.as_ref()
                 && gesture.page_index == i
