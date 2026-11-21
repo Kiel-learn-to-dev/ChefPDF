@@ -1198,10 +1198,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) ảnh đúng vị trí và kích thước; (2) có undo; (3) ảnh vượt trang bị cắt đúng.
 - **Kiểm chứng:** E2E `objects`; test.
 - **Phụ thuộc:** R4.12 (khung chọn đối tượng)
-- **File:** `apps/native/crates/chef-app/src/insert_image.rs`
-- **E2E:** `objects`
+- **File:** `apps/native/crates/chef-app/src/insert_image.rs`, `apps/native/crates/chef-app/src/dialogs.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-insert-image.ps1`
+- **E2E:** `objects`, `scripts/e2e-native-insert-image.ps1`
 - **Tính năng:** D2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm hộp chọn ảnh PNG/JPEG (`dialogs::open_image`, `dialogs_stub::open_image`), nút `Chèn ảnh` (`insert-image`), kéo đặt trực tiếp lên trang với xem trước `insert-image-preview` tự giữ tỉ lệ gốc theo kích thước ảnh (`normalized_rect`), cho phép kéo tràn mép trang để PDF tự cắt theo khung trang và gọi `overlay.addImage` qua pipeline revision nên có undo. `insert_image.rs` có 2 unit test; `chef-app` 134/134, `chef-viewer` 45/45, clippy sạch. `scripts/e2e-native-insert-image.ps1` trên Windows đạt: chèn ảnh đúng tỉ lệ 2:1, ảnh tràn phải (`531.4..689.6`) bị cắt đúng ở mép trang 612 pt (80 hàng pixel đỏ tại x=610), và hai lần `Ctrl+Z` khôi phục sạch trang PDF. Đóng task.
+- **Trạng thái:** ✅
 
 ### R4.10 · Sửa mục lục (bookmark) · M
 - **Mô tả:** thêm, sửa, xóa, sắp xếp bookmark trong hộp thoại. Dùng `bookmarks.py` của lõi.

@@ -27,6 +27,21 @@ return output"#;
 }
 
 #[allow(dead_code)]
+pub fn open_image(_initial_dir: Option<&Path>) -> Option<PathBuf> {
+    let script = r#"set picked to choose file with prompt "Open Image" of type {"png", "jpg", "jpeg"}
+return POSIX path of picked"#;
+    let output = std::process::Command::new("/usr/bin/osascript")
+        .args(["-e", script])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!path.is_empty()).then(|| PathBuf::from(path))
+}
+
+#[allow(dead_code)]
 pub fn save_pdf(_initial_dir: Option<&Path>, suggested: &str) -> Option<PathBuf> {
     // Pass the suggested name as an argv item so quotes in a filename cannot alter AppleScript.
     let script = r#"on run argv

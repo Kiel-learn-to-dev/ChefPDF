@@ -89,6 +89,21 @@ pub fn pdf_filter() -> Vec<u16> {
     out
 }
 
+pub fn image_filter() -> Vec<u16> {
+    let mut out = Vec::new();
+    for part in [
+        "Ảnh (*.png;*.jpg;*.jpeg)",
+        "*.png;*.jpg;*.jpeg",
+        "Tất cả tệp",
+        "*.*",
+    ] {
+        out.extend(part.encode_utf16());
+        out.push(0);
+    }
+    out.push(0);
+    out
+}
+
 /// Đọc vùng kết quả của hộp thoại. Chọn một tệp: đường dẫn đầy đủ. Chọn nhiều tệp: thư mục, rồi tên
 /// từng tệp, mỗi phần kết thúc bằng NUL và phần cuối là NUL kép.
 pub fn parse_selection(buf: &[u16]) -> Vec<PathBuf> {
@@ -111,6 +126,38 @@ fn initial_dir_wide(dir: Option<&Path>) -> Option<Vec<u16>> {
 }
 
 /// Chạy hộp thoại mở nhiều PDF. Trả về các tệp đã chọn; rỗng khi hủy.
+pub fn open_image(initial_dir: Option<&Path>) -> Option<PathBuf> {
+    let mut filter = image_filter();
+    let mut file = vec![0u16; 4096];
+    let title = wide("Chọn ảnh");
+    let dir = initial_dir_wide(initial_dir);
+    let flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
+    record_dialog_request(
+        "open_image",
+        dir.as_deref(),
+        file.len(),
+        std::ptr::null(),
+        flags,
+    );
+    let mut ofn = new_ofn(
+        filter.as_mut_ptr(),
+        file.as_mut_ptr(),
+        file.len() as u32,
+        title.as_ptr(),
+        dir.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
+        std::ptr::null(),
+        flags,
+    );
+    spawn_e2e_closer();
+    // SAFETY: buffers stay valid and live across GetOpenFileNameW.
+    let ok = unsafe { GetOpenFileNameW(&mut ofn) };
+    if ok == 0 {
+        None
+    } else {
+        parse_selection(&file).into_iter().next()
+    }
+}
+
 pub fn open_pdfs(initial_dir: Option<&Path>) -> Vec<PathBuf> {
     let mut filter = pdf_filter();
     let mut file = vec![0u16; FILE_BUFFER];

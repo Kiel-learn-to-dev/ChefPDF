@@ -229,6 +229,8 @@ pub struct Viewer {
     selection: Option<Selection>,
     dragging: bool,
     draw_tool: Option<crate::draw::Tool>,
+    insert_image: Option<crate::insert_image::ImagePlacement>,
+    insert_image_drag: Option<crate::insert_image::ImageDrag>,
     object_mode: bool,
     object_sel: Option<crate::objects::ObjectSel>,
     object_rehit: Option<(usize, [f32; 2])>,
@@ -2752,6 +2754,8 @@ impl Viewer {
                         self.find.set_query(&query);
                     }
                     self.message = None;
+                    self.insert_image = None;
+                    self.insert_image_drag = None;
                     self.object_sel = None;
                     self.object_drag = None;
                     if let Some((page_index, point)) = self.object_rehit.take() {
@@ -2867,6 +2871,7 @@ impl Viewer {
                     self.message = Some(i18n::t("editor.reloadRequired"));
                     return true;
                 }
+                self.insert_image_drag = None;
                 self.object_drag = None;
                 self.message = Some(message);
             }
@@ -2977,6 +2982,8 @@ impl Viewer {
             selection: None,
             dragging: false,
             draw_tool: None,
+            insert_image: None,
+            insert_image_drag: None,
             object_mode: false,
             object_sel: None,
             object_rehit: None,
@@ -3497,6 +3504,8 @@ impl Viewer {
         self.page_selection = PageSelection::empty();
         self.page_context_at = None;
         self.document_signed = false;
+        self.insert_image = None;
+        self.insert_image_drag = None;
         self.object_sel = None;
         self.object_rehit = None;
         self.object_drag = None;
@@ -3830,7 +3839,54 @@ impl Viewer {
             Some(crate::draw::Tool::Erase) => None,
         };
         self.draw_gesture = None;
+        self.insert_image = None;
+        self.insert_image_drag = None;
         self.selection = None;
+        cx.notify();
+    }
+
+    fn choose_image_file(&self, cx: &Context<Self>) -> Option<PathBuf> {
+        if let Some(path) = std::env::var_os("CHEF_E2E_IMAGE_PATH") {
+            return Some(PathBuf::from(path));
+        }
+        let initial_dir = self
+            .source_path
+            .as_deref()
+            .and_then(std::path::Path::parent)
+            .map(PathBuf::from)
+            .or_else(|| self.settings.read(cx).save_dir().map(PathBuf::from));
+        crate::dialogs::open_image(initial_dir.as_deref())
+    }
+
+    fn toggle_insert_image(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        if self.insert_image.is_some() {
+            self.insert_image = None;
+            self.insert_image_drag = None;
+            cx.notify();
+            return;
+        }
+        let Some(path) = self.choose_image_file(cx) else {
+            return;
+        };
+        match crate::insert_image::load_placement(path) {
+            Ok(placement) => {
+                self.insert_image = Some(placement);
+                self.insert_image_drag = None;
+                self.object_mode = false;
+                self.object_sel = None;
+                self.object_rehit = None;
+                self.object_drag = None;
+                self.draw_tool = None;
+                self.draw_gesture = None;
+                self.selection = None;
+            }
+            Err(error) => {
+                self.message = Some(error);
+            }
+        }
         cx.notify();
     }
 
@@ -3845,6 +3901,8 @@ impl Viewer {
         if self.object_mode {
             self.draw_tool = None;
             self.draw_gesture = None;
+            self.insert_image = None;
+            self.insert_image_drag = None;
             self.selection = None;
         }
         cx.notify();
@@ -3996,6 +4054,23 @@ impl Viewer {
 
     fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
+        if self.insert_image.is_some() {
+            if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+                return;
+            }
+            self.selection = None;
+            self.dragging = false;
+            self.insert_image_drag = self.point_to_page(ev.position).map(|(page_index, point)| {
+                crate::insert_image::ImageDrag {
+                    generation: self.document_generation,
+                    page_index,
+                    start: point,
+                    cur: point,
+                }
+            });
+            cx.notify();
+            return;
+        }
         if self.object_mode {
             if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
                 return;
@@ -4060,6 +4135,21 @@ impl Viewer {
     }
 
     fn on_mouse_move(&mut self, ev: &MouseMoveEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(drag) = self.insert_image_drag.as_ref() {
+            if drag.generation != self.document_generation {
+                self.insert_image_drag = None;
+                cx.notify();
+                return;
+            }
+            let page_index = drag.page_index;
+            if let Some(point) = self.point_on_page(page_index, ev.position)
+                && let Some(drag) = self.insert_image_drag.as_mut()
+            {
+                drag.cur = point;
+                cx.notify();
+            }
+            return;
+        }
         if let Some(drag) = self.object_drag.as_ref() {
             if drag.generation != self.document_generation {
                 self.object_drag = None;
@@ -4132,6 +4222,36 @@ impl Viewer {
     }
 
     fn on_mouse_up(&mut self, ev: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(mut drag) = self.insert_image_drag.take() {
+            let placement = self.insert_image.take();
+            if drag.generation != self.document_generation {
+                cx.notify();
+                return;
+            }
+            if let Some(point) = self.point_on_page(drag.page_index, ev.position) {
+                drag.cur = point;
+            }
+            if let Some(placement) = placement {
+                let rect = crate::insert_image::normalized_rect(
+                    drag.start,
+                    drag.cur,
+                    placement.natural_size,
+                );
+                match crate::insert_image::add_image_params(drag.page_index, rect, &placement.path)
+                {
+                    Ok(params) => self.begin_edit(
+                        EditOperation::DrawShape {
+                            op_id: "overlay.addImage",
+                            params,
+                        },
+                        cx,
+                    ),
+                    Err(error) => self.message = Some(error),
+                }
+            }
+            cx.notify();
+            return;
+        }
         if let Some(mut drag) = self.object_drag.take() {
             if drag.generation != self.document_generation {
                 cx.notify();
@@ -5975,6 +6095,27 @@ impl Render for Viewer {
                     }),
             )
             .child(
+                Button::new("insert-image", cx.focus_handle())
+                    .label(i18n::t("overlay.addImage"))
+                    .size(ButtonSize::Sm)
+                    .variant(if self.insert_image.is_some() {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| entity.update(cx, |this, cx| this.toggle_insert_image(cx))
+                    }),
+            )
+            .child(
                 Button::new("viewer-rotate", self.rotate_focus.clone())
                     .label(i18n::t("editor.rotateFirst"))
                     .size(ButtonSize::Sm)
@@ -6273,6 +6414,10 @@ impl Render for Viewer {
                     if this.draw_tool.is_some() || this.draw_gesture.is_some() {
                         this.draw_tool = None;
                         this.draw_gesture = None;
+                        cx.notify();
+                    } else if this.insert_image.is_some() || this.insert_image_drag.is_some() {
+                        this.insert_image = None;
+                        this.insert_image_drag = None;
                         cx.notify();
                     } else if this.object_drag.is_some() || this.object_sel.is_some() {
                         this.object_drag = None;
@@ -7011,6 +7156,27 @@ impl Render for Viewer {
                     "bbox": sel.bbox,
                     "handles": serde_json::Value::Object(handles_map),
                 }));
+            }
+            if let Some(drag) = self.insert_image_drag.as_ref()
+                && drag.page_index == i
+            {
+                let natural = self.insert_image.as_ref().and_then(|p| p.natural_size);
+                let [left, top, right, bottom] =
+                    crate::insert_image::normalized_rect(drag.start, drag.cur, natural);
+                let (left, top, right, bottom) = self.rect_to_view(i, left, top, right, bottom);
+                children.push(
+                    div()
+                        .id("insert-image-preview")
+                        .absolute()
+                        .left(px(x + left * zoom))
+                        .top(px(y + top * zoom))
+                        .w(px(((right - left) * zoom).max(1.0)))
+                        .h(px(((bottom - top) * zoom).max(1.0)))
+                        .border_2()
+                        .border_color(rgb(palette.accent))
+                        .bg(rgba(palette.selection))
+                        .into_any_element(),
+                );
             }
             if let Some(gesture) = self.draw_gesture.as_ref()
                 && gesture.page_index == i
