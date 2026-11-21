@@ -1188,10 +1188,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) hai nửa cuộn độc lập; (2) cache chung không vượt trần R1.33; (3) đóng một nửa không ảnh hưởng nửa kia.
 - **Kiểm chứng:** E2E `b2-other-window-top` (phần chia đôi); đo cache.
 - **Phụ thuộc:** R2.19, R1.33
-- **File:** `apps/native/crates/chef-viewer/src/split.rs`
-- **E2E:** `b2-other-window-top`
+- **File:** `apps/native/crates/chef-viewer/src/split.rs`, `apps/native/crates/chef-app/src/split_pane.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-split.ps1`
+- **E2E:** `b2-other-window-top`, `scripts/e2e-native-split.ps1`
 - **Tính năng:** B8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Dựng `SharedPageCache` + `SplitState` + `parse_page_input` trong `chef-viewer/src/split.rs` (8 unit tests) cùng `LruCache::entries_with_bytes` (`cache.rs`, 1 unit test) để mọi `Viewer` và `ComparePane` (`split_pane.rs`, `DocId` PDFium độc lập, chọn tab đang mở, mở PDF, nhảy/chuyển trang, zoom, đóng nửa phải) dùng chung một ngưỡng RAM R1.33 (mặc định 256 MB, hỗ trợ `CHEF_E2E_CACHE_BUDGET_BYTES` khi `CHEF_E2E=1`). Tích hợp nút `split-toggle` trên thanh tab (`tabs_host.rs`) và lệnh `viewer.split` (`commands.rs`, 1 unit test); dùng `reload::capture`/`capture_spread` giữ đúng trang neo khi đổi zoom fit-width lúc mở/đóng chia đôi. `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (338/338: `chef-viewer` 54/54, `chef-app` 142/142, `chef-ui` 66/66, `chef-rpc` 39/39, `chef-pdf` 21/21, `chef-testkit` 12/12, `chef-contracts` 4/4), `cargo deny check` và `cargo build -p chef-app` đều đạt. Trên Windows, `scripts/e2e-native-split.ps1` đạt 13/13 (`FAILS: 0`) gồm Pass 1 (0 tiến trình `chef-core`, cuộn/nhảy trang độc lập cùng file, chuyển nửa phải sang file thứ 2, tổng trang/byte cache chung, đóng nửa phải giữ nguyên nửa trái, đóng tab trái giữ nguyên nửa phải) và Pass 2 (budget cache chung chặt `<= sharedCacheBudget`, không thrash); hồi quy `e2e-native-tabs.ps1`, `e2e-native-integration.ps1` và `e2e-native-palette.ps1` đạt (`e2e-native-night.ps1` lỗi chụp WGC `0x80070057` trong phiên desktop không tương tác, đã kiểm riêng bật/tắt đêm và parity byte cache `13654592 == 13654592` đạt).
+- **Trạng thái:** ✅
 
 ### R4.09 · Chèn ảnh · S
 - **Mô tả:** chọn file ảnh (PNG, JPG), đặt lên trang bằng kéo, đổi kích thước theo tỉ lệ. Operation `content.image.insert`.
@@ -1334,40 +1335,44 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) widget hiện đúng vị trí ở ba chiều rộng; (2) môi trường được giải phóng khi đóng tab; (3) form không JS (kiểm R1.28).
 - **Kiểm chứng:** E2E `forms`; ui-audit.
 - **Phụ thuộc:** R1.28, R2.19
-- **File:** `apps/native/crates/chef-pdf/src/form_fill.rs`
-- **E2E:** `forms`
+- **File:** `apps/native/crates/chef-pdf/src/form_fill.rs`, `apps/native/crates/chef-pdf/src/render.rs`, `apps/native/crates/chef-pdf/tests/form_fill.rs`, `apps/native/crates/chef-app/src/forms_overlay.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-forms.ps1`
+- **E2E:** `forms`, `scripts/e2e-native-forms.ps1`
 - **Tính năng:** H1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm `form_fill.rs` (`TrackedDoc`, `FormEnvCounters`, `inspect_document`, `configure_render`, `read_page_widgets`, `user_rect_to_display`, xử lý cờ `Comb`, trạng thái `/Off` của checkbox/radio thay cho bug upstream `pdfium-render` 0.9.5) và job `Job::FormInfo` + `Job::PageFormWidgets` trong `render.rs`; bật `FPDF_FFLDraw` qua `PdfRenderConfig::render_form_data(true)` khi `form_env_active`. Ở `chef-app`, thêm lớp overlay `forms_overlay.rs` trong `Viewer` kèm `a11y`, `Drop` guard và telemetry/lệnh `resize` qua `debug.rs`. Xác minh JS/XFA (BLUEPRINT_RUST §7.2): `PdfForm` giữ `m_pJsPlatform = NULL`, không có callback JS và không gọi `FPDF_LoadXFA`, nên JS (`/OpenAction`, `/AA`) và XFA không thực thi. Kiểm chứng: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (349/349: `chef-pdf` 16 unit + 5 `tests/form_fill.rs` với `pdfium.dll` thật + 8 `tests/render.rs`, `chef-app` 145/145), `cargo deny check`, `cargo build -p chef-app`; E2E `scripts/e2e-native-forms.ps1` đạt 10/10 (`FAILS: 0`, gồm 0 tiến trình `chef-core`, đủ loại widget, kiểm tọa độ chính xác ở 3 bề rộng `800`/`1184`/`1484` px, đóng tab đưa `activeFormEnvs` về 0 và `totalFormExits == totalFormInits`, PDF đã làm phẳng về `formType = none`), cùng hồi quy `tabs`, `split`, `integration` đều đạt.
+- **Trạng thái:** ✅
 
 ### R4.22 · Điền form và lưu · M
 - **Mô tả:** nhập vào ô chữ, tích checkbox, chọn radio và dropdown. Thay đổi đi qua operation (`forms.fill`) và lưu lại.
 - **Tiêu chí:** (1) giá trị lưu và đọc lại đúng; (2) có undo; (3) tab giữa các ô theo thứ tự trang.
 - **Kiểm chứng:** E2E `forms`, `demo-v09` (phần điền).
 - **Phụ thuộc:** R4.21, R3.08
-- **File:** `apps/native/crates/chef-app/src/forms_fill.rs`
-- **E2E:** `forms`, `demo-v09`
+- **File:** `apps/native/crates/chef-app/src/forms_fill.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`, `apps/native/crates/chef-app/src/debug.rs`, `apps/native/crates/chef-app/src/main.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`, `apps/native/crates/chef-pdf/src/render.rs`, `apps/native/crates/chef-pdf/tests/form_fill.rs`, `apps/native/assets/i18n/vi.json`, `apps/native/assets/i18n/en.json`, `scripts/e2e-native-forms-fill.ps1`
+- **E2E:** `forms`, `demo-v09`, `scripts/e2e-native-forms-fill.ps1`
 - **Tính năng:** H1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm module `forms_fill.rs` (mô hình trường AcroForm, `FormDraft`, sắp xếp thứ tự đọc trang theo hàng `sort_fields_page_order` / `order_editable_widgets`, đồng bộ `forms.list` + `forms.getValues`, tạo `forms.fill` chỉ gửi phần thay đổi) và tích hợp vào `Viewer` (lệnh/hộp thoại 2 cột `Biểu mẫu PDF`, bật/sửa trực tiếp trên trang, Undo/Redo, lưu `Ctrl+S`, điều hướng `Tab`/`Shift+Tab` qua nhiều trang giữ 0 tiến trình `chef-core` khi chỉ xem). Sửa `Job::HasSignatures` trong `chef-pdf/src/render.rs` qua `has_signed_signatures` để phân biệt tài liệu đã ký (`/V` chữ ký thực) với trường chữ ký trống (`/FT /Sig` chưa ký), kèm test `has_signatures_distinguishes_signed_from_unsigned_sig_fields` trong `chef-pdf/tests/form_fill.rs`. Kiểm chứng: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (355/355: `chef-app` 150, `chef-pdf` 16+6+8, `chef-rpc` 39, `chef-ui` 66, `chef-viewer` 54, `chef-testkit` 8+4, `chef-contracts` 4), `cargo deny check`, `cargo build -p chef-app` đều đạt; E2E `scripts/e2e-native-forms-fill.ps1` đạt 12/12 (`FAILS: 0`), `scripts/e2e-native-forms.ps1` đạt 10/10, `scripts/e2e-native-page-menu.ps1` đạt 5/5 (tài liệu đã ký vẫn khóa rotate/delete), cùng hồi quy `tabs`, `palette`, `split` (13/13) và `integration` đều đạt.
+- **Trạng thái:** ✅
 
 ### R4.23 · Tạo form · L
 - **Mô tả:** thêm ô chữ, checkbox, radio, dropdown, ô chữ ký lên trang qua operation `forms.create`, đặt tên trường và thuộc tính.
 - **Tiêu chí:** (1) widget tạo ra mở được trong Electron và pdfium; (2) tên trường không trùng; (3) có undo.
 - **Kiểm chứng:** E2E `demo-v09` (phần tạo form); mở file bằng Electron.
 - **Phụ thuộc:** R4.22
-- **File:** `apps/native/crates/chef-app/src/forms_create.rs`
-- **E2E:** `demo-v09`, `forms`
+- **File:** `apps/native/crates/chef-app/src/forms_create.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`, `apps/native/crates/chef-app/src/debug.rs`, `apps/native/crates/chef-app/src/main.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`, `scripts/e2e-native-forms-create.ps1`
+- **E2E:** `demo-v09`, `forms`, `scripts/e2e-native-forms-create.ps1`
 - **Tính năng:** H2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm module `forms_create.rs` (`CreateFieldKind` gồm 7 loại `text`/`multiline`/`comb`/`checkbox`/`radio`/`dropdown`/`signature`, `FormDrawDrag`, `PendingFormRect`, kiểm tra tên/trùng/lựa chọn/`maxLen`/kích thước ô và chia đều nhóm radio, sinh payload `forms.addField` và `forms.remove` để rollback radio — lõi dùng `forms.addField` và `forms.remove`, không có `forms.create` — cùng 6 unit test kiểm đối chiếu `ops.schema.json` thay cho struct `FormsAddFieldParams` trong `chef-contracts` bị `typify` gộp trùng `"title": "Kind"`). Tích hợp vào `Viewer`: lệnh bảng lệnh `forms.addField` (`Thêm trường`), nút `forms-add-field` trong hộp thoại `Biểu mẫu PDF`, chế độ kéo chọn vùng trên trang (`forms-draw-hint`, `forms-draw-preview`, `Escape` hủy), biểu mẫu tạo trường ngay trong hộp thoại (chọn loại, tên, tooltip, lựa chọn/số ký tự, bắt buộc) và Undo/Redo. Kiểm chứng: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (362/362: `chef-app` 157 gồm 6 test `forms_create` + 1 test `commands`, `chef-pdf` 16+6+8, `chef-rpc` 39, `chef-ui` 66, `chef-viewer` 54, `chef-testkit` 8+4, `chef-contracts` 4), `cargo deny check`, `cargo build -p chef-app` đều đạt; E2E `scripts/e2e-native-forms-create.ps1` đạt 13/13 (`FAILS: 0`, gồm tạo 6 loại trường, chặn trùng/sai tên, Undo/Redo, lưu `Ctrl+S`, kiểm `core`/pikepdf trên đĩa, mở lại trên PDFium giữ 0 `chef-core` và điền/lưu trường mới, cùng mở kiểm tra chéo trong app Electron thật) và toàn bộ hồi quy `forms-fill` (12/12), `forms` (10/10), `page-menu` (5/5), `tabs`, `palette`, `split` (13/13), `integration` đều đạt.
+- **Trạng thái:** ✅
 
 ### R4.24 · Làm phẳng form · S
 - **Mô tả:** biến widget thành nội dung cố định (operation `forms.flatten`), giữ giá trị đã điền.
 - **Tiêu chí:** (1) không còn widget; (2) giá trị vẫn hiện; (3) file mở được bằng pikepdf và pdfium.
 - **Kiểm chứng:** E2E `forms`; đọc lại.
 - **Phụ thuộc:** R4.22
-- **File:** `apps/native/crates/chef-app/src/forms_flatten.rs`
-- **E2E:** `forms`
+- **File:** `apps/native/crates/chef-app/src/forms_flatten.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`, `apps/native/crates/chef-app/src/debug.rs`, `apps/native/crates/chef-app/src/main.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`, `scripts/e2e-native-forms-flatten.ps1`
+- **E2E:** `forms`, `scripts/e2e-native-forms-flatten.ps1`
 - **Tính năng:** H3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm module `forms_flatten.rs` (`FlattenPlan`, `FlattenSummary`, `flatten_params`, `default_flatten_params`, `plan_flatten` tự gộp `forms.fill` cho thay đổi nháp chưa áp dụng trước khi gọi `forms.flatten` với `keepSignatures: true`, `removeJavascript: true`, `parse_flatten_summary` và 5 unit test kiểm đối chiếu `FormsFlattenParams` / `ops.schema.json`). Tích hợp vào `Viewer`: lệnh bảng lệnh `forms.flatten` (`Làm phẳng biểu mẫu`), nút `forms-flatten` trong hộp thoại `Biểu mẫu PDF`, hộp thoại xác nhận `forms-flatten-confirm` (hủy vẫn giữ thay đổi nháp, xác nhận thực thi tuần tự `forms.fill` nếu có + `forms.flatten`, xóa cache trang và nạp lại trạng thái form), Undo/Redo và `Ctrl+S`. Kiểm chứng: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (368/368: `chef-app` 163 gồm 5 test `forms_flatten` + 1 test `commands`, `chef-pdf` 16+6+8, `chef-rpc` 39, `chef-ui` 66, `chef-viewer` 54, `chef-testkit` 8+4, `chef-contracts` 4), `cargo deny check`, `cargo build -p chef-app` đều đạt; E2E `scripts/e2e-native-forms-flatten.ps1` đạt 11/11 (`FAILS: 0`, gồm hủy xác nhận giữ nháp, làm phẳng bỏ `/AcroForm` và toàn bộ widget, Undo/Redo, lưu `Ctrl+S`, kiểm `pikepdf`/`list_result` + render & trích chữ tiếng Việt bằng `pypdfium2` trên đĩa, mở lại trên `chef-app` giữ 0 `chef-core` và tìm thấy `"Nguyễn Văn Phẳng"`, cùng lệnh bảng lệnh `forms.flatten` giữ nguyên trường chữ ký trống `/FT /Sig` `chuky`) và toàn bộ hồi quy `forms-create` (13/13), `forms-fill` (12/12), `forms` (10/10), `page-menu` (5/5), `tabs`, `palette`, `split` (13/13), `integration` đều đạt.
+- **Trạng thái:** ✅
 
 ### R4.25 · Điểm kiểm M4 · —
 - **Mô tả:** chạy ui-audit cho trang và chú thích, E2E `page-menu`, `annots`, `forms`, `objects`, `overlay`, `content-v06`, `toc`, `demo-v06`, đo RAM với file có nhiều chú thích.
@@ -1393,9 +1398,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) bố cục khớp ui-audit ở ba chiều rộng; (2) khi chạy thì nút chạy mờ và có tiến độ; (3) đóng hộp thoại khi đang chạy hỏi hủy.
 - **Kiểm chứng:** ui-audit; test.
 - **Phụ thuộc:** R2.10, R3.09
-- **File:** `apps/native/crates/chef-ui/src/task_dialog.rs`
+- **File:** `apps/native/crates/chef-ui/src/task_dialog.rs`, `apps/native/crates/chef-ui/src/dialog.rs`, `apps/native/crates/chef-ui/src/button.rs`, `apps/native/crates/chef-ui/src/choice.rs`, `apps/native/crates/chef-ui/src/jobs_panel.rs`, `apps/native/crates/chef-ui/src/lib.rs`, `apps/native/crates/chef-app/src/probe.rs`, `apps/native/crates/chef-app/src/main.rs`, `apps/native/assets/i18n/vi.json`, `apps/native/assets/i18n/en.json`, `scripts/e2e-native-task-dialog.ps1`
+- **E2E:** `scripts/e2e-native-task-dialog.ps1`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Xây dựng `TaskDialog`, `TaskPreset`, `TaskApplyTo`, `TaskAdvanced`, `TaskResult` trong `chef-ui/src/task_dialog.rs` theo `TaskDialog.tsx`/`TaskDialog.css` (6 unit test: bố cục hai cột `300 px` ở `1484`/`1184`/`800` và xếp một cột ở `<= 760 px`, xác nhận dừng khi đóng lúc đang chạy, tiến độ a11y, basename Windows/POSIX, đầy đủ khóa i18n `task.*`, khôi phục tiêu điểm an toàn mà không cướp tiêu điểm popup con). Mở rộng tương thích ngược `Dialog` (`.icon`, `.icon_danger`, `.description`, `.footer_leading`, `.scrollable` `min(88vh, 760px)`, `.dismiss_on_outside`, `.return_focus_on_dismiss`, `Width::max_vw` 94% cho `Lg`/`Xl`, ghi `bounds` hộp thoại vào `a11y`), `Button::loading` (+1 unit test), `RadioGroup::horizontal`, chia sẻ `render_spinner` + `render_progress_bar_raw` từ `jobs_panel.rs`, thêm 4 khóa xác nhận đóng lúc chạy trong `vi.json`/`en.json`, và nối trang thử cô lập `CHEF_E2E_PROBE_TASK_DIALOG=1` (`probe.rs`, `main.rs`). Kiểm chứng trên Windows: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` (375/375: `chef-ui` 73/73, `chef-app` 163/163, `chef-viewer` 54/54, `chef-rpc` 39/39, `chef-pdf` 16+6+8, `chef-testkit` 8+4, `chef-contracts` 4/4), `cargo deny check`, `cargo build -p chef-app` đều đạt; `scripts/e2e-native-task-dialog.ps1` đạt 57/57 (`FAILS: 0`) cùng hồi quy `dialog` (27/27), `button` (27/27), `choice` (30/30) và `jobs` (8/8) đều `FAILS: 0`. Đối chiếu pixel với ảnh chuẩn Electron ui-audit nằm trong R5.09/R2.02.
+- **Trạng thái:** ✅
 
 ### R5.02 · Renderer hộp thoại từ JSON Schema · M
 - **Mô tả:** sinh form từ `Params` của operation: chuỗi, số, bool, enum, khoảng trang, danh sách file. Nhãn và mô tả lấy từ `vi.json`. Mục đích là giảm số hộp thoại viết tay (BLUEPRINT_RUST §6).
@@ -3053,6 +3060,12 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 | 2026-11-21 | R4.17 | Đóng ✅ | E2E hai trang tạo 4 dấu, đổi màu nguyên tử và undo cả hai trang; PDFium hướng stroke xoay/hẹp đạt; core 25/25, native 116/116, fmt, clippy, build, codegen, contracts typecheck và cargo deny đạt |
 | 2026-11-21 | R4.18 | Đóng ✅ | Dialog/pipeline revision cho create/edit/reply/completed/FreeText; E2E lưu PDF, xác minh 5 hành vi rồi mở lại app và đọc content/author; native 118/118, fmt, clippy, cargo deny đạt |
 | 2026-11-21 | R4.19 | Đóng ✅ | Năm công cụ, style color/width; E2E scan `/Rotate 90` xác minh PDF geometry/style và PDFium appearance; native 122/122, fmt, clippy, build, cargo deny đạt |
+| 2026-11-21 | R4.08 | Đóng ✅ | Xem song song hai file hoặc hai vị trí dùng chung `SharedPageCache`; `chef-viewer` 54/54, `chef-app` 142/142 (workspace 338/338), fmt, clippy, build, cargo deny đạt; `e2e-native-split.ps1` 13/13 PASS (`FAILS: 0`, gồm Pass 2 budget chặt) cùng `tabs`/`integration`/`palette` đạt |
+| 2026-11-21 | R4.21 | Đóng ✅ | FFI form-fill PDFium (`m_pJsPlatform = NULL`, không XFA), `TrackedDoc`/`FormEnvCounters` và lớp widget `forms_overlay.rs`; `chef-pdf` 16+5+8, `chef-app` 145/145 (workspace 349/349), fmt, clippy, build, cargo deny đạt; `e2e-native-forms.ps1` 10/10 PASS ở 3 chiều rộng 800/1184/1484, giải phóng env khi đóng tab, cùng `tabs`/`split`/`integration` đạt |
+| 2026-11-21 | R4.22 | Đóng ✅ | Điền form và lưu qua `forms.fill`, hộp thoại 2 cột `Biểu mẫu PDF`, bật/sửa trực tiếp trên trang, Undo/Redo, `Ctrl+S`, điều hướng `Tab`/`Shift+Tab` theo thứ tự đọc trang giữ 0 `chef-core` khi xem, và sửa `Job::HasSignatures` (`has_signed_signatures`) phân biệt trường chữ ký trống `/FT /Sig` với tài liệu đã ký; workspace 355/355 (`chef-app` 150, `chef-pdf` 16+6+8), fmt, clippy, build, cargo deny đạt; E2E `forms-fill` 12/12, `forms` 10/10, `page-menu` 5/5 cùng hồi quy `tabs`/`palette`/`split`/`integration` đạt |
+| 2026-11-21 | R4.23 | Đóng ✅ | Tạo trường form (text, multiline, comb, checkbox, radio, dropdown, signature) bằng kéo chọn vùng trên trang + hộp thoại `Biểu mẫu PDF` qua `forms.addField` (`forms.remove` rollback radio), kiểm trùng/tên hợp lệ, Undo/Redo; workspace 362/362 (`chef-app` 157, `chef-pdf` 16+6+8), fmt, clippy, build, cargo deny đạt; E2E `e2e-native-forms-create.ps1` 13/13 PASS (`FAILS: 0`, gồm kiểm pikepdf, mở lại PDFium và mở kiểm tra chéo trong Electron thật) cùng toàn bộ hồi quy `forms-fill`/`forms`/`page-menu`/`tabs`/`palette`/`split`/`integration` đạt |
+| 2026-11-21 | R4.24 | Đóng ✅ | Làm phẳng form qua `forms.flatten` (`keepSignatures: true`, `removeJavascript: true`) kèm tự động áp dụng nháp `forms.fill` sau xác nhận `forms-flatten-confirm`, nút `Biểu mẫu PDF` & bảng lệnh `"forms.flatten"`, Undo/Redo và `Ctrl+S`; workspace 368/368 (`chef-app` 163, `chef-pdf` 16+6+8), fmt, clippy, build, cargo deny đạt; E2E `e2e-native-forms-flatten.ps1` 11/11 PASS (`FAILS: 0`, gồm kiểm pikepdf/pypdfium2 tiếng Việt, mở lại + tìm văn bản 0 `chef-core`, và giữ trường `/FT /Sig`) cùng toàn bộ hồi quy `forms-create`/`forms-fill`/`forms`/`page-menu`/`tabs`/`palette`/`split`/`integration` đạt |
+| 2026-11-21 | R5.01 | Đóng ✅ | Khung `TaskDialog` dùng chung (`task_dialog.rs`) với cột phụ `300 px` (hai cột ở `1484`/`1184`/`800` và xếp một cột ở `<= 760 px`), `Button::loading`, `RadioGroup::horizontal`, mở rộng `Dialog`, 4 khóa i18n xác nhận dừng khi đóng lúc chạy và trang thử cô lập; workspace 375/375 (`chef-ui` 73/73, `chef-app` 163/163), fmt, clippy, build, cargo deny đạt; E2E `e2e-native-task-dialog.ps1` 57/57 PASS (`FAILS: 0`) cùng hồi quy `dialog`/`button`/`choice`/`jobs` đều `FAILS: 0` (đối chiếu pixel ui-audit thuộc R5.09/R2.02) |
 
 ### Điểm kiểm M1 (cuối mốc)
 
