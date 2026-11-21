@@ -146,6 +146,17 @@ const ZOOM_STEP: f32 = 1.25;
 const ZOOM_MIN: f32 = 0.1;
 const ZOOM_MAX: f32 = 8.0;
 
+#[derive(Clone, Debug)]
+struct ObjectDrag {
+    generation: u64,
+    sel: crate::objects::ObjectSel,
+    handle: chef_viewer::handles::Handle,
+    start: [f32; 2],
+    cur: [f32; 2],
+    shift: bool,
+    moved: bool,
+}
+
 /// Vùng chữ được chọn: từ điểm bấm (anchor) đến điểm hiện tại (focus), theo (trang, chỉ số ký tự).
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Selection {
@@ -221,6 +232,7 @@ pub struct Viewer {
     object_mode: bool,
     object_sel: Option<crate::objects::ObjectSel>,
     object_rehit: Option<(usize, [f32; 2])>,
+    object_drag: Option<ObjectDrag>,
     draw_gesture: Option<crate::draw::Gesture>,
     draw_color: String,
     draw_width: f32,
@@ -2741,6 +2753,7 @@ impl Viewer {
                     }
                     self.message = None;
                     self.object_sel = None;
+                    self.object_drag = None;
                     if let Some((page_index, point)) = self.object_rehit.take() {
                         self.begin_edit(EditOperation::HitObject { page_index, point }, cx);
                     }
@@ -2854,6 +2867,7 @@ impl Viewer {
                     self.message = Some(i18n::t("editor.reloadRequired"));
                     return true;
                 }
+                self.object_drag = None;
                 self.message = Some(message);
             }
         }
@@ -2966,6 +2980,7 @@ impl Viewer {
             object_mode: false,
             object_sel: None,
             object_rehit: None,
+            object_drag: None,
             draw_gesture: None,
             draw_color: "#E53935".to_string(),
             draw_width: 2.0,
@@ -3482,6 +3497,9 @@ impl Viewer {
         self.page_selection = PageSelection::empty();
         self.page_context_at = None;
         self.document_signed = false;
+        self.object_sel = None;
+        self.object_rehit = None;
+        self.object_drag = None;
         self.links.clear();
         self.links_open = false;
         self.links_loaded = false;
@@ -3823,6 +3841,7 @@ impl Viewer {
         self.object_mode = !self.object_mode;
         self.object_sel = None;
         self.object_rehit = None;
+        self.object_drag = None;
         if self.object_mode {
             self.draw_tool = None;
             self.draw_gesture = None;
@@ -3924,6 +3943,45 @@ impl Viewer {
         cx.notify();
     }
 
+    fn point_on_page(&self, page: usize, pos: Point<Pixels>) -> Option<[f32; 2]> {
+        let layout = self.layout.as_ref()?;
+        let (vw, _) = self.viewport;
+        let (left, top, _, _) =
+            self.content_bounds
+                .get()
+                .unwrap_or((SIDEBAR_WIDTH, TOOLBAR_H, 0.0, 0.0));
+        let (x, y) = (pos.x.as_f32() - left, pos.y.as_f32() - top);
+        let zoom = layout.zoom();
+        let (page_view_width, _) = layout.page_px(page);
+        let (page_left, page_top) = self
+            .spread
+            .as_ref()
+            .and_then(|spread| spread.page_rect(page, (vw - SIDEBAR_WIDTH).max(1.0)))
+            .map(|rect| (rect.x, rect.y - self.scroll_y))
+            .unwrap_or_else(|| {
+                (
+                    ((vw - page_view_width) / 2.0).max(0.0),
+                    layout.page_top(page) - self.scroll_y,
+                )
+            });
+        let view_x = (x - page_left) / zoom;
+        let view_y = (y - page_top) / zoom;
+        let (page_width, page_height) = self.page_sizes.get(page).copied()?;
+        let (display_x, display_y) =
+            display_to_pdf(view_x, view_y, page_width, page_height, self.view_rotation);
+        Some([display_x, display_y])
+    }
+
+    fn pdf_point_to_view(&self, page: usize, px: f32, py: f32) -> (f32, f32) {
+        let (width, height) = self.page_sizes.get(page).copied().unwrap_or((0.0, 0.0));
+        match self.view_rotation % 4 {
+            1 => (height - py, px),
+            2 => (width - px, height - py),
+            3 => (py, width - px),
+            _ => (px, py),
+        }
+    }
+
     fn rect_to_view(
         &self,
         page: usize,
@@ -3939,8 +3997,29 @@ impl Viewer {
     fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
         if self.object_mode {
+            if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+                return;
+            }
             self.selection = None;
             self.dragging = false;
+            if let Some(sel) = self.object_sel.clone()
+                && let Some(zoom) = self.layout.as_ref().map(Layout::zoom)
+                && let Some(point) = self.point_on_page(sel.page_index, ev.position)
+                && let Some(handle) = chef_viewer::handles::hit_test_handle(sel.bbox, point, zoom)
+            {
+                self.object_drag = Some(ObjectDrag {
+                    generation: self.document_generation,
+                    sel,
+                    handle,
+                    start: point,
+                    cur: point,
+                    shift: ev.modifiers.shift,
+                    moved: false,
+                });
+                cx.notify();
+                return;
+            }
+            self.object_drag = None;
             self.begin_object_hit(ev.position, cx);
             cx.notify();
             return;
@@ -3981,6 +4060,28 @@ impl Viewer {
     }
 
     fn on_mouse_move(&mut self, ev: &MouseMoveEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(drag) = self.object_drag.as_ref() {
+            if drag.generation != self.document_generation {
+                self.object_drag = None;
+                cx.notify();
+                return;
+            }
+            let page_index = drag.sel.page_index;
+            let zoom = self.layout.as_ref().map_or(1.0, Layout::zoom).max(0.1);
+            if let Some(point) = self.point_on_page(page_index, ev.position)
+                && let Some(drag) = self.object_drag.as_mut()
+            {
+                drag.cur = point;
+                drag.shift = ev.modifiers.shift;
+                let dist_px =
+                    (drag.cur[0] - drag.start[0]).hypot(drag.cur[1] - drag.start[1]) * zoom;
+                if dist_px > 2.0 {
+                    drag.moved = true;
+                }
+                cx.notify();
+            }
+            return;
+        }
         if self.draw_gesture.is_some() {
             if self
                 .draw_gesture
@@ -4031,6 +4132,86 @@ impl Viewer {
     }
 
     fn on_mouse_up(&mut self, ev: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(mut drag) = self.object_drag.take() {
+            if drag.generation != self.document_generation {
+                cx.notify();
+                return;
+            }
+            let zoom = self.layout.as_ref().map_or(1.0, Layout::zoom).max(0.1);
+            if let Some(point) = self.point_on_page(drag.sel.page_index, ev.position) {
+                drag.cur = point;
+                drag.shift = ev.modifiers.shift;
+                let dist_px =
+                    (drag.cur[0] - drag.start[0]).hypot(drag.cur[1] - drag.start[1]) * zoom;
+                if dist_px > 2.0 {
+                    drag.moved = true;
+                }
+            }
+            if !drag.moved {
+                cx.notify();
+                return;
+            }
+            let sel = drag.sel;
+            match drag.handle {
+                chef_viewer::handles::Handle::Body => {
+                    let dx = drag.cur[0] - drag.start[0];
+                    let dy = drag.cur[1] - drag.start[1];
+                    let center = sel.center();
+                    self.object_rehit = Some((sel.page_index, [center[0] + dx, center[1] + dy]));
+                    self.begin_edit(
+                        EditOperation::DrawShape {
+                            op_id: "content.move",
+                            params: crate::objects::move_params(&sel.id, dx, dy),
+                        },
+                        cx,
+                    );
+                }
+                chef_viewer::handles::Handle::Rotate => {
+                    let angle = chef_viewer::handles::rotation_angle(
+                        sel.bbox, drag.start, drag.cur, drag.shift,
+                    );
+                    let matrix = chef_viewer::handles::rotate_matrix(
+                        sel.bbox,
+                        sel.bbox_user,
+                        angle,
+                        sel.page_rotation,
+                    );
+                    self.object_rehit = Some((sel.page_index, sel.center()));
+                    self.begin_edit(
+                        EditOperation::DrawShape {
+                            op_id: "content.transform",
+                            params: crate::objects::transform_params(&sel.id, matrix),
+                        },
+                        cx,
+                    );
+                }
+                handle => {
+                    let new_disp =
+                        chef_viewer::handles::resized_bbox(sel.bbox, handle, drag.cur, drag.shift);
+                    let matrix = chef_viewer::handles::resize_matrix(
+                        sel.bbox,
+                        sel.bbox_user,
+                        new_disp,
+                        sel.page_rotation,
+                    );
+                    self.object_rehit = Some((
+                        sel.page_index,
+                        [
+                            (new_disp[0] + new_disp[2]) * 0.5,
+                            (new_disp[1] + new_disp[3]) * 0.5,
+                        ],
+                    ));
+                    self.begin_edit(
+                        EditOperation::DrawShape {
+                            op_id: "content.transform",
+                            params: crate::objects::transform_params(&sel.id, matrix),
+                        },
+                        cx,
+                    );
+                }
+            }
+            return;
+        }
         if self.draw_gesture.is_some() {
             if let Some((page_index, point)) = self.point_to_page(ev.position)
                 && let Some(gesture) = self.draw_gesture.as_mut()
@@ -6093,6 +6274,10 @@ impl Render for Viewer {
                         this.draw_tool = None;
                         this.draw_gesture = None;
                         cx.notify();
+                    } else if this.object_drag.is_some() || this.object_sel.is_some() {
+                        this.object_drag = None;
+                        this.object_sel = None;
+                        cx.notify();
                     } else if this.page_mode == PageMode::Slideshow {
                         this.exit_slideshow(window, cx);
                     }
@@ -6227,6 +6412,7 @@ impl Render for Viewer {
         let Some(layout) = self.layout.as_mut() else {
             crate::debug::set_links_overlay(serde_json::Value::Array(Vec::new()));
             crate::debug::set_hovered_link(None);
+            crate::debug::set_object_selection(None);
             let text = self.message.clone().unwrap_or_default();
             return root
                 .child(toolbar)
@@ -6560,6 +6746,7 @@ impl Render for Viewer {
                 .get()
                 .unwrap_or((SIDEBAR_WIDTH, TOOLBAR_H, 0.0, 0.0));
         let mut links_overlay = Vec::new();
+        let mut object_debug: Option<serde_json::Value> = None;
         let mut children = Vec::new();
         for (i, x, y, w, h) in geometry {
             match self.cache.get(&i).cloned() {
@@ -6670,7 +6857,42 @@ impl Render for Viewer {
             if let Some(sel) = self.object_sel.as_ref()
                 && sel.page_index == i
             {
-                let [left, top, right, bottom] = sel.bbox;
+                let (preview_bbox, rotate_deg) = if let Some(drag) = self.object_drag.as_ref()
+                    && drag.sel.id == sel.id
+                    && drag.moved
+                {
+                    match drag.handle {
+                        chef_viewer::handles::Handle::Body => {
+                            let dx = drag.cur[0] - drag.start[0];
+                            let dy = drag.cur[1] - drag.start[1];
+                            (
+                                [
+                                    sel.bbox[0] + dx,
+                                    sel.bbox[1] + dy,
+                                    sel.bbox[2] + dx,
+                                    sel.bbox[3] + dy,
+                                ],
+                                None,
+                            )
+                        }
+                        chef_viewer::handles::Handle::Rotate => {
+                            let deg = chef_viewer::handles::rotation_angle(
+                                sel.bbox, drag.start, drag.cur, drag.shift,
+                            )
+                            .to_degrees();
+                            (sel.bbox, Some(deg))
+                        }
+                        handle => (
+                            chef_viewer::handles::resized_bbox(
+                                sel.bbox, handle, drag.cur, drag.shift,
+                            ),
+                            None,
+                        ),
+                    }
+                } else {
+                    (sel.bbox, None)
+                };
+                let [left, top, right, bottom] = preview_bbox;
                 let (left, top, right, bottom) = self.rect_to_view(i, left, top, right, bottom);
                 children.push(
                     div()
@@ -6684,6 +6906,111 @@ impl Render for Viewer {
                         .border_color(rgb(palette.accent))
                         .into_any_element(),
                 );
+                let mut handles_map = serde_json::Map::new();
+                for (idx, handle) in chef_viewer::handles::RESIZE_HANDLES.iter().enumerate() {
+                    let [hx, hy] = chef_viewer::handles::handle_pos(preview_bbox, *handle, zoom);
+                    let (vx, vy) = self.pdf_point_to_view(i, hx, hy);
+                    let lx = x + vx * zoom;
+                    let ly = y + vy * zoom;
+                    let key = match handle {
+                        chef_viewer::handles::Handle::NW => "nw",
+                        chef_viewer::handles::Handle::N => "n",
+                        chef_viewer::handles::Handle::NE => "ne",
+                        chef_viewer::handles::Handle::E => "e",
+                        chef_viewer::handles::Handle::SE => "se",
+                        chef_viewer::handles::Handle::S => "s",
+                        chef_viewer::handles::Handle::SW => "sw",
+                        chef_viewer::handles::Handle::W => "w",
+                        _ => unreachable!(),
+                    };
+                    handles_map.insert(key.into(), serde_json::json!([cb_x + lx, cb_y + ly]));
+                    children.push(
+                        div()
+                            .id(format!("object-handle-{idx}"))
+                            .absolute()
+                            .left(px(lx - 4.0))
+                            .top(px(ly - 4.0))
+                            .w(px(8.0))
+                            .h(px(8.0))
+                            .bg(rgb(0xffffff))
+                            .border_1()
+                            .border_color(rgb(palette.accent))
+                            .into_any_element(),
+                    );
+                }
+                let [rx, ry] = chef_viewer::handles::handle_pos(
+                    preview_bbox,
+                    chef_viewer::handles::Handle::Rotate,
+                    zoom,
+                );
+                let (rvx, rvy) = self.pdf_point_to_view(i, rx, ry);
+                let rlx = x + rvx * zoom;
+                let rly = y + rvy * zoom;
+                let [nx, ny] = chef_viewer::handles::handle_pos(
+                    preview_bbox,
+                    chef_viewer::handles::Handle::N,
+                    zoom,
+                );
+                let (nvx, nvy) = self.pdf_point_to_view(i, nx, ny);
+                let nlx = x + nvx * zoom;
+                let nly = y + nvy * zoom;
+                let stem_x = rlx.min(nlx);
+                let stem_y = rly.min(nly);
+                let stem_w = (rlx - nlx).abs().max(1.0);
+                let stem_h = (rly - nly).abs().max(1.0);
+                children.push(
+                    div()
+                        .absolute()
+                        .left(px(stem_x))
+                        .top(px(stem_y))
+                        .w(px(stem_w))
+                        .h(px(stem_h))
+                        .bg(rgb(palette.accent))
+                        .into_any_element(),
+                );
+                children.push(
+                    div()
+                        .id("object-handle-rotate")
+                        .absolute()
+                        .left(px(rlx - 5.0))
+                        .top(px(rly - 5.0))
+                        .w(px(10.0))
+                        .h(px(10.0))
+                        .rounded_full()
+                        .bg(rgb(0xffffff))
+                        .border_2()
+                        .border_color(rgb(palette.accent))
+                        .into_any_element(),
+                );
+                if let Some(deg) = rotate_deg {
+                    children.push(
+                        div()
+                            .id("object-rotate-readout")
+                            .absolute()
+                            .left(px(rlx + 10.0))
+                            .top(px(rly - 8.0))
+                            .text_color(rgb(palette.accent))
+                            .child(format!("{deg:.0}°"))
+                            .into_any_element(),
+                    );
+                }
+                let [bx, by] = chef_viewer::handles::handle_pos(
+                    preview_bbox,
+                    chef_viewer::handles::Handle::Body,
+                    zoom,
+                );
+                let (bvx, bvy) = self.pdf_point_to_view(i, bx, by);
+                handles_map.insert("rotate".into(), serde_json::json!([cb_x + rlx, cb_y + rly]));
+                handles_map.insert(
+                    "body".into(),
+                    serde_json::json!([cb_x + x + bvx * zoom, cb_y + y + bvy * zoom]),
+                );
+                object_debug = Some(serde_json::json!({
+                    "id": sel.id,
+                    "pageIndex": sel.page_index,
+                    "bbox": sel.bbox,
+                    "handles": serde_json::Value::Object(handles_map),
+                }));
             }
             if let Some(gesture) = self.draw_gesture.as_ref()
                 && gesture.page_index == i
@@ -6709,6 +7036,7 @@ impl Render for Viewer {
         }
         crate::debug::set_links_overlay(serde_json::Value::Array(links_overlay));
         crate::debug::set_hovered_link(self.hovered_link.as_deref());
+        crate::debug::set_object_selection(object_debug);
         if let Some(text) = self.message.clone() {
             children.push(
                 div()

@@ -147,6 +147,7 @@ def hit_test(ctx: OpContext, p: ContentHitTestParams) -> OpOutput:
             changed_pages=[],
             data={
                 "pageIndex": p.page_index,
+                "rotation": model.frame.rotation,
                 "object": model.to_json(hits[:1])[0] if hits else None,
                 "objects": model.to_json(hits),
             },

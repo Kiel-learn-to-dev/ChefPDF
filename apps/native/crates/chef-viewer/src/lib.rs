@@ -3,6 +3,7 @@
 
 pub mod cache;
 pub mod grid;
+pub mod handles;
 pub mod reload;
 pub mod scroll;
 pub mod selection;

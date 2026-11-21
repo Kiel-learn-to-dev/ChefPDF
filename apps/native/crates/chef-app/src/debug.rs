@@ -1047,7 +1047,6 @@ pub fn set_links_overlay(value: serde_json::Value) {
     }
 }
 
-#[allow(dead_code)]
 pub fn set_object_selection(value: Option<serde_json::Value>) {
     if let Ok(mut current) = OBJECT_SELECTION.lock() {
         *current = value.map(|v| v.to_string());

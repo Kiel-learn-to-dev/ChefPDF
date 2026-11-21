@@ -1230,10 +1230,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) đổi kích thước giữ tỉ lệ khi giữ Shift; (2) xoay theo góc hiển thị; (3) kết quả lưu đúng vị trí trên file.
 - **Kiểm chứng:** E2E `objects`; đọc lại file đã lưu bằng pikepdf.
 - **Phụ thuộc:** R4.11
-- **File:** `apps/native/crates/chef-viewer/src/handles.rs`
-- **E2E:** `objects`
+- **File:** `apps/native/crates/chef-viewer/src/handles.rs`, `apps/native/crates/chef-app/src/objects.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `core/chef_core/ops/content.py`, `scripts/e2e-native-handles.ps1`
+- **E2E:** `objects`, `scripts/e2e-native-handles.ps1`
 - **Tính năng:** D4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Thêm 8 nắm đổi kích thước (`NW/N/NE/E/SE/S/SW/W`), cuống và nắm xoay (`object-handle-rotate` với hiển thị góc trực tiếp), kéo thân di chuyển (`content.move`) và giữ Shift để khóa tỉ lệ khung hình khi đổi kích thước hoặc nhảy nấc 15° khi xoay (`content.transform` dùng ma trận user-space chuẩn mọi góc `/Rotate` của trang từ `content.hitTest`). `handles.rs` có 3 unit test (kèm kiểm chứng ma trận cho cả 4 góc xoay trang 0°/90°/180°/270°), `objects.rs` 3 unit test; `chef-viewer` 45/45, `chef-app` 132/132, `core` `test_content_ops.py` 21/21, clippy sạch. `scripts/e2e-native-objects.ps1` và `scripts/e2e-native-handles.ps1` trên Windows đều đạt: kéo thân, kéo nắm SE giữ Shift bảo toàn tỉ lệ 2:1, xoay 90° quanh tâm (138.7×277.1) và `Ctrl+Z` hoàn tác lưu đúng lên file PDF. Đóng task.
+- **Trạng thái:** ✅
 
 ### R4.13 · Tẩy vùng · S
 - **Mô tả:** chọn vùng chữ nhật hoặc vẽ tự do, tẩy bằng màu nền hoặc màu tự chọn (operation `content.erase`).

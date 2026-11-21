@@ -9,6 +9,8 @@ pub struct ObjectSel {
     pub id: String,
     pub kind: String,
     pub bbox: [f32; 4],
+    pub bbox_user: [f32; 4],
+    pub page_rotation: u16,
 }
 
 impl ObjectSel {
@@ -24,18 +26,31 @@ pub fn hit_params(page_index: usize, point: [f32; 2]) -> Value {
     json!({ "pageIndex": page_index, "x": point[0], "y": point[1], "unit": "pt", "includeForms": false })
 }
 
+fn parse_rect4(value: Option<&Value>) -> Option<[f32; 4]> {
+    let rect = value.and_then(Value::as_array).filter(|r| r.len() == 4)?;
+    let nums = rect.iter().map(Value::as_f64).collect::<Option<Vec<_>>>()?;
+    Some([
+        nums[0] as f32,
+        nums[1] as f32,
+        nums[2] as f32,
+        nums[3] as f32,
+    ])
+}
+
 /// The topmost object under the point, or `None` when the point is on empty page.
 pub fn selection_from_reply(reply: &Value, page_index: usize) -> Result<Option<ObjectSel>, String> {
     let data = reply.get("data").unwrap_or(reply);
+    let page_rotation = data
+        .get("rotation")
+        .and_then(Value::as_u64)
+        .and_then(|r| u16::try_from(r).ok())
+        .unwrap_or(0);
     let Some(object) = data.get("object").filter(|object| !object.is_null()) else {
         return Ok(None);
     };
-    let bbox = object
-        .get("bbox")
-        .and_then(Value::as_array)
-        .filter(|bbox| bbox.len() == 4)
-        .and_then(|bbox| bbox.iter().map(Value::as_f64).collect::<Option<Vec<_>>>())
+    let bbox = parse_rect4(object.get("bbox"))
         .ok_or_else(|| "Core returned invalid object geometry".to_string())?;
+    let bbox_user = parse_rect4(object.get("bboxUser")).unwrap_or(bbox);
     Ok(Some(ObjectSel {
         page_index,
         id: object
@@ -48,12 +63,9 @@ pub fn selection_from_reply(reply: &Value, page_index: usize) -> Result<Option<O
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_owned(),
-        bbox: [
-            bbox[0] as f32,
-            bbox[1] as f32,
-            bbox[2] as f32,
-            bbox[3] as f32,
-        ],
+        bbox,
+        bbox_user,
+        page_rotation,
     }))
 }
 
@@ -64,6 +76,10 @@ pub fn delete_params(id: &str) -> Value {
 /// Displacement in points of the displayed frame, y downwards.
 pub fn move_params(id: &str, dx: f32, dy: f32) -> Value {
     json!({ "ids": [id], "dx": dx, "dy": dy })
+}
+
+pub fn transform_params(id: &str, matrix: [f64; 6]) -> Value {
+    json!({ "ids": [id], "matrix": matrix })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -105,5 +121,26 @@ mod tests {
         );
         assert_eq!(reorder_params("a", Order::Front)["mode"], "front");
         assert_eq!(hit_params(2, [3.0, 4.0])["pageIndex"], 2);
+        let tr = transform_params("a", [2.0, 0.0, 0.0, 2.0, 1.0, 3.0]);
+        assert_eq!(tr["ids"][0], "a");
+        assert_eq!(tr["matrix"][0], 2.0);
+    }
+
+    #[test]
+    fn parses_bbox_user_and_page_rotation() {
+        let reply = json!({
+            "data": {
+                "rotation": 90,
+                "object": {
+                    "id": "p1:ab:0",
+                    "kind": "path",
+                    "bbox": [10.0, 20.0, 110.0, 70.0],
+                    "bboxUser": [20.0, 50.0, 70.0, 150.0]
+                }
+            }
+        });
+        let sel = selection_from_reply(&reply, 1).unwrap().unwrap();
+        assert_eq!(sel.page_rotation, 90);
+        assert_eq!(sel.bbox_user, [20.0, 50.0, 70.0, 150.0]);
     }
 }
