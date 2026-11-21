@@ -3846,6 +3846,10 @@
     "desc": "Links in the document: to another page, or to a web address or e-mail.",
     "formDesc": "Choose where the link goes and how it looks.",
     "drawHint": "Drag on the page to draw the link area. Esc to cancel.",
+    "noDocument": "Open a PDF before editing links.",
+    "closeBeforeEdit": "Close the links dialog before editing the document.",
+    "chooseAction": "Choose a link action first.",
+    "open": "Open",
     "add": "Add link",
     "detect": "Detect links automatically",
     "detected": "Added {{count}} links for web and e-mail addresses in the text.",
@@ -3880,6 +3884,7 @@
     },
     "err": {
       "URI_REQUIRED": "Enter a web or e-mail address.",
+      "URI_UNSUPPORTED": "Only http, https, and mailto URLs are allowed.",
       "PAGE_INVALID": "Invalid page number.",
       "COLOUR_INVALID": "The colour must look like #rrggbb."
     },

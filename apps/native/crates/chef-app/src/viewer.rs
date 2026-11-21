@@ -272,6 +272,16 @@ pub struct Viewer {
     notes_ticket: u64,
     note_form_mode: Option<crate::notes::FormMode>,
     note_filter: crate::notes_list::NoteFilter,
+    links: Vec<crate::links::LinkItem>,
+    links_open: bool,
+    links_loaded: bool,
+    links_ticket: u64,
+    link_form_mode: Option<crate::links::LinkFormMode>,
+    link_kind: crate::links::LinkTargetKind,
+    link_target_input: Entity<TextInput>,
+    link_close_focus: FocusHandle,
+    link_apply_focus: FocusHandle,
+    hovered_link: Option<String>,
     /// Hộp thoại Thuộc tính (Ctrl+D): số liệu đã đọc lúc mở, và tiêu điểm nút đóng.
     props_open: bool,
     props_view: Option<properties::View>,
@@ -360,6 +370,7 @@ enum OperationResult {
         changed_pages: Option<serde_json::Value>,
         post_selection: PostSelection,
         notes: Option<Vec<crate::notes::Note>>,
+        links: Option<Vec<crate::links::LinkItem>>,
         can_undo: bool,
         can_redo: bool,
         dirty: bool,
@@ -411,6 +422,17 @@ enum OperationResult {
         ticket: u64,
         session_id: String,
         notes: Vec<crate::notes::Note>,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
+    LinksLoaded {
+        generation: u64,
+        doc: DocId,
+        path: PathBuf,
+        ticket: u64,
+        session_id: String,
+        links: Vec<crate::links::LinkItem>,
         can_undo: bool,
         can_redo: bool,
         dirty: bool,
@@ -468,6 +490,15 @@ enum EditOperation {
         path: PathBuf,
     },
     NoteMutation {
+        op_id: &'static str,
+        params: serde_json::Value,
+    },
+    ReadLinks {
+        ticket: u64,
+        doc: DocId,
+        path: PathBuf,
+    },
+    LinkMutation {
         op_id: &'static str,
         params: serde_json::Value,
     },
@@ -909,6 +940,7 @@ impl Viewer {
                     changed_pages: Some(serde_json::Value::String("all".into())),
                     post_selection: PostSelection::Keep,
                     notes: None,
+                    links: None,
                     can_undo,
                     can_redo,
                     dirty,
@@ -1184,6 +1216,16 @@ impl Viewer {
             cx.notify();
             return;
         }
+        if self.links_open
+            && !matches!(
+                &operation,
+                EditOperation::ReadLinks { .. } | EditOperation::LinkMutation { .. }
+            )
+        {
+            self.message = Some(i18n::t("links.closeBeforeEdit"));
+            cx.notify();
+            return;
+        }
         if self.tab_closing {
             self.abort_close_after_save();
             self.message = Some(i18n::t("editor.sessionClosing"));
@@ -1270,11 +1312,18 @@ impl Viewer {
             EditOperation::ReadNotes { ticket, doc, path } => Some((*ticket, *doc, path.clone())),
             _ => None,
         };
+        let links_read = match &operation {
+            EditOperation::ReadLinks { ticket, doc, path } => Some((*ticket, *doc, path.clone())),
+            _ => None,
+        };
         let object_hit = match &operation {
             EditOperation::HitObject { page_index, .. } => Some(*page_index),
             _ => None,
         };
         let refresh_notes = matches!(&operation, EditOperation::NoteMutation { .. });
+        let refresh_links = matches!(&operation, EditOperation::LinkMutation { .. })
+            || ((self.links_open || self.links_loaded)
+                && matches!(&operation, EditOperation::Undo | EditOperation::Redo));
         let (tx, rx) = channel();
         self.operation_rx = Some(rx);
         std::thread::spawn(move || {
@@ -1459,6 +1508,25 @@ impl Viewer {
                                 },
                             )?
                         }
+                        EditOperation::ReadLinks { .. } => run_session_job(
+                            sup,
+                            "links.list",
+                            &session_id,
+                            &serde_json::json!({}),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?,
+                        EditOperation::LinkMutation { op_id, params } => {
+                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                                |(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                },
+                            )?
+                        }
                         EditOperation::SetBookmarks { tree, .. } => {
                             let params = crate::bookmarks::set_params(tree);
                             run_session_job(sup, "bookmarks.set", &session_id, &params, true)
@@ -1607,6 +1675,27 @@ impl Viewer {
                     });
                     return Ok(());
                 }
+                if let Some((ticket, doc, path)) = links_read {
+                    let links = crate::links::links_from_reply(&reply)?;
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::LinksLoaded {
+                        generation,
+                        doc,
+                        path,
+                        ticket,
+                        session_id,
+                        links,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
                 if let Some(requested_path) = extract_requested_path {
                     let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
                     let output_path = reply
@@ -1721,6 +1810,33 @@ impl Viewer {
                 } else {
                     None
                 };
+                let links = if refresh_links {
+                    let listed = match run_session_job(
+                        supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?,
+                        "links.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    ) {
+                        Ok(listed) => listed,
+                        Err((message, refresh)) => {
+                            refresh_required |= refresh;
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(message);
+                        }
+                    };
+                    match crate::links::links_from_reply(&listed) {
+                        Ok(links) => Some(links),
+                        Err(error) => {
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(error);
+                        }
+                    }
+                } else {
+                    None
+                };
                 let applied = OperationResult::Applied {
                     generation,
                     session_id,
@@ -1730,6 +1846,7 @@ impl Viewer {
                     changed_pages: changed,
                     post_selection,
                     notes,
+                    links,
                     can_undo,
                     can_redo,
                     dirty,
@@ -1782,6 +1899,196 @@ impl Viewer {
         self.bookmark_drag_target = None;
         window.focus(&self.focus, cx);
         cx.notify();
+    }
+
+    fn open_links_editor(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.message = Some(i18n::t("links.noDocument"));
+            cx.notify();
+            return;
+        };
+        self.links_ticket = self.links_ticket.wrapping_add(1);
+        self.links_open = false;
+        self.link_form_mode = None;
+        self.message = None;
+        self.begin_edit(
+            EditOperation::ReadLinks {
+                ticket: self.links_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn close_links_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.links_ticket = self.links_ticket.wrapping_add(1);
+        self.links_open = false;
+        self.link_form_mode = None;
+        self.message = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn select_link(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(link) = self.links.iter().find(|link| link.id == id).cloned() else {
+            return;
+        };
+        self.link_form_mode = Some(crate::links::LinkFormMode::Edit(link.id));
+        self.link_kind = if link.kind == "page" {
+            crate::links::LinkTargetKind::Page
+        } else {
+            crate::links::LinkTargetKind::Uri
+        };
+        let target_text = match self.link_kind {
+            crate::links::LinkTargetKind::Uri => link.target_uri.unwrap_or_default(),
+            crate::links::LinkTargetKind::Page => link
+                .target_page
+                .map_or_else(String::new, |page| (page + 1).to_string()),
+        };
+        self.link_target_input
+            .update(cx, |input, cx| input.set_text(&target_text, cx));
+        self.message = None;
+        let focus = self.link_target_input.read(cx).focus_handle(cx);
+        window.focus(&focus, cx);
+        cx.notify();
+    }
+
+    fn begin_add_link_form(&mut self, cx: &mut Context<Self>) {
+        let page_index = self.target_pages().first().copied().unwrap_or(0);
+        let (width, height) = self
+            .page_sizes
+            .get(page_index)
+            .copied()
+            .unwrap_or((612.0, 792.0));
+        let offset = (self
+            .links
+            .iter()
+            .filter(|link| link.page_index == page_index)
+            .count()
+            % 8) as f32
+            * 50.0;
+        let left = 72.0_f32.min((width - 40.0).max(0.0));
+        let top = (120.0 + offset).min((height - 40.0).max(0.0));
+        let right = (left + 200.0).min(width.max(left + 10.0));
+        let bottom = (top + 40.0).min(height.max(top + 10.0));
+        self.link_form_mode = Some(crate::links::LinkFormMode::Add {
+            page_index,
+            rect: [left, top, right, bottom],
+        });
+        self.link_target_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.message = None;
+        cx.notify();
+    }
+
+    fn toggle_link_kind(&mut self, cx: &mut Context<Self>) {
+        self.link_kind = match self.link_kind {
+            crate::links::LinkTargetKind::Uri => crate::links::LinkTargetKind::Page,
+            crate::links::LinkTargetKind::Page => crate::links::LinkTargetKind::Uri,
+        };
+        self.message = None;
+        cx.notify();
+    }
+
+    fn apply_link_form(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.links_ticket == 0 {
+            return;
+        }
+        let Some(mode) = self.link_form_mode.clone() else {
+            self.message = Some(i18n::t("links.chooseAction"));
+            cx.notify();
+            return;
+        };
+        let value = self.link_target_input.read(cx).text().to_owned();
+        let page_count = self.page_sizes.len();
+        let operation = match mode {
+            crate::links::LinkFormMode::Add { page_index, rect } => {
+                crate::links::add_link_params(page_index, rect, self.link_kind, &value, page_count)
+                    .map(|params| ("links.add", params))
+            }
+            crate::links::LinkFormMode::Edit(id) => {
+                crate::links::update_link_params(&id, self.link_kind, &value, page_count)
+                    .map(|params| ("links.update", params))
+            }
+        };
+        match operation {
+            Ok((op_id, params)) => {
+                self.link_form_mode = None;
+                self.begin_edit(EditOperation::LinkMutation { op_id, params }, cx);
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn remove_selected_link(&mut self, cx: &mut Context<Self>) {
+        let Some(crate::links::LinkFormMode::Edit(id)) = self.link_form_mode.clone() else {
+            return;
+        };
+        match crate::links::remove_link_params(&id) {
+            Ok(params) => {
+                self.link_form_mode = None;
+                self.begin_edit(
+                    EditOperation::LinkMutation {
+                        op_id: "links.remove",
+                        params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn activate_link(&mut self, link: &crate::links::LinkItem, cx: &mut Context<Self>) {
+        match link.kind.as_str() {
+            "page" => {
+                if let Some(target_page) = link.target_page
+                    && target_page < self.page_sizes.len()
+                {
+                    self.go_to_page(target_page);
+                    self.message = None;
+                } else {
+                    self.message = Some(i18n::t("links.err.PAGE_INVALID"));
+                }
+            }
+            "uri" => {
+                let uri = link.target_uri.as_deref().unwrap_or("");
+                match crate::links::open_external_url(uri) {
+                    Ok(_) => self.message = None,
+                    Err(error) => self.message = Some(error),
+                }
+            }
+            _ => {
+                self.message = Some(i18n::t("links.err.URI_UNSUPPORTED"));
+            }
+        }
+        cx.notify();
+    }
+
+    fn activate_selected_link(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(crate::links::LinkFormMode::Edit(id)) = self.link_form_mode.as_ref() else {
+            return;
+        };
+        let Some(link) = self.links.iter().find(|link| &link.id == id).cloned() else {
+            return;
+        };
+        let is_page = link.kind == "page";
+        self.activate_link(&link, cx);
+        if is_page {
+            self.close_links_editor(window, cx);
+        }
     }
 
     fn open_notes_editor(&mut self, cx: &mut Context<Self>) {
@@ -2258,6 +2565,37 @@ impl Viewer {
                     self.notes_open = true;
                 }
             }
+            OperationResult::LinksLoaded {
+                generation,
+                doc,
+                path,
+                ticket,
+                session_id,
+                links,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                if ticket == self.links_ticket
+                    && self.doc == Some(doc)
+                    && self.doc_path.as_ref() == Some(&path)
+                {
+                    self.links = links;
+                    self.links_loaded = true;
+                    self.links_open = true;
+                    self.hovered_link = None;
+                }
+            }
             OperationResult::Applied {
                 generation,
                 session_id,
@@ -2267,6 +2605,7 @@ impl Viewer {
                 changed_pages,
                 post_selection,
                 notes,
+                links,
                 can_undo,
                 can_redo,
                 dirty,
@@ -2284,6 +2623,11 @@ impl Viewer {
                 self.dirty = dirty;
                 if let Some(notes) = notes {
                     self.notes = notes;
+                }
+                if let Some(links) = links {
+                    self.links = links;
+                    self.links_loaded = true;
+                    self.hovered_link = None;
                 }
                 let anchor = self.spread.as_ref().and_then(|spread| {
                     reload::capture_spread(spread, self.scroll_y, self.content_height())
@@ -2586,6 +2930,15 @@ impl Viewer {
             });
         let note_close_focus = cx.focus_handle();
         let note_apply_focus = cx.focus_handle();
+        let link_target_input = cx.new(|cx| TextInput::new(cx, i18n::t("links.form.uri")));
+        let link_subscription =
+            cx.subscribe(&link_target_input, |_, _, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    cx.notify();
+                }
+            });
+        let link_close_focus = cx.focus_handle();
+        let link_apply_focus = cx.focus_handle();
         let mut viewer = Viewer {
             handle,
             supervisor,
@@ -2599,6 +2952,7 @@ impl Viewer {
                 bookmark_subscription,
                 note_subscription,
                 note_author_subscription,
+                link_subscription,
             ],
             appearance_observer_installed: false,
             settings,
@@ -2658,6 +3012,16 @@ impl Viewer {
             notes_ticket: 0,
             note_filter: crate::notes_list::NoteFilter::default(),
             note_form_mode: None,
+            links: Vec::new(),
+            links_open: false,
+            links_loaded: false,
+            links_ticket: 0,
+            link_form_mode: None,
+            link_kind: crate::links::LinkTargetKind::Uri,
+            link_target_input,
+            link_close_focus,
+            link_apply_focus,
+            hovered_link: None,
             props_open: false,
             props_view: None,
             props_close: cx.focus_handle(),
@@ -3118,6 +3482,11 @@ impl Viewer {
         self.page_selection = PageSelection::empty();
         self.page_context_at = None;
         self.document_signed = false;
+        self.links.clear();
+        self.links_open = false;
+        self.links_loaded = false;
+        self.link_form_mode = None;
+        self.hovered_link = None;
     }
 
     /// Queue a close behind all currently queued pdfium work, so document handles do not leak.
@@ -3594,6 +3963,15 @@ impl Viewer {
             cx.notify();
             return;
         }
+        if !self.links.is_empty()
+            && let Some((page, point)) = self.point_to_page(ev.position)
+            && let Some(link) = crate::links::link_at_point(&self.links, page, point).cloned()
+        {
+            self.selection = None;
+            self.dragging = false;
+            self.activate_link(&link, cx);
+            return;
+        }
         self.selection = self.point_to_char(ev.position).map(|p| Selection {
             anchor: p,
             focus: p,
@@ -3632,6 +4010,16 @@ impl Viewer {
             return;
         }
         if !self.dragging {
+            if !self.object_mode && self.draw_tool.is_none() && !self.links.is_empty() {
+                let next = self
+                    .point_to_page(ev.position)
+                    .and_then(|(page, point)| crate::links::link_at_point(&self.links, page, point))
+                    .map(|link| link.id.clone());
+                if next != self.hovered_link {
+                    self.hovered_link = next;
+                    cx.notify();
+                }
+            }
             return;
         }
         if let Some(p) = self.point_to_char(ev.position) {
@@ -4964,6 +5352,176 @@ impl Render for Viewer {
         } else {
             None
         };
+        let links_dialog = if self.links_open {
+            let selected_id = self.link_form_mode.as_ref().and_then(|mode| match mode {
+                crate::links::LinkFormMode::Edit(id) => Some(id.clone()),
+                crate::links::LinkFormMode::Add { .. } => None,
+            });
+            let rows = self.links.iter().enumerate().map(|(index, link)| {
+                let row_entity = entity.clone();
+                let id = link.id.clone();
+                let selected = selected_id.as_deref() == Some(link.id.as_str());
+                let kind_label = if link.kind == "page" {
+                    i18n::t("links.kind.page")
+                } else {
+                    i18n::t("links.kind.uri")
+                };
+                Button::new(format!("links-row-{index}"), cx.focus_handle())
+                    .label(format!(
+                        "{} · {} · {}",
+                        link.page_index + 1,
+                        kind_label,
+                        link.display_target()
+                    ))
+                    .variant(if selected {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .on_click(move |_, window, cx| {
+                        row_entity.update(cx, |this, cx| this.select_link(&id, window, cx));
+                    })
+            });
+            let list = if self.links.is_empty() {
+                div()
+                    .id("links-empty")
+                    .w_full()
+                    .py(px(20.))
+                    .text_color(rgb(palette.text_2))
+                    .child(i18n::t("links.none"))
+                    .into_any_element()
+            } else {
+                div()
+                    .id("links-list")
+                    .w_full()
+                    .max_h(px(200.))
+                    .overflow_y_scroll()
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.))
+                    .children(rows)
+                    .into_any_element()
+            };
+            let add_entity = entity.clone();
+            let kind_entity = entity.clone();
+            let open_entity = entity.clone();
+            let delete_entity = entity.clone();
+            let apply_entity = entity.clone();
+            let close_entity = entity.clone();
+            let cancel_entity = entity.clone();
+            let has_selection = selected_id.is_some();
+            let status_note = self.message.clone();
+            Some(
+                Dialog::new("links", i18n::t("links.title"), Width::Md, dark)
+                    .close(
+                        "links-close",
+                        self.link_close_focus.clone(),
+                        i18n::t("common.close"),
+                    )
+                    .tab_order(vec![
+                        self.link_target_input.read(cx).focus_handle(cx),
+                        self.link_apply_focus.clone(),
+                    ])
+                    .return_focus(self.focus.clone())
+                    .on_dismiss(move |window, cx| {
+                        close_entity.update(cx, |this, cx| this.close_links_editor(window, cx));
+                    })
+                    .child(list)
+                    .child(
+                        div()
+                            .flex()
+                            .gap(px(8.))
+                            .child(
+                                Button::new("links-add", cx.focus_handle())
+                                    .label(i18n::t("links.add"))
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        add_entity
+                                            .update(cx, |this, cx| this.begin_add_link_form(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("links-kind", cx.focus_handle())
+                                    .label(format!(
+                                        "{}: {}",
+                                        i18n::t("links.form.kind"),
+                                        i18n::t(match self.link_kind {
+                                            crate::links::LinkTargetKind::Uri => "links.kind.uri",
+                                            crate::links::LinkTargetKind::Page => "links.kind.page",
+                                        })
+                                    ))
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        kind_entity
+                                            .update(cx, |this, cx| this.toggle_link_kind(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("links-open", cx.focus_handle())
+                                    .label(i18n::t("links.open"))
+                                    .disabled(!has_selection || self.operation_pending)
+                                    .dark(dark)
+                                    .on_click(move |_, window, cx| {
+                                        open_entity.update(cx, |this, cx| {
+                                            this.activate_selected_link(window, cx)
+                                        });
+                                    }),
+                            )
+                            .child(
+                                Button::new("links-delete", cx.focus_handle())
+                                    .label(i18n::t("links.delete"))
+                                    .disabled(!has_selection || self.operation_pending)
+                                    .dark(dark)
+                                    .on_click(move |_, _, cx| {
+                                        delete_entity
+                                            .update(cx, |this, cx| this.remove_selected_link(cx));
+                                    }),
+                            ),
+                    )
+                    .child(
+                        TextField::new(
+                            "links-target",
+                            i18n::t(match self.link_kind {
+                                crate::links::LinkTargetKind::Uri => "links.form.uri",
+                                crate::links::LinkTargetKind::Page => "links.kind.page",
+                            }),
+                            self.link_target_input.clone(),
+                        )
+                        .dark(dark),
+                    )
+                    .when_some(status_note, |dialog, text| {
+                        dialog.child(
+                            div()
+                                .id("links-error")
+                                .text_color(rgb(palette.accent))
+                                .child(text),
+                        )
+                    })
+                    .action(
+                        Button::new("links-cancel", self.link_close_focus.clone())
+                            .label(i18n::t("common.close"))
+                            .dark(dark)
+                            .on_click(move |_, window, cx| {
+                                cancel_entity
+                                    .update(cx, |this, cx| this.close_links_editor(window, cx));
+                            }),
+                    )
+                    .action(
+                        Button::new("links-apply", self.link_apply_focus.clone())
+                            .label(i18n::t("links.save"))
+                            .variant(Variant::Primary)
+                            .disabled(self.operation_pending || self.link_form_mode.is_none())
+                            .dark(dark)
+                            .on_click(move |_, _, cx| {
+                                apply_entity.update(cx, |this, cx| this.apply_link_form(cx));
+                            }),
+                    )
+                    .into_any_element(),
+            )
+        } else {
+            None
+        };
         let scanning = self.scanning();
         let source_warning = self.source_warning.map(|verdict| {
             let (body, title) = match verdict {
@@ -5217,6 +5775,22 @@ impl Render for Viewer {
                     .on_click({
                         let entity = entity.clone();
                         move |_, _, cx| entity.update(cx, |this, cx| this.open_notes_editor(cx))
+                    }),
+            )
+            .child(
+                Button::new("links-manager", cx.focus_handle())
+                    .label(i18n::t("links.cmd"))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| entity.update(cx, |this, cx| this.open_links_editor(cx))
                     }),
             )
             .child(
@@ -5651,6 +6225,8 @@ impl Render for Viewer {
             None
         };
         let Some(layout) = self.layout.as_mut() else {
+            crate::debug::set_links_overlay(serde_json::Value::Array(Vec::new()));
+            crate::debug::set_hovered_link(None);
             let text = self.message.clone().unwrap_or_default();
             return root
                 .child(toolbar)
@@ -5666,7 +6242,8 @@ impl Render for Viewer {
                 .children(props_dialog)
                 .children(password_dialog)
                 .children(bookmark_dialog)
-                .children(notes_dialog);
+                .children(notes_dialog)
+                .children(links_dialog);
         };
         if self.fit_width && self.page_mode != PageMode::Slideshow && page_viewport_w > 0.0 {
             let fit = if let Some(spread) = self.spread.as_ref() {
@@ -5978,6 +6555,11 @@ impl Render for Viewer {
             self.find.scanning(page_count),
         );
         let current = self.find.current().and_then(|k| self.find.locate(k));
+        let (cb_x, cb_y, _, _) =
+            self.content_bounds
+                .get()
+                .unwrap_or((SIDEBAR_WIDTH, TOOLBAR_H, 0.0, 0.0));
+        let mut links_overlay = Vec::new();
         let mut children = Vec::new();
         for (i, x, y, w, h) in geometry {
             match self.cache.get(&i).cloned() {
@@ -6055,6 +6637,36 @@ impl Render for Viewer {
                     );
                 }
             }
+            for link in self.links.iter().filter(|l| l.page_index == i) {
+                let (left, top, right, bottom) =
+                    self.rect_to_view(i, link.rect[0], link.rect[1], link.rect[2], link.rect[3]);
+                let sx = cb_x + x + left * zoom;
+                let sy = cb_y + y + top * zoom;
+                let sw = ((right - left) * zoom).max(1.0);
+                let sh = ((bottom - top) * zoom).max(1.0);
+                links_overlay.push(serde_json::json!({
+                    "id": link.id,
+                    "pageIndex": link.page_index,
+                    "kind": link.kind,
+                    "bounds": [sx, sy, sw, sh],
+                }));
+                if self.hovered_link.as_deref() == Some(link.id.as_str()) {
+                    children.push(
+                        div()
+                            .id("link-hover-overlay")
+                            .absolute()
+                            .left(px(x + left * zoom))
+                            .top(px(y + top * zoom))
+                            .w(px(sw))
+                            .h(px(sh))
+                            .border_2()
+                            .border_color(rgb(palette.accent))
+                            .bg(rgba(palette.selection))
+                            .cursor_pointer()
+                            .into_any_element(),
+                    );
+                }
+            }
             if let Some(sel) = self.object_sel.as_ref()
                 && sel.page_index == i
             {
@@ -6095,6 +6707,8 @@ impl Render for Viewer {
                 );
             }
         }
+        crate::debug::set_links_overlay(serde_json::Value::Array(links_overlay));
+        crate::debug::set_hovered_link(self.hovered_link.as_deref());
         if let Some(text) = self.message.clone() {
             children.push(
                 div()
@@ -6561,6 +7175,7 @@ impl Render for Viewer {
             .children(password_dialog)
             .children(bookmark_dialog)
             .children(notes_dialog)
+            .children(links_dialog)
             .children(page_context)
     }
 }

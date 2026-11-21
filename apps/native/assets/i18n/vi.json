@@ -3826,6 +3826,10 @@
     "desc": "Liên kết trong tài liệu: tới trang khác hoặc tới web và e-mail.",
     "formDesc": "Chọn đích của liên kết và kiểu hiển thị.",
     "drawHint": "Kéo chuột trên trang để vẽ vùng liên kết. Esc để hủy.",
+    "noDocument": "Hãy mở PDF trước khi sửa liên kết.",
+    "closeBeforeEdit": "Hãy đóng hộp thoại liên kết trước khi chỉnh tài liệu.",
+    "chooseAction": "Hãy chọn thao tác liên kết trước.",
+    "open": "Mở",
     "add": "Thêm liên kết",
     "detect": "Tự nhận diện liên kết",
     "detected": "Đã thêm {{count}} liên kết cho địa chỉ web và e-mail trong chữ.",
@@ -3860,6 +3864,7 @@
     },
     "err": {
       "URI_REQUIRED": "Cần nhập địa chỉ web hoặc e-mail.",
+      "URI_UNSUPPORTED": "Chỉ chấp nhận liên kết http, https hoặc mailto.",
       "PAGE_INVALID": "Số trang không đúng.",
       "COLOUR_INVALID": "Màu phải có dạng #rrggbb."
     },

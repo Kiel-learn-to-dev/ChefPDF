@@ -470,11 +470,39 @@ pub struct DebugClick {
     pub right: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PointerAction {
+    Down,
+    Move,
+    Drag,
+    Up,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DebugPointer {
+    pub action: PointerAction,
+    pub x: i32,
+    pub y: i32,
+    pub shift: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub platform: bool,
+}
+
 static CLICKS: std::sync::Mutex<std::collections::VecDeque<DebugClick>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+static POINTERS: std::sync::Mutex<std::collections::VecDeque<DebugPointer>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
 
 pub fn take_clicks() -> Vec<DebugClick> {
     match CLICKS.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn take_pointers() -> Vec<DebugPointer> {
+    match POINTERS.lock() {
         Ok(mut queue) => queue.drain(..).collect(),
         Err(_) => Vec::new(),
     }
@@ -511,6 +539,49 @@ fn parse_click(arg: &str) -> Result<DebugClick, String> {
         return Err("click chỉ nhận <x> <y> [mods]".into());
     }
     Ok(click)
+}
+
+fn parse_pointer(arg: &str) -> Result<DebugPointer, String> {
+    let mut parts = arg.split_whitespace();
+    let action = match parts.next() {
+        Some("down") => PointerAction::Down,
+        Some("move") => PointerAction::Move,
+        Some("drag") => PointerAction::Drag,
+        Some("up") => PointerAction::Up,
+        _ => return Err("pointer cần down, move, drag hoặc up".into()),
+    };
+    let x = parts
+        .next()
+        .and_then(|v| v.parse::<i32>().ok())
+        .ok_or_else(|| "pointer cần tọa độ x y".to_string())?;
+    let y = parts
+        .next()
+        .and_then(|v| v.parse::<i32>().ok())
+        .ok_or_else(|| "pointer cần tọa độ x y".to_string())?;
+    let mut pointer = DebugPointer {
+        action,
+        x,
+        y,
+        shift: false,
+        ctrl: false,
+        alt: false,
+        platform: false,
+    };
+    if let Some(mods) = parts.next() {
+        for token in mods.split('+').filter(|t| !t.is_empty()) {
+            match token.to_ascii_lowercase().as_str() {
+                "shift" => pointer.shift = true,
+                "ctrl" | "control" => pointer.ctrl = true,
+                "alt" => pointer.alt = true,
+                "meta" | "platform" | "cmd" => pointer.platform = true,
+                other => return Err(format!("modifier không hỗ trợ: {other}")),
+            }
+        }
+    }
+    if parts.next().is_some() {
+        return Err("pointer chỉ nhận <down|move|drag|up> <x> <y> [mods]".into());
+    }
+    Ok(pointer)
 }
 
 /// Hàng đợi action chờ luồng GPUI chạy. Đường đi: pipe -> hàng đợi -> `window.dispatch_action`,
@@ -953,6 +1024,64 @@ fn message_json() -> String {
 
 static SETTINGS: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
+static HOVERED_LINK: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+static OPENED_URL: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+static LINKS_OVERLAY: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+static OBJECT_SELECTION: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+pub fn set_hovered_link(id: Option<&str>) {
+    if let Ok(mut current) = HOVERED_LINK.lock() {
+        *current = id.map(str::to_string);
+    }
+}
+
+pub fn set_opened_url(url: Option<&str>) {
+    if let Ok(mut current) = OPENED_URL.lock() {
+        *current = url.map(str::to_string);
+    }
+}
+
+pub fn set_links_overlay(value: serde_json::Value) {
+    if let Ok(mut current) = LINKS_OVERLAY.lock() {
+        *current = value.to_string();
+    }
+}
+
+#[allow(dead_code)]
+pub fn set_object_selection(value: Option<serde_json::Value>) {
+    if let Ok(mut current) = OBJECT_SELECTION.lock() {
+        *current = value.map(|v| v.to_string());
+    }
+}
+
+fn hovered_link_json() -> String {
+    match HOVERED_LINK.lock().ok().and_then(|v| v.clone()) {
+        Some(id) => json_str(&id),
+        None => "null".into(),
+    }
+}
+
+fn opened_url_json() -> String {
+    match OPENED_URL.lock().ok().and_then(|v| v.clone()) {
+        Some(url) => json_str(&url),
+        None => "null".into(),
+    }
+}
+
+fn links_overlay_json() -> String {
+    match LINKS_OVERLAY.lock() {
+        Ok(current) if !current.is_empty() => current.clone(),
+        _ => "[]".into(),
+    }
+}
+
+fn object_selection_json() -> String {
+    match OBJECT_SELECTION.lock().ok().and_then(|v| v.clone()) {
+        Some(json) => json,
+        None => "null".into(),
+    }
+}
+
 pub fn set_settings(theme: &str, language: &str, save_dir: Option<&str>, open: bool) {
     let dir = match save_dir {
         Some(d) => json_str(d),
@@ -993,7 +1122,7 @@ fn state(hwnd: isize) -> String {
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"hoveredLink\":{},\"openedUrl\":{},\"linksOverlay\":{},\"objectSelection\":{},\"logLines\":{}}}",
         cursor_json(),
         THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
@@ -1067,6 +1196,10 @@ fn state(hwnd: isize) -> String {
         properties_json(),
         password_json(),
         scroll_progress_json(),
+        hovered_link_json(),
+        opened_url_json(),
+        links_overlay_json(),
+        object_selection_json(),
         crate::logging::recent().len()
     )
 }
@@ -1247,6 +1380,15 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             Ok(click) => {
                 if let Ok(mut queue) = CLICKS.lock() {
                     queue.push_back(click);
+                }
+                "{\"ok\":true}".into()
+            }
+            Err(error) => format!("{{\"ok\":false,\"error\":{}}}", json_str(&error)),
+        },
+        "pointer" => match parse_pointer(arg) {
+            Ok(pointer) => {
+                if let Ok(mut queue) = POINTERS.lock() {
+                    queue.push_back(pointer);
                 }
                 "{\"ok\":true}".into()
             }
@@ -1517,6 +1659,52 @@ mod tests {
         assert!(dispatch("dung_token click 120", "dung_token", 0).contains("\"ok\":false"));
         assert!(
             dispatch("dung_token click 120 240 bogus", "dung_token", 0).contains("\"ok\":false")
+        );
+    }
+
+    #[test]
+    fn pointer_command_parses_actions_modifiers_and_rejects_bad_arguments() {
+        assert_eq!(
+            dispatch("dung_token pointer drag 100 200 shift", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        assert_eq!(
+            dispatch("dung_token pointer move 50 60", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        let pointers = super::take_pointers();
+        assert_eq!(pointers.len(), 2);
+        assert_eq!(
+            pointers[0],
+            super::DebugPointer {
+                action: super::PointerAction::Drag,
+                x: 100,
+                y: 200,
+                shift: true,
+                ctrl: false,
+                alt: false,
+                platform: false,
+            }
+        );
+        assert_eq!(
+            pointers[1],
+            super::DebugPointer {
+                action: super::PointerAction::Move,
+                x: 50,
+                y: 60,
+                shift: false,
+                ctrl: false,
+                alt: false,
+                platform: false,
+            }
+        );
+        assert!(
+            dispatch("dung_token pointer hover 10 20", "dung_token", 0).contains("\"ok\":false")
+        );
+        assert!(dispatch("dung_token pointer move 10", "dung_token", 0).contains("\"ok\":false"));
+        assert!(
+            dispatch("dung_token pointer drag 10 20 nope", "dung_token", 0)
+                .contains("\"ok\":false")
         );
     }
 }

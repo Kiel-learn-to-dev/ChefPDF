@@ -57,9 +57,35 @@ pub struct DebugClick {
     pub right: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PointerAction {
+    Down,
+    Move,
+    Drag,
+    Up,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DebugPointer {
+    pub action: PointerAction,
+    pub x: i32,
+    pub y: i32,
+    pub shift: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub platform: bool,
+}
+
 pub fn take_clicks() -> Vec<DebugClick> {
     Vec::new()
 }
+pub fn take_pointers() -> Vec<DebugPointer> {
+    Vec::new()
+}
+pub fn set_hovered_link(_: Option<&str>) {}
+pub fn set_opened_url(_: Option<&str>) {}
+pub fn set_links_overlay(_: serde_json::Value) {}
+pub fn set_object_selection(_: Option<serde_json::Value>) {}
 pub fn take_scroll_screens() -> Vec<f32> {
     Vec::new()
 }

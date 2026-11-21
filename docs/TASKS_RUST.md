@@ -1261,10 +1261,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) liên kết mở đúng trang hoặc URL; (2) URL không phải http, https, mailto bị từ chối; (3) có undo.
 - **Kiểm chứng:** E2E `links`-liên quan (chưa có spec riêng: viết test); test từ chối URL xấu.
 - **Phụ thuộc:** R4.11
-- **File:** `apps/native/crates/chef-app/src/links.rs`
-- **E2E:** `content-v06` (phần liên kết)
+- **File:** `apps/native/crates/chef-app/src/links.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-links.ps1`
+- **E2E:** `content-v06` (phần liên kết), `scripts/e2e-native-links.ps1`
 - **Tính năng:** D11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-21) Hộp thoại `Liên kết` (`links-manager`): đọc `links.list`, thêm (`links.add`), sửa (`links.update`), xóa (`links.remove`) cho liên kết trang nội bộ và web/email; allowlist URL chỉ cho phép `http`, `https`, `mailto` (từ chối `javascript:`, `vbscript:`, `file:`, `ftp:`, v.v. trước khi gọi lõi); di chuột trên trang hiện khung `link-hover-overlay` + con trỏ tay, bấm vào liên kết trang nhảy tới trang đích, bấm liên kết web/email kiểm duyệt lại scheme rồi mở qua `ShellExecuteW` (khi không chạy E2E); hoàn tác (`Ctrl+Z`) cập nhật lại danh sách liên kết. `links.rs` có 3 unit test, `chef-app` 131/131, `chef-viewer` 42/42, clippy sạch. `scripts/e2e-native-links.ps1` trên Windows đạt: tạo/sửa/xóa, từ chối URL xấu, hover overlay, mở `mailto:` + nhảy trang 2, và `Ctrl+Z` khôi phục liên kết trong PDF. Đóng task.
+- **Trạng thái:** ✅
 
 ### M4.2 Lớp và ghi chú
 

@@ -39,6 +39,7 @@ mod drop;
 mod find;
 #[cfg(windows)]
 mod instance;
+mod links;
 mod logging;
 mod night;
 pub mod notes;
@@ -641,6 +642,60 @@ fn main() {
                                         }),
                                         cx,
                                     );
+                                }
+                            });
+                        }
+                        let pointers = debug::take_pointers();
+                        if !pointers.is_empty() {
+                            let any: gpui::AnyWindowHandle = window.into();
+                            let _ = any.update(cx, |_, window, cx| {
+                                let scale = window.scale_factor().max(0.1);
+                                for pointer in pointers {
+                                    let position = gpui::point(
+                                        px(pointer.x as f32 / scale),
+                                        px(pointer.y as f32 / scale),
+                                    );
+                                    let modifiers = gpui::Modifiers {
+                                        control: pointer.ctrl,
+                                        alt: pointer.alt,
+                                        shift: pointer.shift,
+                                        platform: pointer.platform,
+                                        function: false,
+                                    };
+                                    let event = match pointer.action {
+                                        debug::PointerAction::Down => {
+                                            gpui::PlatformInput::MouseDown(gpui::MouseDownEvent {
+                                                button: gpui::MouseButton::Left,
+                                                position,
+                                                modifiers,
+                                                click_count: 1,
+                                                first_mouse: false,
+                                            })
+                                        }
+                                        debug::PointerAction::Move => {
+                                            gpui::PlatformInput::MouseMove(gpui::MouseMoveEvent {
+                                                position,
+                                                pressed_button: None,
+                                                modifiers,
+                                            })
+                                        }
+                                        debug::PointerAction::Drag => {
+                                            gpui::PlatformInput::MouseMove(gpui::MouseMoveEvent {
+                                                position,
+                                                pressed_button: Some(gpui::MouseButton::Left),
+                                                modifiers,
+                                            })
+                                        }
+                                        debug::PointerAction::Up => {
+                                            gpui::PlatformInput::MouseUp(gpui::MouseUpEvent {
+                                                button: gpui::MouseButton::Left,
+                                                position,
+                                                modifiers,
+                                                click_count: 1,
+                                            })
+                                        }
+                                    };
+                                    window.dispatch_event(event, cx);
                                 }
                             });
                         }
