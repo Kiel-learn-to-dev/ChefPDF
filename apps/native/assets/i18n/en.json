@@ -377,6 +377,7 @@
     "signatureHint": "This field requires a digital signature.",
     "signField": "Sign field",
     "buttonField": "Button fields cannot be edited here.",
+    "closeBeforeEdit": "Close the PDF Forms dialog before another edit.",
     "kind": {
       "text": "Text",
       "multiline": "Multiline text",
@@ -837,7 +838,11 @@
     "addFiles": "Add files…",
     "run": "Run",
     "stop": "Stop",
-    "saveAsStep": "Save as workflow step"
+    "saveAsStep": "Save as workflow step",
+    "closeRunningTitle": "Task is running",
+    "closeRunningMessage": "A task is currently running. Stop it and close the dialog?",
+    "keepRunning": "Keep running",
+    "stopAndClose": "Stop and close"
   },
   "merge": {
     "title": "Merge files",

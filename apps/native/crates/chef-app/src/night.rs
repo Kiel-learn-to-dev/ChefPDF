@@ -32,6 +32,7 @@ pub fn invert_bgra(bgra: &mut [u8]) {
 
 /// Evict cached page images when switching the pixel transform; returned values are handed to GPUI
 /// for explicit texture release by the caller.
+#[allow(dead_code)]
 pub fn evict_cached_pages<K, V>(cache: &mut LruCache<K, V>) -> Vec<V>
 where
     K: Eq + Hash + Clone,

@@ -132,6 +132,13 @@ impl<K: Eq + Hash + Clone, V> LruCache<K, V> {
     pub fn entries(&self) -> impl Iterator<Item = (&K, &V)> {
         self.items.iter().map(|(key, entry)| (key, &entry.value))
     }
+
+    /// Read cache entries with their byte sizes without marking them as recently used.
+    pub fn entries_with_bytes(&self) -> impl Iterator<Item = (&K, &V, usize)> {
+        self.items
+            .iter()
+            .map(|(key, entry)| (key, &entry.value, entry.bytes))
+    }
 }
 
 #[cfg(test)]
@@ -149,5 +156,22 @@ mod tests {
         assert_eq!(evicted, vec!["page-1"]);
         assert!(cache.contains(&2));
         assert!(cache.contains(&3));
+    }
+
+    #[test]
+    fn entries_with_bytes_reports_sizes_without_changing_lru_order() {
+        let mut cache = LruCache::new(300);
+        cache.insert(1, "page-1", 100);
+        cache.insert(2, "page-2", 150);
+        let mut items: Vec<(u32, &str, usize)> = cache
+            .entries_with_bytes()
+            .map(|(k, v, bytes)| (*k, *v, bytes))
+            .collect();
+        items.sort_by_key(|(k, _, _)| *k);
+        assert_eq!(items, vec![(1, "page-1", 100), (2, "page-2", 150)]);
+
+        let evicted = cache.insert(3, "page-3", 150);
+        assert_eq!(evicted, vec!["page-1"]);
+        assert_eq!(cache.total_bytes(), 300);
     }
 }

@@ -348,7 +348,7 @@ Những điều phát hiện khi làm R2.10 (áp dụng cho mọi thành phần 
 
 | Mối đe dọa | Biện pháp |
 |---|---|
-| PDF chứa JavaScript | **Kết quả kiểm M1 (2026-11-09):** DLL build 8076 và 8125 đều chứa mã V8 và XFA (chuỗi `v8…`, `XFAPacketContent`, export `FPDF_LoadXFA`). Vì vậy không thể nói "DLL không có JS". Biện pháp hiện có: viewer M1 không gọi `FPDFDOC_InitFormFillEnvironment`, nên không có môi trường form nào để chạy script; không gọi `FPDF_LoadXFA`. **Phải kiểm lại ở M4** khi làm form (R4.21): môi trường form-fill có kích hoạt JS không, và cách tắt |
+| PDF chứa JavaScript | **Đã xác minh ở M4 (R4.21, 2026-11-21):** Dù DLL build 8125 chứa V8 và XFA, `pdfium-render` 0.9.5 tạo `FPDF_FORMFILLINFO` với `m_pJsPlatform = NULL` và mọi callback đều `None`, còn `chef-pdf/src/form_fill.rs` không bao giờ gọi `FPDF_LoadXFA`. Test tích hợp với `pdfium.dll` thực (`chef-pdf/tests/form_fill.rs`) và E2E `scripts/e2e-native-forms.ps1` xác nhận JS ở `/OpenAction`, page `/AA /O`, widget `/AA /C`/`/F` và XFA đều không chạy khi mở, đọc widget hay render qua `FPDF_FFLDraw` |
 | Lõi bị thay thế | Lõi chỉ chạy từ thư mục cài đặt; không nạp đường dẫn từ dữ liệu người dùng |
 | Mật khẩu trong bộ nhớ | Dùng `zeroize`; không ghi log; không đưa vào tham số dòng lệnh |
 | Cổng mạng | Chỉ có máy chủ L5, khi đang chụp, có token một lần. Debug channel chỉ có named pipe |

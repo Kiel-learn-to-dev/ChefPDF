@@ -151,6 +151,20 @@ static FILE_DIALOG: std::sync::LazyLock<std::sync::Mutex<String>> =
 static PALETTE: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
     std::sync::Mutex::new("{\"open\":false,\"query\":\"\",\"selected\":0,\"results\":[]}".into())
 });
+static SPLIT: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
+    std::sync::Mutex::new(
+        "{\"open\":false,\"cachedPages\":0,\"cachedBytes\":0,\"pending\":0,\"sharedCachePages\":0,\"sharedCacheBytes\":0,\"sharedCacheBudget\":0}".into(),
+    )
+});
+static FORMS_ENV: std::sync::LazyLock<std::sync::Mutex<chef_pdf::form_fill::FormEnvStats>> =
+    std::sync::LazyLock::new(
+        || std::sync::Mutex::new(chef_pdf::form_fill::FormEnvStats::default()),
+    );
+static FORMS_VIEW: std::sync::LazyLock<std::sync::Mutex<String>> = std::sync::LazyLock::new(|| {
+    std::sync::Mutex::new(
+        "{\"formType\":\"none\",\"formEnvActive\":false,\"jsEnabled\":false,\"xfaLoaded\":false,\"pendingPages\":0,\"widgets\":[]}".into(),
+    )
+});
 #[derive(Clone, Default)]
 struct ClosePromptState {
     open: bool,
@@ -388,6 +402,19 @@ pub fn set_sidebar_scroll_y(scroll_y: f32) {
     SIDEBAR_SCROLL_Y.store(scroll_y.to_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
+pub fn set_split(value: serde_json::Value) {
+    if let Ok(mut current) = SPLIT.lock() {
+        *current = value.to_string();
+    }
+}
+
+fn split_json() -> String {
+    match SPLIT.lock() {
+        Ok(current) if !current.is_empty() => current.clone(),
+        _ => "{\"open\":false}".into(),
+    }
+}
+
 /// Tên action được phép gửi qua lệnh `action`. Luồng GPUI đổi tên thành action thật (main.rs).
 pub const ACTION_NAMES: &[&str] = &[
     "selectall",
@@ -431,8 +458,12 @@ pub const ACTION_NAMES: &[&str] = &[
     "tabnext",
     "tabprev",
     "closetab",
+    "togglesplit",
     "openproperties",
     "editbookmarks",
+    "openforms",
+    "addformfield",
+    "flattenforms",
     "rotatepage",
     "undoedit",
     "redoedit",
@@ -599,6 +630,10 @@ static SCROLL_SCREENS: std::sync::Mutex<std::collections::VecDeque<f32>> =
 static SCROLL_PROGRESS: std::sync::Mutex<(u32, u32, bool)> = std::sync::Mutex::new((0, 0, false));
 static SIDEBAR_SCROLL: std::sync::Mutex<std::collections::VecDeque<f32>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
+static SPLIT_SCROLL: std::sync::Mutex<std::collections::VecDeque<f32>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+static RESIZE_REQUESTS: std::sync::Mutex<std::collections::VecDeque<(f32, f32)>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
 
 /// Lấy các action đang chờ (gọi từ luồng GPUI).
 pub fn take_actions() -> Vec<String> {
@@ -626,6 +661,20 @@ pub fn take_scroll_screens() -> Vec<f32> {
 
 pub fn take_sidebar_scrolls() -> Vec<f32> {
     match SIDEBAR_SCROLL.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn take_split_scrolls() -> Vec<f32> {
+    match SPLIT_SCROLL.lock() {
+        Ok(mut queue) => queue.drain(..).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn take_resize_requests() -> Vec<(f32, f32)> {
+    match RESIZE_REQUESTS.lock() {
         Ok(mut queue) => queue.drain(..).collect(),
         Err(_) => Vec::new(),
     }
@@ -1060,6 +1109,42 @@ pub fn set_object_selection(value: Option<serde_json::Value>) {
     }
 }
 
+pub fn set_forms_env(stats: &chef_pdf::form_fill::FormEnvStats) {
+    if let Ok(mut current) = FORMS_ENV.lock() {
+        *current = *stats;
+    }
+}
+
+pub fn set_forms_view(value: serde_json::Value) {
+    if let Ok(mut current) = FORMS_VIEW.lock() {
+        *current = value.to_string();
+    }
+}
+
+fn forms_json() -> String {
+    let stats = FORMS_ENV.lock().map(|s| *s).unwrap_or_default();
+    let view_raw = FORMS_VIEW
+        .lock()
+        .map(|s| s.clone())
+        .unwrap_or_else(|_| "{}".into());
+    let mut obj = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&view_raw)
+        .unwrap_or_default();
+    obj.insert("activeDocs".into(), serde_json::json!(stats.active_docs));
+    obj.insert(
+        "activeFormEnvs".into(),
+        serde_json::json!(stats.active_form_envs),
+    );
+    obj.insert(
+        "totalFormInits".into(),
+        serde_json::json!(stats.total_form_inits),
+    );
+    obj.insert(
+        "totalFormExits".into(),
+        serde_json::json!(stats.total_form_exits),
+    );
+    serde_json::Value::Object(obj).to_string()
+}
+
 fn hovered_link_json() -> String {
     match HOVERED_LINK.lock().ok().and_then(|v| v.clone()) {
         Some(id) => json_str(&id),
@@ -1135,7 +1220,7 @@ fn state(hwnd: isize) -> String {
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"hoveredLink\":{},\"openedUrl\":{},\"linksOverlay\":{},\"typeFilter\":{},\"objectSelection\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"hoveredLink\":{},\"openedUrl\":{},\"linksOverlay\":{},\"typeFilter\":{},\"objectSelection\":{},\"logLines\":{},\"split\":{},\"forms\":{}}}",
         cursor_json(),
         THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
@@ -1214,7 +1299,9 @@ fn state(hwnd: isize) -> String {
         links_overlay_json(),
         type_filter_json(),
         object_selection_json(),
-        crate::logging::recent().len()
+        crate::logging::recent().len(),
+        split_json(),
+        forms_json()
     )
 }
 
@@ -1463,6 +1550,39 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
             }
             _ => "{\"ok\":false,\"error\":\"scrollsidebar cần số hữu hạn khác 0\"}".into(),
         },
+        "scrollsplit" => match arg.parse::<f32>() {
+            Ok(screens) if screens.is_finite() && screens != 0.0 && screens.abs() <= 10_000.0 => {
+                if let Ok(mut queue) = SPLIT_SCROLL.lock() {
+                    queue.push_back(screens);
+                    "{\"ok\":true}".into()
+                } else {
+                    "{\"ok\":false,\"error\":\"không khóa được hàng đợi cuộn song song\"}".into()
+                }
+            }
+            _ => "{\"ok\":false,\"error\":\"scrollsplit cần số hữu hạn khác 0\"}".into(),
+        },
+        "resize" => {
+            let mut parts = arg.split_whitespace();
+            let width = parts.next().and_then(|v| v.parse::<f32>().ok());
+            let height = parts.next().and_then(|v| v.parse::<f32>().ok());
+            match (width, height, parts.next()) {
+                (Some(w), Some(h), None)
+                    if w.is_finite()
+                        && h.is_finite()
+                        && (320.0..=4000.0).contains(&w)
+                        && (320.0..=4000.0).contains(&h) =>
+                {
+                    if let Ok(mut queue) = RESIZE_REQUESTS.lock() {
+                        queue.push_back((w, h));
+                        "{\"ok\":true}".into()
+                    } else {
+                        "{\"ok\":false,\"error\":\"không khóa được hàng đợi resize\"}".into()
+                    }
+                }
+                _ => "{\"ok\":false,\"error\":\"resize cần <width> <height> từ 320 đến 4000\"}"
+                    .into(),
+            }
+        }
         _ => format!("{{\"ok\":false,\"error\":\"lệnh không hỗ trợ: {cmd}\"}}"),
     }
 }
@@ -1719,6 +1839,26 @@ mod tests {
         assert!(
             dispatch("dung_token pointer drag 10 20 nope", "dung_token", 0)
                 .contains("\"ok\":false")
+        );
+    }
+
+    #[test]
+    fn resize_command_validates_bounds_and_queues_dimensions() {
+        assert_eq!(
+            dispatch("dung_token resize 800 860", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        assert_eq!(
+            dispatch("dung_token resize 1484 860", "dung_token", 0),
+            "{\"ok\":true}"
+        );
+        assert_eq!(
+            super::take_resize_requests(),
+            vec![(800.0, 860.0), (1484.0, 860.0)]
+        );
+        assert!(dispatch("dung_token resize 100 860", "dung_token", 0).contains("\"ok\":false"));
+        assert!(
+            dispatch("dung_token resize 800 860 extra", "dung_token", 0).contains("\"ok\":false")
         );
     }
 }

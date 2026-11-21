@@ -1,4 +1,4 @@
-﻿#requires -Version 7.0
+#requires -Version 7.0
 <#
 .SYNOPSIS
   R4.16 E2E for the layers panel (visibility toggle, rename, flatten + undo) and content.viewByType filter.

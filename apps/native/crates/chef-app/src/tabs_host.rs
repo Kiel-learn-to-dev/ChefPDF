@@ -10,12 +10,14 @@ use std::time::Duration;
 
 use chef_pdf::render::RenderHandle;
 use chef_rpc::Supervisor;
+use chef_ui::button::{Button, Size as ButtonSize, Variant};
 use chef_ui::dialog::{Dialog, Width};
 use chef_ui::jobs_panel::{
     JobMeta, JobStore, JobsPanelCallbacks, JobsPanelProps, JobsToggleCallbacks, JobsToggleProps,
     build_jobs_panel, build_jobs_toggle, is_job_notification,
 };
 use chef_ui::text_input::{TextInput, TextInputEvent};
+use chef_viewer::split::{SplitReconcile, SplitState};
 use gpui::{
     AnyWindowHandle, App, Context, Entity, ExternalPaths, FocusHandle, Focusable, KeyBinding,
     Render, SharedString, Subscription, Window, actions, div, prelude::*, px, rgb,
@@ -25,10 +27,14 @@ use crate::close::{CloseTabStatus, UnsavedClosePrompt, WindowCloseStep, next_win
 use crate::commands::{self, Command, CommandRegistry};
 use crate::recovery::{ConfirmDiscard, RecoverableSession, RecoveryModal};
 use crate::settings_dialog::{self, SettingsPanel};
+use crate::split_pane::ComparePane;
 use crate::tabs::{TabId, Tabs};
-use crate::viewer::{self, Viewer};
+use crate::viewer::{self, SharedCache, Viewer};
 
-actions!(document_tabs, [NextTab, PreviousTab, CloseTab]);
+actions!(
+    document_tabs,
+    [NextTab, PreviousTab, CloseTab, ToggleSplitView]
+);
 
 pub fn bind_keys(cx: &mut App) {
     cx.bind_keys([
@@ -74,6 +80,10 @@ pub struct DocumentHost {
     tabs: Tabs,
     viewers: HashMap<TabId, Entity<Viewer>>,
     handle: RenderHandle,
+    shared_cache: SharedCache,
+    split: SplitState,
+    compare_pane: Option<Entity<ComparePane>>,
+    compare_subscription: Option<Subscription>,
     supervisor: Option<Arc<Mutex<Supervisor>>>,
     closing: HashMap<TabId, Closing>,
     close_message: Option<String>,
@@ -119,6 +129,8 @@ impl DocumentHost {
         );
         let settings = cx.new(SettingsPanel::new);
         let settings_subscription = cx.observe(&settings, |_, _, cx| cx.notify());
+        let shared_cache = viewer::new_shared_cache();
+        let split = SplitState::new();
         let core_events = supervisor
             .as_ref()
             .and_then(|sup| sup.lock().ok())
@@ -134,6 +146,10 @@ impl DocumentHost {
             tabs: Tabs::new(),
             viewers: HashMap::new(),
             handle,
+            shared_cache,
+            split,
+            compare_pane: None,
+            compare_subscription: None,
             supervisor,
             closing: HashMap::new(),
             close_message: None,
@@ -159,6 +175,8 @@ impl DocumentHost {
             focus: cx.focus_handle(),
             palette_window: None,
         };
+        crate::debug::set_split(host.closed_split_debug());
+        crate::debug::set_forms_env(&host.handle.form_env_stats());
         let batch = crate::drop::validate_paths(paths);
         for path in batch.accepted {
             host.insert_path(path, cx);
@@ -341,6 +359,195 @@ impl DocumentHost {
         }
     }
 
+    pub fn scroll_split(&mut self, screens: f32, cx: &mut App) {
+        if let Some(pane) = self.compare_pane.as_ref() {
+            pane.update(cx, |pane, cx| {
+                pane.scroll_screens(screens);
+                cx.notify();
+            });
+        }
+    }
+
+    fn closed_split_debug(&self) -> serde_json::Value {
+        let cache = self
+            .shared_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        serde_json::json!({
+            "open": false,
+            "targetTabId": serde_json::Value::Null,
+            "title": serde_json::Value::Null,
+            "pageCount": 0,
+            "firstPage": 0,
+            "scrollY": 0.0,
+            "zoom": 1.0,
+            "fitWidth": true,
+            "cachedPages": 0,
+            "cachedBytes": 0,
+            "pending": 0,
+            "sharedCachePages": cache.total_len(),
+            "sharedCacheBytes": cache.total_bytes(),
+            "sharedCacheBudget": cache.budget(),
+        })
+    }
+
+    fn split_debug_snapshot(&self, cx: &App) -> serde_json::Value {
+        match self.compare_pane.as_ref() {
+            Some(pane) if self.split.is_open() => pane.read(cx).debug_snapshot(),
+            _ => self.closed_split_debug(),
+        }
+    }
+
+    fn drain_shared_cache_drops(&self, window: &mut Window) {
+        let drops = self
+            .shared_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take_drops();
+        for image in drops {
+            let _ = window.drop_image(image);
+        }
+    }
+
+    fn toggle_split(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let active_raw = self.tabs.active_id().map(TabId::get);
+        if self.split.toggle(active_raw) {
+            if self.compare_pane.is_none() {
+                let host_select = cx.entity();
+                let host_open = cx.entity();
+                let host_close = cx.entity();
+                let pane = cx.new(|cx| {
+                    ComparePane::new(
+                        self.handle.clone(),
+                        self.shared_cache.clone(),
+                        self.settings.clone(),
+                        move |tab_id, window, cx| {
+                            host_select.update(cx, |host, cx| {
+                                host.select_split_tab(tab_id, window, cx);
+                            });
+                        },
+                        move |window, cx| {
+                            host_open.update(cx, |host, cx| {
+                                host.open_file_in_split(window, cx);
+                            });
+                        },
+                        move |window, cx| {
+                            host_close.update(cx, |host, cx| {
+                                host.close_split(window, cx);
+                            });
+                        },
+                        cx,
+                    )
+                });
+                self.compare_subscription = Some(cx.observe(&pane, |_, _, cx| cx.notify()));
+                self.compare_pane = Some(pane);
+            }
+            self.sync_compare_pane(window, cx);
+        } else {
+            self.close_split(window, cx);
+            return;
+        }
+        crate::debug::set_split(self.split_debug_snapshot(cx));
+        cx.notify();
+    }
+
+    fn close_split(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.split.close_secondary();
+        self.compare_subscription = None;
+        if let Some(pane) = self.compare_pane.take() {
+            pane.update(cx, |pane, _| pane.close_pane(window));
+        }
+        crate::debug::set_split(self.closed_split_debug());
+        cx.notify();
+    }
+
+    fn select_split_tab(&mut self, tab_id: TabId, window: &mut Window, cx: &mut Context<Self>) {
+        let open_ids: Vec<u64> = self.tabs.tabs().iter().map(|tab| tab.id().get()).collect();
+        if self.split.select_tab(tab_id.get(), &open_ids) {
+            self.sync_compare_pane(window, cx);
+            crate::debug::set_split(self.split_debug_snapshot(cx));
+            cx.notify();
+        }
+    }
+
+    fn open_file_in_split(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.window_closing {
+            self.set_window_closing(false);
+        }
+        let initial_dir = self.settings.read(cx).save_dir().map(PathBuf::from);
+        let paths = crate::dialogs::open_pdfs(initial_dir.as_deref());
+        if paths.is_empty() {
+            return;
+        }
+        let previous_active = self.tabs.active_id();
+        let batch = crate::drop::validate_paths(paths);
+        let mut last_opened = None;
+        for path in batch.accepted {
+            self.insert_path(path, cx);
+            last_opened = self.tabs.active_id();
+        }
+        if let Some(prev) = previous_active {
+            self.tabs.activate(prev);
+        }
+        if let Some(opened) = last_opened {
+            let open_ids: Vec<u64> = self.tabs.tabs().iter().map(|tab| tab.id().get()).collect();
+            if !self.split.is_open() {
+                self.split.open_for(opened.get());
+            } else {
+                self.split.select_tab(opened.get(), &open_ids);
+            }
+            self.sync_compare_pane(window, cx);
+        }
+        self.close_message = open_errors_message(&batch.rejected);
+        self.focus_active(window, cx);
+        crate::debug::set_split(self.split_debug_snapshot(cx));
+        cx.notify();
+    }
+
+    fn sync_compare_pane(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let open_ids: Vec<u64> = self.tabs.tabs().iter().map(|tab| tab.id().get()).collect();
+        let active_raw = self.tabs.active_id().map(TabId::get);
+        let target_raw = match self.split.reconcile_tabs(&open_ids, active_raw) {
+            SplitReconcile::Closed => {
+                self.compare_subscription = None;
+                if let Some(pane) = self.compare_pane.take() {
+                    pane.update(cx, |pane, _| pane.close_pane(window));
+                }
+                crate::debug::set_split(self.closed_split_debug());
+                return;
+            }
+            SplitReconcile::Keep(id) | SplitReconcile::Fallback(id) => id,
+        };
+        let options: Vec<(TabId, String)> = self
+            .tabs
+            .tabs()
+            .iter()
+            .map(|tab| {
+                let title = self
+                    .viewers
+                    .get(&tab.id())
+                    .map(|viewer| viewer.read(cx).tab_title())
+                    .unwrap_or_else(|| tab.title().to_string());
+                (tab.id(), title)
+            })
+            .collect();
+        let source = self
+            .tabs
+            .tabs()
+            .iter()
+            .find(|t| t.id().get() == target_raw)
+            .map(|t| t.id())
+            .and_then(|tab_id| {
+                self.viewers
+                    .get(&tab_id)
+                    .map(|viewer| viewer.read(cx).split_source(tab_id))
+            });
+        if let Some(pane) = self.compare_pane.as_ref() {
+            pane.update(cx, |pane, cx| pane.sync(source, options, cx));
+        }
+        crate::debug::set_split(self.split_debug_snapshot(cx));
+    }
+
     pub fn active_search(
         &self,
         window: &Window,
@@ -368,6 +575,7 @@ impl DocumentHost {
                 Some(path.clone()),
                 self.supervisor.clone(),
                 self.settings.clone(),
+                self.shared_cache.clone(),
                 cx,
             )
         });
@@ -752,6 +960,7 @@ impl DocumentHost {
                 &restored_clone,
                 self.supervisor.clone(),
                 self.settings.clone(),
+                self.shared_cache.clone(),
                 cx,
             )
         });
@@ -1043,8 +1252,18 @@ impl DocumentHost {
         } else {
             crate::debug::set_viewer_stats(0, 0, 0);
             crate::debug::set_page_selection(&[], None, None);
+            crate::debug::set_forms_view(serde_json::json!({
+                "formType": "none",
+                "formEnvActive": false,
+                "jsEnabled": false,
+                "xfaLoaded": false,
+                "pendingPages": 0,
+                "widgets": [],
+            }));
         }
+        crate::debug::set_forms_env(&self.handle.form_env_stats());
         crate::debug::set_tabs(self.tabs_debug(cx));
+        self.sync_compare_pane(window, cx);
         cx.notify();
         if self.window_closing && !self.advancing_window_close {
             self.advance_window_close(window, cx, false);
@@ -1131,6 +1350,8 @@ impl DocumentHost {
                         .values()
                         .any(|v| v.read(cx).has_pending_open_tabs());
                     crate::debug::set_tabs(host.tabs_debug(cx));
+                    crate::debug::set_split(host.split_debug_snapshot(cx));
+                    crate::debug::set_forms_env(&host.handle.form_env_stats());
                     if jobs_changed
                         || ready_close
                         || pending_open
@@ -1201,6 +1422,32 @@ impl Render for DocumentHost {
         self.poll_closing(window, cx);
         self.poll_recovery(window, cx);
         self.poll_pending_open_tabs(window, cx);
+        self.drain_shared_cache_drops(window);
+        self.sync_compare_pane(window, cx);
+        crate::debug::set_forms_env(&self.handle.form_env_stats());
+        if self.tabs.active_id().is_none() {
+            crate::debug::set_forms_view(serde_json::json!({
+                "formType": "none",
+                "formEnvActive": false,
+                "jsEnabled": false,
+                "xfaLoaded": false,
+                "pendingPages": 0,
+                "widgets": [],
+                "focusedWidget": serde_json::Value::Null,
+                "tabOrder": [],
+                "dialogOpen": false,
+                "changedCount": 0,
+                "dialogFields": [],
+                "focusedField": serde_json::Value::Null,
+                "drawing": false,
+                "createOpen": false,
+                "createKind": serde_json::Value::Null,
+                "createIssue": serde_json::Value::Null,
+                "createPendingRect": serde_json::Value::Null,
+                "page0Rect": serde_json::Value::Null,
+                "flattenConfirmOpen": false,
+            }));
+        }
         chef_ui::a11y::begin_frame(window.scale_factor());
         HOST_FRAME.store(
             self.tabs.active_id().is_some(),
@@ -1375,6 +1622,20 @@ impl Render for DocumentHost {
         );
         crate::debug::set_recovery(self.recovery.to_debug_json());
         crate::debug::set_jobs(self.job_store.to_debug_json(self.jobs_open));
+        let split_host = cx.entity();
+        let split_toggle = Button::new("split-toggle", cx.focus_handle())
+            .icon("icons/columns-2.svg")
+            .label(chef_ui::i18n::t("viewer.split"))
+            .size(ButtonSize::Sm)
+            .variant(if self.split.is_open() {
+                Variant::Secondary
+            } else {
+                Variant::Ghost
+            })
+            .dark(dark)
+            .on_click(move |_, window, cx| {
+                split_host.update(cx, |host, cx| host.toggle_split(window, cx));
+            });
         let host_for_toggle = cx.entity();
         let jobs_toggle = build_jobs_toggle(
             JobsToggleProps::from_store(&self.job_store, self.jobs_open, dark),
@@ -1386,13 +1647,38 @@ impl Render for DocumentHost {
                 });
             }),
         );
-        strip = strip.child(div().flex_1()).child(jobs_toggle);
+        strip = strip
+            .child(div().flex_1())
+            .child(split_toggle)
+            .child(jobs_toggle);
         let has_active = active.is_some();
         if !has_active && window.focused(cx).is_none() {
             window.focus(&self.focus, cx);
         }
+        let palette = crate::theme::palette(dark);
         let body = if let Some(viewer) = active.clone() {
-            div().flex_1().child(viewer).into_any_element()
+            let mut panes = div()
+                .id("workspace-viewers")
+                .flex_1()
+                .min_w_0()
+                .min_h_0()
+                .flex()
+                .flex_row()
+                .overflow_hidden()
+                .child(div().flex_1().min_w_0().min_h_0().h_full().child(viewer));
+            if let Some(compare) = self.compare_pane.clone() {
+                panes = panes.child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .min_h_0()
+                        .h_full()
+                        .border_l_1()
+                        .border_color(rgb(palette.border))
+                        .child(compare),
+                );
+            }
+            panes.into_any_element()
         } else {
             crate::debug::set_theme_dark(dark);
             crate::start::build(
@@ -1421,6 +1707,9 @@ impl Render for DocumentHost {
                 cx.listener(|this, _: &PreviousTab, window, cx| this.cycle(false, window, cx)),
             )
             .on_action(cx.listener(|this, _: &CloseTab, window, cx| this.close_active(window, cx)))
+            .on_action(
+                cx.listener(|this, _: &ToggleSplitView, window, cx| this.toggle_split(window, cx)),
+            )
             .on_action(cx.listener(|this, _: &viewer::OpenSettings, window, cx| {
                 this.settings
                     .update(cx, |settings, cx| settings.open(window, cx));

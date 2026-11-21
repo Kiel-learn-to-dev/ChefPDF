@@ -8,6 +8,7 @@ pub mod reload;
 pub mod scroll;
 pub mod selection;
 pub mod sidebar;
+pub mod split;
 pub mod spread;
 
 #[cfg(test)]

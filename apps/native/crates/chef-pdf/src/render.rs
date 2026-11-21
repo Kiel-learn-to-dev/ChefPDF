@@ -18,6 +18,10 @@ pub const PASSWORD_REQUIRED: &str = "PASSWORD_REQUIRED";
 pub const PASSWORD_WRONG: &str = "PASSWORD_WRONG";
 
 use crate::bind;
+use crate::form_fill::{
+    DocFormInfo, FormEnvCounters, FormEnvStats, PageWidgets, TrackedDoc, configure_render,
+    inspect_document, read_page_widgets,
+};
 use crate::text::PageText;
 
 /// Ảnh một trang, BGRA, từ trên xuống. `bgra.len() == width * height * 4`.
@@ -59,7 +63,7 @@ pub enum Job {
         doc: DocId,
         reply: Sender<Reply<usize>>,
     },
-    /// Whether the PDF contains digital signature fields (R4.05).
+    /// Whether the PDF contains at least one signed digital signature field (R4.05, R4.22).
     HasSignatures {
         id: u64,
         doc: DocId,
@@ -99,6 +103,19 @@ pub enum Job {
         index: usize,
         reply: Sender<Reply<PageText>>,
     },
+    /// Form environment inspection (R4.21): form type, JS/XFA isolation flags.
+    FormInfo {
+        id: u64,
+        doc: DocId,
+        reply: Sender<Reply<DocFormInfo>>,
+    },
+    /// Interactive form widget descriptors on a page in displayed points (R4.21).
+    PageFormWidgets {
+        id: u64,
+        doc: DocId,
+        index: usize,
+        reply: Sender<Reply<PageWidgets>>,
+    },
     Close {
         id: u64,
         doc: DocId,
@@ -111,6 +128,7 @@ pub enum Job {
 pub struct RenderHandle {
     tx: Sender<Job>,
     next_id: Arc<AtomicU64>,
+    form_counters: Arc<FormEnvCounters>,
 }
 
 impl RenderHandle {
@@ -125,15 +143,22 @@ impl RenderHandle {
             .send(job)
             .map_err(|_| "luồng render đã dừng".to_string())
     }
+
+    /// Snapshot of currently active and lifetime PDFium form-fill environments (R4.21).
+    pub fn form_env_stats(&self) -> FormEnvStats {
+        self.form_counters.snapshot()
+    }
 }
 
 /// Khởi động luồng render và chờ nó nạp pdfium xong. `dll_dir` là thư mục có pdfium.dll.
 pub fn spawn(dll_dir: PathBuf) -> Result<RenderHandle, String> {
     let (tx, rx) = channel::<Job>();
     let (ready_tx, ready_rx) = channel::<Result<(), String>>();
+    let counters = Arc::new(FormEnvCounters::default());
+    let thread_counters = Arc::clone(&counters);
     thread::Builder::new()
         .name("chef-pdfium".into())
-        .spawn(move || run(dll_dir, rx, ready_tx))
+        .spawn(move || run(dll_dir, rx, ready_tx, thread_counters))
         .map_err(|e| format!("không tạo được luồng render: {e}"))?;
     ready_rx
         .recv()
@@ -141,10 +166,16 @@ pub fn spawn(dll_dir: PathBuf) -> Result<RenderHandle, String> {
     Ok(RenderHandle {
         tx,
         next_id: Arc::new(AtomicU64::new(1)),
+        form_counters: counters,
     })
 }
 
-fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
+fn run(
+    dll_dir: PathBuf,
+    rx: Receiver<Job>,
+    ready: Sender<Result<(), String>>,
+    counters: Arc<FormEnvCounters>,
+) {
     let pdfium = match bind(&dll_dir) {
         Ok(p) => {
             let _ = ready.send(Ok(()));
@@ -155,7 +186,7 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
             return;
         }
     };
-    let mut docs: HashMap<DocId, PdfDocument<'_>> = HashMap::new();
+    let mut docs: HashMap<DocId, TrackedDoc<'_>> = HashMap::new();
     let mut next_doc: DocId = 1;
 
     while let Ok(job) = rx.recv() {
@@ -173,7 +204,7 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                     .map(|doc| {
                         let key = next_doc;
                         next_doc += 1;
-                        docs.insert(key, doc);
+                        docs.insert(key, TrackedDoc::new(doc, Arc::clone(&counters)));
                         key
                     });
                 let _ = reply.send(Reply { id, result });
@@ -182,21 +213,21 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                 let result = docs
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
-                    .map(|d| d.pages().len() as usize);
+                    .map(|d| d.doc().pages().len() as usize);
                 let _ = reply.send(Reply { id, result });
             }
             Job::HasSignatures { id, doc, reply } => {
                 let result = docs
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
-                    .map(|d| !d.signatures().is_empty());
+                    .map(|d| has_signed_signatures(d.doc()));
                 let _ = reply.send(Reply { id, result });
             }
             Job::Properties { id, doc, reply } => {
                 let result = docs
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
-                    .map(crate::props::read);
+                    .map(|d| crate::props::read(d.doc()));
                 let _ = reply.send(Reply { id, result });
             }
             Job::PageSize {
@@ -208,7 +239,7 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                 let result = docs
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
-                    .and_then(|d| d.pages().get(index as i32).map_err(|e| e.to_string()))
+                    .and_then(|d| d.doc().pages().get(index as i32).map_err(|e| e.to_string()))
                     .map(|p| (p.width().value, p.height().value));
                 let _ = reply.send(Reply { id, result });
             }
@@ -216,7 +247,7 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                 let result = docs
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
-                    .map(read_bookmarks);
+                    .map(|d| read_bookmarks(d.doc()));
                 let _ = reply.send(Reply { id, result });
             }
             Job::Render {
@@ -239,8 +270,33 @@ fn run(dll_dir: PathBuf, rx: Receiver<Job>, ready: Sender<Result<(), String>>) {
                 let result = docs
                     .get(&doc)
                     .ok_or_else(|| format!("không có tài liệu {doc}"))
-                    .and_then(|d| d.pages().get(index as i32).map_err(|e| e.to_string()))
+                    .and_then(|d| d.doc().pages().get(index as i32).map_err(|e| e.to_string()))
                     .and_then(|p| crate::text::read_page(&p));
+                let _ = reply.send(Reply { id, result });
+            }
+            Job::FormInfo { id, doc, reply } => {
+                let result = docs
+                    .get(&doc)
+                    .ok_or_else(|| format!("không có tài liệu {doc}"))
+                    .map(|d| inspect_document(d.doc()));
+                let _ = reply.send(Reply { id, result });
+            }
+            Job::PageFormWidgets {
+                id,
+                doc,
+                index,
+                reply,
+            } => {
+                let result = docs
+                    .get(&doc)
+                    .ok_or_else(|| format!("không có tài liệu {doc}"))
+                    .and_then(|d| {
+                        d.doc()
+                            .pages()
+                            .get(index as i32)
+                            .map_err(|e| e.to_string())
+                            .map(|p| read_page_widgets(&p, index))
+                    });
                 let _ = reply.send(Reply { id, result });
             }
             Job::Close { id, doc, reply } => {
@@ -292,7 +348,7 @@ fn read_bookmarks(document: &PdfDocument<'_>) -> Vec<Bookmark> {
 }
 
 fn render_page(
-    docs: &HashMap<DocId, PdfDocument<'_>>,
+    docs: &HashMap<DocId, TrackedDoc<'_>>,
     doc: DocId,
     index: usize,
     width: u32,
@@ -302,10 +358,14 @@ fn render_page(
         .get(&doc)
         .ok_or_else(|| format!("không có tài liệu {doc}"))?;
     let page = d
+        .doc()
         .pages()
         .get(index as i32)
         .map_err(|e| format!("trang {index}: {e}"))?;
-    let config = PdfRenderConfig::new().set_target_size(width as i32, height as i32);
+    let config = configure_render(
+        PdfRenderConfig::new().set_target_size(width as i32, height as i32),
+        d.has_form_env(),
+    );
     let bitmap = page
         .render_with_config(&config)
         .map_err(|e| format!("render trang {index}: {e}"))?;
@@ -318,6 +378,17 @@ fn render_page(
         width,
         height,
         bgra,
+    })
+}
+
+/// Returns true if the document has at least one *signed* signature field (matching core's
+/// `has_signatures`: unsigned/empty `/FT /Sig` placeholders do not lock editing).
+fn has_signed_signatures(doc: &PdfDocument<'_>) -> bool {
+    doc.signatures().iter().any(|sig| {
+        !sig.bytes().is_empty()
+            || sig.signing_date().is_some()
+            || sig.reason().is_some()
+            || sig.modification_detection_permission().is_ok()
     })
 }
 

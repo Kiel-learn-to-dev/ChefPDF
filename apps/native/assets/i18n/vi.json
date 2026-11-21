@@ -377,6 +377,7 @@
     "signatureHint": "Trường này cần chữ ký số.",
     "signField": "Ký trường",
     "buttonField": "Không thể chỉnh sửa trường nút tại đây.",
+    "closeBeforeEdit": "Đóng hộp thoại Biểu mẫu PDF trước khi chỉnh sửa khác.",
     "kind": {
       "text": "Văn bản",
       "multiline": "Văn bản nhiều dòng",
@@ -830,7 +831,11 @@
     "addFiles": "Thêm file…",
     "run": "Làm",
     "stop": "Dừng",
-    "saveAsStep": "Lưu thành bước quy trình"
+    "saveAsStep": "Lưu thành bước quy trình",
+    "closeRunningTitle": "Công việc đang chạy",
+    "closeRunningMessage": "Công việc đang chạy. Bạn có muốn dừng công việc và đóng hộp thoại không?",
+    "keepRunning": "Tiếp tục chạy",
+    "stopAndClose": "Dừng và đóng"
   },
   "merge": {
     "title": "Ghép file",

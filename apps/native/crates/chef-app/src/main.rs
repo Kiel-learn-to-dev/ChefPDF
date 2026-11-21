@@ -37,6 +37,10 @@ mod dialogs;
 mod draw;
 mod drop;
 mod find;
+mod forms_create;
+mod forms_fill;
+mod forms_flatten;
+mod forms_overlay;
 #[cfg(windows)]
 mod image_edit;
 mod insert_image;
@@ -58,6 +62,7 @@ mod settings;
 mod settings_dialog;
 #[allow(dead_code)]
 mod source_guard;
+mod split_pane;
 mod start;
 mod tabs;
 mod tabs_host;
@@ -205,13 +210,20 @@ fn fit_client_size(_hwnd: isize, _scale: f32, _size: (f32, f32)) -> Result<(), S
     Err("chế độ E2E ngoài màn hình chỉ hỗ trợ Windows".into())
 }
 
-/// Chỉ E2E (R1.13, R1.15–R1.19): mở trang thử hình họa ngoài màn hình và bật kênh debug.
+/// Chỉ E2E (R1.13, R1.15–R1.19, R5.01): mở trang thử hình họa ngoài màn hình và bật kênh debug.
 fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
     // CHEF_E2E_PROBE_WIDTH: chiều rộng khung (pixel logic), để đo auto-fit ở nhiều cỡ (R1.17).
     let width = std::env::var("CHEF_E2E_PROBE_WIDTH")
         .ok()
         .and_then(|v| v.parse::<f32>().ok())
         .unwrap_or(DEFAULT_SIZE.0);
+    let task_dialog_probe = std::env::var("CHEF_E2E_PROBE_TASK_DIALOG").as_deref() == Ok("1");
+    let height = if task_dialog_probe {
+        900.0
+    } else {
+        PROBE_HEIGHT
+    };
+    let min = if task_dialog_probe { None } else { min };
     let visible = std::env::var("CHEF_E2E_PROBE_VISIBLE").as_deref() == Ok("1");
     let origin = if visible {
         gpui::point(px(96.), px(96.))
@@ -220,7 +232,7 @@ fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
     };
     let bounds = Bounds {
         origin,
-        size: size(px(width), px(PROBE_HEIGHT)),
+        size: size(px(width), px(height)),
     };
     let window = cx
         .open_window(
@@ -233,20 +245,21 @@ fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
             |_, cx| cx.new(probe::Probe::new),
         )
         .expect("mở trang thử thất bại");
-    window
-        .update(cx, |probe, window, cx| probe.focus_button(window, cx))
-        .expect("cập nhật trang thử thất bại");
-    spawn_action_pump(window, cx);
     let (hwnd, scale) = window
-        .update(cx, |_, window, _| hwnd_of(window))
-        .expect("cập nhật cửa sổ thất bại")
+        .update(cx, |probe, window, cx| {
+            probe.focus_button(window, cx);
+            hwnd_of(window)
+        })
+        .expect("cập nhật trang thử thất bại")
         .expect("không lấy được HWND");
+    spawn_action_pump(window, hwnd, scale, cx);
     if !visible {
-        cx.spawn(async move |_| {
-            show_offscreen(hwnd, scale, (width, PROBE_HEIGHT))
+        cx.spawn(async move |cx| {
+            show_offscreen(hwnd, scale, (width, height))
                 .expect("đưa cửa sổ ra ngoài màn hình thất bại");
-            fit_client_size(hwnd, scale, (width, PROBE_HEIGHT))
+            fit_client_size(hwnd, scale, (width, height))
                 .expect("đặt vùng client trang thử thất bại");
+            let _ = window.update(cx, |_, window, _| window.refresh());
         })
         .detach();
     }
@@ -255,12 +268,16 @@ fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
 
 /// Chỉ E2E: chạy action từ kênh debug trên luồng GPUI, đúng đường keymap. Dùng cho trang thử;
 /// viewer có vòng lặp riêng vì còn ghi trạng thái ô tìm kiếm.
-fn spawn_action_pump<V: 'static>(window: WindowHandle<V>, cx: &mut App) {
+fn spawn_action_pump<V: 'static>(window: WindowHandle<V>, hwnd: isize, scale: f32, cx: &mut App) {
     cx.spawn(async move |cx| {
         loop {
             cx.background_executor()
                 .timer(Duration::from_millis(16))
                 .await;
+            for (w, h) in debug::take_resize_requests() {
+                let _ = fit_client_size(hwnd, scale, (w, h));
+                let _ = window.update(cx, |_, window, _| window.refresh());
+            }
             let alive = window.update(cx, |_, window, cx| {
                 for name in debug::take_actions() {
                     if let Some(action) = action_for(&name) {
@@ -341,8 +358,12 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "tabnext" => Box::new(tabs_host::NextTab),
         "tabprev" => Box::new(tabs_host::PreviousTab),
         "closetab" => Box::new(tabs_host::CloseTab),
+        "togglesplit" => Box::new(tabs_host::ToggleSplitView),
         "openproperties" => Box::new(viewer::OpenProperties),
         "editbookmarks" => Box::new(viewer::EditBookmarks),
+        "openforms" => Box::new(viewer::OpenForms),
+        "addformfield" => Box::new(viewer::AddFormField),
+        "flattenforms" => Box::new(viewer::FlattenForms),
         "rotatepage" => Box::new(viewer::RotatePage),
         "rotatepageleft" => Box::new(viewer::RotatePageLeft),
         "deletepages" => Box::new(viewer::DeletePages),
@@ -559,6 +580,10 @@ fn main() {
                         cx.background_executor()
                             .timer(Duration::from_millis(16))
                             .await;
+                        for (w, h) in debug::take_resize_requests() {
+                            let _ = fit_client_size(hwnd, scale, (w, h));
+                            let _ = window.update(cx, |_, window, _| window.refresh());
+                        }
                         for screens in debug::take_scroll_screens() {
                             let total = screens.abs().ceil() as u32;
                             let direction = screens.signum();
@@ -582,6 +607,9 @@ fn main() {
                             debug::set_scroll_progress(total, total, false);
                         }
                         let alive = window.update(cx, |host, window, cx| {
+                            for screens in debug::take_split_scrolls() {
+                                host.scroll_split(screens, cx);
+                            }
                             for name in debug::take_actions() {
                                 if let Some(action) = action_for(&name) {
                                     window.dispatch_action(action, cx);

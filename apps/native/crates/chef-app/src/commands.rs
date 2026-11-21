@@ -44,11 +44,15 @@ pub enum CommandAction {
     Save,
     Settings,
     EditBookmarks,
+    OpenForms,
+    AddFormField,
+    FlattenForms,
     Unavailable,
     ViewContinuous,
     ViewTwoPage,
     ViewBook,
     ViewSlideshow,
+    ToggleSplitView,
 }
 
 impl CommandAction {
@@ -81,10 +85,14 @@ impl CommandAction {
             Self::Save => Box::new(v::SaveEdit),
             Self::Settings => Box::new(v::OpenSettings),
             Self::EditBookmarks => Box::new(v::EditBookmarks),
+            Self::OpenForms => Box::new(v::OpenForms),
+            Self::AddFormField => Box::new(v::AddFormField),
+            Self::FlattenForms => Box::new(v::FlattenForms),
             Self::ViewContinuous => Box::new(v::SetContinuous),
             Self::ViewTwoPage => Box::new(v::SetTwoPage),
             Self::ViewBook => Box::new(v::SetBook),
             Self::ViewSlideshow => Box::new(v::SetSlideshow),
+            Self::ToggleSplitView => Box::new(crate::tabs_host::ToggleSplitView),
             Self::Unavailable => return None,
         })
     }
@@ -226,6 +234,41 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
         )
         .keywords(["bookmarks", "outline", "muc luc", "dau trang"]),
         Command::new(
+            "forms.open",
+            t("forms.title"),
+            t("palette.group.edit"),
+            A::OpenForms,
+        )
+        .keywords(["form", "bieu mau", "dien form", "fields", "acroform"]),
+        Command::new(
+            "forms.addField",
+            t("forms.addField"),
+            t("palette.group.edit"),
+            A::AddFormField,
+        )
+        .keywords([
+            "form",
+            "add field",
+            "them truong",
+            "tao form",
+            "field",
+            "acroform",
+        ]),
+        Command::new(
+            "forms.flatten",
+            t("forms.flatten"),
+            t("palette.group.edit"),
+            A::FlattenForms,
+        )
+        .keywords([
+            "form",
+            "flatten",
+            "lam phang",
+            "bieu mau",
+            "co dinh",
+            "acroform",
+        ]),
+        Command::new(
             "file.open",
             t("commands.openPdf"),
             t("palette.group.file"),
@@ -267,6 +310,13 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
             A::ViewSlideshow,
         )
         .keywords(["presentation", "trinh chieu"]),
+        Command::new(
+            "viewer.split",
+            t("viewer.split"),
+            t("palette.group.view"),
+            A::ToggleSplitView,
+        )
+        .keywords(["split", "compare", "song song", "chia doi", "hai file"]),
         Command::new(
             "viewer.zoomIn",
             t("commands.zoomIn"),
@@ -532,5 +582,49 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["prefix", "inside"]
         );
+    }
+
+    #[test]
+    fn viewer_registry_includes_available_side_by_side_split_command() {
+        let registry = viewer_commands(|key| match key {
+            "viewer.split" => "Xem song song".into(),
+            _ => key.into(),
+        });
+        let results = registry.search("song song");
+        assert_eq!(results[0].id, "viewer.split");
+        assert!(results[0].is_available());
+    }
+
+    #[test]
+    fn viewer_registry_includes_available_forms_command() {
+        let registry = viewer_commands(|key| match key {
+            "forms.title" => "Biểu mẫu PDF".into(),
+            _ => key.into(),
+        });
+        let results = registry.search("bieu mau");
+        assert_eq!(results[0].id, "forms.open");
+        assert!(results[0].is_available());
+    }
+
+    #[test]
+    fn viewer_registry_includes_available_add_form_field_command() {
+        let registry = viewer_commands(|key| match key {
+            "forms.addField" => "Thêm trường".into(),
+            _ => key.into(),
+        });
+        let results = registry.search("them truong");
+        assert_eq!(results[0].id, "forms.addField");
+        assert!(results[0].is_available());
+    }
+
+    #[test]
+    fn viewer_registry_includes_available_flatten_forms_command() {
+        let registry = viewer_commands(|key| match key {
+            "forms.flatten" => "Làm phẳng biểu mẫu".into(),
+            _ => key.into(),
+        });
+        let results = registry.search("lam phang bieu mau");
+        assert_eq!(results[0].id, "forms.flatten");
+        assert!(results[0].is_available());
     }
 }

@@ -12,24 +12,27 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use chef_pdf::form_fill::{DocFormInfo, FormWidget, PageWidgets, WidgetKind};
 use chef_pdf::render::{Bookmark, DocId, Job, PageImage, RenderHandle, Reply};
 use chef_pdf::search;
 use chef_pdf::text::{CharBox, PageText, char_at};
 use chef_rpc::{CallError, Supervisor};
 use chef_ui::a11y::{self, Registered};
-use chef_ui::button::{Button, Size as ButtonSize, Variant};
+use chef_ui::button::{Button, FocusNext, FocusPrev, Size as ButtonSize, Variant};
+use chef_ui::choice::{RadioGroup, RadioItem, tab_stop_index};
 use chef_ui::dialog::{Dialog, Width, shadow_lg};
-use chef_ui::form::TextField;
+use chef_ui::form::{CheckState, Checkbox, TextField};
 use chef_ui::menu::{Menu, MenuEntry};
+use chef_ui::select::{Select, trigger_focus};
 use chef_ui::text_input::{TextInput, TextInputEvent};
 use chef_ui::thumbnail::ThumbnailShimmer;
 use chef_viewer::{
-    cache::LruCache,
     grid::GridLayout,
     reload,
     scroll::Layout,
     selection::{ClickModifiers, PageParity, PageSelection},
     sidebar::SidebarLayout,
+    split::SharedPageCache,
     spread::{PageMode, SpreadLayout},
 };
 use gpui::{
@@ -70,6 +73,10 @@ actions!(
         OpenFile,
         OpenProperties,
         EditBookmarks,
+        OpenForms,
+        AddFormField,
+        FlattenForms,
+        ActivateFormWidget,
         RotatePage,
         RotatePageLeft,
         DeletePages,
@@ -123,6 +130,8 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("left", SlidePrevious, Some("Viewer")),
         KeyBinding::new("right", SlideNext, Some("Viewer")),
         KeyBinding::new("escape", ExitSlideshow, Some("Viewer")),
+        KeyBinding::new("enter", ActivateFormWidget, Some("Viewer")),
+        KeyBinding::new("space", ActivateFormWidget, Some("Viewer")),
         KeyBinding::new("ctrl-,", OpenSettings, Some("Viewer")),
         KeyBinding::new("ctrl-o", OpenFile, Some("Viewer")),
         KeyBinding::new("ctrl-d", OpenProperties, Some("Viewer")),
@@ -142,9 +151,9 @@ pub fn bind_keys(cx: &mut App) {
 }
 
 /// Hệ số đổi zoom mỗi nấc, và giới hạn zoom (tỉ lệ so với 100%).
-const ZOOM_STEP: f32 = 1.25;
-const ZOOM_MIN: f32 = 0.1;
-const ZOOM_MAX: f32 = 8.0;
+pub(crate) const ZOOM_STEP: f32 = 1.25;
+pub(crate) const ZOOM_MIN: f32 = 0.1;
+pub(crate) const ZOOM_MAX: f32 = 8.0;
 
 #[derive(Clone, Debug)]
 struct ObjectDrag {
@@ -183,11 +192,11 @@ fn new_line(prev: &CharBox, next: &CharBox) -> bool {
 /// Trần bộ nhớ bitmap trang trong cache (R1 của BLUEPRINT_RUST §2.2). Khởi điểm 256 MB.
 const CACHE_BUDGET: usize = 256 * 1024 * 1024;
 /// Khoảng cách giữa hai trang, pixel logic.
-const PAGE_GAP: f32 = 16.0;
+pub(crate) const PAGE_GAP: f32 = 16.0;
 /// Lề hai bên khi vừa chiều rộng, pixel logic.
-const MARGIN: f32 = 24.0;
+pub(crate) const MARGIN: f32 = 24.0;
 /// Số trang giữ bitmap đầy đủ ngoài vùng nhìn (R2 của BLUEPRINT_RUST §2.2).
-const BUFFER_PAGES: usize = 1;
+pub(crate) const BUFFER_PAGES: usize = 1;
 /// Chiều cao thanh tìm kiếm phía trên trang, pixel logic.
 const TOOLBAR_H: f32 = 40.0;
 /// Khung vùng trang trong cửa sổ: x, y, rộng, cao (pixel logic).
@@ -197,9 +206,35 @@ const FOOTER_H: f32 = 24.0;
 /// Số trang lấy mẫu để biết tài liệu có chữ hay là scan (R2.29). Không đọc cả file.
 const SAMPLE_PAGES: usize = 8;
 /// Chu kỳ kiểm tra kết quả render, mili giây.
-const POLL_MS: u64 = 16;
+pub(crate) const POLL_MS: u64 = 16;
 /// Bước cuộn cho một nấc bánh xe khi thiết bị báo theo dòng, pixel.
-const LINE_PX: f32 = 40.0;
+pub(crate) const LINE_PX: f32 = 40.0;
+
+pub type SharedCache = Arc<Mutex<SharedPageCache<Arc<RenderImage>>>>;
+
+pub fn default_cache_budget() -> usize {
+    if std::env::var("CHEF_E2E").as_deref() == Ok("1")
+        && let Some(bytes) = std::env::var("CHEF_E2E_CACHE_BUDGET_BYTES")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .filter(|&b| b >= 1024)
+    {
+        return bytes;
+    }
+    CACHE_BUDGET
+}
+
+pub fn new_shared_cache() -> SharedCache {
+    Arc::new(Mutex::new(SharedPageCache::new(default_cache_budget())))
+}
+
+pub(crate) fn lock_shared_cache(
+    shared: &SharedCache,
+) -> std::sync::MutexGuard<'_, SharedPageCache<Arc<RenderImage>>> {
+    shared
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 /// Fixed navigation rail for the page thumbnails and document outline.
 const SIDEBAR_WIDTH: f32 = 210.0;
 const SIDEBAR_HEADER_H: f32 = 40.0;
@@ -226,6 +261,37 @@ pub struct Viewer {
     /// Chữ của các trang nhìn thấy (và vùng giữ), dùng cho chọn và copy.
     texts: HashMap<usize, Arc<PageText>>,
     text_pending: HashMap<usize, Receiver<Reply<PageText>>>,
+    form_info: Option<DocFormInfo>,
+    form_widgets: HashMap<usize, Vec<FormWidget>>,
+    form_widgets_pending: HashMap<usize, Receiver<Reply<PageWidgets>>>,
+    hovered_form_widget: Option<String>,
+    focused_form_widget: Option<String>,
+    forms_open: bool,
+    forms_ticket: u64,
+    forms_close_on_apply: bool,
+    forms_draft: Option<crate::forms_fill::FormDraft>,
+    forms_controls: HashMap<String, FormControlState>,
+    forms_focus_field: Option<String>,
+    forms_focus_pending: bool,
+    forms_close_focus: FocusHandle,
+    forms_apply_focus: FocusHandle,
+    forms_cancel_focus: FocusHandle,
+    forms_drawing: bool,
+    forms_draw_drag: Option<crate::forms_create::FormDrawDrag>,
+    forms_create_pending: Option<crate::forms_create::PendingFormRect>,
+    forms_create_draft: crate::forms_create::CreateFormDraft,
+    forms_create_name_input: Entity<TextInput>,
+    forms_create_label_input: Entity<TextInput>,
+    forms_create_options_input: Entity<TextInput>,
+    forms_create_maxlen_input: Entity<TextInput>,
+    forms_add_focus: FocusHandle,
+    forms_create_required_focus: FocusHandle,
+    forms_create_cancel_focus: FocusHandle,
+    forms_create_submit_focus: FocusHandle,
+    forms_flatten_confirm: bool,
+    forms_flatten_focus: FocusHandle,
+    forms_flatten_cancel_focus: FocusHandle,
+    forms_flatten_confirm_focus: FocusHandle,
     selection: Option<Selection>,
     dragging: bool,
     draw_tool: Option<crate::draw::Tool>,
@@ -338,7 +404,8 @@ pub struct Viewer {
     fit_page: bool,
     scroll_y: f32,
     viewport: (f32, f32),
-    cache: LruCache<usize, Arc<RenderImage>>,
+    shared_cache: SharedCache,
+    cache_owner: u64,
     pending: HashMap<usize, Receiver<Reply<PageImage>>>,
     /// Zoom nhân tỉ lệ màn hình (phần vạn) mà ảnh trong cache được render. Khi nó đổi, ảnh cũ vẫn
     /// hiện (bị kéo giãn) cho đến khi ảnh render lại ở độ phân giải mới về.
@@ -389,6 +456,25 @@ struct BookmarkDrag {
     path: Vec<usize>,
 }
 
+enum FormControlState {
+    Text {
+        input: Entity<TextInput>,
+        _sub: Subscription,
+    },
+    Checkbox {
+        focus: FocusHandle,
+    },
+    Radio {
+        item_focuses: Vec<FocusHandle>,
+    },
+    Dropdown {
+        control_id: String,
+    },
+    Listbox {
+        item_focuses: Vec<FocusHandle>,
+    },
+}
+
 enum OperationResult {
     Applied {
         generation: u64,
@@ -401,6 +487,7 @@ enum OperationResult {
         notes: Option<Vec<crate::notes::Note>>,
         links: Option<Vec<crate::links::LinkItem>>,
         layers: Option<Vec<crate::layers::LayerItem>>,
+        forms: Option<crate::forms_fill::FormDocData>,
         can_undo: bool,
         can_redo: bool,
         dirty: bool,
@@ -494,6 +581,17 @@ enum OperationResult {
         can_redo: bool,
         dirty: bool,
     },
+    FormsLoaded {
+        generation: u64,
+        doc: DocId,
+        path: PathBuf,
+        ticket: u64,
+        session_id: String,
+        data: crate::forms_fill::FormDocData,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
 }
 
 enum EditOperation {
@@ -559,6 +657,23 @@ enum EditOperation {
     LayerMutation {
         op_id: &'static str,
         params: serde_json::Value,
+    },
+    ReadForms {
+        ticket: u64,
+        doc: DocId,
+        path: PathBuf,
+    },
+    FillForms {
+        params: serde_json::Value,
+        close_dialog: bool,
+    },
+    AddFormFields {
+        field_name: String,
+        params_list: Vec<serde_json::Value>,
+    },
+    FlattenForms {
+        fill_params: Option<serde_json::Value>,
+        flatten_params: serde_json::Value,
     },
     ViewByType {
         page_index: usize,
@@ -1004,6 +1119,7 @@ impl Viewer {
                     notes: None,
                     links: None,
                     layers: None,
+                    forms: None,
                     can_undo,
                     can_redo,
                     dirty,
@@ -1304,6 +1420,19 @@ impl Viewer {
             cx.notify();
             return;
         }
+        if self.forms_open
+            && !matches!(
+                &operation,
+                EditOperation::ReadForms { .. }
+                    | EditOperation::FillForms { .. }
+                    | EditOperation::AddFormFields { .. }
+                    | EditOperation::FlattenForms { .. }
+            )
+        {
+            self.message = Some(i18n::t("forms.closeBeforeEdit"));
+            cx.notify();
+            return;
+        }
         if self.image_adjust_open
             && !matches!(
                 &operation,
@@ -1388,6 +1517,13 @@ impl Viewer {
             return;
         }
         self.operation_pending = true;
+        self.forms_close_on_apply = matches!(
+            &operation,
+            EditOperation::FillForms {
+                close_dialog: true,
+                ..
+            }
+        );
         let generation = self.document_generation;
         let page_count = self.page_sizes.len();
         let render_handle = self.handle.clone();
@@ -1412,6 +1548,24 @@ impl Viewer {
             _ => None,
         };
         let is_layer_mutation = matches!(&operation, EditOperation::LayerMutation { .. });
+        let is_form_mutation = matches!(
+            &operation,
+            EditOperation::FillForms { .. }
+                | EditOperation::AddFormFields { .. }
+                | EditOperation::FlattenForms { .. }
+        );
+        let refresh_forms = matches!(
+            &operation,
+            EditOperation::AddFormFields { .. } | EditOperation::FlattenForms { .. }
+        ) || (self.forms_open
+            && matches!(
+                &operation,
+                EditOperation::FillForms {
+                    close_dialog: false,
+                    ..
+                } | EditOperation::Undo
+                    | EditOperation::Redo
+            ));
         let view_by_type_kinds = match &operation {
             EditOperation::ViewByType { kinds, .. } => Some(kinds.clone()),
             _ => None,
@@ -1487,19 +1641,20 @@ impl Viewer {
                     }
                     _ => PostSelection::Keep,
                 };
-                let reply =
-                    match operation {
-                        EditOperation::Rotate { pages, angle } => {
-                            let typed = page_ops::rotate_params(&pages, angle)?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.rotate", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::Delete { pages, page_count } => {
-                            let typed = page_ops::delete_params(&pages, page_count).map_err(
+                let reply = match operation {
+                    EditOperation::Rotate { pages, angle } => {
+                        let typed = page_ops::rotate_params(&pages, angle)?;
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.rotate", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::Delete { pages, page_count } => {
+                        let typed =
+                            page_ops::delete_params(&pages, page_count).map_err(
                                 |err| match err {
                                     DeleteReject::CannotDeleteAll => {
                                         i18n::t("pages.cannotDeleteAll")
@@ -1509,242 +1664,466 @@ impl Viewer {
                                     }
                                 },
                             )?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.delete", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::Duplicate { pages } => {
-                            let typed = page_ops::duplicate_params(&pages)?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.duplicate", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::Extract { pages, output_path } => {
-                            let typed = page_ops::extract_params(&pages, &output_path)?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.extract", &session_id, &params, false)
-                                .map_err(|(msg, _)| msg)?
-                        }
-                        EditOperation::InsertBlank { at, count } => {
-                            let typed = page_ops::insert_blank_params(at, page_count, count)
-                                .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.insertBlank", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::InsertFromFile { at, path } => {
-                            let typed =
-                                page_ops::insert_from_file_params(at, page_count, &path, None)
-                                    .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.insertFromFile", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::Replace { pages, path } => {
-                            let typed = page_ops::replace_params(&pages, page_count, &path, None)
-                                .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
-                            let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
-                            run_session_job(sup, "page.replace", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::Reorder { order, .. } => {
-                            let params = serde_json::json!({ "order": order });
-                            run_session_job(sup, "page.reorder", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::ReadBookmarks { .. } => run_session_job(
-                            sup,
-                            "bookmarks.get",
-                            &session_id,
-                            &serde_json::json!({}),
-                            false,
-                        )
-                        .map_err(|(msg, refresh)| {
-                            refresh_required = refresh;
-                            msg
-                        })?,
-                        EditOperation::ReadNotes { .. } => run_session_job(
-                            sup,
-                            "annots.list",
-                            &session_id,
-                            &serde_json::json!({}),
-                            false,
-                        )
-                        .map_err(|(msg, refresh)| {
-                            refresh_required = refresh;
-                            msg
-                        })?,
-                        EditOperation::HitObject { page_index, point } => run_session_job(
-                            sup,
-                            "content.hitTest",
-                            &session_id,
-                            &crate::objects::hit_params(page_index, point),
-                            false,
-                        )
-                        .map_err(|(msg, refresh)| {
-                            refresh_required = refresh;
-                            msg
-                        })?,
-                        EditOperation::NoteMutation { op_id, params } => {
-                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
-                                |(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                },
-                            )?
-                        }
-                        EditOperation::ReadLinks { .. } => run_session_job(
-                            sup,
-                            "links.list",
-                            &session_id,
-                            &serde_json::json!({}),
-                            false,
-                        )
-                        .map_err(|(msg, refresh)| {
-                            refresh_required = refresh;
-                            msg
-                        })?,
-                        EditOperation::LinkMutation { op_id, params } => {
-                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
-                                |(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                },
-                            )?
-                        }
-                        EditOperation::ReadLayers { .. } => run_session_job(
-                            sup,
-                            "layers.list",
-                            &session_id,
-                            &serde_json::json!({}),
-                            false,
-                        )
-                        .map_err(|(msg, refresh)| {
-                            refresh_required = refresh;
-                            msg
-                        })?,
-                        EditOperation::LayerMutation { op_id, params } => {
-                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
-                                |(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                },
-                            )?
-                        }
-                        EditOperation::ViewByType { page_index, kinds } => {
-                            let params = crate::layers::view_by_type_params(page_index, &kinds);
-                            run_session_job(sup, "content.viewByType", &session_id, &params, false)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::SetBookmarks { tree, .. } => {
-                            let params = crate::bookmarks::set_params(tree);
-                            run_session_job(sup, "bookmarks.set", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::Markup { params } => {
-                            run_session_job(sup, "annots.addTextMarkup", &session_id, &params, true)
-                                .map_err(|(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                })?
-                        }
-                        EditOperation::DrawShape { op_id, params } => {
-                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
-                                |(msg, refresh)| {
-                                    refresh_required = refresh;
-                                    msg
-                                },
-                            )?
-                        }
-                        EditOperation::MarkupColor {
-                            kind,
-                            pages,
-                            color_rgba,
-                        } => {
-                            drop(sup);
-                            let mut ids = Vec::new();
-                            for (page_index, rects) in pages {
-                                let list_params = serde_json::json!({ "pageIndex": page_index });
-                                let listed = run_session_job(
-                                    supervisor
-                                        .lock()
-                                        .map_err(|_| "Không khóa được lõi".to_string())?,
-                                    "annots.list",
-                                    &session_id,
-                                    &list_params,
-                                    false,
-                                )
-                                .map_err(|(msg, _)| msg)?;
-                                ids.extend(
-                                    crate::annots::matching_markup_ids(
-                                        &listed, page_index, kind, &rects,
-                                    )
-                                    .ok_or_else(|| i18n::t("annots.markupNotFound"))?,
-                                );
-                            }
-                            let params =
-                                crate::annots::update_markup_color_params(&ids, color_rgba)?;
-                            run_session_job(
-                                supervisor
-                                    .lock()
-                                    .map_err(|_| "Không khóa được lõi".to_string())?,
-                                "annots.update",
-                                &session_id,
-                                &params,
-                                true,
-                            )
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.delete", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::Duplicate { pages } => {
+                        let typed = page_ops::duplicate_params(&pages)?;
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.duplicate", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::Extract { pages, output_path } => {
+                        let typed = page_ops::extract_params(&pages, &output_path)?;
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.extract", &session_id, &params, false)
+                            .map_err(|(msg, _)| msg)?
+                    }
+                    EditOperation::InsertBlank { at, count } => {
+                        let typed = page_ops::insert_blank_params(at, page_count, count)
+                            .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.insertBlank", &session_id, &params, true)
                             .map_err(|(msg, refresh)| {
                                 refresh_required = refresh;
                                 msg
                             })?
+                    }
+                    EditOperation::InsertFromFile { at, path } => {
+                        let typed = page_ops::insert_from_file_params(at, page_count, &path, None)
+                            .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.insertFromFile", &session_id, &params, true)
+                            .map_err(|(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            })?
+                    }
+                    EditOperation::Replace { pages, path } => {
+                        let typed = page_ops::replace_params(&pages, page_count, &path, None)
+                            .map_err(|_| i18n::t("errors.INVALID_PARAMS"))?;
+                        let params = serde_json::to_value(&typed).map_err(|e| e.to_string())?;
+                        run_session_job(sup, "page.replace", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::Reorder { order, .. } => {
+                        let params = serde_json::json!({ "order": order });
+                        run_session_job(sup, "page.reorder", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::ReadBookmarks { .. } => run_session_job(
+                        sup,
+                        "bookmarks.get",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    )
+                    .map_err(|(msg, refresh)| {
+                        refresh_required = refresh;
+                        msg
+                    })?,
+                    EditOperation::ReadNotes { .. } => run_session_job(
+                        sup,
+                        "annots.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    )
+                    .map_err(|(msg, refresh)| {
+                        refresh_required = refresh;
+                        msg
+                    })?,
+                    EditOperation::HitObject { page_index, point } => run_session_job(
+                        sup,
+                        "content.hitTest",
+                        &session_id,
+                        &crate::objects::hit_params(page_index, point),
+                        false,
+                    )
+                    .map_err(|(msg, refresh)| {
+                        refresh_required = refresh;
+                        msg
+                    })?,
+                    EditOperation::NoteMutation { op_id, params } => {
+                        run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::ReadLinks { .. } => run_session_job(
+                        sup,
+                        "links.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    )
+                    .map_err(|(msg, refresh)| {
+                        refresh_required = refresh;
+                        msg
+                    })?,
+                    EditOperation::LinkMutation { op_id, params } => {
+                        run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::ReadLayers { .. } => run_session_job(
+                        sup,
+                        "layers.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    )
+                    .map_err(|(msg, refresh)| {
+                        refresh_required = refresh;
+                        msg
+                    })?,
+                    EditOperation::LayerMutation { op_id, params } => {
+                        run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::ReadForms { ticket, doc, path } => {
+                        let list_reply = run_session_job(
+                            sup,
+                            "forms.list",
+                            &session_id,
+                            &serde_json::json!({}),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?;
+                        let sup_vals = supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?;
+                        let values_reply = run_session_job(
+                            sup_vals,
+                            "forms.getValues",
+                            &session_id,
+                            &serde_json::json!({}),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?;
+                        let data = crate::forms_fill::forms_from_replies(
+                            &list_reply,
+                            Some(&values_reply),
+                        )?;
+                        let state = values_reply
+                            .get("state")
+                            .or_else(|| list_reply.get("state"))
+                            .cloned()
+                            .unwrap_or_else(|| list_reply.clone());
+                        let SessionFlags {
+                            can_undo,
+                            can_redo,
+                            dirty,
+                        } = SessionFlags::read(&state);
+                        let _ = tx.send(OperationResult::FormsLoaded {
+                            generation,
+                            doc,
+                            path,
+                            ticket,
+                            session_id,
+                            data,
+                            can_undo,
+                            can_redo,
+                            dirty,
+                        });
+                        return Ok(());
+                    }
+                    EditOperation::FillForms { params, .. } => {
+                        run_session_job(sup, "forms.fill", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::AddFormFields {
+                        field_name,
+                        params_list,
+                    } => {
+                        drop(sup);
+                        let total = params_list.len();
+                        let mut last_reply: Option<serde_json::Value> = None;
+                        let mut changed_all = false;
+                        let mut changed_pages_set = std::collections::BTreeSet::new();
+                        for (idx, params) in params_list.iter().enumerate() {
+                            let sup_step = supervisor
+                                .lock()
+                                .map_err(|_| "Không khóa được lõi".to_string())?;
+                            match run_session_job(
+                                sup_step,
+                                "forms.addField",
+                                &session_id,
+                                params,
+                                true,
+                            ) {
+                                Ok(step_reply) => {
+                                    if let Some(arr) = step_reply
+                                        .get("changedPages")
+                                        .and_then(serde_json::Value::as_array)
+                                    {
+                                        for item in arr {
+                                            if let Some(p) = item.as_u64() {
+                                                changed_pages_set.insert(p);
+                                            }
+                                        }
+                                    } else {
+                                        changed_all = true;
+                                    }
+                                    last_reply = Some(step_reply);
+                                }
+                                Err((msg, refresh)) => {
+                                    if total > 1 && idx > 0 {
+                                        let rolled_back =
+                                            crate::forms_create::build_remove_field_params(
+                                                &field_name,
+                                            )
+                                            .ok()
+                                            .and_then(|remove_params| {
+                                                supervisor.lock().ok().and_then(|sup_rb| {
+                                                    run_session_job(
+                                                        sup_rb,
+                                                        "forms.remove",
+                                                        &session_id,
+                                                        &remove_params,
+                                                        true,
+                                                    )
+                                                    .ok()
+                                                })
+                                            })
+                                            .is_some();
+                                        refresh_required = false;
+                                        let key = if rolled_back {
+                                            "forms.radioCreateFailed"
+                                        } else {
+                                            "forms.radioRollbackFailed"
+                                        };
+                                        return Err(i18n::t_with(
+                                            key,
+                                            &[
+                                                ("completed", &idx.to_string()),
+                                                ("total", &total.to_string()),
+                                            ],
+                                        ));
+                                    }
+                                    refresh_required |= refresh;
+                                    return Err(msg);
+                                }
+                            }
                         }
-                        EditOperation::Undo => {
-                            let res = chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
-                                refresh_required = edit_error_needs_reload(&error);
-                                call_error_text(error)
-                            });
-                            drop(sup);
-                            res?
+                        let mut combined =
+                            last_reply.ok_or_else(|| i18n::t("editor.operationFailed"))?;
+                        if let Some(obj) = combined.as_object_mut() {
+                            let merged_pages: Vec<u64> = changed_pages_set.into_iter().collect();
+                            if changed_all || merged_pages.is_empty() {
+                                obj.insert(
+                                    "changedPages".into(),
+                                    serde_json::Value::String("all".into()),
+                                );
+                            } else {
+                                obj.insert("changedPages".into(), serde_json::json!(merged_pages));
+                            }
                         }
-                        EditOperation::Redo => {
-                            let res = chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
-                                refresh_required = edit_error_needs_reload(&error);
-                                call_error_text(error)
-                            });
-                            drop(sup);
-                            res?
+                        combined
+                    }
+                    EditOperation::FlattenForms {
+                        fill_params,
+                        flatten_params,
+                    } => {
+                        drop(sup);
+                        let mut changed_all = false;
+                        let mut changed_pages_set = std::collections::BTreeSet::new();
+                        let mut did_fill = false;
+                        if let Some(params) = fill_params {
+                            let sup_fill = supervisor
+                                .lock()
+                                .map_err(|_| "Không khóa được lõi".to_string())?;
+                            let fill_reply =
+                                run_session_job(sup_fill, "forms.fill", &session_id, &params, true)
+                                    .map_err(|(msg, refresh)| {
+                                        refresh_required = refresh;
+                                        msg
+                                    })?;
+                            did_fill = true;
+                            if let Some(arr) = fill_reply
+                                .get("changedPages")
+                                .and_then(serde_json::Value::as_array)
+                            {
+                                for item in arr {
+                                    if let Some(p) = item.as_u64() {
+                                        changed_pages_set.insert(p);
+                                    }
+                                }
+                            } else {
+                                changed_all = true;
+                            }
                         }
-                        EditOperation::Save(path) => {
-                            let res = chef_rpc::ops::save(&sup, &session_id, path.as_deref())
-                                .map_err(call_error_text);
-                            drop(sup);
-                            res?
+                        let sup_flat = supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?;
+                        let mut reply = run_session_job(
+                            sup_flat,
+                            "forms.flatten",
+                            &session_id,
+                            &flatten_params,
+                            true,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh || did_fill;
+                            msg
+                        })?;
+                        if let Some(arr) = reply
+                            .get("changedPages")
+                            .and_then(serde_json::Value::as_array)
+                        {
+                            for item in arr {
+                                if let Some(p) = item.as_u64() {
+                                    changed_pages_set.insert(p);
+                                }
+                            }
+                        } else {
+                            changed_all = true;
                         }
-                    };
+                        if let Some(obj) = reply.as_object_mut() {
+                            let merged_pages: Vec<u64> = changed_pages_set.into_iter().collect();
+                            if changed_all || merged_pages.is_empty() {
+                                obj.insert(
+                                    "changedPages".into(),
+                                    serde_json::Value::String("all".into()),
+                                );
+                            } else {
+                                obj.insert("changedPages".into(), serde_json::json!(merged_pages));
+                            }
+                        }
+                        reply
+                    }
+                    EditOperation::ViewByType { page_index, kinds } => {
+                        let params = crate::layers::view_by_type_params(page_index, &kinds);
+                        run_session_job(sup, "content.viewByType", &session_id, &params, false)
+                            .map_err(|(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            })?
+                    }
+                    EditOperation::SetBookmarks { tree, .. } => {
+                        let params = crate::bookmarks::set_params(tree);
+                        run_session_job(sup, "bookmarks.set", &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::Markup { params } => {
+                        run_session_job(sup, "annots.addTextMarkup", &session_id, &params, true)
+                            .map_err(|(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            })?
+                    }
+                    EditOperation::DrawShape { op_id, params } => {
+                        run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                            |(msg, refresh)| {
+                                refresh_required = refresh;
+                                msg
+                            },
+                        )?
+                    }
+                    EditOperation::MarkupColor {
+                        kind,
+                        pages,
+                        color_rgba,
+                    } => {
+                        drop(sup);
+                        let mut ids = Vec::new();
+                        for (page_index, rects) in pages {
+                            let list_params = serde_json::json!({ "pageIndex": page_index });
+                            let listed = run_session_job(
+                                supervisor
+                                    .lock()
+                                    .map_err(|_| "Không khóa được lõi".to_string())?,
+                                "annots.list",
+                                &session_id,
+                                &list_params,
+                                false,
+                            )
+                            .map_err(|(msg, _)| msg)?;
+                            ids.extend(
+                                crate::annots::matching_markup_ids(
+                                    &listed, page_index, kind, &rects,
+                                )
+                                .ok_or_else(|| i18n::t("annots.markupNotFound"))?,
+                            );
+                        }
+                        let params = crate::annots::update_markup_color_params(&ids, color_rgba)?;
+                        run_session_job(
+                            supervisor
+                                .lock()
+                                .map_err(|_| "Không khóa được lõi".to_string())?,
+                            "annots.update",
+                            &session_id,
+                            &params,
+                            true,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?
+                    }
+                    EditOperation::Undo => {
+                        let res = chef_rpc::ops::undo(&sup, &session_id).map_err(|error| {
+                            refresh_required = edit_error_needs_reload(&error);
+                            call_error_text(error)
+                        });
+                        drop(sup);
+                        res?
+                    }
+                    EditOperation::Redo => {
+                        let res = chef_rpc::ops::redo(&sup, &session_id).map_err(|error| {
+                            refresh_required = edit_error_needs_reload(&error);
+                            call_error_text(error)
+                        });
+                        drop(sup);
+                        res?
+                    }
+                    EditOperation::Save(path) => {
+                        let res = chef_rpc::ops::save(&sup, &session_id, path.as_deref())
+                            .map_err(call_error_text);
+                        drop(sup);
+                        res?
+                    }
+                };
                 if let Some((ticket, doc, path)) = bookmark_read {
                     let tree = crate::bookmarks::tree_from_reply(&reply)?;
                     let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
@@ -1947,7 +2326,13 @@ impl Viewer {
                     .ok_or_else(|| i18n::t("editor.revisionMissing"))?;
                 let (doc, sizes) = load_revision(&render_handle, revision_path.clone())?;
                 let mut changed = reply.get("changedPages").cloned();
-                if is_layer_mutation {
+                if is_layer_mutation
+                    || (is_form_mutation
+                        && changed
+                            .as_ref()
+                            .and_then(serde_json::Value::as_array)
+                            .is_none_or(Vec::is_empty))
+                {
                     changed = Some(serde_json::Value::String("all".into()));
                 }
                 let SessionFlags {
@@ -2036,6 +2421,49 @@ impl Viewer {
                 } else {
                     None
                 };
+                let forms = if refresh_forms {
+                    let listed = match run_session_job(
+                        supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?,
+                        "forms.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    ) {
+                        Ok(listed) => listed,
+                        Err((message, refresh)) => {
+                            refresh_required |= refresh;
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(message);
+                        }
+                    };
+                    let values = match run_session_job(
+                        supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?,
+                        "forms.getValues",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    ) {
+                        Ok(values) => values,
+                        Err((message, refresh)) => {
+                            refresh_required |= refresh;
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(message);
+                        }
+                    };
+                    match crate::forms_fill::forms_from_replies(&listed, Some(&values)) {
+                        Ok(data) => Some(data),
+                        Err(error) => {
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(error);
+                        }
+                    }
+                } else {
+                    None
+                };
                 let applied = OperationResult::Applied {
                     generation,
                     session_id,
@@ -2047,6 +2475,7 @@ impl Viewer {
                     notes,
                     links,
                     layers,
+                    forms,
                     can_undo,
                     can_redo,
                     dirty,
@@ -2394,6 +2823,540 @@ impl Viewer {
             },
             cx,
         );
+    }
+
+    fn open_forms_dialog(&mut self, focus_field: Option<String>, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.message = Some(i18n::t("forms.empty"));
+            cx.notify();
+            return;
+        };
+        self.forms_ticket = self.forms_ticket.wrapping_add(1);
+        self.forms_open = false;
+        self.forms_close_on_apply = false;
+        self.forms_drawing = false;
+        self.forms_draw_drag = None;
+        self.forms_create_pending = None;
+        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+        self.forms_flatten_confirm = false;
+        self.forms_draft = None;
+        self.forms_controls.clear();
+        self.forms_focus_field = focus_field;
+        self.forms_focus_pending = false;
+        self.message = None;
+        self.begin_edit(
+            EditOperation::ReadForms {
+                ticket: self.forms_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn close_forms_dialog(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.forms_ticket = self.forms_ticket.wrapping_add(1);
+        self.forms_open = false;
+        self.forms_close_on_apply = false;
+        self.forms_draft = None;
+        self.forms_controls.clear();
+        self.forms_focus_field = None;
+        self.forms_focus_pending = false;
+        self.forms_drawing = false;
+        self.forms_draw_drag = None;
+        self.forms_create_pending = None;
+        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+        self.forms_flatten_confirm = false;
+        self.message = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn existing_form_field_names(&self) -> Vec<String> {
+        let mut seen = std::collections::HashSet::new();
+        let mut names = Vec::new();
+        if let Some(draft) = self.forms_draft.as_ref() {
+            for field in &draft.doc.fields {
+                if seen.insert(field.name.clone()) {
+                    names.push(field.name.clone());
+                }
+            }
+        }
+        for widgets in self.form_widgets.values() {
+            for widget in widgets {
+                if !widget.name.is_empty() && seen.insert(widget.name.clone()) {
+                    names.push(widget.name.clone());
+                }
+            }
+        }
+        names
+    }
+
+    fn begin_form_draw_mode(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        if self.document_signed {
+            self.message = Some(i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+            cx.notify();
+            return;
+        }
+        if self.doc.is_none() {
+            self.message = Some(i18n::t("forms.empty"));
+            cx.notify();
+            return;
+        }
+        self.forms_ticket = self.forms_ticket.wrapping_add(1);
+        self.forms_open = false;
+        self.forms_close_on_apply = false;
+        self.forms_flatten_confirm = false;
+        self.forms_create_pending = None;
+        self.forms_drawing = true;
+        self.forms_draw_drag = None;
+        self.draw_tool = None;
+        self.draw_gesture = None;
+        self.insert_image = None;
+        self.insert_image_drag = None;
+        self.object_mode = false;
+        self.object_sel = None;
+        self.object_rehit = None;
+        self.object_drag = None;
+        self.selection = None;
+        self.dragging = false;
+        self.focused_form_widget = None;
+        self.hovered_form_widget = None;
+        self.viewer_focus_pending = true;
+        self.message = None;
+        cx.notify();
+    }
+
+    fn open_forms_create_form(
+        &mut self,
+        pending: crate::forms_create::PendingFormRect,
+        cx: &mut Context<Self>,
+    ) {
+        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+        self.forms_create_name_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.forms_create_label_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.forms_create_options_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.forms_create_maxlen_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.forms_flatten_confirm = false;
+        self.forms_create_pending = Some(pending);
+        self.message = None;
+        if self.forms_draft.is_some() && self.session_id.is_some() {
+            self.forms_open = true;
+            self.forms_focus_pending = true;
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.forms_open = true;
+            self.forms_focus_pending = true;
+            cx.notify();
+            return;
+        };
+        self.forms_ticket = self.forms_ticket.wrapping_add(1);
+        self.forms_open = false;
+        self.begin_edit(
+            EditOperation::ReadForms {
+                ticket: self.forms_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn submit_forms_create(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || !self.forms_open {
+            return;
+        }
+        if self.document_signed {
+            self.message = Some(i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+            cx.notify();
+            return;
+        }
+        let Some(pending) = self.forms_create_pending else {
+            return;
+        };
+        let existing = self.existing_form_field_names();
+        match crate::forms_create::build_add_field_params(
+            &self.forms_create_draft,
+            &pending,
+            &existing,
+        ) {
+            Ok(params_list) => {
+                let field_name = self.forms_create_draft.name.trim().to_string();
+                self.begin_edit(
+                    EditOperation::AddFormFields {
+                        field_name,
+                        params_list,
+                    },
+                    cx,
+                );
+            }
+            Err(issue) => {
+                self.message = Some(i18n::t(issue.i18n_key()));
+                cx.notify();
+            }
+        }
+    }
+
+    fn open_forms_flatten_prompt(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        if self.document_signed {
+            self.message = Some(i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+            cx.notify();
+            return;
+        }
+        if self.forms_open
+            && let Some(draft) = self.forms_draft.as_ref()
+        {
+            if draft.doc.fields.is_empty() {
+                self.message = Some(i18n::t("forms.empty"));
+                cx.notify();
+                return;
+            }
+            self.forms_drawing = false;
+            self.forms_draw_drag = None;
+            self.forms_create_pending = None;
+            self.forms_flatten_confirm = true;
+            self.forms_focus_pending = true;
+            self.message = None;
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.message = Some(i18n::t("forms.empty"));
+            cx.notify();
+            return;
+        };
+        self.forms_ticket = self.forms_ticket.wrapping_add(1);
+        self.forms_open = false;
+        self.forms_close_on_apply = false;
+        self.forms_drawing = false;
+        self.forms_draw_drag = None;
+        self.forms_create_pending = None;
+        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+        self.forms_draft = None;
+        self.forms_controls.clear();
+        self.forms_focus_field = None;
+        self.forms_focus_pending = false;
+        self.forms_flatten_confirm = true;
+        self.message = None;
+        self.begin_edit(
+            EditOperation::ReadForms {
+                ticket: self.forms_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn cancel_forms_flatten_confirm(&mut self, cx: &mut Context<Self>) {
+        self.forms_flatten_confirm = false;
+        self.forms_focus_pending = true;
+        self.message = None;
+        cx.notify();
+    }
+
+    fn confirm_forms_flatten(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || !self.forms_open || !self.forms_flatten_confirm {
+            return;
+        }
+        if self.document_signed {
+            self.message = Some(i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+            self.forms_flatten_confirm = false;
+            cx.notify();
+            return;
+        }
+        let Some(draft) = self.forms_draft.as_ref() else {
+            return;
+        };
+        match crate::forms_flatten::plan_flatten(draft) {
+            Ok(plan) => {
+                self.begin_edit(
+                    EditOperation::FlattenForms {
+                        fill_params: plan.fill_params,
+                        flatten_params: plan.flatten_params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                self.forms_flatten_confirm = false;
+                cx.notify();
+            }
+        }
+    }
+
+    fn rebuild_forms_controls(&mut self, cx: &mut Context<Self>) {
+        self.forms_controls.clear();
+        let Some(draft) = self.forms_draft.as_ref() else {
+            return;
+        };
+        let fields = draft.doc.fields.clone();
+        let control_ids = draft.control_ids.clone();
+        for field in fields {
+            if !field.can_edit() {
+                continue;
+            }
+            let control_id = control_ids
+                .get(&field.name)
+                .cloned()
+                .unwrap_or_else(|| format!("form-field-{}", field.name));
+            let state = match field.kind {
+                crate::forms_fill::FormFieldKind::Text
+                | crate::forms_fill::FormFieldKind::Multiline
+                | crate::forms_fill::FormFieldKind::Comb
+                | crate::forms_fill::FormFieldKind::Password => {
+                    let initial = field.value.as_text().to_string();
+                    let input = cx.new(|cx| TextInput::new(cx, ""));
+                    input.update(cx, |input, cx| {
+                        if field.kind == crate::forms_fill::FormFieldKind::Password {
+                            input.set_secure(true, cx);
+                        }
+                        input.set_text(&initial, cx);
+                    });
+                    let field_name = field.name.clone();
+                    let sub = cx.subscribe(
+                        &input,
+                        move |this: &mut Viewer, entity, event: &TextInputEvent, cx| {
+                            if matches!(event, TextInputEvent::Changed) {
+                                let raw = entity.read(cx).text().to_string();
+                                let clamped = this
+                                    .forms_draft
+                                    .as_mut()
+                                    .map(|draft| draft.set_text(&field_name, raw.clone()))
+                                    .unwrap_or_else(|| raw.clone());
+                                if clamped != raw {
+                                    entity.update(cx, |input, cx| input.set_text(&clamped, cx));
+                                }
+                                cx.notify();
+                            }
+                        },
+                    );
+                    FormControlState::Text { input, _sub: sub }
+                }
+                crate::forms_fill::FormFieldKind::Checkbox => FormControlState::Checkbox {
+                    focus: cx.focus_handle(),
+                },
+                crate::forms_fill::FormFieldKind::Radio => FormControlState::Radio {
+                    item_focuses: (0..field.options.len())
+                        .map(|_| cx.focus_handle())
+                        .collect(),
+                },
+                crate::forms_fill::FormFieldKind::Dropdown => {
+                    FormControlState::Dropdown { control_id }
+                }
+                crate::forms_fill::FormFieldKind::Listbox => FormControlState::Listbox {
+                    item_focuses: (0..field.options.len())
+                        .map(|_| cx.focus_handle())
+                        .collect(),
+                },
+                _ => continue,
+            };
+            self.forms_controls.insert(field.name, state);
+        }
+    }
+
+    fn apply_forms_dialog(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || !self.forms_open {
+            return;
+        }
+        if self.document_signed {
+            self.message = Some(i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+            cx.notify();
+            return;
+        }
+        let Some(draft) = self.forms_draft.as_ref() else {
+            return;
+        };
+        match draft.fill_params() {
+            Ok(Some(params)) => {
+                self.begin_edit(
+                    EditOperation::FillForms {
+                        params,
+                        close_dialog: true,
+                    },
+                    cx,
+                );
+            }
+            Ok(None) => {
+                self.forms_open = false;
+                self.forms_draft = None;
+                self.forms_controls.clear();
+                self.forms_focus_field = None;
+                self.forms_focus_pending = false;
+                self.viewer_focus_pending = true;
+                self.message = None;
+                cx.notify();
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn has_modal_open(&self) -> bool {
+        self.forms_open
+            || self.links_open
+            || self.layers_open
+            || self.notes_open
+            || self.image_adjust_open
+            || self.props_open
+            || self.password_open
+            || self.bookmark_draft.is_some()
+    }
+
+    fn scroll_to_form_widget(&mut self, fw: &FormWidget) {
+        let Some(layout) = self.layout.as_ref() else {
+            return;
+        };
+        let vh = self.content_height();
+        let (_, top, _, _) = self.rect_to_view(
+            fw.page_index,
+            fw.rect.left,
+            fw.rect.top,
+            fw.rect.right,
+            fw.rect.bottom,
+        );
+        let page_top = self
+            .spread
+            .as_ref()
+            .and_then(|s| {
+                s.page_rect(fw.page_index, (self.viewport.0 - SIDEBAR_WIDTH).max(1.0))
+                    .map(|r| r.y)
+            })
+            .unwrap_or_else(|| layout.page_top(fw.page_index));
+        let y = page_top + top * layout.zoom();
+        self.scroll_y = self.spread.as_ref().map_or_else(
+            || layout.clamp_scroll(y - vh / 3.0, vh),
+            |s| s.clamp_scroll(y - vh / 3.0, vh),
+        );
+    }
+
+    fn step_form_widget_focus(
+        &mut self,
+        forward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if self.has_modal_open() || !self.form_info.is_some_and(|info| info.form_env_active) {
+            return false;
+        }
+        if self.search.read(cx).focus_handle(cx).is_focused(window)
+            || self.zoom_input.read(cx).focus_handle(cx).is_focused(window)
+        {
+            return false;
+        }
+        if !self.focus.is_focused(window) && self.focused_form_widget.is_none() {
+            return false;
+        }
+        let ordered = crate::forms_fill::order_editable_widgets(&self.form_widgets);
+        let Some(next_id) = crate::forms_fill::next_widget_id(
+            &ordered,
+            self.focused_form_widget.as_deref(),
+            forward,
+        ) else {
+            return false;
+        };
+        if let Some(fw) = ordered.iter().find(|w| w.id == next_id) {
+            self.scroll_to_form_widget(fw);
+        }
+        self.focused_form_widget = Some(next_id);
+        window.focus(&self.focus, cx);
+        cx.notify();
+        true
+    }
+
+    fn activate_form_widget(
+        &mut self,
+        fw: &FormWidget,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.focused_form_widget = Some(fw.id.clone());
+        window.focus(&self.focus, cx);
+        if fw.read_only
+            || matches!(
+                fw.kind,
+                WidgetKind::PushButton | WidgetKind::Signature | WidgetKind::Unknown
+            )
+        {
+            cx.notify();
+            return;
+        }
+        if self.document_signed {
+            self.message = Some(i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+            cx.notify();
+            return;
+        }
+        if fw.kind == WidgetKind::Checkbox {
+            let next = !fw.checked.unwrap_or(false);
+            match crate::forms_fill::single_field_fill_params(
+                &fw.name,
+                &crate::forms_fill::FieldValue::Bool(next),
+            ) {
+                Ok(params) => {
+                    self.begin_edit(
+                        EditOperation::FillForms {
+                            params,
+                            close_dialog: false,
+                        },
+                        cx,
+                    );
+                }
+                Err(error) => {
+                    self.message = Some(error);
+                    cx.notify();
+                }
+            }
+            return;
+        }
+        self.open_forms_dialog(Some(fw.name.clone()), cx);
+    }
+
+    fn activate_focused_form_widget(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if self.has_modal_open() || !self.focus.is_focused(window) {
+            return false;
+        }
+        let Some(target_id) = self.focused_form_widget.clone() else {
+            return false;
+        };
+        let Some(fw) = self
+            .form_widgets
+            .values()
+            .flatten()
+            .find(|w| w.id == target_id)
+            .cloned()
+        else {
+            return false;
+        };
+        self.activate_form_widget(&fw, window, cx);
+        true
     }
 
     fn activate_link(&mut self, link: &crate::links::LinkItem, cx: &mut Context<Self>) {
@@ -2981,6 +3944,48 @@ impl Viewer {
                         .update(cx, |input, cx| input.set_text(name_text, cx));
                 }
             }
+            OperationResult::FormsLoaded {
+                generation,
+                doc,
+                path,
+                ticket,
+                session_id,
+                data,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                if ticket == self.forms_ticket
+                    && self.doc == Some(doc)
+                    && self.doc_path.as_ref() == Some(&path)
+                {
+                    if self.forms_flatten_confirm
+                        && (data.fields.is_empty() || self.document_signed)
+                    {
+                        self.forms_flatten_confirm = false;
+                        self.message = Some(i18n::t(if self.document_signed {
+                            "errors.BLOCKED_BY_SIGNATURE"
+                        } else {
+                            "forms.empty"
+                        }));
+                    }
+                    let draft = crate::forms_fill::FormDraft::new(data);
+                    self.forms_draft = Some(draft);
+                    self.rebuild_forms_controls(cx);
+                    self.forms_open = true;
+                    self.forms_focus_pending = true;
+                }
+            }
             OperationResult::TypeFilterLoaded {
                 generation,
                 session_id,
@@ -3012,6 +4017,7 @@ impl Viewer {
                 notes,
                 links,
                 layers,
+                forms,
                 can_undo,
                 can_redo,
                 dirty,
@@ -3057,21 +4063,18 @@ impl Viewer {
                 {
                     let old_page_count = self.page_sizes.len();
                     let changed = reload::changed_pages(changed_pages.as_ref(), sizes.len());
-                    let cached_before: std::collections::BTreeMap<usize, usize> = self
-                        .cache
-                        .entries()
-                        .map(|(page, image)| (*page, image.id.0))
-                        .collect();
+                    let cached_before: std::collections::BTreeMap<usize, usize> =
+                        self.cache_image_ids().into_iter().collect();
                     let mut removed_images = std::collections::BTreeMap::new();
                     for &page in &changed {
-                        if let Some(image) = self.cache.remove(&page) {
+                        if let Some(image) = self.cache_remove(page) {
                             removed_images.insert(page, image.id.0);
                             self.to_drop.push(image);
                         }
                         self.texts.remove(&page);
                     }
                     for page in sizes.len()..old_page_count {
-                        if let Some(image) = self.cache.remove(&page) {
+                        if let Some(image) = self.cache_remove(page) {
                             removed_images.insert(page, image.id.0);
                             self.to_drop.push(image);
                         }
@@ -3135,6 +4138,14 @@ impl Viewer {
                     }
                     self.pending.clear();
                     self.text_pending.clear();
+                    self.form_widgets.clear();
+                    self.form_widgets_pending.clear();
+                    self.hovered_form_widget = None;
+                    self.focused_form_widget = None;
+                    let form_info = self
+                        .call(|id, reply| Job::FormInfo { id, doc, reply })
+                        .unwrap_or_default();
+                    self.form_info = Some(form_info);
                     let old = self.doc.replace(doc);
                     if let Some(old) = old {
                         self.close_render_doc(old);
@@ -3165,6 +4176,27 @@ impl Viewer {
                     self.insert_image = None;
                     self.insert_image_drag = None;
                     self.image_adjust_open = false;
+                    if let Some(forms_data) = forms {
+                        self.forms_close_on_apply = false;
+                        self.forms_flatten_confirm = false;
+                        self.forms_create_pending = None;
+                        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+                        self.forms_draft = Some(crate::forms_fill::FormDraft::new(forms_data));
+                        self.rebuild_forms_controls(cx);
+                        self.forms_open = true;
+                        self.forms_focus_pending = true;
+                    } else if self.forms_close_on_apply {
+                        self.forms_close_on_apply = false;
+                        self.forms_open = false;
+                        self.forms_draft = None;
+                        self.forms_controls.clear();
+                        self.forms_focus_field = None;
+                        self.forms_focus_pending = false;
+                        self.viewer_focus_pending = true;
+                    } else if !self.forms_open {
+                        self.forms_draft = None;
+                        self.forms_controls.clear();
+                    }
                     self.object_sel = None;
                     self.object_drag = None;
                     if let Some((page_index, point)) = self.object_rehit.take() {
@@ -3262,6 +4294,7 @@ impl Viewer {
                 message,
                 refresh_required,
             } => {
+                self.forms_close_on_apply = false;
                 self.abort_close_after_save();
                 if generation != self.document_generation {
                     if let (Some(supervisor), Some(session_id)) =
@@ -3294,8 +4327,13 @@ impl Viewer {
         path: Option<PathBuf>,
         supervisor: Option<Arc<Mutex<Supervisor>>>,
         settings: Entity<SettingsPanel>,
+        shared_cache: SharedCache,
         cx: &mut Context<Self>,
     ) -> Self {
+        let cache_owner = shared_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .allocate_owner();
         let search = cx.new(|cx| TextInput::new(cx, "Tìm trong tài liệu"));
         let zoom_input = cx.new(|cx| TextInput::new(cx, i18n::t("zoom.percentPlaceholder")));
         let zoom_subscription = cx.subscribe(
@@ -3384,6 +4422,60 @@ impl Viewer {
                 }
             });
         let layers_close_focus = cx.focus_handle();
+        let forms_close_focus = cx.focus_handle();
+        let forms_apply_focus = cx.focus_handle();
+        let forms_cancel_focus = cx.focus_handle();
+        let forms_add_focus = cx.focus_handle();
+        let forms_create_required_focus = cx.focus_handle();
+        let forms_create_cancel_focus = cx.focus_handle();
+        let forms_create_submit_focus = cx.focus_handle();
+        let forms_flatten_focus = cx.focus_handle();
+        let forms_flatten_cancel_focus = cx.focus_handle();
+        let forms_flatten_confirm_focus = cx.focus_handle();
+        let forms_create_name_input = cx.new(|cx| TextInput::new(cx, i18n::t("forms.name")));
+        let forms_create_name_sub = cx.subscribe(
+            &forms_create_name_input,
+            |this: &mut Viewer, input, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    this.forms_create_draft.name = input.read(cx).text().to_string();
+                    this.message = None;
+                    cx.notify();
+                }
+            },
+        );
+        let forms_create_label_input = cx.new(|cx| TextInput::new(cx, i18n::t("forms.tooltip")));
+        let forms_create_label_sub = cx.subscribe(
+            &forms_create_label_input,
+            |this: &mut Viewer, input, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    this.forms_create_draft.label = input.read(cx).text().to_string();
+                    this.message = None;
+                    cx.notify();
+                }
+            },
+        );
+        let forms_create_options_input = cx.new(|cx| TextInput::new(cx, i18n::t("forms.options")));
+        let forms_create_options_sub = cx.subscribe(
+            &forms_create_options_input,
+            |this: &mut Viewer, input, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    this.forms_create_draft.options_text = input.read(cx).text().to_string();
+                    this.message = None;
+                    cx.notify();
+                }
+            },
+        );
+        let forms_create_maxlen_input = cx.new(|cx| TextInput::new(cx, i18n::t("forms.maxLength")));
+        let forms_create_maxlen_sub = cx.subscribe(
+            &forms_create_maxlen_input,
+            |this: &mut Viewer, input, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    this.forms_create_draft.max_len_text = input.read(cx).text().to_string();
+                    this.message = None;
+                    cx.notify();
+                }
+            },
+        );
         let mut viewer = Viewer {
             handle,
             supervisor,
@@ -3400,6 +4492,10 @@ impl Viewer {
                 link_subscription,
                 image_crop_subscription,
                 layer_name_subscription,
+                forms_create_name_sub,
+                forms_create_label_sub,
+                forms_create_options_sub,
+                forms_create_maxlen_sub,
             ],
             appearance_observer_installed: false,
             settings,
@@ -3407,6 +4503,37 @@ impl Viewer {
             focus,
             texts: HashMap::new(),
             text_pending: HashMap::new(),
+            form_info: None,
+            form_widgets: HashMap::new(),
+            form_widgets_pending: HashMap::new(),
+            hovered_form_widget: None,
+            focused_form_widget: None,
+            forms_open: false,
+            forms_ticket: 0,
+            forms_close_on_apply: false,
+            forms_draft: None,
+            forms_controls: HashMap::new(),
+            forms_focus_field: None,
+            forms_focus_pending: false,
+            forms_close_focus,
+            forms_apply_focus,
+            forms_cancel_focus,
+            forms_drawing: false,
+            forms_draw_drag: None,
+            forms_create_pending: None,
+            forms_create_draft: crate::forms_create::CreateFormDraft::default(),
+            forms_create_name_input,
+            forms_create_label_input,
+            forms_create_options_input,
+            forms_create_maxlen_input,
+            forms_add_focus,
+            forms_create_required_focus,
+            forms_create_cancel_focus,
+            forms_create_submit_focus,
+            forms_flatten_confirm: false,
+            forms_flatten_focus,
+            forms_flatten_cancel_focus,
+            forms_flatten_confirm_focus,
             selection: None,
             dragging: false,
             draw_tool: None,
@@ -3515,7 +4642,8 @@ impl Viewer {
             fit_page: false,
             scroll_y: 0.0,
             viewport: (0.0, 0.0),
-            cache: LruCache::new(CACHE_BUDGET),
+            shared_cache,
+            cache_owner,
             pending: HashMap::new(),
             raster_key: 0,
             stale: std::collections::HashSet::new(),
@@ -3552,9 +4680,10 @@ impl Viewer {
         restored: &serde_json::Value,
         supervisor: Option<Arc<Mutex<Supervisor>>>,
         settings: Entity<SettingsPanel>,
+        shared_cache: SharedCache,
         cx: &mut Context<Self>,
     ) -> Self {
-        let mut viewer = Self::open(handle, None, supervisor, settings, cx);
+        let mut viewer = Self::open(handle, None, supervisor, settings, shared_cache, cx);
         viewer.apply_restored_session(restored);
         viewer
     }
@@ -3592,6 +4721,9 @@ impl Viewer {
         let document_signed = self
             .call(|id, reply| Job::HasSignatures { id, doc, reply })
             .unwrap_or(true);
+        let form_info = self
+            .call(|id, reply| Job::FormInfo { id, doc, reply })
+            .unwrap_or_default();
         let bookmarks = self
             .call(|id, reply| Job::Bookmarks { id, doc, reply })
             .unwrap_or_default();
@@ -3600,6 +4732,7 @@ impl Viewer {
         if let Some(previous) = self.doc.replace(doc) {
             self.close_render_doc(previous);
         }
+        self.form_info = Some(form_info);
         self.document_signed = document_signed;
         self.doc_path = Some(revision_path);
         self.source_fingerprint = source_path
@@ -3862,6 +4995,9 @@ impl Viewer {
         let document_signed = self
             .call(|id, reply| Job::HasSignatures { id, doc, reply })
             .unwrap_or(true);
+        let form_info = self
+            .call(|id, reply| Job::FormInfo { id, doc, reply })
+            .unwrap_or_default();
         let count = self.call(|id, reply| Job::PageCount { id, doc, reply })?;
         let mut sizes = Vec::with_capacity(count);
         for index in 0..count {
@@ -3879,6 +5015,7 @@ impl Viewer {
             self.close_render_doc(previous);
         }
         self.doc = Some(doc);
+        self.form_info = Some(form_info);
         self.document_signed = document_signed;
         self.doc_path = Some(path.clone());
         self.source_path = Some(path);
@@ -3921,11 +5058,7 @@ impl Viewer {
 
     /// Drop per-document UI state. The GPU images are released on the next render pass.
     fn clear_document_state(&mut self) {
-        for key in self.cache.keys() {
-            if let Some(image) = self.cache.remove(&key) {
-                self.to_drop.push(image);
-            }
-        }
+        self.cache_clear_owner();
         self.pending.clear();
         self.thumbnail_pending.clear();
         for (_, image) in self.thumbnail_cache.drain() {
@@ -3933,6 +5066,22 @@ impl Viewer {
         }
         self.text_pending.clear();
         self.texts.clear();
+        self.form_widgets_pending.clear();
+        self.form_widgets.clear();
+        self.hovered_form_widget = None;
+        self.focused_form_widget = None;
+        self.form_info = None;
+        self.forms_open = false;
+        self.forms_close_on_apply = false;
+        self.forms_draft = None;
+        self.forms_controls.clear();
+        self.forms_focus_field = None;
+        self.forms_focus_pending = false;
+        self.forms_drawing = false;
+        self.forms_draw_drag = None;
+        self.forms_create_pending = None;
+        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+        self.forms_flatten_confirm = false;
         self.find.clear();
         self.selection = None;
         self.dragging = false;
@@ -3987,6 +5136,7 @@ impl Viewer {
                         let thumbnails = viewer.poll_thumbnails();
                         let found = viewer.poll_find();
                         let texts = viewer.poll_text();
+                        let form_widgets = viewer.poll_form_widgets();
                         let operation = viewer.poll_operation(cx);
                         let switched = viewer.poll_session_switch(cx);
                         let scanning = viewer.scanning();
@@ -3994,6 +5144,7 @@ impl Viewer {
                             || thumbnails
                             || found
                             || texts
+                            || form_widgets
                             || scanning
                             || operation
                             || switched
@@ -4028,7 +5179,7 @@ impl Viewer {
                     match to_render_image(page, self.view_rotation) {
                         Ok((image, bytes)) => {
                             self.stale.remove(&index);
-                            self.to_drop.extend(self.cache.insert(index, image, bytes));
+                            self.cache_insert(index, image, bytes);
                         }
                         Err(e) => self.message = Some(e),
                     }
@@ -4158,6 +5309,168 @@ impl Viewer {
             }
         }
         any
+    }
+
+    /// Reads visible/buffered page form widgets via PDFium form-fill FFI (R4.21).
+    fn poll_form_widgets(&mut self) -> bool {
+        let Some(form_info) = self.form_info else {
+            return false;
+        };
+        if !form_info.form_env_active {
+            return false;
+        }
+        let (Some(layout), Some(doc)) = (self.layout.as_ref(), self.doc) else {
+            return false;
+        };
+        let keep = self
+            .spread
+            .as_ref()
+            .map(|s| s.buffered_pages(self.scroll_y, self.content_height(), BUFFER_PAGES))
+            .unwrap_or_else(|| {
+                layout
+                    .full_scale_set(self.scroll_y, self.content_height(), BUFFER_PAGES)
+                    .collect()
+            });
+        let ready: Vec<(usize, Reply<PageWidgets>)> = self
+            .form_widgets_pending
+            .iter()
+            .filter_map(|(index, rx)| rx.try_recv().ok().map(|reply| (*index, reply)))
+            .collect();
+        let any = !ready.is_empty();
+        for (index, reply) in ready {
+            self.form_widgets_pending.remove(&index);
+            if let Ok(page_widgets) = reply.result {
+                self.form_widgets.insert(index, page_widgets.widgets);
+            }
+        }
+        self.form_widgets.retain(|i, _| *i < self.page_sizes.len());
+        let mut wanted: Vec<usize> = keep
+            .iter()
+            .copied()
+            .filter(|i| {
+                !self.form_widgets.contains_key(i) && !self.form_widgets_pending.contains_key(i)
+            })
+            .collect();
+        let queued = self.form_widgets_pending.len().saturating_add(wanted.len());
+        if self.page_sizes.len() <= 64 && queued < 4 {
+            wanted.extend(
+                (0..self.page_sizes.len())
+                    .filter(|i| {
+                        !keep.contains(i)
+                            && !self.form_widgets.contains_key(i)
+                            && !self.form_widgets_pending.contains_key(i)
+                    })
+                    .take(4 - queued),
+            );
+        }
+        for index in wanted {
+            let (tx, rx) = channel();
+            let id = self.handle.next_id();
+            if self
+                .handle
+                .send(Job::PageFormWidgets {
+                    id,
+                    doc,
+                    index,
+                    reply: tx,
+                })
+                .is_ok()
+            {
+                self.form_widgets_pending.insert(index, rx);
+            }
+        }
+        any
+    }
+
+    fn forms_view_debug(
+        &self,
+        widgets: Vec<serde_json::Value>,
+        focused_field: Option<&str>,
+        page0_rect: Option<[f32; 4]>,
+    ) -> serde_json::Value {
+        let info = self.form_info.unwrap_or_default();
+        let tab_order: Vec<serde_json::Value> =
+            crate::forms_fill::order_editable_widgets(&self.form_widgets)
+                .into_iter()
+                .map(|w| {
+                    serde_json::json!({
+                        "id": w.id,
+                        "name": w.name,
+                        "pageIndex": w.page_index,
+                        "kind": w.kind.as_str(),
+                    })
+                })
+                .collect();
+        let dialog_fields: Vec<serde_json::Value> = self
+            .forms_draft
+            .as_ref()
+            .filter(|_| self.forms_open)
+            .map(|draft| {
+                draft
+                    .doc
+                    .fields
+                    .iter()
+                    .map(|f| {
+                        let control_id = draft
+                            .control_ids
+                            .get(&f.name)
+                            .map(String::as_str)
+                            .unwrap_or("");
+                        let value = draft
+                            .values
+                            .get(&f.name)
+                            .map(crate::forms_fill::FieldValue::to_wire)
+                            .unwrap_or(serde_json::Value::Null);
+                        serde_json::json!({
+                            "name": f.name,
+                            "kind": f.kind.as_str(),
+                            "page": f.page,
+                            "editable": f.can_edit(),
+                            "controlId": control_id,
+                            "value": value,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let create_open = self.forms_open && self.forms_create_pending.is_some();
+        let create_issue = if create_open {
+            let existing = self.existing_form_field_names();
+            crate::forms_create::validate_create(
+                &self.forms_create_draft,
+                self.forms_create_pending.as_ref(),
+                &existing,
+            )
+            .map(|issue| issue.as_str())
+        } else {
+            None
+        };
+        serde_json::json!({
+            "formType": info.form_type.as_str(),
+            "formEnvActive": info.form_env_active,
+            "jsEnabled": info.js_enabled,
+            "xfaLoaded": info.xfa_loaded,
+            "pendingPages": self.form_widgets_pending.len(),
+            "widgets": widgets,
+            "focusedWidget": self.focused_form_widget,
+            "tabOrder": tab_order,
+            "dialogOpen": self.forms_open,
+            "changedCount": self.forms_draft.as_ref().map_or(0, |d| d.changed_count()),
+            "dialogFields": dialog_fields,
+            "focusedField": focused_field,
+            "drawing": self.forms_drawing,
+            "createOpen": create_open,
+            "createKind": create_open.then_some(self.forms_create_draft.kind.as_str()),
+            "createIssue": create_issue,
+            "createPendingRect": self.forms_create_pending.map(|p| {
+                serde_json::json!({
+                    "pageIndex": p.page_index,
+                    "rect": p.rect,
+                })
+            }),
+            "page0Rect": page0_rect,
+            "flattenConfirmOpen": self.forms_open && self.forms_flatten_confirm,
+        })
     }
 
     /// Chữ của một trang: lấy từ cache, không có thì đọc ngay (dùng khi copy nhiều trang).
@@ -4291,6 +5604,8 @@ impl Viewer {
         self.draw_gesture = None;
         self.insert_image = None;
         self.insert_image_drag = None;
+        self.forms_drawing = false;
+        self.forms_draw_drag = None;
         self.selection = None;
         cx.notify();
     }
@@ -4331,6 +5646,8 @@ impl Viewer {
                 self.object_drag = None;
                 self.draw_tool = None;
                 self.draw_gesture = None;
+                self.forms_drawing = false;
+                self.forms_draw_drag = None;
                 self.selection = None;
             }
             Err(error) => {
@@ -4446,6 +5763,8 @@ impl Viewer {
             self.draw_gesture = None;
             self.insert_image = None;
             self.insert_image_drag = None;
+            self.forms_drawing = false;
+            self.forms_draw_drag = None;
             self.selection = None;
         }
         cx.notify();
@@ -4597,6 +5916,25 @@ impl Viewer {
 
     fn on_mouse_down(&mut self, ev: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
+        self.focused_form_widget = None;
+        if self.forms_drawing {
+            if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+                return;
+            }
+            self.selection = None;
+            self.dragging = false;
+            self.message = None;
+            self.forms_draw_drag = self.point_to_page(ev.position).map(|(page_index, point)| {
+                crate::forms_create::FormDrawDrag {
+                    generation: self.document_generation,
+                    page_index,
+                    start: point,
+                    cur: point,
+                }
+            });
+            cx.notify();
+            return;
+        }
         if self.insert_image.is_some() {
             if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
                 return;
@@ -4678,6 +6016,21 @@ impl Viewer {
     }
 
     fn on_mouse_move(&mut self, ev: &MouseMoveEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(drag) = self.forms_draw_drag.as_ref() {
+            if drag.generation != self.document_generation {
+                self.forms_draw_drag = None;
+                cx.notify();
+                return;
+            }
+            let page_index = drag.page_index;
+            if let Some(point) = self.point_on_page(page_index, ev.position)
+                && let Some(drag) = self.forms_draw_drag.as_mut()
+            {
+                drag.cur = point;
+                cx.notify();
+            }
+            return;
+        }
         if let Some(drag) = self.insert_image_drag.as_ref() {
             if drag.generation != self.document_generation {
                 self.insert_image_drag = None;
@@ -4765,6 +6118,29 @@ impl Viewer {
     }
 
     fn on_mouse_up(&mut self, ev: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(mut drag) = self.forms_draw_drag.take() {
+            if drag.generation != self.document_generation {
+                cx.notify();
+                return;
+            }
+            if let Some(point) = self.point_on_page(drag.page_index, ev.position) {
+                drag.cur = point;
+            }
+            if !drag.is_valid_size() {
+                self.message = Some(i18n::t("forms.issues.rect"));
+                cx.notify();
+                return;
+            }
+            self.forms_drawing = false;
+            self.open_forms_create_form(
+                crate::forms_create::PendingFormRect {
+                    page_index: drag.page_index,
+                    rect: drag.rect(),
+                },
+                cx,
+            );
+            return;
+        }
         if let Some(mut drag) = self.insert_image_drag.take() {
             let placement = self.insert_image.take();
             if drag.generation != self.document_generation {
@@ -5100,8 +6476,7 @@ impl Viewer {
     /// Bật hoặc tắt đọc ban đêm. Bỏ cache bitmap trang để vẽ lại theo chế độ mới.
     fn toggle_night(&mut self) {
         self.night = !self.night;
-        self.to_drop
-            .extend(crate::night::evict_cached_pages(&mut self.cache));
+        self.cache_clear_owner();
         crate::debug::set_night(self.night);
     }
 
@@ -5278,11 +6653,7 @@ impl Viewer {
         for (_, image) in self.thumbnail_cache.drain() {
             self.to_drop.push(image);
         }
-        for index in self.cache.keys() {
-            if let Some(image) = self.cache.remove(&index) {
-                self.to_drop.push(image);
-            }
-        }
+        self.cache_clear_owner();
         self.scroll_y = anchor
             .and_then(|(page, fraction)| {
                 self.spread.as_ref().and_then(|s| {
@@ -5409,12 +6780,73 @@ impl Viewer {
         self.tab_closing = closing;
     }
 
+    fn lock_cache(&self) -> std::sync::MutexGuard<'_, SharedPageCache<Arc<RenderImage>>> {
+        self.shared_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn cache_len(&self) -> usize {
+        self.lock_cache().owner_len(self.cache_owner)
+    }
+
+    fn cache_bytes(&self) -> usize {
+        self.lock_cache().owner_bytes(self.cache_owner)
+    }
+
+    fn cache_get(&self, page: usize) -> Option<Arc<RenderImage>> {
+        self.lock_cache().get(self.cache_owner, page).cloned()
+    }
+
+    fn cache_insert(&self, page: usize, image: Arc<RenderImage>, bytes: usize) {
+        self.lock_cache()
+            .insert(self.cache_owner, page, image, bytes);
+    }
+
+    fn cache_remove(&self, page: usize) -> Option<Arc<RenderImage>> {
+        self.lock_cache().remove(self.cache_owner, page)
+    }
+
+    fn cache_image_ids(&self) -> Vec<(usize, usize)> {
+        self.lock_cache()
+            .owner_entries(self.cache_owner)
+            .into_iter()
+            .map(|(page, image)| (page, image.id.0))
+            .collect()
+    }
+
+    fn cache_clear_owner(&self) {
+        self.lock_cache().evict_owner(self.cache_owner);
+    }
+
+    fn cache_can_prefetch(&self, estimated_bytes: usize) -> bool {
+        self.lock_cache().can_prefetch(estimated_bytes)
+    }
+
+    fn drain_shared_drops(&self, window: &mut Window) {
+        let drops = self.lock_cache().take_drops();
+        for image in drops {
+            let _ = window.drop_image(image);
+        }
+    }
+
+    pub fn split_source(&self, tab_id: crate::tabs::TabId) -> crate::split_pane::SplitSource {
+        crate::split_pane::SplitSource {
+            tab_id,
+            title: self.tab_title(),
+            doc_path: self.doc_path.clone(),
+            password: self.source_password.clone(),
+            generation: self.document_generation,
+            night: self.night,
+        }
+    }
+
     pub fn tab_cached_pages(&self) -> usize {
-        self.cache.len()
+        self.cache_len()
     }
 
     pub fn tab_cached_bytes(&self) -> usize {
-        self.cache.total_bytes()
+        self.cache_bytes()
     }
 
     pub fn tab_pending_pages(&self) -> usize {
@@ -5425,16 +6857,16 @@ impl Viewer {
     pub fn deactivate_tab(&mut self, window: &mut Window) {
         self.pending.clear();
         self.thumbnail_pending.clear();
+        self.form_widgets_pending.clear();
+        self.hovered_form_widget = None;
+        self.focused_form_widget = None;
         self.sidebar_visible.clear();
         crate::debug::set_sidebar_thumbnail_count(0, 0);
         for (_, image) in self.thumbnail_cache.drain() {
             let _ = window.drop_image(image);
         }
-        for key in self.cache.keys() {
-            if let Some(image) = self.cache.remove(&key) {
-                let _ = window.drop_image(image);
-            }
-        }
+        self.cache_clear_owner();
+        self.drain_shared_drops(window);
         for image in self.to_drop.drain(..) {
             let _ = window.drop_image(image);
         }
@@ -5455,6 +6887,23 @@ impl Viewer {
         if let Some(doc) = self.doc.take() {
             self.close_render_doc(doc);
         }
+        self.form_info = None;
+        self.form_widgets.clear();
+        self.form_widgets_pending.clear();
+        self.hovered_form_widget = None;
+        self.focused_form_widget = None;
+        self.forms_open = false;
+        self.forms_close_on_apply = false;
+        self.forms_draft = None;
+        self.forms_controls.clear();
+        self.forms_focus_field = None;
+        self.forms_focus_pending = false;
+        self.forms_drawing = false;
+        self.forms_draw_drag = None;
+        self.forms_create_pending = None;
+        self.forms_create_draft = crate::forms_create::CreateFormDraft::default();
+        self.forms_flatten_confirm = false;
+        crate::debug::set_forms_view(self.forms_view_debug(Vec::new(), None, None));
         self.deactivate_tab(window);
         self.source_path = None;
         self.doc_path = None;
@@ -5614,7 +7063,10 @@ fn close_session_async(supervisor: Arc<Mutex<Supervisor>>, session_id: String) {
 }
 
 /// Đổi ảnh BGRA của pdfium thành RenderImage của gpui (cũng là BGRA). Trả về ảnh và số byte.
-fn to_render_image(page: PageImage, rotation: u8) -> Result<(Arc<RenderImage>, usize), String> {
+pub(crate) fn to_render_image(
+    page: PageImage,
+    rotation: u8,
+) -> Result<(Arc<RenderImage>, usize), String> {
     let bytes = page.bgra.len();
     let mut buffer = RgbaImage::from_raw(page.width, page.height, page.bgra)
         .ok_or_else(|| "kích thước bitmap không khớp".to_string())?;
@@ -5713,6 +7165,7 @@ impl Render for Viewer {
             Some((_, _, w, h)) => (w + SIDEBAR_WIDTH, h + TOOLBAR_H + FOOTER_H),
             None => (vp.width.as_f32(), vp.height.as_f32()),
         };
+        self.drain_shared_drops(window);
         for old in self.to_drop.drain(..) {
             let _ = window.drop_image(old);
         }
@@ -6879,6 +8332,1085 @@ impl Render for Viewer {
         } else {
             None
         };
+        let mut forms_focused_field: Option<String> = None;
+        let forms_dialog = if self.forms_open {
+            if self.forms_flatten_confirm {
+                if self.forms_focus_pending {
+                    self.forms_focus_pending = false;
+                    self.forms_focus_field = None;
+                    let target = self.forms_flatten_cancel_focus.clone();
+                    window.defer(cx, move |window, cx| {
+                        window.focus(&target, cx);
+                        window.refresh();
+                    });
+                }
+                let dismiss_entity = entity.clone();
+                let cancel_entity = entity.clone();
+                let confirm_entity = entity.clone();
+                let status_note = self.message.clone();
+                Some(
+                    Dialog::new(
+                        "forms-flatten-confirm",
+                        i18n::t("forms.flattenConfirmTitle"),
+                        Width::Md,
+                        dark,
+                    )
+                    .close(
+                        "forms-flatten-close",
+                        self.forms_close_focus.clone(),
+                        i18n::t("common.close"),
+                    )
+                    .tab_order(vec![
+                        self.forms_flatten_cancel_focus.clone(),
+                        self.forms_flatten_confirm_focus.clone(),
+                    ])
+                    .return_focus(self.focus.clone())
+                    .on_dismiss(move |_, cx| {
+                        dismiss_entity.update(cx, |this, cx| this.cancel_forms_flatten_confirm(cx));
+                    })
+                    .child(
+                        div()
+                            .id("forms-flatten-message")
+                            .text_size(px(chef_theme::shared::TEXT_SM))
+                            .text_color(rgb(palette.text))
+                            .child(i18n::t("forms.flattenConfirmMessage")),
+                    )
+                    .when_some(status_note, |dialog, text| {
+                        dialog.child(
+                            div()
+                                .id("forms-error")
+                                .text_xs()
+                                .text_color(rgb(palette.accent))
+                                .child(text),
+                        )
+                    })
+                    .action(
+                        Button::new(
+                            "forms-flatten-cancel",
+                            self.forms_flatten_cancel_focus.clone(),
+                        )
+                        .label(i18n::t("common.cancel"))
+                        .disabled(self.operation_pending)
+                        .dark(dark)
+                        .on_click(move |_, _, cx| {
+                            cancel_entity
+                                .update(cx, |this, cx| this.cancel_forms_flatten_confirm(cx));
+                        }),
+                    )
+                    .action(
+                        Button::new(
+                            "forms-flatten-confirm-action",
+                            self.forms_flatten_confirm_focus.clone(),
+                        )
+                        .label(i18n::t("forms.flattenConfirmAction"))
+                        .variant(Variant::Danger)
+                        .disabled(self.operation_pending || self.document_signed)
+                        .dark(dark)
+                        .on_click(move |_, _, cx| {
+                            confirm_entity.update(cx, |this, cx| this.confirm_forms_flatten(cx));
+                        }),
+                    )
+                    .into_any_element(),
+                )
+            } else if let Some(pending) = self.forms_create_pending {
+                let draft_snapshot = self.forms_create_draft.clone();
+                let existing_names = self.existing_form_field_names();
+                let create_issue = crate::forms_create::validate_create(
+                    &draft_snapshot,
+                    Some(&pending),
+                    &existing_names,
+                );
+                let submit_disabled =
+                    self.operation_pending || self.document_signed || create_issue.is_some();
+
+                let kind_labels: Vec<gpui::SharedString> =
+                    crate::forms_create::CreateFieldKind::ALL
+                        .iter()
+                        .map(|kind| gpui::SharedString::from(i18n::t(kind.i18n_key())))
+                        .collect();
+                let kind_focus = trigger_focus("form-create-kind".to_string(), window, cx);
+                let name_focus = self.forms_create_name_input.read(cx).focus_handle(cx);
+                let label_focus = self.forms_create_label_input.read(cx).focus_handle(cx);
+                let mut create_tab_order = vec![kind_focus, name_focus.clone(), label_focus];
+                if draft_snapshot.kind.needs_options() {
+                    create_tab_order
+                        .push(self.forms_create_options_input.read(cx).focus_handle(cx));
+                }
+                if draft_snapshot.kind.needs_max_len() {
+                    create_tab_order.push(self.forms_create_maxlen_input.read(cx).focus_handle(cx));
+                }
+                create_tab_order.push(self.forms_create_required_focus.clone());
+                create_tab_order.push(self.forms_create_cancel_focus.clone());
+                if !submit_disabled {
+                    create_tab_order.push(self.forms_create_submit_focus.clone());
+                }
+
+                if self.forms_focus_pending {
+                    self.forms_focus_pending = false;
+                    self.forms_focus_field = None;
+                    let target = name_focus;
+                    window.defer(cx, move |window, cx| {
+                        window.focus(&target, cx);
+                        window.refresh();
+                    });
+                }
+
+                let name_error = match create_issue {
+                    Some(crate::forms_create::CreateIssue::Duplicate) => {
+                        Some(i18n::t("forms.issues.duplicate"))
+                    }
+                    Some(crate::forms_create::CreateIssue::Name)
+                        if !draft_snapshot.name.is_empty() =>
+                    {
+                        Some(i18n::t("forms.issues.name"))
+                    }
+                    _ => None,
+                };
+                let options_error = match create_issue {
+                    Some(crate::forms_create::CreateIssue::RadioSize) => {
+                        Some(i18n::t("forms.issues.radioSize"))
+                    }
+                    Some(crate::forms_create::CreateIssue::Options)
+                        if !draft_snapshot.options_text.is_empty() =>
+                    {
+                        Some(i18n::t("forms.issues.options"))
+                    }
+                    _ => None,
+                };
+                let max_len_error =
+                    matches!(create_issue, Some(crate::forms_create::CreateIssue::MaxLen))
+                        && !draft_snapshot.max_len_text.is_empty();
+
+                let placement_text = i18n::t_with(
+                    "forms.placement",
+                    &[
+                        ("page", &(pending.page_index + 1).to_string()),
+                        ("rect", &pending.placement_rect_text()),
+                    ],
+                );
+                let kind_entity = entity.clone();
+                let req_entity = entity.clone();
+                let close_entity = entity.clone();
+                let cancel_entity = entity.clone();
+                let submit_entity = entity.clone();
+                let status_note = self.message.clone();
+                let signed_note = self
+                    .document_signed
+                    .then(|| i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+
+                Some(
+                    Dialog::new("forms", i18n::t("forms.title"), Width::Xl, dark)
+                        .close(
+                            "forms-close",
+                            self.forms_close_focus.clone(),
+                            i18n::t("common.close"),
+                        )
+                        .tab_order(create_tab_order)
+                        .return_focus(self.focus.clone())
+                        .on_dismiss(move |window, cx| {
+                            close_entity
+                                .update(cx, |this, cx| this.close_forms_dialog(window, cx));
+                        })
+                        .when_some(signed_note, |dialog, text| {
+                            dialog.child(
+                                div()
+                                    .id("forms-signed-warning")
+                                    .text_xs()
+                                    .text_color(rgb(palette.accent))
+                                    .child(text),
+                            )
+                        })
+                        .child(
+                            div()
+                                .w_full()
+                                .min_h(px(340.))
+                                .flex()
+                                .flex_col()
+                                .gap(px(10.))
+                                .child(
+                                    div()
+                                        .id("form-create-placement")
+                                        .text_xs()
+                                        .text_color(rgb(palette.text_2))
+                                        .child(placement_text),
+                                )
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .flex()
+                                        .flex_row()
+                                        .items_start()
+                                        .gap(px(16.))
+                                        .child(
+                                            div()
+                                                .flex()
+                                                .flex_col()
+                                                .gap(px(4.))
+                                                .child(
+                                                    div()
+                                                        .text_size(px(chef_theme::shared::TEXT_SM))
+                                                        .font_weight(gpui::FontWeight::MEDIUM)
+                                                        .text_color(rgb(palette.text_2))
+                                                        .child(i18n::t("forms.kindLabel")),
+                                                )
+                                                .child(
+                                                    Select::new(
+                                                        "form-create-kind",
+                                                        i18n::t("forms.kindLabel"),
+                                                        kind_labels,
+                                                    )
+                                                    .selected(draft_snapshot.kind.index())
+                                                    .width(240.0)
+                                                    .dark(dark)
+                                                    .on_change(move |idx, _, cx| {
+                                                        if let Some(kind) = crate::forms_create::CreateFieldKind::from_index(idx) {
+                                                            kind_entity.update(cx, |this, cx| {
+                                                                this.forms_create_draft.kind = kind;
+                                                                this.message = None;
+                                                                cx.notify();
+                                                            });
+                                                        }
+                                                    }),
+                                                ),
+                                        )
+                                        .child(
+                                            div()
+                                                .flex()
+                                                .flex_col()
+                                                .gap(px(4.))
+                                                .child(
+                                                    TextField::new(
+                                                        "form-create-name",
+                                                        i18n::t("forms.name"),
+                                                        self.forms_create_name_input.clone(),
+                                                    )
+                                                    .dark(dark),
+                                                )
+                                                .when_some(name_error, |col, err| {
+                                                    col.child(
+                                                        div()
+                                                            .id("form-create-name-error")
+                                                            .text_xs()
+                                                            .text_color(rgb(palette.accent))
+                                                            .child(err),
+                                                    )
+                                                }),
+                                        ),
+                                )
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .flex()
+                                        .flex_row()
+                                        .items_start()
+                                        .gap(px(16.))
+                                        .child(
+                                            TextField::new(
+                                                "form-create-label",
+                                                i18n::t("forms.tooltip"),
+                                                self.forms_create_label_input.clone(),
+                                            )
+                                            .dark(dark),
+                                        )
+                                        .when(draft_snapshot.kind.needs_options(), |row| {
+                                            row.child(
+                                                div()
+                                                    .flex()
+                                                    .flex_col()
+                                                    .gap(px(4.))
+                                                    .child(
+                                                        TextField::new(
+                                                            "form-create-options",
+                                                            i18n::t("forms.options"),
+                                                            self.forms_create_options_input.clone(),
+                                                        )
+                                                        .dark(dark),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .text_xs()
+                                                            .text_color(rgb(palette.text_2))
+                                                            .child(i18n::t("forms.optionsHint")),
+                                                    )
+                                                    .when_some(options_error, |col, err| {
+                                                        col.child(
+                                                            div()
+                                                                .id("form-create-options-error")
+                                                                .text_xs()
+                                                                .text_color(rgb(palette.accent))
+                                                                .child(err),
+                                                        )
+                                                    }),
+                                            )
+                                        })
+                                        .when(draft_snapshot.kind.needs_max_len(), |row| {
+                                            row.child(
+                                                div()
+                                                    .flex()
+                                                    .flex_col()
+                                                    .gap(px(4.))
+                                                    .child(
+                                                        TextField::new(
+                                                            "form-create-maxlen",
+                                                            i18n::t("forms.maxLength"),
+                                                            self.forms_create_maxlen_input.clone(),
+                                                        )
+                                                        .dark(dark),
+                                                    )
+                                                    .when(max_len_error, |col| {
+                                                        col.child(
+                                                            div()
+                                                                .id("form-create-maxlen-error")
+                                                                .text_xs()
+                                                                .text_color(rgb(palette.accent))
+                                                                .child(i18n::t("forms.issues.maxLen")),
+                                                        )
+                                                    }),
+                                            )
+                                        }),
+                                )
+                                .child(
+                                    Checkbox::new(
+                                        "form-create-required",
+                                        self.forms_create_required_focus.clone(),
+                                        i18n::t("forms.requiredFlag"),
+                                        if draft_snapshot.required {
+                                            CheckState::Checked
+                                        } else {
+                                            CheckState::Unchecked
+                                        },
+                                    )
+                                    .dark(dark)
+                                    .on_change(move |next_state, _, cx| {
+                                        req_entity.update(cx, |this, cx| {
+                                            this.forms_create_draft.required =
+                                                *next_state == CheckState::Checked;
+                                            cx.notify();
+                                        });
+                                    }),
+                                ),
+                        )
+                        .when_some(status_note, |dialog, text| {
+                            dialog.child(
+                                div()
+                                    .id("forms-error")
+                                    .text_xs()
+                                    .text_color(rgb(palette.accent))
+                                    .child(text),
+                            )
+                        })
+                        .action(
+                            Button::new(
+                                "forms-create-cancel",
+                                self.forms_create_cancel_focus.clone(),
+                            )
+                            .label(i18n::t("common.cancel"))
+                            .disabled(self.operation_pending)
+                            .dark(dark)
+                            .on_click(move |_, window, cx| {
+                                cancel_entity
+                                    .update(cx, |this, cx| this.close_forms_dialog(window, cx));
+                            }),
+                        )
+                        .action(
+                            Button::new(
+                                "forms-create-submit",
+                                self.forms_create_submit_focus.clone(),
+                            )
+                            .label(i18n::t("forms.create"))
+                            .variant(Variant::Primary)
+                            .disabled(submit_disabled)
+                            .dark(dark)
+                            .on_click(move |_, _, cx| {
+                                submit_entity
+                                    .update(cx, |this, cx| this.submit_forms_create(cx));
+                            }),
+                        )
+                        .into_any_element(),
+                )
+            } else {
+                let draft_snapshot = self.forms_draft.clone();
+                let mut forms_tab_order = Vec::new();
+                let mut first_editable_focus: Option<FocusHandle> = None;
+                let mut requested_focus: Option<FocusHandle> = None;
+                let target_field_name = self.forms_focus_field.clone();
+                let mut list_rows = Vec::new();
+                let mut header_note = i18n::t("forms.empty");
+                let mut has_xfa = false;
+                let mut changed_count = 0usize;
+
+                if let Some(draft) = draft_snapshot.as_ref() {
+                    has_xfa = draft.doc.xfa;
+                    changed_count = draft.changed_count();
+                    header_note = if draft.doc.fields.is_empty() {
+                        i18n::t("forms.empty")
+                    } else {
+                        i18n::tn("forms.count", draft.doc.fields.len() as i64, &[])
+                    };
+                    for field in &draft.doc.fields {
+                        let control_id = draft
+                            .control_ids
+                            .get(&field.name)
+                            .cloned()
+                            .unwrap_or_else(|| format!("form-field-{}", field.name));
+                        let current_val = draft
+                            .value_of(&field.name)
+                            .cloned()
+                            .unwrap_or_else(|| field.value.clone());
+                        let mut meta_parts = Vec::new();
+                        if let Some(page_idx) = field.page {
+                            meta_parts.push(i18n::t_with(
+                                "notes.page",
+                                &[("page", &(page_idx + 1).to_string())],
+                            ));
+                        }
+                        meta_parts.push(i18n::t(field.kind.i18n_key()));
+                        if field.required {
+                            meta_parts.push(i18n::t("forms.required"));
+                        }
+                        if let Some(max_len) = field.max_len {
+                            meta_parts.push(i18n::t_with(
+                                "forms.maxLen",
+                                &[("count", &max_len.to_string())],
+                            ));
+                        }
+
+                        let mut title_block = div()
+                            .w_full()
+                            .flex()
+                            .flex_row()
+                            .items_baseline()
+                            .justify_between()
+                            .gap(px(6.))
+                            .child(
+                                div()
+                                    .text_size(px(chef_theme::shared::TEXT_SM))
+                                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                                    .text_color(rgb(palette.text))
+                                    .child(field.name.clone()),
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(rgb(palette.text_2))
+                                    .child(meta_parts.join(" · ")),
+                            );
+                        if let Some(tip) = field
+                            .tooltip
+                            .as_deref()
+                            .map(str::trim)
+                            .filter(|t| !t.is_empty() && *t != field.name)
+                        {
+                            title_block = div()
+                                .w_full()
+                                .flex()
+                                .flex_col()
+                                .gap(px(1.))
+                                .child(title_block)
+                                .child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(rgb(palette.text_2))
+                                        .child(tip.to_string()),
+                                );
+                        }
+
+                        let control_el = if !field.can_edit() {
+                            let summary = match field.kind {
+                                crate::forms_fill::FormFieldKind::Signature => {
+                                    i18n::t("forms.signatureHint")
+                                }
+                                crate::forms_fill::FormFieldKind::Button => {
+                                    i18n::t("forms.buttonField")
+                                }
+                                _ => {
+                                    let text = match &current_val {
+                                        crate::forms_fill::FieldValue::Bool(true) => {
+                                            "Yes".to_string()
+                                        }
+                                        crate::forms_fill::FieldValue::Bool(false) => {
+                                            "Off".to_string()
+                                        }
+                                        crate::forms_fill::FieldValue::Text(s) => s.clone(),
+                                        crate::forms_fill::FieldValue::List(items) => {
+                                            items.join(", ")
+                                        }
+                                    };
+                                    if text.is_empty() {
+                                        "—".to_string()
+                                    } else {
+                                        text
+                                    }
+                                }
+                            };
+                            div()
+                                .text_size(px(chef_theme::shared::TEXT_SM))
+                                .text_color(rgb(palette.text_2))
+                                .child(summary)
+                                .into_any_element()
+                        } else {
+                            match field.kind {
+                                crate::forms_fill::FormFieldKind::Text
+                                | crate::forms_fill::FormFieldKind::Multiline
+                                | crate::forms_fill::FormFieldKind::Comb
+                                | crate::forms_fill::FormFieldKind::Password => {
+                                    if let Some(FormControlState::Text { input, .. }) =
+                                        self.forms_controls.get(&field.name)
+                                    {
+                                        let input_focus = input.read(cx).focus_handle(cx);
+                                        let focused = input_focus.is_focused(window);
+                                        if focused {
+                                            forms_focused_field = Some(field.name.clone());
+                                        }
+                                        if first_editable_focus.is_none() {
+                                            first_editable_focus = Some(input_focus.clone());
+                                        }
+                                        if target_field_name.as_deref() == Some(field.name.as_str())
+                                        {
+                                            requested_focus = Some(input_focus.clone());
+                                        }
+                                        forms_tab_order.push(input_focus);
+                                        let current_text = input.read(cx).text().to_string();
+                                        a11y::register(Registered {
+                                            id: control_id.clone(),
+                                            role: "textbox",
+                                            name: field.name.clone(),
+                                            disabled: false,
+                                            focused,
+                                            hovered: false,
+                                            checked: None,
+                                            value: Some(current_text),
+                                            bounds: None,
+                                        });
+                                        let bounds_key = control_id.clone();
+                                        div()
+                                            .w_full()
+                                            .child(
+                                                div()
+                                                    .flex()
+                                                    .items_center()
+                                                    .w_full()
+                                                    .h(px(30.))
+                                                    .px(px(6.))
+                                                    .rounded(px(6.))
+                                                    .border_1()
+                                                    .border_color(rgb(if focused {
+                                                        palette.accent
+                                                    } else {
+                                                        palette.border
+                                                    }))
+                                                    .bg(rgb(palette.surface))
+                                                    .child(input.clone()),
+                                            )
+                                            .on_children_prepainted(move |bounds, _, _| {
+                                                if let Some(b) = bounds.first() {
+                                                    a11y::set_bounds(&bounds_key, *b);
+                                                }
+                                            })
+                                            .into_any_element()
+                                    } else {
+                                        div().into_any_element()
+                                    }
+                                }
+                                crate::forms_fill::FormFieldKind::Checkbox => {
+                                    if let Some(FormControlState::Checkbox { focus }) =
+                                        self.forms_controls.get(&field.name)
+                                    {
+                                        if focus.is_focused(window) {
+                                            forms_focused_field = Some(field.name.clone());
+                                        }
+                                        if first_editable_focus.is_none() {
+                                            first_editable_focus = Some(focus.clone());
+                                        }
+                                        if target_field_name.as_deref() == Some(field.name.as_str())
+                                        {
+                                            requested_focus = Some(focus.clone());
+                                        }
+                                        forms_tab_order.push(focus.clone());
+                                        let cb_entity = entity.clone();
+                                        let cb_field = field.name.clone();
+                                        let state = if current_val.as_bool() {
+                                            CheckState::Checked
+                                        } else {
+                                            CheckState::Unchecked
+                                        };
+                                        Checkbox::new(
+                                            control_id,
+                                            focus.clone(),
+                                            field.display_label(),
+                                            state,
+                                        )
+                                        .dark(dark)
+                                        .on_change(move |next_state, _, cx| {
+                                            cb_entity.update(cx, |this, cx| {
+                                                if let Some(draft) = this.forms_draft.as_mut() {
+                                                    draft.set_bool(
+                                                        &cb_field,
+                                                        *next_state == CheckState::Checked,
+                                                    );
+                                                }
+                                                cx.notify();
+                                            });
+                                        })
+                                        .into_any_element()
+                                    } else {
+                                        div().into_any_element()
+                                    }
+                                }
+                                crate::forms_fill::FormFieldKind::Radio => {
+                                    if let Some(FormControlState::Radio { item_focuses }) =
+                                        self.forms_controls.get(&field.name)
+                                        && !field.options.is_empty()
+                                    {
+                                        if item_focuses.iter().any(|f| f.is_focused(window)) {
+                                            forms_focused_field = Some(field.name.clone());
+                                        }
+                                        let selected = crate::forms_fill::radio_selected_index(
+                                            field,
+                                            Some(&current_val),
+                                        );
+                                        let enabled = vec![true; item_focuses.len()];
+                                        if let Some(stop_idx) = tab_stop_index(&enabled, selected)
+                                            && let Some(stop_focus) = item_focuses.get(stop_idx)
+                                        {
+                                            if first_editable_focus.is_none() {
+                                                first_editable_focus = Some(stop_focus.clone());
+                                            }
+                                            if target_field_name.as_deref()
+                                                == Some(field.name.as_str())
+                                            {
+                                                requested_focus = Some(stop_focus.clone());
+                                            }
+                                            forms_tab_order.push(stop_focus.clone());
+                                        }
+                                        let items: Vec<RadioItem> = field
+                                            .options
+                                            .iter()
+                                            .enumerate()
+                                            .filter_map(|(idx, opt)| {
+                                                item_focuses.get(idx).map(|f| {
+                                                    RadioItem::new(
+                                                        format!("{control_id}-opt-{idx}"),
+                                                        f.clone(),
+                                                        opt.label().to_string(),
+                                                    )
+                                                })
+                                            })
+                                            .collect();
+                                        let radio_entity = entity.clone();
+                                        let radio_field = field.name.clone();
+                                        let radio_options = field.options.clone();
+                                        RadioGroup::new(control_id, field.name.clone(), items)
+                                            .selected(selected)
+                                            .dark(dark)
+                                            .on_change(move |idx, _, cx| {
+                                                if let Some(opt) = radio_options.get(idx) {
+                                                    let export = opt.export.clone();
+                                                    radio_entity.update(cx, |this, cx| {
+                                                        if let Some(draft) =
+                                                            this.forms_draft.as_mut()
+                                                        {
+                                                            draft.set_choice(&radio_field, export);
+                                                        }
+                                                        cx.notify();
+                                                    });
+                                                }
+                                            })
+                                            .into_any_element()
+                                    } else {
+                                        div().into_any_element()
+                                    }
+                                }
+                                crate::forms_fill::FormFieldKind::Dropdown => {
+                                    if let Some(FormControlState::Dropdown {
+                                        control_id: select_id,
+                                    }) = self.forms_controls.get(&field.name)
+                                    {
+                                        let trigger = trigger_focus(select_id.clone(), window, cx);
+                                        if trigger.is_focused(window) {
+                                            forms_focused_field = Some(field.name.clone());
+                                        }
+                                        if first_editable_focus.is_none() {
+                                            first_editable_focus = Some(trigger.clone());
+                                        }
+                                        if target_field_name.as_deref() == Some(field.name.as_str())
+                                        {
+                                            requested_focus = Some(trigger.clone());
+                                        }
+                                        forms_tab_order.push(trigger);
+                                        let mut labels =
+                                            vec![gpui::SharedString::from(i18n::t("forms.choose"))];
+                                        labels.extend(field.options.iter().map(|opt| {
+                                            gpui::SharedString::from(opt.label().to_string())
+                                        }));
+                                        let selected = crate::forms_fill::dropdown_selected_index(
+                                            field,
+                                            Some(&current_val),
+                                        );
+                                        let sel_entity = entity.clone();
+                                        let sel_field_def = field.clone();
+                                        Select::new(select_id.clone(), field.name.clone(), labels)
+                                            .selected(selected)
+                                            .width(240.0)
+                                            .dark(dark)
+                                            .on_change(move |idx, _, cx| {
+                                                let next_val =
+                                                    crate::forms_fill::dropdown_value_for_index(
+                                                        &sel_field_def,
+                                                        idx,
+                                                    );
+                                                let name = sel_field_def.name.clone();
+                                                sel_entity.update(cx, |this, cx| {
+                                                    if let Some(draft) = this.forms_draft.as_mut() {
+                                                        draft.set_choice(&name, next_val);
+                                                    }
+                                                    cx.notify();
+                                                });
+                                            })
+                                            .into_any_element()
+                                    } else {
+                                        div().into_any_element()
+                                    }
+                                }
+                                crate::forms_fill::FormFieldKind::Listbox => {
+                                    if let Some(FormControlState::Listbox { item_focuses }) =
+                                        self.forms_controls.get(&field.name)
+                                        && !field.options.is_empty()
+                                    {
+                                        if item_focuses.iter().any(|f| f.is_focused(window)) {
+                                            forms_focused_field = Some(field.name.clone());
+                                        }
+                                        if field.multi_select {
+                                            if let Some(first) = item_focuses.first() {
+                                                if first_editable_focus.is_none() {
+                                                    first_editable_focus = Some(first.clone());
+                                                }
+                                                if target_field_name.as_deref()
+                                                    == Some(field.name.as_str())
+                                                {
+                                                    requested_focus = Some(first.clone());
+                                                }
+                                            }
+                                            forms_tab_order.extend(item_focuses.iter().cloned());
+                                            let selected_set = current_val.selected_list();
+                                            let items: Vec<_> = field
+                                                .options
+                                                .iter()
+                                                .enumerate()
+                                                .filter_map(|(idx, opt)| {
+                                                    item_focuses.get(idx).map(|f| {
+                                                        let is_checked = selected_set
+                                                            .iter()
+                                                            .any(|s| s == &opt.export);
+                                                        let state = if is_checked {
+                                                            CheckState::Checked
+                                                        } else {
+                                                            CheckState::Unchecked
+                                                        };
+                                                        let lb_entity = entity.clone();
+                                                        let lb_field = field.name.clone();
+                                                        let lb_export = opt.export.clone();
+                                                        Checkbox::new(
+                                                            format!("{control_id}-opt-{idx}"),
+                                                            f.clone(),
+                                                            opt.label().to_string(),
+                                                            state,
+                                                        )
+                                                        .dark(dark)
+                                                        .on_change(move |_, _, cx| {
+                                                            let export = lb_export.clone();
+                                                            let name = lb_field.clone();
+                                                            lb_entity.update(cx, |this, cx| {
+                                                                if let Some(draft) =
+                                                                    this.forms_draft.as_mut()
+                                                                {
+                                                                    draft.toggle_list_option(
+                                                                        &name, export,
+                                                                    );
+                                                                }
+                                                                cx.notify();
+                                                            });
+                                                        })
+                                                        .into_any_element()
+                                                    })
+                                                })
+                                                .collect();
+                                            div()
+                                                .flex()
+                                                .flex_col()
+                                                .gap(px(4.))
+                                                .children(items)
+                                                .into_any_element()
+                                        } else {
+                                            let selected = crate::forms_fill::radio_selected_index(
+                                                field,
+                                                Some(&current_val),
+                                            );
+                                            let enabled = vec![true; item_focuses.len()];
+                                            if let Some(stop_idx) =
+                                                tab_stop_index(&enabled, selected)
+                                                && let Some(stop_focus) = item_focuses.get(stop_idx)
+                                            {
+                                                if first_editable_focus.is_none() {
+                                                    first_editable_focus = Some(stop_focus.clone());
+                                                }
+                                                if target_field_name.as_deref()
+                                                    == Some(field.name.as_str())
+                                                {
+                                                    requested_focus = Some(stop_focus.clone());
+                                                }
+                                                forms_tab_order.push(stop_focus.clone());
+                                            }
+                                            let items: Vec<RadioItem> = field
+                                                .options
+                                                .iter()
+                                                .enumerate()
+                                                .filter_map(|(idx, opt)| {
+                                                    item_focuses.get(idx).map(|f| {
+                                                        RadioItem::new(
+                                                            format!("{control_id}-opt-{idx}"),
+                                                            f.clone(),
+                                                            opt.label().to_string(),
+                                                        )
+                                                    })
+                                                })
+                                                .collect();
+                                            let lb_entity = entity.clone();
+                                            let lb_field = field.name.clone();
+                                            let lb_options = field.options.clone();
+                                            RadioGroup::new(control_id, field.name.clone(), items)
+                                                .selected(selected)
+                                                .dark(dark)
+                                                .on_change(move |idx, _, cx| {
+                                                    if let Some(opt) = lb_options.get(idx) {
+                                                        let export = opt.export.clone();
+                                                        lb_entity.update(cx, |this, cx| {
+                                                            if let Some(draft) =
+                                                                this.forms_draft.as_mut()
+                                                            {
+                                                                draft.set_choice(&lb_field, export);
+                                                            }
+                                                            cx.notify();
+                                                        });
+                                                    }
+                                                })
+                                                .into_any_element()
+                                        }
+                                    } else {
+                                        div().into_any_element()
+                                    }
+                                }
+                                _ => div().into_any_element(),
+                            }
+                        };
+
+                        list_rows.push(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .flex()
+                                .flex_col()
+                                .gap(px(4.))
+                                .py(px(4.))
+                                .px(px(8.))
+                                .rounded(px(6.))
+                                .border_1()
+                                .border_color(rgb(palette.border))
+                                .child(title_block)
+                                .child(div().w_full().min_w_0().child(control_el))
+                                .into_any_element(),
+                        );
+                    }
+                }
+
+                if self.forms_focus_pending {
+                    self.forms_focus_pending = false;
+                    self.forms_focus_field = None;
+                    let target = requested_focus
+                        .or(first_editable_focus)
+                        .unwrap_or_else(|| self.forms_close_focus.clone());
+                    window.defer(cx, move |window, cx| {
+                        window.focus(&target, cx);
+                        window.refresh();
+                    });
+                }
+
+                forms_tab_order.push(self.forms_cancel_focus.clone());
+                if !self.operation_pending && !self.document_signed {
+                    forms_tab_order.push(self.forms_add_focus.clone());
+                }
+                if !self.operation_pending
+                    && !self.document_signed
+                    && draft_snapshot
+                        .as_ref()
+                        .is_some_and(|d| !d.doc.fields.is_empty())
+                {
+                    forms_tab_order.push(self.forms_flatten_focus.clone());
+                }
+                if !self.document_signed && changed_count > 0 {
+                    forms_tab_order.push(self.forms_apply_focus.clone());
+                }
+
+                let mut grid_rows = Vec::new();
+                let mut row_iter = list_rows.into_iter();
+                while let Some(left) = row_iter.next() {
+                    let right = row_iter
+                        .next()
+                        .unwrap_or_else(|| div().flex_1().min_w_0().into_any_element());
+                    grid_rows.push(
+                        div()
+                            .w_full()
+                            .flex()
+                            .flex_row()
+                            .items_start()
+                            .gap(px(8.))
+                            .child(left)
+                            .child(right)
+                            .into_any_element(),
+                    );
+                }
+
+                let list = if grid_rows.is_empty() {
+                    div()
+                        .id("forms-fields-list")
+                        .w_full()
+                        .py(px(20.))
+                        .text_color(rgb(palette.text_2))
+                        .child(header_note.clone())
+                        .into_any_element()
+                } else {
+                    div()
+                        .id("forms-fields-list")
+                        .w_full()
+                        .max_h(px(540.))
+                        .overflow_y_scroll()
+                        .pb(px(90.))
+                        .flex()
+                        .flex_col()
+                        .gap(px(6.))
+                        .children(grid_rows)
+                        .into_any_element()
+                };
+
+                let status_note = self.message.clone();
+                let signed_note = self
+                    .document_signed
+                    .then(|| i18n::t("errors.BLOCKED_BY_SIGNATURE"));
+                let close_entity = entity.clone();
+                let add_entity = entity.clone();
+                let cancel_entity = entity.clone();
+                let flatten_entity = entity.clone();
+                let apply_entity = entity.clone();
+                let field_count = draft_snapshot.as_ref().map_or(0, |d| d.doc.fields.len());
+
+                Some(
+                    Dialog::new("forms", i18n::t("forms.title"), Width::Xl, dark)
+                        .close(
+                            "forms-close",
+                            self.forms_close_focus.clone(),
+                            i18n::t("common.close"),
+                        )
+                        .tab_order(forms_tab_order)
+                        .return_focus(self.focus.clone())
+                        .on_dismiss(move |window, cx| {
+                            close_entity.update(cx, |this, cx| this.close_forms_dialog(window, cx));
+                        })
+                        .child(
+                            div()
+                                .w_full()
+                                .flex()
+                                .items_center()
+                                .justify_between()
+                                .gap(px(8.))
+                                .child(
+                                    div()
+                                        .flex()
+                                        .items_center()
+                                        .gap(px(8.))
+                                        .text_xs()
+                                        .text_color(rgb(palette.text_2))
+                                        .child(header_note)
+                                        .when(has_xfa, |row| row.child("XFA")),
+                                )
+                                .child(
+                                    Button::new("forms-add-field", self.forms_add_focus.clone())
+                                        .icon("icons/plus.svg")
+                                        .label(i18n::t("forms.addField"))
+                                        .size(ButtonSize::Sm)
+                                        .variant(Variant::Secondary)
+                                        .disabled(self.operation_pending || self.document_signed)
+                                        .dark(dark)
+                                        .on_click(move |_, _, cx| {
+                                            add_entity.update(cx, |this, cx| {
+                                                this.begin_form_draw_mode(cx)
+                                            });
+                                        }),
+                                ),
+                        )
+                        .when_some(signed_note, |dialog, text| {
+                            dialog.child(
+                                div()
+                                    .id("forms-signed-warning")
+                                    .text_xs()
+                                    .text_color(rgb(palette.accent))
+                                    .child(text),
+                            )
+                        })
+                        .child(list)
+                        .when_some(status_note, |dialog, text| {
+                            dialog.child(
+                                div()
+                                    .id("forms-error")
+                                    .text_xs()
+                                    .text_color(rgb(palette.accent))
+                                    .child(text),
+                            )
+                        })
+                        .action(
+                            Button::new("forms-cancel", self.forms_cancel_focus.clone())
+                                .label(i18n::t("common.close"))
+                                .dark(dark)
+                                .on_click(move |_, window, cx| {
+                                    cancel_entity
+                                        .update(cx, |this, cx| this.close_forms_dialog(window, cx));
+                                }),
+                        )
+                        .action(
+                            Button::new("forms-flatten", self.forms_flatten_focus.clone())
+                                .icon("icons/layers.svg")
+                                .label(i18n::t("forms.flatten"))
+                                .variant(Variant::Secondary)
+                                .disabled(
+                                    self.operation_pending
+                                        || field_count == 0
+                                        || self.document_signed,
+                                )
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    flatten_entity
+                                        .update(cx, |this, cx| this.open_forms_flatten_prompt(cx));
+                                }),
+                        )
+                        .action(
+                            Button::new("forms-apply", self.forms_apply_focus.clone())
+                                .label(i18n::t("forms.apply"))
+                                .variant(Variant::Primary)
+                                .disabled(
+                                    self.operation_pending
+                                        || changed_count == 0
+                                        || self.document_signed,
+                                )
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    apply_entity.update(cx, |this, cx| this.apply_forms_dialog(cx));
+                                }),
+                        )
+                        .into_any_element(),
+                )
+            }
+        } else {
+            None
+        };
         let scanning = self.scanning();
         let source_warning = self.source_warning.map(|verdict| {
             let (body, title) = match verdict {
@@ -6966,6 +9498,7 @@ impl Render for Viewer {
             .flex_none()
             .items_center()
             .gap(px(4.))
+            .overflow_hidden()
             .bg(rgb(palette.surface))
             .text_color(rgb(palette.text))
             .border_b_1()
@@ -7228,6 +9761,30 @@ impl Render for Viewer {
                     }),
             )
             .child(
+                Button::new("viewer-forms", cx.focus_handle())
+                    .icon("icons/file-check-2.svg")
+                    .label(i18n::t("forms.title"))
+                    .size(ButtonSize::Sm)
+                    .variant(if self.forms_open {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| {
+                            entity.update(cx, |this, cx| this.open_forms_dialog(None, cx))
+                        }
+                    }),
+            )
+            .child(
                 Button::new("viewer-rotate", self.rotate_focus.clone())
                     .label(i18n::t("editor.rotateFirst"))
                     .size(ButtonSize::Sm)
@@ -7452,6 +10009,27 @@ impl Render for Viewer {
                         )));
                     }
                 })
+                .on_action(cx.listener(|this, _: &FocusNext, window, cx| {
+                    if this.step_form_widget_focus(true, window, cx) {
+                        cx.stop_propagation();
+                    } else {
+                        cx.propagate();
+                    }
+                }))
+                .on_action(cx.listener(|this, _: &FocusPrev, window, cx| {
+                    if this.step_form_widget_focus(false, window, cx) {
+                        cx.stop_propagation();
+                    } else {
+                        cx.propagate();
+                    }
+                }))
+                .on_action(cx.listener(|this, _: &ActivateFormWidget, window, cx| {
+                    if this.activate_focused_form_widget(window, cx) {
+                        cx.stop_propagation();
+                    } else {
+                        cx.propagate();
+                    }
+                }))
                 .on_action(cx.listener(|this, _: &FocusSearch, window, cx| {
                     this.focus_search(window, cx);
                 }))
@@ -7523,7 +10101,12 @@ impl Render for Viewer {
                     this.enter_slideshow(window, cx)
                 }))
                 .on_action(cx.listener(|this, _: &ExitSlideshow, window, cx| {
-                    if this.draw_tool.is_some() || this.draw_gesture.is_some() {
+                    if this.forms_drawing || this.forms_draw_drag.is_some() {
+                        this.forms_drawing = false;
+                        this.forms_draw_drag = None;
+                        this.message = None;
+                        cx.notify();
+                    } else if this.draw_tool.is_some() || this.draw_gesture.is_some() {
                         this.draw_tool = None;
                         this.draw_gesture = None;
                         cx.notify();
@@ -7537,6 +10120,9 @@ impl Render for Viewer {
                         cx.notify();
                     } else if this.page_mode == PageMode::Slideshow {
                         this.exit_slideshow(window, cx);
+                    } else if this.focused_form_widget.is_some() {
+                        this.focused_form_widget = None;
+                        cx.notify();
                     }
                 }))
                 .on_action(cx.listener(|_this, _: &ToggleFullscreen, window, cx| {
@@ -7552,6 +10138,15 @@ impl Render for Viewer {
                 }))
                 .on_action(cx.listener(|this, _: &EditBookmarks, _window, cx| {
                     this.open_bookmarks_editor(cx);
+                }))
+                .on_action(cx.listener(|this, _: &OpenForms, _window, cx| {
+                    this.open_forms_dialog(None, cx);
+                }))
+                .on_action(cx.listener(|this, _: &AddFormField, _window, cx| {
+                    this.begin_form_draw_mode(cx);
+                }))
+                .on_action(cx.listener(|this, _: &FlattenForms, _window, cx| {
+                    this.open_forms_flatten_prompt(cx);
                 }))
                 .on_action(
                     cx.listener(|this, _: &RotatePage, _window, cx| this.begin_rotate_page(90, cx)),
@@ -7671,6 +10266,11 @@ impl Render for Viewer {
             crate::debug::set_hovered_link(None);
             crate::debug::set_object_selection(None);
             crate::debug::set_type_filter(serde_json::Value::Null);
+            crate::debug::set_forms_view(self.forms_view_debug(
+                Vec::new(),
+                forms_focused_field.as_deref(),
+                None,
+            ));
             let text = self.message.clone().unwrap_or_default();
             return root
                 .child(toolbar)
@@ -7689,8 +10289,10 @@ impl Render for Viewer {
                 .children(notes_dialog)
                 .children(links_dialog)
                 .children(layers_dialog)
-                .children(image_adjust_dialog);
+                .children(image_adjust_dialog)
+                .children(forms_dialog);
         };
+        let content_vh = (vh - TOOLBAR_H - FOOTER_H).max(0.0);
         if self.fit_width && self.page_mode != PageMode::Slideshow && page_viewport_w > 0.0 {
             let fit = if let Some(spread) = self.spread.as_ref() {
                 spread.fit_width_zoom(page_viewport_w, MARGIN)
@@ -7698,9 +10300,28 @@ impl Render for Viewer {
                 layout.fit_width_zoom(page_viewport_w, MARGIN)
             };
             if (fit - layout.zoom()).abs() > 1e-6 {
+                let spread_anchor = self
+                    .spread
+                    .as_ref()
+                    .and_then(|s| reload::capture_spread(s, self.scroll_y, content_vh));
+                let layout_anchor = reload::capture(layout, self.scroll_y, content_vh);
                 layout.set_zoom(fit);
                 if let Some(spread) = self.spread.as_mut() {
                     spread.set_zoom(fit);
+                }
+                if self.scroll_y > 0.0 {
+                    if let (Some(spread), Some(anchor)) = (self.spread.as_ref(), spread_anchor) {
+                        if let (Some(row_top), Some(row_h)) = (
+                            spread.row_top_for_page(anchor.page),
+                            spread.row_height_for_page(anchor.page),
+                        ) {
+                            self.scroll_y = row_top + anchor.row_fraction * row_h;
+                        }
+                    } else if let Some(anchor) = layout_anchor {
+                        let (_, page_h) = layout.page_px(anchor.page);
+                        self.scroll_y =
+                            layout.page_top(anchor.page) + anchor.page_fraction * page_h;
+                    }
                 }
             }
         }
@@ -7754,10 +10375,14 @@ impl Render for Viewer {
         let zoom = layout.zoom();
         let page_count = layout.page_count();
         let raster_key = (zoom * scale * 10_000.0).round() as u32;
+        let owner = self.cache_owner;
         if raster_key != self.raster_key {
             self.raster_key = raster_key;
             self.pending.clear();
-            self.stale = self.cache.keys().into_iter().collect();
+            self.stale = lock_shared_cache(&self.shared_cache)
+                .owner_pages(owner)
+                .into_iter()
+                .collect();
         }
 
         // Vùng nhìn và vùng giữ bitmap. Các trang ngoài vùng giữ bị bỏ khỏi cache (R2).
@@ -7794,31 +10419,47 @@ impl Render for Viewer {
                 }
             })
             .collect();
-        let requests: Vec<(usize, u32, u32)> = keep
-            .iter()
-            .copied()
-            .filter(|i| {
-                (!self.cache.contains(i) || self.stale.contains(i)) && !self.pending.contains_key(i)
-            })
-            .map(|i| {
-                let (w, h) = layout.page_px(i);
-                (i, (w * scale).round() as u32, (h * scale).round() as u32)
-            })
-            .collect();
-        let outside: Vec<usize> = self
-            .cache
-            .keys()
-            .into_iter()
-            .filter(|i| !keep.contains(i))
-            .collect();
+        let visible_set: std::collections::HashSet<usize> = visible.iter().copied().collect();
+        let (outside, requests) = {
+            let cache = lock_shared_cache(&self.shared_cache);
+            let outside: Vec<usize> = cache
+                .owner_pages(owner)
+                .into_iter()
+                .filter(|i| !keep.contains(i))
+                .collect();
+            let requests: Vec<(usize, u32, u32, bool)> = keep
+                .iter()
+                .copied()
+                .filter(|i| {
+                    (!cache.contains(owner, *i) || self.stale.contains(i))
+                        && !self.pending.contains_key(i)
+                })
+                .map(|i| {
+                    let (w, h) = layout.page_px(i);
+                    (
+                        i,
+                        (w * scale).round() as u32,
+                        (h * scale).round() as u32,
+                        visible_set.contains(&i),
+                    )
+                })
+                .collect();
+            (outside, requests)
+        };
 
         for i in outside {
             self.stale.remove(&i);
-            if let Some(image) = self.cache.remove(&i) {
+            if let Some(image) = self.cache_remove(i) {
                 self.to_drop.push(image);
             }
         }
-        for (index, width, height) in requests {
+        for (index, width, height, is_visible) in requests {
+            let est_bytes = (width as usize)
+                .saturating_mul(height as usize)
+                .saturating_mul(4);
+            if !is_visible && !self.cache_can_prefetch(est_bytes) {
+                continue;
+            }
             let Some(doc) = self.doc else { break };
             let (tx, rx) = channel();
             let id = self.handle.next_id();
@@ -7960,16 +10601,8 @@ impl Render for Viewer {
             self.bookmarks.len(),
         );
 
-        crate::debug::set_viewer_stats(
-            self.cache.len(),
-            self.pending.len(),
-            self.cache.total_bytes(),
-        );
-        crate::debug::set_viewer_cache_images(
-            self.cache
-                .entries()
-                .map(|(index, image)| (*index, image.id.0)),
-        );
+        crate::debug::set_viewer_stats(self.cache_len(), self.pending.len(), self.cache_bytes());
+        crate::debug::set_viewer_cache_images(self.cache_image_ids());
         crate::debug::set_view(crate::debug::ViewSnapshot {
             zoom,
             scroll_y: self.scroll_y,
@@ -8006,10 +10639,20 @@ impl Render for Viewer {
                 .get()
                 .unwrap_or((SIDEBAR_WIDTH, TOOLBAR_H, 0.0, 0.0));
         let mut links_overlay = Vec::new();
+        let mut forms_widgets_debug = Vec::new();
         let mut object_debug: Option<serde_json::Value> = None;
+        let form_overlay_interactive = !self.object_mode
+            && self.draw_tool.is_none()
+            && self.insert_image.is_none()
+            && self.link_form_mode.is_none()
+            && !self.forms_drawing;
+        let mut page0_rect: Option<[f32; 4]> = None;
         let mut children = Vec::new();
         for (i, x, y, w, h) in geometry {
-            match self.cache.get(&i).cloned() {
+            if i == 0 {
+                page0_rect = Some([cb_x + x, cb_y + y, cb_x + x + w, cb_y + y + h]);
+            }
+            match self.cache_get(i) {
                 Some(image) => children.push(
                     img(image)
                         .absolute()
@@ -8272,6 +10915,131 @@ impl Render for Viewer {
                     "handles": serde_json::Value::Object(handles_map),
                 }));
             }
+            let page_widgets = self.form_widgets.get(&i).cloned().unwrap_or_default();
+            for fw in page_widgets {
+                let (left, top, right, bottom) =
+                    self.rect_to_view(i, fw.rect.left, fw.rect.top, fw.rect.right, fw.rect.bottom);
+                let placed = crate::forms_overlay::place_widget(
+                    x,
+                    y,
+                    (cb_x, cb_y),
+                    (left, top, right, bottom),
+                    zoom,
+                );
+                let a11y_role = crate::forms_overlay::widget_a11y_role(fw.kind);
+                let label = crate::forms_overlay::widget_display_label(&fw);
+                let hovered = self.hovered_form_widget.as_deref() == Some(fw.id.as_str());
+                let focused = self.focused_form_widget.as_deref() == Some(fw.id.as_str());
+                let active = hovered || focused;
+                let (fill_rgba, border_rgb) = crate::forms_overlay::widget_visual_colors(
+                    fw.kind,
+                    fw.read_only,
+                    fw.required,
+                    active,
+                    dark,
+                );
+                a11y::register(Registered {
+                    id: fw.id.clone(),
+                    role: a11y_role,
+                    name: label,
+                    disabled: fw.read_only,
+                    focused,
+                    hovered,
+                    checked: fw.checked.map(|b| if b { "true" } else { "false" }),
+                    value: fw.value.clone(),
+                    bounds: Some(placed.screen_bounds),
+                });
+                let options_json: Vec<serde_json::Value> = fw
+                    .options
+                    .iter()
+                    .map(|opt| {
+                        serde_json::json!({
+                            "label": opt.label,
+                            "selected": opt.selected,
+                        })
+                    })
+                    .collect();
+                forms_widgets_debug.push(serde_json::json!({
+                    "id": fw.id,
+                    "pageIndex": fw.page_index,
+                    "annotIndex": fw.annot_index,
+                    "name": fw.name,
+                    "alternateName": fw.alternate_name,
+                    "kind": fw.kind.as_str(),
+                    "rectPt": [left, top, right, bottom],
+                    "bounds": placed.screen_bounds,
+                    "pageBounds": [cb_x + x, cb_y + y, w, h],
+                    "value": fw.value,
+                    "checked": fw.checked,
+                    "controlIndex": fw.control_index,
+                    "options": options_json,
+                    "readOnly": fw.read_only,
+                    "required": fw.required,
+                    "hasAppearance": fw.has_appearance,
+                }));
+
+                let hover_id = fw.id.clone();
+                let click_fw = fw.clone();
+                let mut el = div()
+                    .id(gpui::SharedString::from(fw.id))
+                    .absolute()
+                    .left(px(placed.x))
+                    .top(px(placed.y))
+                    .w(px(placed.w))
+                    .h(px(placed.h))
+                    .border_1()
+                    .border_color(rgb(border_rgb))
+                    .bg(rgba(fill_rgba));
+                if fw.kind == WidgetKind::Radio {
+                    el = el.rounded_full();
+                } else {
+                    el = el.rounded(px(2.0));
+                }
+                if form_overlay_interactive {
+                    el = el
+                        .on_hover(cx.listener(move |this, is_hovered: &bool, _w, cx| {
+                            if *is_hovered {
+                                this.hovered_form_widget = Some(hover_id.clone());
+                            } else if this.hovered_form_widget.as_deref() == Some(hover_id.as_str())
+                            {
+                                this.hovered_form_widget = None;
+                            }
+                            cx.notify();
+                        }))
+                        .on_mouse_down(
+                            MouseButton::Left,
+                            cx.listener(move |this, _ev, window, cx| {
+                                cx.stop_propagation();
+                                this.activate_form_widget(&click_fw, window, cx);
+                            }),
+                        );
+                    if !fw.read_only {
+                        el = el.cursor_pointer();
+                    }
+                }
+                if fw.kind == WidgetKind::Dropdown && placed.w >= 28.0 && placed.h >= 12.0 {
+                    el = el.flex().items_center().justify_end().pr(px(4.0)).child(
+                        div()
+                            .text_size(px(10.0))
+                            .text_color(rgb(border_rgb))
+                            .child("▾"),
+                    );
+                } else if fw.kind == WidgetKind::Signature && placed.w >= 48.0 && placed.h >= 14.0 {
+                    el = el
+                        .flex()
+                        .items_end()
+                        .justify_end()
+                        .px(px(4.0))
+                        .pb(px(1.0))
+                        .child(
+                            div()
+                                .text_size(px(9.0))
+                                .text_color(rgb(border_rgb))
+                                .child("✍"),
+                        );
+                }
+                children.push(el.into_any_element());
+            }
             if let Some(drag) = self.insert_image_drag.as_ref()
                 && drag.page_index == i
             {
@@ -8282,6 +11050,25 @@ impl Render for Viewer {
                 children.push(
                     div()
                         .id("insert-image-preview")
+                        .absolute()
+                        .left(px(x + left * zoom))
+                        .top(px(y + top * zoom))
+                        .w(px(((right - left) * zoom).max(1.0)))
+                        .h(px(((bottom - top) * zoom).max(1.0)))
+                        .border_2()
+                        .border_color(rgb(palette.accent))
+                        .bg(rgba(palette.selection))
+                        .into_any_element(),
+                );
+            }
+            if let Some(drag) = self.forms_draw_drag.as_ref()
+                && drag.page_index == i
+            {
+                let [left, top, right, bottom] = drag.rect();
+                let (left, top, right, bottom) = self.rect_to_view(i, left, top, right, bottom);
+                children.push(
+                    div()
+                        .id("forms-draw-preview")
                         .absolute()
                         .left(px(x + left * zoom))
                         .top(px(y + top * zoom))
@@ -8345,6 +11132,11 @@ impl Render for Viewer {
         crate::debug::set_links_overlay(serde_json::Value::Array(links_overlay));
         crate::debug::set_hovered_link(self.hovered_link.as_deref());
         crate::debug::set_object_selection(object_debug);
+        crate::debug::set_forms_view(self.forms_view_debug(
+            forms_widgets_debug,
+            forms_focused_field.as_deref(),
+            page0_rect,
+        ));
         let type_filter_debug = if self.type_filter_kinds.is_empty() {
             serde_json::Value::Null
         } else if let Some(tf) = self.type_filter_data.as_ref() {
@@ -8376,12 +11168,51 @@ impl Render for Viewer {
             serde_json::Value::Null
         };
         crate::debug::set_type_filter(type_filter_debug);
-        if let Some(text) = self.message.clone() {
+        if self.forms_drawing {
+            let hint = i18n::t("forms.drawHint");
+            a11y::register(Registered {
+                id: "forms-draw-hint".into(),
+                role: "status",
+                name: hint.clone(),
+                disabled: false,
+                focused: false,
+                hovered: false,
+                checked: None,
+                value: Some(hint.clone()),
+                bounds: None,
+            });
             children.push(
                 div()
                     .absolute()
                     .left(px(12.))
                     .top(px(12.))
+                    .on_children_prepainted(|bounds, _, _| {
+                        if let Some(b) = bounds.first() {
+                            a11y::set_bounds("forms-draw-hint", *b);
+                        }
+                    })
+                    .child(
+                        div()
+                            .id("forms-draw-hint")
+                            .px(px(10.))
+                            .py(px(6.))
+                            .rounded(px(6.))
+                            .border_1()
+                            .border_color(rgb(palette.accent))
+                            .bg(rgb(palette.surface))
+                            .text_xs()
+                            .text_color(rgb(palette.text))
+                            .child(hint),
+                    )
+                    .into_any_element(),
+            );
+        }
+        if let Some(text) = self.message.clone() {
+            children.push(
+                div()
+                    .absolute()
+                    .left(px(12.))
+                    .top(px(if self.forms_drawing { 48. } else { 12. }))
                     .text_color(rgb(palette.text))
                     .child(text)
                     .into_any_element(),
@@ -8845,7 +11676,16 @@ impl Render for Viewer {
             .children(links_dialog)
             .children(layers_dialog)
             .children(image_adjust_dialog)
+            .children(forms_dialog)
             .children(page_context)
+    }
+}
+
+impl Drop for Viewer {
+    fn drop(&mut self) {
+        if let Some(doc) = self.doc.take() {
+            self.close_render_doc(doc);
+        }
     }
 }
 

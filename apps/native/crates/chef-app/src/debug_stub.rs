@@ -121,6 +121,15 @@ pub fn set_window_closing(_: bool) {}
 pub fn set_page_selection(_: &[usize], _: Option<usize>, _: Option<usize>) {}
 pub fn set_recovery(_: serde_json::Value) {}
 pub fn set_jobs(_: serde_json::Value) {}
+pub fn set_split(_: serde_json::Value) {}
+pub fn take_split_scrolls() -> Vec<f32> {
+    Vec::new()
+}
+pub fn take_resize_requests() -> Vec<(f32, f32)> {
+    Vec::new()
+}
+pub fn set_forms_env(_: &chef_pdf::form_fill::FormEnvStats) {}
+pub fn set_forms_view(_: serde_json::Value) {}
 pub fn set_shutdown_hook(_: impl Fn() + Send + Sync + 'static) {}
 pub fn run_shutdown_hook() {}
 pub fn take_job_commands() -> Vec<DebugJobCommand> {
