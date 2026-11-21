@@ -1027,6 +1027,7 @@ static SETTINGS: std::sync::Mutex<String> = std::sync::Mutex::new(String::new())
 static HOVERED_LINK: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 static OPENED_URL: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 static LINKS_OVERLAY: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+static TYPE_FILTER: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 static OBJECT_SELECTION: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
 pub fn set_hovered_link(id: Option<&str>) {
@@ -1043,6 +1044,12 @@ pub fn set_opened_url(url: Option<&str>) {
 
 pub fn set_links_overlay(value: serde_json::Value) {
     if let Ok(mut current) = LINKS_OVERLAY.lock() {
+        *current = value.to_string();
+    }
+}
+
+pub fn set_type_filter(value: serde_json::Value) {
+    if let Ok(mut current) = TYPE_FILTER.lock() {
         *current = value.to_string();
     }
 }
@@ -1071,6 +1078,13 @@ fn links_overlay_json() -> String {
     match LINKS_OVERLAY.lock() {
         Ok(current) if !current.is_empty() => current.clone(),
         _ => "[]".into(),
+    }
+}
+
+fn type_filter_json() -> String {
+    match TYPE_FILTER.lock() {
+        Ok(current) if !current.is_empty() => current.clone(),
+        _ => "null".into(),
     }
 }
 
@@ -1121,7 +1135,7 @@ fn state(hwnd: isize) -> String {
     let dpi = unsafe { GetDpiForWindow(hwnd) };
     let scale = if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 };
     format!(
-        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"hoveredLink\":{},\"openedUrl\":{},\"linksOverlay\":{},\"objectSelection\":{},\"logLines\":{}}}",
+        "{{\"hwnd\":{hwnd},\"visible\":{visible},\"foreground\":{foreground},\"scale\":{scale},\"cursor\":{},\"themeDark\":{},\"rect\":{{\"left\":{},\"top\":{},\"right\":{},\"bottom\":{}}},\"rectOk\":{ok},\"renders\":{},\"renderTiming\":{},\"cached\":{},\"cachedBytes\":{},\"cachedPageImages\":{},\"cacheInvalidation\":{},\"sourceWarning\":{},\"pending\":{},\"sidebarThumbnails\":{},\"sidebarThumbnailPending\":{},\"sidebarOutline\":{},\"sidebarGrid\":{},\"sidebarDragTarget\":{},\"sidebarScrollY\":{},\"sidebarBookmarks\":{},\"startRecentFiles\":{},\"input\":{},\"find\":{},\"view\":{},\"tabs\":{},\"tabMessage\":{},\"fileDialog\":{},\"palette\":{},\"closePrompt\":{},\"pageSelection\":{},\"recovery\":{},\"jobs\":{},\"controls\":{},\"reducedMotion\":{},\"settings\":{},\"message\":{},\"properties\":{},\"password\":{},\"scrollProgress\":{},\"hoveredLink\":{},\"openedUrl\":{},\"linksOverlay\":{},\"typeFilter\":{},\"objectSelection\":{},\"logLines\":{}}}",
         cursor_json(),
         THEME_DARK.load(std::sync::atomic::Ordering::Relaxed),
         rect.left,
@@ -1198,6 +1212,7 @@ fn state(hwnd: isize) -> String {
         hovered_link_json(),
         opened_url_json(),
         links_overlay_json(),
+        type_filter_json(),
         object_selection_json(),
         crate::logging::recent().len()
     )

@@ -1277,10 +1277,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) bật tắt lớp đổi hiển thị ngay; (2) đổi tên lưu vào file; (3) bộ lọc loại đúng.
 - **Kiểm chứng:** E2E `layers` (nếu có) và `content-v06`; test.
 - **Phụ thuộc:** R4.11
-- **File:** `apps/native/crates/chef-app/src/layers.rs`
-- **E2E:** `content-v06`
+- **File:** `apps/native/crates/chef-app/src/layers.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/debug.rs`, `core/chef_core/content/layers.py`, `core/chef_core/ops/content_layers.py`, `scripts/e2e-native-layers.ps1`
+- **E2E:** `content-v06`, `scripts/e2e-native-layers.ps1`
 - **Tính năng:** E1, E2
-- **Trạng thái:** ⬜
+- **Trạng thái:** ✅
+- **Ghi chú:** (2026-11-21) Bổ sung operation `layers.rename` (`rename_layer` + `LayersRenameParams`) và sinh lại hợp đồng (`chef_core.codegen` + `pnpm typecheck` 4 dự án xanh; pytest `test_content_layers.py` + `test_codegen.py` 16/16 đạt). Xây bảng lớp neo góc phải (`layers-panel`, `layers-manager`) hỗ trợ liệt kê lớp, bật/tắt hiển thị từng lớp (`layers.setVisibility`, ép invalidation `changed = "all"` để xóa cache và vẽ lại trang ngay lập tức), đổi tên lưu `/OCProperties/OCGs[0][/Name]` (`layers.rename`), xóa lớp giữ/bỏ nội dung (`layers.remove`), gộp lớp có hoàn tác (`layers.flatten` + `Ctrl+Z`), và lọc xem theo loại nội dung (`content.viewByType` vẽ khung tô sáng/che mờ cùng trường debug `typeFilter`). Kiểm chứng `cargo clippy -D warnings` sạch, `cargo deny check` xanh, `chef-app` 141/141, `chef-viewer` 45/45; `scripts/e2e-native-layers.ps1` đạt và chạy lại `scripts/e2e-native-image-edit.ps1` vẫn đạt. Đóng task.
 
 ### R4.17 · Đánh dấu chữ: tô sáng, gạch chân, gạch ngang · M
 - **Mô tả:** chọn chữ rồi chọn kiểu đánh dấu. Tạo chú thích loại highlight, underline, strikeout (`annots.py`). Màu theo `--c-highlight`.

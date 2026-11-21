@@ -85,6 +85,7 @@ pub fn take_pointers() -> Vec<DebugPointer> {
 pub fn set_hovered_link(_: Option<&str>) {}
 pub fn set_opened_url(_: Option<&str>) {}
 pub fn set_links_overlay(_: serde_json::Value) {}
+pub fn set_type_filter(_: serde_json::Value) {}
 pub fn set_object_selection(_: Option<serde_json::Value>) {}
 pub fn take_scroll_screens() -> Vec<f32> {
     Vec::new()

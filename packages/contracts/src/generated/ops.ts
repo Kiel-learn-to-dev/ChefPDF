@@ -2106,6 +2106,14 @@ export interface LayersRemoveParams {
   deleteContent?: boolean;
 }
 
+/** Rename one layer (optional-content group). */
+export interface LayersRenameParams {
+  /** Layer id from layers.list. */
+  layerId: string;
+  /** New layer name. */
+  name: string;
+}
+
 /** Make layers visible or hidden by default. */
 export interface LayersSetVisibilityParams {
   /** Layer ids from layers.list. */
@@ -4362,6 +4370,7 @@ export interface OpParams {
   'layers.flatten': LayersFlattenParams;
   'layers.list': LayersListParams;
   'layers.remove': LayersRemoveParams;
+  'layers.rename': LayersRenameParams;
   'layers.setVisibility': LayersSetVisibilityParams;
   'layout.analyze': LayoutAnalyzeParams;
   'layout.pageModel': LayoutPageModelParams;
@@ -4559,6 +4568,7 @@ export const OP_IDS = [
   'layers.flatten',
   'layers.list',
   'layers.remove',
+  'layers.rename',
   'layers.setVisibility',
   'layout.analyze',
   'layout.pageModel',

@@ -202,6 +202,19 @@ def set_visibility(pdf: pikepdf.Pdf, groups: list[ObjGen], visible: bool) -> lis
     return [layer_id(og) for og in groups]
 
 
+def rename_layer(pdf: pikepdf.Pdf, og: ObjGen, name: str) -> str:
+    """Rename one optional-content group and return the cleaned name."""
+    clean = name.strip()
+    if not clean:
+        raise invalid_params("LAYER_NAME_EMPTY", {})
+    by_og = {objgen_of(g): g for g in groups_of(pdf)}
+    group = by_og.get(og)
+    if group is None:
+        raise invalid_params("LAYER_NOT_FOUND", {"id": layer_id(og)})
+    group["/Name"] = pikepdf.String(clean)
+    return clean
+
+
 _BLOCK_OPS = ("BDC", "BMC")
 
 
@@ -322,6 +335,7 @@ __all__ = [
     "order_tree",
     "parse_layer_id",
     "remove_layers",
+    "rename_layer",
     "set_visibility",
     "usage_counts",
 ]

@@ -24,6 +24,7 @@ from chef_core.content.layers import (
     list_layers,
     parse_layer_id,
     remove_layers,
+    rename_layer,
     set_visibility,
 )
 from chef_core.errors import invalid_params
@@ -56,6 +57,13 @@ class LayersRemoveParams(WireModel):
 
 class LayersFlattenParams(WireModel):
     """Make all content visible and remove the layer structure."""
+
+
+class LayersRenameParams(WireModel):
+    """Rename one layer (optional-content group)."""
+
+    layer_id: str = Field(min_length=1, description="Layer id from layers.list.")
+    name: str = Field(min_length=1, max_length=256, description="New layer name.")
 
 
 @operation(id="layers.list", title="List layers", group="layers", params=LayersListParams)
@@ -122,6 +130,23 @@ def layers_flatten(ctx: OpContext, p: LayersFlattenParams) -> OpOutput:
     )
 
 
+@operation(
+    id="layers.rename",
+    title="Rename layer",
+    group="layers",
+    params=LayersRenameParams,
+    destructive=True,
+)
+def layers_rename(ctx: OpContext, p: LayersRenameParams) -> OpOutput:
+    if ctx.input_path is None:
+        raise RuntimeError("layers.rename needs a session")
+    og = parse_layer_id(p.layer_id)
+    with ctx.open_input() as pdf:
+        renamed = rename_layer(pdf, og, p.name)
+        ctx.save_document(pdf)
+    return OpOutput(changed_pages=[], data={"layerId": p.layer_id, "name": renamed})
+
+
 class ContentViewByTypeParams(WireModel):
     """Objects of one page grouped by kind, with render hints for a kind filter."""
 
@@ -178,10 +203,12 @@ __all__ = [
     "LayersFlattenParams",
     "LayersListParams",
     "LayersRemoveParams",
+    "LayersRenameParams",
     "LayersVisibilityParams",
     "layers_flatten",
     "layers_list",
     "layers_remove",
+    "layers_rename",
     "layers_set_visibility",
     "view_by_type",
 ]

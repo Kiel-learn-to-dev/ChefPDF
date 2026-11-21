@@ -153,3 +153,27 @@ def test_list_layers_helper_handles_documents_without_layers(tmp_path: Path) -> 
     pdf = pikepdf.new()
     pdf.add_blank_page()
     assert list_layers(pdf) == {"baseState": None, "layers": [], "order": []}
+
+
+def test_rename_layer_persists_and_is_undoable(harness: Harness, tmp_path: Path) -> None:
+    sid = _sid(harness, _ocg_pdf(tmp_path / "rename.pdf"))
+    initial = _layers(harness, sid)["layers"]
+    target = initial[0]
+    old_name = target["name"]
+
+    renamed = harness.op("layers.rename", {"layerId": target["id"], "name": "  Brand Mark  "}, sid)
+    assert renamed["data"] == {"layerId": target["id"], "name": "Brand Mark"}
+    assert _layers(harness, sid)["layers"][0]["name"] == "Brand Mark"
+    with pikepdf.open(_revision(harness, sid)) as pdf:
+        assert str(pdf.Root["/OCProperties"]["/OCGs"][0]["/Name"]) == "Brand Mark"
+
+    harness.call("session.undo", {"sessionId": sid})
+    assert _layers(harness, sid)["layers"][0]["name"] == old_name
+
+    with pytest.raises(RpcFailure) as empty:
+        harness.op("layers.rename", {"layerId": target["id"], "name": "   "}, sid)
+    assert empty.value.kind == "INVALID_PARAMS"
+
+    with pytest.raises(RpcFailure) as missing:
+        harness.op("layers.rename", {"layerId": "999:0", "name": "Other"}, sid)
+    assert missing.value.kind == "INVALID_PARAMS"

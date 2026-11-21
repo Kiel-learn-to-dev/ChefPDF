@@ -41,6 +41,7 @@ mod find;
 mod image_edit;
 mod insert_image;
 mod instance;
+mod layers;
 mod links;
 mod logging;
 mod night;

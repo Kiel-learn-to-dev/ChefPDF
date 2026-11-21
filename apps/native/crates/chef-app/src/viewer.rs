@@ -18,7 +18,7 @@ use chef_pdf::text::{CharBox, PageText, char_at};
 use chef_rpc::{CallError, Supervisor};
 use chef_ui::a11y::{self, Registered};
 use chef_ui::button::{Button, Size as ButtonSize, Variant};
-use chef_ui::dialog::{Dialog, Width};
+use chef_ui::dialog::{Dialog, Width, shadow_lg};
 use chef_ui::form::TextField;
 use chef_ui::menu::{Menu, MenuEntry};
 use chef_ui::text_input::{TextInput, TextInputEvent};
@@ -302,6 +302,15 @@ pub struct Viewer {
     image_adjust_close_focus: FocusHandle,
     image_adjust_apply_focus: FocusHandle,
     image_fit: crate::image_edit::ImageFit,
+    layers: Vec<crate::layers::LayerItem>,
+    layers_open: bool,
+    layers_loaded: bool,
+    layers_ticket: u64,
+    layer_selected: Option<String>,
+    layer_name_input: Entity<TextInput>,
+    layers_close_focus: FocusHandle,
+    type_filter_kinds: Vec<String>,
+    type_filter_data: Option<crate::layers::TypeFilterData>,
     /// Hộp thoại Thuộc tính (Ctrl+D): số liệu đã đọc lúc mở, và tiêu điểm nút đóng.
     props_open: bool,
     props_view: Option<properties::View>,
@@ -391,6 +400,7 @@ enum OperationResult {
         post_selection: PostSelection,
         notes: Option<Vec<crate::notes::Note>>,
         links: Option<Vec<crate::links::LinkItem>>,
+        layers: Option<Vec<crate::layers::LayerItem>>,
         can_undo: bool,
         can_redo: bool,
         dirty: bool,
@@ -465,6 +475,25 @@ enum OperationResult {
         can_redo: bool,
         dirty: bool,
     },
+    LayersLoaded {
+        generation: u64,
+        doc: DocId,
+        path: PathBuf,
+        ticket: u64,
+        session_id: String,
+        layers: Vec<crate::layers::LayerItem>,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
+    TypeFilterLoaded {
+        generation: u64,
+        session_id: String,
+        data: crate::layers::TypeFilterData,
+        can_undo: bool,
+        can_redo: bool,
+        dirty: bool,
+    },
 }
 
 enum EditOperation {
@@ -521,6 +550,19 @@ enum EditOperation {
     LinkMutation {
         op_id: &'static str,
         params: serde_json::Value,
+    },
+    ReadLayers {
+        ticket: u64,
+        doc: DocId,
+        path: PathBuf,
+    },
+    LayerMutation {
+        op_id: &'static str,
+        params: serde_json::Value,
+    },
+    ViewByType {
+        page_index: usize,
+        kinds: Vec<String>,
     },
     HitObject {
         page_index: usize,
@@ -961,6 +1003,7 @@ impl Viewer {
                     post_selection: PostSelection::Keep,
                     notes: None,
                     links: None,
+                    layers: None,
                     can_undo,
                     can_redo,
                     dirty,
@@ -1055,10 +1098,9 @@ impl Viewer {
         std::mem::take(&mut self.pending_open_tabs)
     }
 
-    fn target_pages(&self) -> Vec<usize> {
+    fn current_page_index(&self) -> usize {
         let vh = self.content_height();
-        let current_page = self
-            .spread
+        self.spread
             .as_ref()
             .and_then(|s| s.visible_pages(self.scroll_y, vh).first().copied())
             .or_else(|| {
@@ -1066,7 +1108,11 @@ impl Viewer {
                     .as_ref()
                     .map(|l| *l.visible(self.scroll_y, vh).start())
             })
-            .unwrap_or(0);
+            .unwrap_or(0)
+    }
+
+    fn target_pages(&self) -> Vec<usize> {
+        let current_page = self.current_page_index();
         self.page_selection
             .target_pages(current_page, self.page_sizes.len())
     }
@@ -1246,6 +1292,18 @@ impl Viewer {
             cx.notify();
             return;
         }
+        if self.layers_open
+            && !matches!(
+                &operation,
+                EditOperation::ReadLayers { .. }
+                    | EditOperation::LayerMutation { .. }
+                    | EditOperation::ViewByType { .. }
+            )
+        {
+            self.message = Some(i18n::t("layers.closeBeforeEdit"));
+            cx.notify();
+            return;
+        }
         if self.image_adjust_open
             && !matches!(
                 &operation,
@@ -1349,6 +1407,15 @@ impl Viewer {
             EditOperation::ReadLinks { ticket, doc, path } => Some((*ticket, *doc, path.clone())),
             _ => None,
         };
+        let layers_read = match &operation {
+            EditOperation::ReadLayers { ticket, doc, path } => Some((*ticket, *doc, path.clone())),
+            _ => None,
+        };
+        let is_layer_mutation = matches!(&operation, EditOperation::LayerMutation { .. });
+        let view_by_type_kinds = match &operation {
+            EditOperation::ViewByType { kinds, .. } => Some(kinds.clone()),
+            _ => None,
+        };
         let object_hit = match &operation {
             EditOperation::HitObject { page_index, .. } => Some(*page_index),
             _ => None,
@@ -1356,6 +1423,9 @@ impl Viewer {
         let refresh_notes = matches!(&operation, EditOperation::NoteMutation { .. });
         let refresh_links = matches!(&operation, EditOperation::LinkMutation { .. })
             || ((self.links_open || self.links_loaded)
+                && matches!(&operation, EditOperation::Undo | EditOperation::Redo));
+        let refresh_layers = is_layer_mutation
+            || ((self.layers_open || self.layers_loaded)
                 && matches!(&operation, EditOperation::Undo | EditOperation::Redo));
         let (tx, rx) = channel();
         self.operation_rx = Some(rx);
@@ -1560,6 +1630,33 @@ impl Viewer {
                                 },
                             )?
                         }
+                        EditOperation::ReadLayers { .. } => run_session_job(
+                            sup,
+                            "layers.list",
+                            &session_id,
+                            &serde_json::json!({}),
+                            false,
+                        )
+                        .map_err(|(msg, refresh)| {
+                            refresh_required = refresh;
+                            msg
+                        })?,
+                        EditOperation::LayerMutation { op_id, params } => {
+                            run_session_job(sup, op_id, &session_id, &params, true).map_err(
+                                |(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                },
+                            )?
+                        }
+                        EditOperation::ViewByType { page_index, kinds } => {
+                            let params = crate::layers::view_by_type_params(page_index, &kinds);
+                            run_session_job(sup, "content.viewByType", &session_id, &params, false)
+                                .map_err(|(msg, refresh)| {
+                                    refresh_required = refresh;
+                                    msg
+                                })?
+                        }
                         EditOperation::SetBookmarks { tree, .. } => {
                             let params = crate::bookmarks::set_params(tree);
                             run_session_job(sup, "bookmarks.set", &session_id, &params, true)
@@ -1729,6 +1826,45 @@ impl Viewer {
                     });
                     return Ok(());
                 }
+                if let Some((ticket, doc, path)) = layers_read {
+                    let layers = crate::layers::layers_from_reply(&reply)?;
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::LayersLoaded {
+                        generation,
+                        doc,
+                        path,
+                        ticket,
+                        session_id,
+                        layers,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
+                if let Some(active_kinds) = view_by_type_kinds {
+                    let data = crate::layers::type_filter_from_reply(&reply, &active_kinds)?;
+                    let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
+                    let SessionFlags {
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    } = SessionFlags::read(&state);
+                    let _ = tx.send(OperationResult::TypeFilterLoaded {
+                        generation,
+                        session_id,
+                        data,
+                        can_undo,
+                        can_redo,
+                        dirty,
+                    });
+                    return Ok(());
+                }
                 if let Some(requested_path) = extract_requested_path {
                     let state = reply.get("state").cloned().unwrap_or_else(|| reply.clone());
                     let output_path = reply
@@ -1810,7 +1946,10 @@ impl Viewer {
                     .map(PathBuf::from)
                     .ok_or_else(|| i18n::t("editor.revisionMissing"))?;
                 let (doc, sizes) = load_revision(&render_handle, revision_path.clone())?;
-                let changed = reply.get("changedPages").cloned();
+                let mut changed = reply.get("changedPages").cloned();
+                if is_layer_mutation {
+                    changed = Some(serde_json::Value::String("all".into()));
+                }
                 let SessionFlags {
                     can_undo,
                     can_redo,
@@ -1870,6 +2009,33 @@ impl Viewer {
                 } else {
                     None
                 };
+                let layers = if refresh_layers {
+                    let listed = match run_session_job(
+                        supervisor
+                            .lock()
+                            .map_err(|_| "Không khóa được lõi".to_string())?,
+                        "layers.list",
+                        &session_id,
+                        &serde_json::json!({}),
+                        false,
+                    ) {
+                        Ok(listed) => listed,
+                        Err((message, refresh)) => {
+                            refresh_required |= refresh;
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(message);
+                        }
+                    };
+                    match crate::layers::layers_from_reply(&listed) {
+                        Ok(layers) => Some(layers),
+                        Err(error) => {
+                            close_render_doc_handle(&render_handle, doc);
+                            return Err(error);
+                        }
+                    }
+                } else {
+                    None
+                };
                 let applied = OperationResult::Applied {
                     generation,
                     session_id,
@@ -1880,6 +2046,7 @@ impl Viewer {
                     post_selection,
                     notes,
                     links,
+                    layers,
                     can_undo,
                     can_redo,
                     dirty,
@@ -2082,6 +2249,151 @@ impl Viewer {
                 cx.notify();
             }
         }
+    }
+
+    fn open_layers_panel(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            self.message = Some(i18n::t("editor.busy"));
+            cx.notify();
+            return;
+        }
+        let (Some(doc), Some(path)) = (self.doc, self.doc_path.clone()) else {
+            self.message = Some(i18n::t("layers.noDocument"));
+            cx.notify();
+            return;
+        };
+        self.layers_ticket = self.layers_ticket.wrapping_add(1);
+        self.layers_open = false;
+        self.message = None;
+        self.begin_edit(
+            EditOperation::ReadLayers {
+                ticket: self.layers_ticket,
+                doc,
+                path,
+            },
+            cx,
+        );
+    }
+
+    fn close_layers_panel(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.layers_ticket = self.layers_ticket.wrapping_add(1);
+        self.layers_open = false;
+        self.message = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn select_layer(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(layer) = self.layers.iter().find(|layer| layer.id == id).cloned() else {
+            return;
+        };
+        self.layer_selected = Some(layer.id);
+        self.layer_name_input
+            .update(cx, |input, cx| input.set_text(&layer.name, cx));
+        self.message = None;
+        let focus = self.layer_name_input.read(cx).focus_handle(cx);
+        window.focus(&focus, cx);
+        cx.notify();
+    }
+
+    fn toggle_layer_visibility(&mut self, id: &str, visible: bool, cx: &mut Context<Self>) {
+        if self
+            .layers
+            .iter()
+            .any(|layer| layer.id == id && layer.locked)
+        {
+            self.message = Some(i18n::t("layers.locked"));
+            cx.notify();
+            return;
+        }
+        self.layer_selected = Some(id.to_string());
+        let params = crate::layers::set_visibility_params(id, visible);
+        self.begin_edit(
+            EditOperation::LayerMutation {
+                op_id: "layers.setVisibility",
+                params,
+            },
+            cx,
+        );
+    }
+
+    fn rename_selected_layer(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.layers_ticket == 0 {
+            return;
+        }
+        let Some(id) = self.layer_selected.clone() else {
+            return;
+        };
+        let name = self.layer_name_input.read(cx).text().to_owned();
+        match crate::layers::rename_params(&id, &name) {
+            Ok(params) => {
+                self.begin_edit(
+                    EditOperation::LayerMutation {
+                        op_id: "layers.rename",
+                        params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn remove_selected_layer(&mut self, delete_content: bool, cx: &mut Context<Self>) {
+        if self.operation_pending {
+            return;
+        }
+        let Some(id) = self.layer_selected.clone() else {
+            return;
+        };
+        let params = crate::layers::remove_params(&id, delete_content);
+        self.begin_edit(
+            EditOperation::LayerMutation {
+                op_id: "layers.remove",
+                params,
+            },
+            cx,
+        );
+    }
+
+    fn flatten_all_layers(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.layers.is_empty() {
+            return;
+        }
+        self.begin_edit(
+            EditOperation::LayerMutation {
+                op_id: "layers.flatten",
+                params: crate::layers::flatten_params(),
+            },
+            cx,
+        );
+    }
+
+    fn toggle_type_filter(&mut self, kind: &str, cx: &mut Context<Self>) {
+        if self.operation_pending
+            || self.switch_rx.is_some()
+            || self.edit_blocked
+            || self.doc.is_none()
+        {
+            return;
+        }
+        self.type_filter_kinds = crate::layers::toggle_kind(&self.type_filter_kinds, kind);
+        if self.type_filter_kinds.is_empty() {
+            self.type_filter_data = None;
+            cx.notify();
+            return;
+        }
+        let page_index = self.current_page_index();
+        self.begin_edit(
+            EditOperation::ViewByType {
+                page_index,
+                kinds: self.type_filter_kinds.clone(),
+            },
+            cx,
+        );
     }
 
     fn activate_link(&mut self, link: &crate::links::LinkItem, cx: &mut Context<Self>) {
@@ -2629,6 +2941,66 @@ impl Viewer {
                     self.hovered_link = None;
                 }
             }
+            OperationResult::LayersLoaded {
+                generation,
+                doc,
+                path,
+                ticket,
+                session_id,
+                layers,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                if ticket == self.layers_ticket
+                    && self.doc == Some(doc)
+                    && self.doc_path.as_ref() == Some(&path)
+                {
+                    self.layers = layers;
+                    self.layers_loaded = true;
+                    self.layers_open = true;
+                    let selected_item = self
+                        .layer_selected
+                        .as_deref()
+                        .and_then(|id| self.layers.iter().find(|l| l.id == id))
+                        .or_else(|| self.layers.first())
+                        .cloned();
+                    self.layer_selected = selected_item.as_ref().map(|l| l.id.clone());
+                    let name_text = selected_item.as_ref().map_or("", |l| l.name.as_str());
+                    self.layer_name_input
+                        .update(cx, |input, cx| input.set_text(name_text, cx));
+                }
+            }
+            OperationResult::TypeFilterLoaded {
+                generation,
+                session_id,
+                data,
+                can_undo,
+                can_redo,
+                dirty,
+            } => {
+                if generation != self.document_generation {
+                    if let Some(supervisor) = self.supervisor.clone() {
+                        close_session_async(supervisor, session_id);
+                    }
+                    return true;
+                }
+                self.session_id = Some(session_id);
+                self.can_undo = can_undo;
+                self.can_redo = can_redo;
+                self.dirty = dirty;
+                self.type_filter_data = Some(data);
+            }
             OperationResult::Applied {
                 generation,
                 session_id,
@@ -2639,6 +3011,7 @@ impl Viewer {
                 post_selection,
                 notes,
                 links,
+                layers,
                 can_undo,
                 can_redo,
                 dirty,
@@ -2662,6 +3035,22 @@ impl Viewer {
                     self.links_loaded = true;
                     self.hovered_link = None;
                 }
+                if let Some(layers) = layers {
+                    self.layers = layers;
+                    self.layers_loaded = true;
+                    let selected_item = self
+                        .layer_selected
+                        .as_deref()
+                        .and_then(|id| self.layers.iter().find(|l| l.id == id))
+                        .or_else(|| self.layers.first())
+                        .cloned();
+                    self.layer_selected = selected_item.as_ref().map(|l| l.id.clone());
+                    let name_text = selected_item.as_ref().map_or("", |l| l.name.as_str());
+                    self.layer_name_input
+                        .update(cx, |input, cx| input.set_text(name_text, cx));
+                }
+                self.type_filter_kinds.clear();
+                self.type_filter_data = None;
                 let anchor = self.spread.as_ref().and_then(|spread| {
                     reload::capture_spread(spread, self.scroll_y, self.content_height())
                 });
@@ -2987,6 +3376,14 @@ impl Viewer {
             });
         let image_adjust_close_focus = cx.focus_handle();
         let image_adjust_apply_focus = cx.focus_handle();
+        let layer_name_input = cx.new(|cx| TextInput::new(cx, i18n::t("layers.renamePlaceholder")));
+        let layer_name_subscription =
+            cx.subscribe(&layer_name_input, |_, _, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    cx.notify();
+                }
+            });
+        let layers_close_focus = cx.focus_handle();
         let mut viewer = Viewer {
             handle,
             supervisor,
@@ -3002,6 +3399,7 @@ impl Viewer {
                 note_author_subscription,
                 link_subscription,
                 image_crop_subscription,
+                layer_name_subscription,
             ],
             appearance_observer_installed: false,
             settings,
@@ -3080,6 +3478,15 @@ impl Viewer {
             image_adjust_close_focus,
             image_adjust_apply_focus,
             image_fit: crate::image_edit::ImageFit::Contain,
+            layers: Vec::new(),
+            layers_open: false,
+            layers_loaded: false,
+            layers_ticket: 0,
+            layer_selected: None,
+            layer_name_input,
+            layers_close_focus,
+            type_filter_kinds: Vec::new(),
+            type_filter_data: None,
             props_open: false,
             props_view: None,
             props_close: cx.focus_handle(),
@@ -3551,6 +3958,12 @@ impl Viewer {
         self.links_loaded = false;
         self.link_form_mode = None;
         self.hovered_link = None;
+        self.layers.clear();
+        self.layers_open = false;
+        self.layers_loaded = false;
+        self.layer_selected = None;
+        self.type_filter_kinds.clear();
+        self.type_filter_data = None;
     }
 
     /// Queue a close behind all currently queued pdfium work, so document handles do not leak.
@@ -5953,6 +6366,300 @@ impl Render for Viewer {
         } else {
             None
         };
+        let layers_dialog = if self.layers_open {
+            let selected_layer = self
+                .layer_selected
+                .as_deref()
+                .and_then(|id| self.layers.iter().find(|layer| layer.id == id))
+                .cloned();
+            let selected_locked = selected_layer.as_ref().is_some_and(|layer| layer.locked);
+            let selected_visible = selected_layer.as_ref().is_none_or(|layer| layer.visible);
+            let rows = self.layers.iter().enumerate().map(|(index, layer)| {
+                let select_entity = entity.clone();
+                let toggle_entity = entity.clone();
+                let row_id = layer.id.clone();
+                let toggle_id = layer.id.clone();
+                let next_visible = !layer.visible;
+                let selected = self.layer_selected.as_deref() == Some(layer.id.as_str());
+                let name = if layer.name.is_empty() {
+                    i18n::t("layers.unnamed")
+                } else {
+                    layer.name.clone()
+                };
+                let hidden_tag = if layer.visible {
+                    String::new()
+                } else {
+                    format!(" · {}", i18n::t("layers.hiddenBadge"))
+                };
+                div()
+                    .w_full()
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(4.))
+                    .child(
+                        Button::new(format!("layers-row-{index}"), cx.focus_handle())
+                            .label(format!(
+                                "{name} ({} · {}p){hidden_tag}",
+                                layer.object_count, layer.page_count
+                            ))
+                            .size(ButtonSize::Sm)
+                            .variant(if selected {
+                                Variant::Secondary
+                            } else {
+                                Variant::Ghost
+                            })
+                            .dark(dark)
+                            .on_click(move |_, window, cx| {
+                                select_entity
+                                    .update(cx, |this, cx| this.select_layer(&row_id, window, cx));
+                            }),
+                    )
+                    .child(
+                        Button::new(format!("layers-toggle-{index}"), cx.focus_handle())
+                            .label(i18n::t(if layer.visible {
+                                "layers.hide"
+                            } else {
+                                "layers.show"
+                            }))
+                            .size(ButtonSize::Sm)
+                            .variant(Variant::Ghost)
+                            .dark(dark)
+                            .disabled(self.operation_pending || layer.locked)
+                            .on_click(move |_, _, cx| {
+                                toggle_entity.update(cx, |this, cx| {
+                                    this.toggle_layer_visibility(&toggle_id, next_visible, cx)
+                                });
+                            }),
+                    )
+            });
+            let list = if self.layers.is_empty() {
+                div()
+                    .id("layers-empty")
+                    .w_full()
+                    .py(px(12.))
+                    .flex()
+                    .flex_col()
+                    .gap(px(2.))
+                    .child(
+                        div()
+                            .text_sm()
+                            .text_color(rgb(palette.text))
+                            .child(i18n::t("layers.none")),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(rgb(palette.text_2))
+                            .child(i18n::t("layers.noneText")),
+                    )
+                    .into_any_element()
+            } else {
+                div()
+                    .id("layers-list")
+                    .w_full()
+                    .max_h(px(200.))
+                    .overflow_y_scroll()
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.))
+                    .children(rows)
+                    .into_any_element()
+            };
+            let filter_buttons = crate::layers::FILTER_KINDS.iter().map(|&kind| {
+                let filter_entity = entity.clone();
+                let active = self.type_filter_kinds.iter().any(|k| k == kind);
+                Button::new(format!("layers-filter-{kind}"), cx.focus_handle())
+                    .label(i18n::t(&format!("layers.filter.{kind}")))
+                    .size(ButtonSize::Sm)
+                    .variant(if active {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .disabled(self.operation_pending)
+                    .on_click(move |_, _, cx| {
+                        filter_entity.update(cx, |this, cx| this.toggle_type_filter(kind, cx));
+                    })
+            });
+            let close_entity = entity.clone();
+            let rename_entity = entity.clone();
+            let toggle_sel_entity = entity.clone();
+            let remove_keep_entity = entity.clone();
+            let remove_drop_entity = entity.clone();
+            let flatten_entity = entity.clone();
+            let status_note = self.message.clone();
+            Some(
+                div()
+                    .id("layers-panel")
+                    .absolute()
+                    .right(px(16.))
+                    .top(px(TOOLBAR_H + 12.))
+                    .w(px(380.))
+                    .max_h(px(640.))
+                    .bg(rgb(palette.surface))
+                    .border_1()
+                    .border_color(rgb(palette.border))
+                    .rounded(px(8.))
+                    .shadow(shadow_lg(dark))
+                    .p(px(12.))
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.))
+                    .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                    .child(
+                        div()
+                            .w_full()
+                            .flex()
+                            .items_center()
+                            .justify_between()
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .text_color(rgb(palette.text))
+                                    .child(i18n::t("layers.title")),
+                            )
+                            .child(
+                                Button::new("layers-close", self.layers_close_focus.clone())
+                                    .label(i18n::t("common.close"))
+                                    .size(ButtonSize::Sm)
+                                    .variant(Variant::Ghost)
+                                    .dark(dark)
+                                    .on_click(move |_, window, cx| {
+                                        close_entity.update(cx, |this, cx| {
+                                            this.close_layers_panel(window, cx)
+                                        });
+                                    }),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .w_full()
+                            .flex()
+                            .flex_col()
+                            .gap(px(4.))
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(rgb(palette.text_2))
+                                    .child(i18n::t("layers.filter.label")),
+                            )
+                            .child(
+                                div()
+                                    .w_full()
+                                    .flex()
+                                    .flex_wrap()
+                                    .gap(px(4.))
+                                    .children(filter_buttons),
+                            ),
+                    )
+                    .child(list)
+                    .child(
+                        TextField::new(
+                            "layers-name",
+                            i18n::t("layers.renamePlaceholder"),
+                            self.layer_name_input.clone(),
+                        )
+                        .dark(dark),
+                    )
+                    .when_some(status_note, |panel, text| {
+                        panel.child(
+                            div()
+                                .id("layers-error")
+                                .text_xs()
+                                .text_color(rgb(palette.accent))
+                                .child(text),
+                        )
+                    })
+                    .child(
+                        div()
+                            .w_full()
+                            .flex()
+                            .flex_wrap()
+                            .gap(px(4.))
+                            .child(
+                                Button::new("layers-rename", cx.focus_handle())
+                                    .label(i18n::t("layers.rename"))
+                                    .size(ButtonSize::Sm)
+                                    .dark(dark)
+                                    .disabled(selected_layer.is_none() || self.operation_pending)
+                                    .on_click(move |_, _, cx| {
+                                        rename_entity
+                                            .update(cx, |this, cx| this.rename_selected_layer(cx));
+                                    }),
+                            )
+                            .child(
+                                Button::new("layers-toggle", cx.focus_handle())
+                                    .label(i18n::t(if selected_visible {
+                                        "layers.hide"
+                                    } else {
+                                        "layers.show"
+                                    }))
+                                    .size(ButtonSize::Sm)
+                                    .dark(dark)
+                                    .disabled(
+                                        selected_layer.is_none()
+                                            || selected_locked
+                                            || self.operation_pending,
+                                    )
+                                    .on_click(move |_, _, cx| {
+                                        if let Some(layer) = selected_layer.as_ref() {
+                                            toggle_sel_entity.update(cx, |this, cx| {
+                                                this.toggle_layer_visibility(
+                                                    &layer.id,
+                                                    !layer.visible,
+                                                    cx,
+                                                )
+                                            });
+                                        }
+                                    }),
+                            )
+                            .child(
+                                Button::new("layers-remove-keep", cx.focus_handle())
+                                    .label(i18n::t("layers.removeKeep"))
+                                    .size(ButtonSize::Sm)
+                                    .dark(dark)
+                                    .disabled(
+                                        self.layer_selected.is_none() || self.operation_pending,
+                                    )
+                                    .on_click(move |_, _, cx| {
+                                        remove_keep_entity.update(cx, |this, cx| {
+                                            this.remove_selected_layer(false, cx)
+                                        });
+                                    }),
+                            )
+                            .child(
+                                Button::new("layers-remove-drop", cx.focus_handle())
+                                    .label(i18n::t("layers.removeDrop"))
+                                    .size(ButtonSize::Sm)
+                                    .dark(dark)
+                                    .disabled(
+                                        self.layer_selected.is_none() || self.operation_pending,
+                                    )
+                                    .on_click(move |_, _, cx| {
+                                        remove_drop_entity.update(cx, |this, cx| {
+                                            this.remove_selected_layer(true, cx)
+                                        });
+                                    }),
+                            )
+                            .child(
+                                Button::new("layers-flatten", cx.focus_handle())
+                                    .label(i18n::t("layers.flatten"))
+                                    .size(ButtonSize::Sm)
+                                    .dark(dark)
+                                    .disabled(self.layers.is_empty() || self.operation_pending)
+                                    .on_click(move |_, _, cx| {
+                                        flatten_entity
+                                            .update(cx, |this, cx| this.flatten_all_layers(cx));
+                                    }),
+                            ),
+                    )
+                    .into_any_element(),
+            )
+        } else {
+            None
+        };
         let image_adjust_dialog = if self.image_adjust_open {
             let adj = self.image_adjust_state.clone();
             let b_down = entity.clone();
@@ -6500,6 +7207,27 @@ impl Render for Viewer {
                     }),
             )
             .child(
+                Button::new("layers-manager", cx.focus_handle())
+                    .label(i18n::t("layers.title"))
+                    .size(ButtonSize::Sm)
+                    .variant(if self.layers_open {
+                        Variant::Secondary
+                    } else {
+                        Variant::Ghost
+                    })
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.doc.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| entity.update(cx, |this, cx| this.open_layers_panel(cx))
+                    }),
+            )
+            .child(
                 Button::new("viewer-rotate", self.rotate_focus.clone())
                     .label(i18n::t("editor.rotateFirst"))
                     .size(ButtonSize::Sm)
@@ -6942,6 +7670,7 @@ impl Render for Viewer {
             crate::debug::set_links_overlay(serde_json::Value::Array(Vec::new()));
             crate::debug::set_hovered_link(None);
             crate::debug::set_object_selection(None);
+            crate::debug::set_type_filter(serde_json::Value::Null);
             let text = self.message.clone().unwrap_or_default();
             return root
                 .child(toolbar)
@@ -6959,6 +7688,7 @@ impl Render for Viewer {
                 .children(bookmark_dialog)
                 .children(notes_dialog)
                 .children(links_dialog)
+                .children(layers_dialog)
                 .children(image_adjust_dialog);
         };
         if self.fit_width && self.page_mode != PageMode::Slideshow && page_viewport_w > 0.0 {
@@ -7584,10 +8314,68 @@ impl Render for Viewer {
                         .into_any_element(),
                 );
             }
+            if let Some(tf) = self.type_filter_data.as_ref()
+                && !self.type_filter_kinds.is_empty()
+                && tf.page_index == i
+            {
+                for tb in &tf.boxes {
+                    let [left, top, right, bottom] = tb.bbox;
+                    let (left, top, right, bottom) = self.rect_to_view(i, left, top, right, bottom);
+                    let bw = ((right - left) * zoom).max(1.0);
+                    let bh = ((bottom - top) * zoom).max(1.0);
+                    let bx = div()
+                        .absolute()
+                        .left(px(x + left * zoom))
+                        .top(px(y + top * zoom))
+                        .w(px(bw))
+                        .h(px(bh));
+                    children.push(
+                        if tb.shown {
+                            bx.border_2()
+                                .border_color(rgb(palette.accent))
+                                .bg(rgba(0x2563eb22))
+                        } else {
+                            bx.bg(rgba(if dark { 0x18181bc8 } else { 0xffffffc8 }))
+                        }
+                        .into_any_element(),
+                    );
+                }
+            }
         }
         crate::debug::set_links_overlay(serde_json::Value::Array(links_overlay));
         crate::debug::set_hovered_link(self.hovered_link.as_deref());
         crate::debug::set_object_selection(object_debug);
+        let type_filter_debug = if self.type_filter_kinds.is_empty() {
+            serde_json::Value::Null
+        } else if let Some(tf) = self.type_filter_data.as_ref() {
+            let counts: serde_json::Map<String, serde_json::Value> = tf
+                .counts
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::json!(v)))
+                .collect();
+            let boxes: Vec<serde_json::Value> = tf
+                .boxes
+                .iter()
+                .map(|b| {
+                    serde_json::json!({
+                        "kind": b.kind,
+                        "bbox": b.bbox,
+                        "shown": b.shown,
+                    })
+                })
+                .collect();
+            serde_json::json!({
+                "pageIndex": tf.page_index,
+                "kinds": self.type_filter_kinds,
+                "counts": counts,
+                "showCount": tf.show_count,
+                "hideCount": tf.hide_count,
+                "boxes": boxes,
+            })
+        } else {
+            serde_json::Value::Null
+        };
+        crate::debug::set_type_filter(type_filter_debug);
         if let Some(text) = self.message.clone() {
             children.push(
                 div()
@@ -8055,6 +8843,7 @@ impl Render for Viewer {
             .children(bookmark_dialog)
             .children(notes_dialog)
             .children(links_dialog)
+            .children(layers_dialog)
             .children(image_adjust_dialog)
             .children(page_context)
     }

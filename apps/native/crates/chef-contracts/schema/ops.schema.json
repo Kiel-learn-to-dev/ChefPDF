@@ -5260,6 +5260,31 @@
       "title": "LayersRemoveParams",
       "type": "object"
     },
+    "LayersRenameParams": {
+      "additionalProperties": false,
+      "description": "Rename one layer (optional-content group).",
+      "properties": {
+        "layerId": {
+          "description": "Layer id from layers.list.",
+          "minLength": 1,
+          "title": "Layerid",
+          "type": "string"
+        },
+        "name": {
+          "description": "New layer name.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layerId",
+        "name"
+      ],
+      "title": "LayersRenameParams",
+      "type": "object"
+    },
     "LayersSetVisibilityParams": {
       "additionalProperties": false,
       "description": "Make layers visible or hidden by default.",
