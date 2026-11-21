@@ -204,6 +204,7 @@ pub struct RadioGroup {
     name: SharedString,
     items: Vec<RadioItem>,
     selected: Option<usize>,
+    horizontal: bool,
     dark: bool,
     on_change: Option<IndexChange>,
 }
@@ -220,6 +221,7 @@ impl RadioGroup {
             name: name.into(),
             items,
             selected: None,
+            horizontal: false,
             dark: false,
             on_change: None,
         }
@@ -227,6 +229,11 @@ impl RadioGroup {
 
     pub fn selected(mut self, index: Option<usize>) -> Self {
         self.selected = index;
+        self
+    }
+
+    pub fn horizontal(mut self, horizontal: bool) -> Self {
+        self.horizontal = horizontal;
         self
     }
 
@@ -261,11 +268,12 @@ impl RenderOnce for RadioGroup {
             bounds: None,
         });
 
-        let mut root = div()
-            .id(self.id.clone())
-            .key_context(GROUP_CONTEXT)
-            .flex()
-            .flex_col();
+        let mut root = div().id(self.id.clone()).key_context(GROUP_CONTEXT).flex();
+        root = if self.horizontal {
+            root.flex_row().items_center().gap(px(shared::SPACE_6))
+        } else {
+            root.flex_col()
+        };
         if let Some(listener) = self.on_change.clone() {
             let enabled_next = enabled.clone();
             let focus_next = focus_list.clone();
@@ -331,7 +339,7 @@ impl RenderOnce for RadioGroup {
                 .text_size(px(shared::TEXT_MD))
                 .text_color(rgba(c.text))
                 .focus_visible(|s| s.shadow(focus_ring(&c)))
-                .when(i > 0, |r| r.mt(px(shared::SPACE_4)))
+                .when(!self.horizontal && i > 0, |r| r.mt(px(shared::SPACE_4)))
                 .child(dot)
                 .child(text);
             if item.disabled {

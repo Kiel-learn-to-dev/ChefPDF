@@ -20,7 +20,7 @@ use chef_theme::{dark, light, shared};
 use gpui::{
     Animation, AnimationExt, AnyElement, App, BoxShadow, ElementId, FocusHandle, FontWeight,
     IntoElement, KeyBinding, RenderOnce, SharedString, Window, actions, div, point, prelude::*, px,
-    relative, rgba,
+    relative, rgba, svg,
 };
 
 use crate::a11y::{self, Registered};
@@ -51,13 +51,21 @@ pub enum Width {
 }
 
 impl Width {
-    /// Chiều rộng pixel logic. Khung không rộng quá 92% cửa sổ (min(92vw, …) trong CSS).
+    /// Chiều rộng pixel logic. Khung không rộng quá `max_vw` cửa sổ (`min(92vw/94vw, …)` trong CSS).
     pub fn px(self) -> f32 {
         match self {
             Width::Sm => 400.0,
             Width::Md => 480.0,
             Width::Lg => 720.0,
             Width::Xl => 880.0,
+        }
+    }
+
+    /// Tỉ lệ chiều rộng tối đa theo viewport, khớp `.dlg--*` trong components.css.
+    pub fn max_vw(self) -> f32 {
+        match self {
+            Width::Sm | Width::Md => 0.92,
+            Width::Lg | Width::Xl => 0.94,
         }
     }
 }
@@ -111,6 +119,11 @@ struct Colors {
     divider: u32,
     overlay: u32,
     text: u32,
+    text_2: u32,
+    accent_soft: u32,
+    accent_text: u32,
+    danger_soft: u32,
+    danger: u32,
 }
 
 impl Colors {
@@ -122,6 +135,11 @@ impl Colors {
                 divider: pack(dark::C_DIVIDER),
                 overlay: pack(dark::C_OVERLAY),
                 text: pack(dark::C_TEXT),
+                text_2: pack(dark::C_TEXT_2),
+                accent_soft: pack(dark::C_ACCENT_SOFT),
+                accent_text: pack(dark::C_ACCENT_TEXT),
+                danger_soft: pack(dark::C_DANGER_SOFT),
+                danger: pack(dark::C_DANGER),
             }
         } else {
             Colors {
@@ -130,6 +148,11 @@ impl Colors {
                 divider: pack(light::C_DIVIDER),
                 overlay: pack(light::C_OVERLAY),
                 text: pack(light::C_TEXT),
+                text_2: pack(light::C_TEXT_2),
+                accent_soft: pack(light::C_ACCENT_SOFT),
+                accent_text: pack(light::C_ACCENT_TEXT),
+                danger_soft: pack(light::C_DANGER_SOFT),
+                danger: pack(light::C_DANGER),
             }
         }
     }
@@ -150,6 +173,9 @@ type DismissListener = dyn Fn(&mut Window, &mut App);
 pub struct Dialog {
     id: SharedString,
     title: SharedString,
+    icon: Option<SharedString>,
+    icon_danger: bool,
+    description: Option<SharedString>,
     width: Width,
     dark: bool,
     close: Option<(ElementId, FocusHandle, SharedString)>,
@@ -157,7 +183,11 @@ pub struct Dialog {
     return_focus: Option<FocusHandle>,
     on_dismiss: Option<Rc<DismissListener>>,
     body: Vec<AnyElement>,
+    footer_leading: Option<AnyElement>,
     footer: Vec<AnyElement>,
+    scrollable: bool,
+    dismiss_on_outside: bool,
+    return_focus_on_dismiss: bool,
 }
 
 impl Dialog {
@@ -171,6 +201,9 @@ impl Dialog {
         Self {
             id: id.into(),
             title: title.into(),
+            icon: None,
+            icon_danger: false,
+            description: None,
             width,
             dark,
             close: None,
@@ -178,8 +211,30 @@ impl Dialog {
             return_focus: None,
             on_dismiss: None,
             body: Vec::new(),
+            footer_leading: None,
             footer: Vec::new(),
+            scrollable: false,
+            dismiss_on_outside: true,
+            return_focus_on_dismiss: true,
         }
+    }
+
+    /// Icon 36×36 ở đầu hộp thoại (`.dlg__icon`), khớp `Dialog.tsx`.
+    pub fn icon(mut self, path: impl Into<SharedString>) -> Self {
+        self.icon = Some(path.into());
+        self
+    }
+
+    /// Đổi nền/màu icon sang tông nguy hiểm (`.dlg__icon--danger`).
+    pub fn icon_danger(mut self, danger: bool) -> Self {
+        self.icon_danger = danger;
+        self
+    }
+
+    /// Dòng mô tả dưới tiêu đề (`.dlg__desc`).
+    pub fn description(mut self, description: impl Into<SharedString>) -> Self {
+        self.description = Some(description.into());
+        self
     }
 
     /// Nút đóng ở góc trên phải (`.dlg__close`). Nhãn truy cập bắt buộc theo D81.
@@ -218,18 +273,45 @@ impl Dialog {
         self
     }
 
+    /// Nhóm điều khiển đặt ở mép trái chân hộp thoại, ngăn cách với các nút hành động bằng spacer.
+    pub fn footer_leading(mut self, leading: impl IntoElement) -> Self {
+        self.footer_leading = Some(leading.into_any_element());
+        self
+    }
+
     /// Nút ở chân hộp thoại (`.dlg__footer`), xếp từ trái sang phải và dồn về mép phải.
     pub fn action(mut self, action: impl IntoElement) -> Self {
         self.footer.push(action.into_any_element());
         self
     }
+
+    /// Cho phép thân hộp thoại cuộn dọc khi nội dung vượt `min(88vh, 760px)`.
+    pub fn scrollable(mut self, scrollable: bool) -> Self {
+        self.scrollable = scrollable;
+        self
+    }
+
+    /// Có kích hoạt `on_dismiss` khi bấm ra ngoài khung hay không (mặc định `true`).
+    pub fn dismiss_on_outside(mut self, dismiss: bool) -> Self {
+        self.dismiss_on_outside = dismiss;
+        self
+    }
+
+    /// Có trả tiêu điểm về `return_focus` trước khi gọi `on_dismiss` hay không (mặc định `true`).
+    pub fn return_focus_on_dismiss(mut self, restore: bool) -> Self {
+        self.return_focus_on_dismiss = restore;
+        self
+    }
 }
 
 impl RenderOnce for Dialog {
-    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let Dialog {
             id,
             title,
+            icon,
+            icon_danger,
+            description,
             width,
             dark: is_dark,
             close,
@@ -237,7 +319,11 @@ impl RenderOnce for Dialog {
             return_focus,
             on_dismiss,
             body,
+            footer_leading,
             footer,
+            scrollable,
+            dismiss_on_outside,
+            return_focus_on_dismiss,
         } = self;
         let c = Colors::of(is_dark);
         let reduced = motion::reduced();
@@ -247,7 +333,7 @@ impl RenderOnce for Dialog {
         let order = Rc::new(order);
 
         let dismiss: Rc<DismissListener> = Rc::new(move |window, cx| {
-            if let Some(focus) = &return_focus {
+            if return_focus_on_dismiss && let Some(focus) = &return_focus {
                 window.focus(focus, cx);
             }
             if let Some(listener) = &on_dismiss {
@@ -255,8 +341,9 @@ impl RenderOnce for Dialog {
             }
         });
 
+        let dialog_key = id.to_string();
         a11y::register(Registered {
-            id: id.to_string(),
+            id: dialog_key.clone(),
             role: "dialog",
             name: title.to_string(),
             disabled: false,
@@ -274,16 +361,50 @@ impl RenderOnce for Dialog {
             .gap(px(shared::SPACE_5))
             .pt(px(shared::SPACE_7))
             .px(px(shared::SPACE_8))
-            .pb(px(shared::SPACE_4))
-            .child(
+            .pb(px(shared::SPACE_4));
+        if let Some(icon_path) = icon {
+            let (icon_bg, icon_fg) = if icon_danger {
+                (c.danger_soft, c.danger)
+            } else {
+                (c.accent_soft, c.accent_text)
+            };
+            header = header.child(
                 div()
-                    .flex_1()
-                    .min_w_0()
-                    .text_color(rgba(c.text))
-                    .text_size(px(shared::TEXT_LG))
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .child(title.clone()),
+                    .flex_none()
+                    .size(px(36.0))
+                    .rounded(px(shared::RADIUS_LG))
+                    .bg(rgba(icon_bg))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(
+                        svg()
+                            .path(icon_path)
+                            .size(px(18.0))
+                            .text_color(rgba(icon_fg)),
+                    ),
             );
+        }
+
+        let mut titles = div().flex_1().min_w_0().flex().flex_col().child(
+            div()
+                .pt(px(shared::SPACE_1))
+                .text_color(rgba(c.text))
+                .text_size(px(shared::TEXT_LG))
+                .font_weight(FontWeight::SEMIBOLD)
+                .child(title.clone()),
+        );
+        if let Some(desc) = description {
+            titles = titles.child(
+                div()
+                    .mt(px(shared::SPACE_2))
+                    .text_color(rgba(c.text_2))
+                    .text_size(px(shared::TEXT_MD))
+                    .child(desc),
+            );
+        }
+        header = header.child(titles);
+
         if let Some((close_id, focus, label)) = close {
             let dismiss_close = dismiss.clone();
             header = header.child(
@@ -298,15 +419,30 @@ impl RenderOnce for Dialog {
             );
         }
 
-        let body_el = div()
-            .flex_1()
-            .min_h_0()
-            .px(px(shared::SPACE_8))
-            .pt(px(shared::SPACE_6))
-            .pb(px(shared::SPACE_8))
-            .children(body);
+        let body_el = if scrollable {
+            div()
+                .id(ElementId::Name(format!("{id}-body").into()))
+                .flex_1()
+                .min_h_0()
+                .overflow_y_scroll()
+                .px(px(shared::SPACE_8))
+                .pt(px(shared::SPACE_4))
+                .pb(px(shared::SPACE_6))
+                .children(body)
+                .into_any_element()
+        } else {
+            div()
+                .flex_1()
+                .min_h_0()
+                .px(px(shared::SPACE_8))
+                .pt(px(shared::SPACE_6))
+                .pb(px(shared::SPACE_8))
+                .children(body)
+                .into_any_element()
+        };
 
-        let footer_el = div()
+        let has_leading = footer_leading.is_some();
+        let mut footer_el = div()
             .flex()
             .flex_row()
             .items_center()
@@ -315,19 +451,31 @@ impl RenderOnce for Dialog {
             .px(px(shared::SPACE_8))
             .py(px(shared::SPACE_6))
             .border_t_1()
-            .border_color(rgba(c.divider))
-            .children(footer);
+            .border_color(rgba(c.divider));
+        if has_leading {
+            footer_el = footer_el.flex_wrap();
+        }
+        if let Some(leading) = footer_leading {
+            footer_el = footer_el.child(leading).child(div().flex_1().min_w_0());
+        }
+        footer_el = footer_el.children(footer);
 
         let panel_id: ElementId = ElementId::Name(format!("{id}-panel").into());
-        let panel = div()
+        let mut panel = div()
             .id(panel_id.clone())
             .key_context(CONTEXT)
             .relative()
             .flex()
             .flex_col()
             .w(px(width.px()))
-            .max_w(relative(0.92))
-            .max_h(relative(0.88))
+            .max_w(relative(width.max_vw()));
+        panel = if scrollable {
+            let max_h = (window.viewport_size().height.as_f32() * 0.88).min(760.0);
+            panel.max_h(px(max_h))
+        } else {
+            panel.max_h(relative(0.88))
+        };
+        let mut panel = panel
             .bg(rgba(c.surface))
             .border_1()
             .border_color(rgba(c.border))
@@ -354,14 +502,40 @@ impl RenderOnce for Dialog {
                     cx.stop_propagation();
                     step(&order, window, cx, false);
                 }
-            })
-            .on_mouse_down_out({
-                let dismiss = dismiss.clone();
-                move |_, window, cx| dismiss(window, cx)
-            })
-            .child(header)
-            .child(body_el)
-            .child(footer_el);
+            });
+        if dismiss_on_outside {
+            let dismiss = dismiss.clone();
+            panel = panel.on_mouse_down_out(move |_, window, cx| dismiss(window, cx));
+        }
+        let panel = panel.child(header).child(body_el).child(footer_el);
+
+        let panel_el = if reduced {
+            panel.into_any_element()
+        } else {
+            let duration = Duration::from_millis(shared::DUR as u64);
+            panel
+                .with_animation(
+                    (panel_id, "enter"),
+                    Animation::new(duration).with_easing(cubic_bezier(0.2, 0.0, 0.0, 1.0)),
+                    |el, delta| {
+                        let (opacity, lift) = enter_frame(delta);
+                        el.opacity(opacity).top(px(lift))
+                    },
+                )
+                .into_any_element()
+        };
+
+        let centered = div()
+            .size_full()
+            .flex()
+            .items_center()
+            .justify_center()
+            .child(panel_el)
+            .on_children_prepainted(move |bounds, _, _| {
+                if let Some(b) = bounds.first() {
+                    a11y::set_bounds(&dialog_key, *b);
+                }
+            });
 
         let overlay_id: ElementId = ElementId::Name(format!("{id}-overlay").into());
         let overlay = div()
@@ -370,26 +544,15 @@ impl RenderOnce for Dialog {
             .top(px(0.))
             .left(px(0.))
             .size_full()
-            .flex()
-            .items_center()
-            .justify_center()
             .bg(rgba(c.overlay))
-            .occlude();
+            .occlude()
+            .child(centered);
 
         if reduced {
-            overlay.child(panel).into_any_element()
+            overlay.into_any_element()
         } else {
             let duration = Duration::from_millis(shared::DUR as u64);
-            let panel = panel.with_animation(
-                (panel_id, "enter"),
-                Animation::new(duration).with_easing(cubic_bezier(0.2, 0.0, 0.0, 1.0)),
-                |el, delta| {
-                    let (opacity, lift) = enter_frame(delta);
-                    el.opacity(opacity).top(px(lift))
-                },
-            );
             overlay
-                .child(panel)
                 .with_animation(
                     (overlay_id, "enter"),
                     Animation::new(duration).with_easing(cubic_bezier(0.2, 0.0, 0.0, 1.0)),
@@ -439,6 +602,10 @@ mod tests {
         assert_eq!(Width::Md.px(), 480.0);
         assert_eq!(Width::Lg.px(), 720.0);
         assert_eq!(Width::Xl.px(), 880.0);
+        assert!((Width::Sm.max_vw() - 0.92).abs() < 1e-6);
+        assert!((Width::Md.max_vw() - 0.92).abs() < 1e-6);
+        assert!((Width::Lg.max_vw() - 0.94).abs() < 1e-6);
+        assert!((Width::Xl.max_vw() - 0.94).abs() < 1e-6);
     }
 
     #[test]

@@ -19,6 +19,9 @@ use chef_ui::form::{CheckState, Checkbox, Switch, TextField};
 use chef_ui::menu::{Menu, MenuEntry};
 use chef_ui::select::Select;
 use chef_ui::tabs::{TabItem, Tabs};
+use chef_ui::task_dialog::{
+    ApplyTo, TaskAdvanced, TaskApplyTo, TaskDialog, TaskPreset, TaskResult,
+};
 use chef_ui::text_input::TextInput;
 use chef_ui::thumbnail::ThumbnailShimmer;
 use chef_ui::toast::Toast;
@@ -142,6 +145,25 @@ pub struct Probe {
     toast_button: FocusHandle,
     toasts: Vec<ToastItem>,
     toast_seq: usize,
+    /// Khu R5.01: trang thử cô lập cho `TaskDialog` (`CHEF_E2E_PROBE_TASK_DIALOG=1`).
+    task_dialog_open: bool,
+    task_dialog_opener: FocusHandle,
+    task_preset_sel: usize,
+    task_opt_bookmarks: bool,
+    task_opt_bookmarks_focus: FocusHandle,
+    task_adv_open: bool,
+    task_adv_compress: bool,
+    task_adv_compress_focus: FocusHandle,
+    task_apply_to: ApplyTo,
+    task_files: Vec<String>,
+    task_file_seq: usize,
+    task_running: bool,
+    task_run_seq: u64,
+    task_run_count: usize,
+    task_progress: Option<f32>,
+    task_confirm_cancel: bool,
+    task_result: Option<TaskResult>,
+    task_probe_finish_focus: FocusHandle,
 }
 
 impl Probe {
@@ -177,6 +199,24 @@ impl Probe {
             toast_button: cx.focus_handle(),
             toasts: Vec::new(),
             toast_seq: 0,
+            task_dialog_open: false,
+            task_dialog_opener: cx.focus_handle(),
+            task_preset_sel: 0,
+            task_opt_bookmarks: true,
+            task_opt_bookmarks_focus: cx.focus_handle(),
+            task_adv_open: false,
+            task_adv_compress: false,
+            task_adv_compress_focus: cx.focus_handle(),
+            task_apply_to: ApplyTo::ThisFile,
+            task_files: Vec::new(),
+            task_file_seq: 1,
+            task_running: false,
+            task_run_seq: 0,
+            task_run_count: 0,
+            task_progress: None,
+            task_confirm_cancel: false,
+            task_result: None,
+            task_probe_finish_focus: cx.focus_handle(),
         }
     }
 
@@ -980,7 +1020,228 @@ fn layout_section(c: &Colors, viewport_w: f32) -> Div {
 impl Probe {
     /// Đưa tiêu điểm vào nút "Focus" để chụp trạng thái focus-visible. Gọi một lần sau khi mở.
     pub fn focus_button(&self, window: &mut Window, cx: &mut App) {
-        window.focus(&self.buttons[0], cx);
+        if std::env::var("CHEF_E2E_PROBE_TASK_DIALOG").as_deref() == Ok("1") {
+            window.focus(&self.task_dialog_opener, cx);
+        } else {
+            window.focus(&self.buttons[0], cx);
+        }
+    }
+
+    fn start_task_dialog_run(&mut self, cx: &mut Context<Self>) {
+        self.task_run_seq += 1;
+        let seq = self.task_run_seq;
+        self.task_running = true;
+        self.task_progress = None;
+        self.task_confirm_cancel = false;
+        self.task_result = None;
+        cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(Duration::from_millis(600))
+                .await;
+            let _ = this.update(cx, |probe, cx| {
+                if probe.task_running && probe.task_run_seq == seq {
+                    probe.task_progress = Some(0.5);
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
+        cx.notify();
+    }
+
+    fn task_dialog(&self, c: &Colors, cx: &mut Context<Self>) -> TaskDialog {
+        let entity = cx.entity();
+        let preset_entity = entity.clone();
+        let opt_entity = entity.clone();
+        let adv_toggle_entity = entity.clone();
+        let adv_check_entity = entity.clone();
+        let apply_change_entity = entity.clone();
+        let apply_add_entity = entity.clone();
+        let apply_remove_entity = entity.clone();
+        let run_entity = entity.clone();
+        let cancel_entity = entity.clone();
+        let close_entity = entity.clone();
+        let req_confirm_entity = entity.clone();
+        let keep_entity = entity.clone();
+        let stop_close_entity = entity.clone();
+        let finish_entity = entity;
+
+        let preset = TaskPreset::new(
+            vec!["Chuẩn".into(), "Nhẹ".into(), "Nét".into()],
+            self.task_preset_sel,
+        )
+        .on_change(move |idx, _, cx| {
+            preset_entity.update(cx, |probe, cx| {
+                probe.task_preset_sel = idx;
+                cx.notify();
+            });
+        });
+
+        let adv = TaskAdvanced::new(self.task_adv_open)
+            .on_toggle(move |_, cx| {
+                adv_toggle_entity.update(cx, |probe, cx| {
+                    probe.task_adv_open = !probe.task_adv_open;
+                    cx.notify();
+                });
+            })
+            .child(
+                Checkbox::new(
+                    "task-adv-compress",
+                    self.task_adv_compress_focus.clone(),
+                    "Nén luồng dữ liệu",
+                    if self.task_adv_compress {
+                        CheckState::Checked
+                    } else {
+                        CheckState::Unchecked
+                    },
+                )
+                .dark(c.dark)
+                .on_change(move |next, _, cx| {
+                    adv_check_entity.update(cx, |probe, cx| {
+                        probe.task_adv_compress = *next == CheckState::Checked;
+                        cx.notify();
+                    });
+                }),
+            );
+
+        let apply_to = TaskApplyTo::new(self.task_apply_to)
+            .files(self.task_files.clone())
+            .on_change(move |mode, _, cx| {
+                apply_change_entity.update(cx, |probe, cx| {
+                    probe.task_apply_to = mode;
+                    cx.notify();
+                });
+            })
+            .on_add_files(move |_, cx| {
+                apply_add_entity.update(cx, |probe, cx| {
+                    probe
+                        .task_files
+                        .push(format!(r"C:\docs\hop-dong-{}.pdf", probe.task_file_seq));
+                    probe.task_file_seq += 1;
+                    cx.notify();
+                });
+            })
+            .on_remove_file(move |idx, _, cx| {
+                apply_remove_entity.update(cx, |probe, cx| {
+                    if idx < probe.task_files.len() {
+                        probe.task_files.remove(idx);
+                        cx.notify();
+                    }
+                });
+            });
+
+        let mut preview = div()
+            .flex()
+            .flex_col()
+            .gap(px(8.0))
+            .text_size(px(12.0))
+            .text_color(rgb(c.text_2))
+            .child("12 trang · Khổ A4")
+            .child("Chế độ mẫu được áp dụng trước khi ghi.");
+        if self.task_running {
+            preview = preview.child(
+                Button::new("task-probe-finish", self.task_probe_finish_focus.clone())
+                    .size(Size::Sm)
+                    .variant(Variant::Secondary)
+                    .label("Hoàn tất thử")
+                    .dark(c.dark)
+                    .on_click(move |_, _, cx| {
+                        finish_entity.update(cx, |probe, cx| {
+                            probe.task_running = false;
+                            probe.task_progress = None;
+                            probe.task_confirm_cancel = false;
+                            probe.task_run_seq += 1;
+                            probe.task_run_count += 1;
+                            probe.task_result = Some(TaskResult::success("Xử lý hoàn tất").detail(
+                                format!("Lần chạy #{} đã hoàn thành.", probe.task_run_count),
+                            ));
+                            cx.notify();
+                        });
+                    }),
+            );
+        }
+
+        let mut dialog = TaskDialog::new("task-dlg", "Ghép & tối ưu PDF", c.dark)
+            .icon("icons/combine.svg")
+            .description("Chọn thứ tự file và tùy chọn xử lý dùng chung.")
+            .return_focus(self.task_dialog_opener.clone())
+            .preset(preset)
+            .child(
+                Checkbox::new(
+                    "task-opt-bookmarks",
+                    self.task_opt_bookmarks_focus.clone(),
+                    "Tạo bookmark theo tên file",
+                    if self.task_opt_bookmarks {
+                        CheckState::Checked
+                    } else {
+                        CheckState::Unchecked
+                    },
+                )
+                .dark(c.dark)
+                .on_change(move |next, _, cx| {
+                    opt_entity.update(cx, |probe, cx| {
+                        probe.task_opt_bookmarks = *next == CheckState::Checked;
+                        cx.notify();
+                    });
+                }),
+            )
+            .advanced(adv)
+            .tab_order(vec![self.task_opt_bookmarks_focus.clone()])
+            .advanced_tab_order(vec![self.task_adv_compress_focus.clone()])
+            .preview(preview)
+            .estimate(div().child("~2.4 MB · 12 trang"))
+            .warnings(["Một trang dùng ảnh độ phân giải cao."])
+            .apply_to(apply_to)
+            .running(self.task_running)
+            .progress(self.task_progress)
+            .confirm_cancel_open(self.task_confirm_cancel)
+            .workflow_step_enabled(true)
+            .on_run(move |_, cx| {
+                run_entity.update(cx, |probe, cx| probe.start_task_dialog_run(cx));
+            })
+            .on_cancel_run(move |_, cx| {
+                cancel_entity.update(cx, |probe, cx| {
+                    probe.task_running = false;
+                    probe.task_progress = None;
+                    probe.task_confirm_cancel = false;
+                    probe.task_run_seq += 1;
+                    probe.task_result = Some(TaskResult::cancelled("Đã dừng công việc."));
+                    cx.notify();
+                });
+            })
+            .on_request_cancel_confirm(move |_, cx| {
+                req_confirm_entity.update(cx, |probe, cx| {
+                    probe.task_confirm_cancel = true;
+                    cx.notify();
+                });
+            })
+            .on_keep_running(move |_, cx| {
+                keep_entity.update(cx, |probe, cx| {
+                    probe.task_confirm_cancel = false;
+                    cx.notify();
+                });
+            })
+            .on_confirm_cancel_close(move |_, cx| {
+                stop_close_entity.update(cx, |probe, cx| {
+                    probe.task_running = false;
+                    probe.task_progress = None;
+                    probe.task_confirm_cancel = false;
+                    probe.task_run_seq += 1;
+                    probe.task_dialog_open = false;
+                    cx.notify();
+                });
+            })
+            .on_close(move |_, cx| {
+                close_entity.update(cx, |probe, cx| {
+                    probe.task_dialog_open = false;
+                    probe.task_confirm_cancel = false;
+                    cx.notify();
+                });
+            });
+        if let Some(res) = &self.task_result {
+            dialog = dialog.result(res.clone());
+        }
+        dialog
     }
 }
 
@@ -989,6 +1250,32 @@ impl Render for Probe {
         chef_ui::a11y::begin_frame(window.scale_factor());
         crate::debug::count_render();
         let c = Colors::new(is_dark(mode_from_env()));
+        if std::env::var("CHEF_E2E_PROBE_TASK_DIALOG").as_deref() == Ok("1") {
+            let entity = cx.entity();
+            return chef_ui::button::focus_nav(div())
+                .size_full()
+                .bg(rgb(c.bg))
+                .text_color(rgb(c.text))
+                .font_family("Be Vietnam Pro")
+                .p(px(24.0))
+                .flex()
+                .flex_col()
+                .gap(px(16.0))
+                .child(
+                    Button::new("task-dialog-open", self.task_dialog_opener.clone())
+                        .variant(Variant::Primary)
+                        .label("Mở TaskDialog")
+                        .dark(c.dark)
+                        .on_click(move |_, _, cx| {
+                            entity.update(cx, |probe, cx| {
+                                probe.task_dialog_open = true;
+                                probe.task_confirm_cancel = false;
+                                cx.notify();
+                            });
+                        }),
+                )
+                .children(self.task_dialog_open.then(|| self.task_dialog(&c, cx)));
+        }
         if std::env::var("CHEF_E2E_PROBE_THUMBNAIL_SHIMMER").as_deref() == Ok("1") {
             return chef_ui::button::focus_nav(div())
                 .size_full()

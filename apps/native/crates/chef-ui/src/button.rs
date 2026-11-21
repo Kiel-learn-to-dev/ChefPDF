@@ -331,6 +331,7 @@ pub struct Button {
     size: Size,
     dark: bool,
     disabled: bool,
+    loading: bool,
     on_click: Option<ClickListener>,
 }
 
@@ -347,6 +348,7 @@ impl Button {
             size: Size::Md,
             dark: false,
             disabled: false,
+            loading: false,
             on_click: None,
         }
     }
@@ -389,6 +391,12 @@ impl Button {
         self
     }
 
+    /// Trạng thái đang xử lý: hiện spinner thay cho icon và khóa nút như `Button.tsx`.
+    pub fn loading(mut self, loading: bool) -> Self {
+        self.loading = loading;
+        self
+    }
+
     pub fn on_click(
         mut self,
         listener: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
@@ -396,6 +404,14 @@ impl Button {
         self.on_click = Some(Box::new(listener));
         self
     }
+}
+
+pub(crate) fn effective_disabled(disabled: bool, loading: bool) -> bool {
+    disabled || loading
+}
+
+pub(crate) fn loading_a11y_value(loading: bool) -> Option<String> {
+    loading.then(|| "loading".to_string())
 }
 
 impl RenderOnce for Button {
@@ -414,16 +430,17 @@ impl RenderOnce for Button {
             !name.is_empty(),
             "nút {key} không có label hoặc aria_label (D81)"
         );
+        let is_disabled = effective_disabled(self.disabled, self.loading);
         let focused = self.focus.is_focused(window);
         // Nút vô hiệu không nhận Tab. Nút còn lại là điểm dừng của Tab.
-        let focus = self.focus.tab_stop(!self.disabled);
+        let focus = self.focus.tab_stop(!is_disabled);
         let ring = focus_ring(&paint);
         let feedback = window.use_keyed_state(self.id.clone(), cx, |_, _| Feedback::default());
         let (hovered, pressed, from, changed_at) = {
             let state = feedback.read(cx);
             (state.hovered, state.pressed, state.from, state.changed_at)
         };
-        let target = visual(&paint, hovered, pressed);
+        let target = visual(&paint, hovered && !is_disabled, pressed && !is_disabled);
         // Chưa từng đổi đích (changed_at là None) thì vẽ luôn màu đích, không chuyển.
         let fade = changed_at.map(|at| fade_progress(Instant::now().saturating_duration_since(at)));
         let shown = match fade {
@@ -441,11 +458,11 @@ impl RenderOnce for Button {
             id: key.clone(),
             role: "button",
             name,
-            disabled: self.disabled,
+            disabled: is_disabled,
             focused,
-            hovered,
+            hovered: hovered && !is_disabled,
             checked: None,
-            value: None,
+            value: loading_a11y_value(self.loading),
             bounds: None,
         });
 
@@ -469,7 +486,7 @@ impl RenderOnce for Button {
             .whitespace_nowrap()
             .focus_visible(|s| s.shadow(ring));
 
-        if self.disabled {
+        if is_disabled {
             button = button.opacity(0.5);
         } else {
             button = button.cursor_pointer();
@@ -518,7 +535,14 @@ impl RenderOnce for Button {
             }
         }
 
-        if let Some(icon) = self.icon {
+        if self.loading {
+            button = button.child(crate::jobs_panel::render_spinner(
+                format!("{key}-spinner"),
+                geo.icon,
+                shown.text,
+                crate::motion::reduced(),
+            ));
+        } else if let Some(icon) = self.icon {
             button = button.child(
                 svg()
                     .path(icon)
@@ -649,5 +673,15 @@ mod tests {
         }
         // --ease tăng nhanh lúc đầu: tới nửa thời gian đã vượt 80% quãng đường.
         assert!(ease(0.5) > 0.8);
+    }
+
+    #[test]
+    fn loading_disables_button_and_sets_loading_a11y_value() {
+        assert!(!effective_disabled(false, false));
+        assert!(effective_disabled(true, false));
+        assert!(effective_disabled(false, true));
+        assert!(effective_disabled(true, true));
+        assert_eq!(loading_a11y_value(false), None);
+        assert_eq!(loading_a11y_value(true).as_deref(), Some("loading"));
     }
 }

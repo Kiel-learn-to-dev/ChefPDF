@@ -947,7 +947,7 @@ fn render_job_row(
         .into_any_element()
 }
 
-fn render_spinner(
+pub(crate) fn render_spinner(
     id: impl Into<ElementId>,
     size: f32,
     color: u32,
@@ -976,12 +976,22 @@ fn render_progress_bar(
     c: &PanelColors,
     reduced: bool,
 ) -> gpui::AnyElement {
+    render_progress_bar_raw(id, value, c.accent, c.surface_sunken, reduced)
+}
+
+pub(crate) fn render_progress_bar_raw(
+    id: impl Into<ElementId>,
+    value: Option<f32>,
+    accent: u32,
+    surface_sunken: u32,
+    reduced: bool,
+) -> gpui::AnyElement {
     let track = div()
         .relative()
         .w_full()
         .h(px(4.0))
         .rounded(px(shared::RADIUS_FULL))
-        .bg(rgba(c.surface_sunken))
+        .bg(rgba(surface_sunken))
         .overflow_hidden();
 
     let bar = match value {
@@ -992,7 +1002,7 @@ fn render_progress_bar(
             .left(px(0.0))
             .w(relative(p.clamp(0.0, 1.0)))
             .rounded(px(shared::RADIUS_FULL))
-            .bg(rgba(c.accent))
+            .bg(rgba(accent))
             .into_any_element(),
         None => {
             let ind = div()
@@ -1001,7 +1011,7 @@ fn render_progress_bar(
                 .bottom(px(0.0))
                 .w(relative(0.35))
                 .rounded(px(shared::RADIUS_FULL))
-                .bg(rgba(c.accent));
+                .bg(rgba(accent));
             if reduced {
                 ind.left(relative(0.325)).into_any_element()
             } else {

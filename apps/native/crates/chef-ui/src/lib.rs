@@ -12,6 +12,7 @@ pub mod motion;
 pub mod palette;
 pub mod select;
 pub mod tabs;
+pub mod task_dialog;
 pub mod text_buffer;
 pub mod text_input;
 pub mod thumbnail;
