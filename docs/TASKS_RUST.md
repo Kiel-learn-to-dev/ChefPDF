@@ -1253,10 +1253,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) thay ảnh giữ vị trí; (2) cắt và xoay không mất ảnh gốc (có lịch sử); (3) chỉnh sáng đúng.
 - **Kiểm chứng:** E2E `content-v06`; test.
 - **Phụ thuộc:** R4.11
-- **File:** `apps/native/crates/chef-app/src/image_edit.rs`
-- **E2E:** `content-v06`
+- **File:** `apps/native/crates/chef-app/src/image_edit.rs`, `apps/native/crates/chef-app/src/objects.rs`, `apps/native/crates/chef-app/src/viewer.rs`, `scripts/e2e-native-image-edit.ps1`
+- **E2E:** `content-v06`, `scripts/e2e-native-image-edit.ps1`
 - **Tính năng:** D6, D7
-- **Trạng thái:** ⬜
+- **Trạng thái:** ✅
+- **Ghi chú:** (2026-11-21) Chọn đối tượng ảnh hiện nút ngữ cảnh `Thay ảnh` (`image-replace`) và `Chỉnh ảnh` (`image-adjust`); gọi `content.replaceImage` giữ nguyên khung bbox (`contain`) và hộp thoại chỉnh ảnh (`content.adjustImage`: cắt `crop`, xoay `rotate`, lật ngang/dọc `flipH`/`flipV`, độ sáng `brightness`, tương phản `contrast`, xóa nền `removeBg`, đặt lại). Mở rộng `ObjectSel.pixel_size` từ `pixelSize`; đồng bộ khóa i18n `objects.select`/`objects.on` và `overlay.cmd.addImage` để thanh công cụ không tràn ở 1200px. `chef-app` 136/136, `chef-viewer` 45/45, `clippy` sạch; `scripts/e2e-native-image-edit.ps1` đạt (thay ảnh giữ bbox `(150,242,350,342)`, cắt/xoay/chỉnh sáng tạo ảnh `(40,40)` giữ ảnh gốc khi `Ctrl+Z` 2 lần). Đóng task.
 
 ### R4.15 · Liên kết · S
 - **Mô tả:** thêm, sửa, xóa liên kết trang nội bộ, web, email (operation `links.*`). Hiện vùng liên kết khi di chuột.

@@ -11,6 +11,7 @@ pub struct ObjectSel {
     pub bbox: [f32; 4],
     pub bbox_user: [f32; 4],
     pub page_rotation: u16,
+    pub pixel_size: Option<[u32; 2]>,
 }
 
 impl ObjectSel {
@@ -51,6 +52,15 @@ pub fn selection_from_reply(reply: &Value, page_index: usize) -> Result<Option<O
     let bbox = parse_rect4(object.get("bbox"))
         .ok_or_else(|| "Core returned invalid object geometry".to_string())?;
     let bbox_user = parse_rect4(object.get("bboxUser")).unwrap_or(bbox);
+    let pixel_size = object
+        .get("pixelSize")
+        .and_then(Value::as_array)
+        .filter(|pair| pair.len() == 2)
+        .and_then(|pair| {
+            let w = u32::try_from(pair[0].as_u64()?).ok()?;
+            let h = u32::try_from(pair[1].as_u64()?).ok()?;
+            Some([w, h])
+        });
     Ok(Some(ObjectSel {
         page_index,
         id: object
@@ -66,6 +76,7 @@ pub fn selection_from_reply(reply: &Value, page_index: usize) -> Result<Option<O
         bbox,
         bbox_user,
         page_rotation,
+        pixel_size,
     }))
 }
 
@@ -135,12 +146,14 @@ mod tests {
                     "id": "p1:ab:0",
                     "kind": "path",
                     "bbox": [10.0, 20.0, 110.0, 70.0],
-                    "bboxUser": [20.0, 50.0, 70.0, 150.0]
+                    "bboxUser": [20.0, 50.0, 70.0, 150.0],
+                    "pixelSize": [80, 40]
                 }
             }
         });
         let sel = selection_from_reply(&reply, 1).unwrap().unwrap();
         assert_eq!(sel.page_rotation, 90);
         assert_eq!(sel.bbox_user, [20.0, 50.0, 70.0, 150.0]);
+        assert_eq!(sel.pixel_size, Some([80, 40]));
     }
 }

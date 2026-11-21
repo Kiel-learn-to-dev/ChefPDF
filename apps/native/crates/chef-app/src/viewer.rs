@@ -296,6 +296,12 @@ pub struct Viewer {
     link_close_focus: FocusHandle,
     link_apply_focus: FocusHandle,
     hovered_link: Option<String>,
+    image_adjust_open: bool,
+    image_adjust_state: crate::image_edit::AdjustState,
+    image_crop_input: Entity<TextInput>,
+    image_adjust_close_focus: FocusHandle,
+    image_adjust_apply_focus: FocusHandle,
+    image_fit: crate::image_edit::ImageFit,
     /// Hộp thoại Thuộc tính (Ctrl+D): số liệu đã đọc lúc mở, và tiêu điểm nút đóng.
     props_open: bool,
     props_view: Option<properties::View>,
@@ -1237,6 +1243,19 @@ impl Viewer {
             )
         {
             self.message = Some(i18n::t("links.closeBeforeEdit"));
+            cx.notify();
+            return;
+        }
+        if self.image_adjust_open
+            && !matches!(
+                &operation,
+                EditOperation::DrawShape {
+                    op_id: "content.adjustImage",
+                    ..
+                }
+            )
+        {
+            self.message = Some(i18n::t("objects.image.closeBeforeEdit"));
             cx.notify();
             return;
         }
@@ -2756,6 +2775,7 @@ impl Viewer {
                     self.message = None;
                     self.insert_image = None;
                     self.insert_image_drag = None;
+                    self.image_adjust_open = false;
                     self.object_sel = None;
                     self.object_drag = None;
                     if let Some((page_index, point)) = self.object_rehit.take() {
@@ -2958,6 +2978,15 @@ impl Viewer {
             });
         let link_close_focus = cx.focus_handle();
         let link_apply_focus = cx.focus_handle();
+        let image_crop_input = cx.new(|cx| TextInput::new(cx, i18n::t("objects.image.crop")));
+        let image_crop_subscription =
+            cx.subscribe(&image_crop_input, |_, _, event: &TextInputEvent, cx| {
+                if matches!(event, TextInputEvent::Changed) {
+                    cx.notify();
+                }
+            });
+        let image_adjust_close_focus = cx.focus_handle();
+        let image_adjust_apply_focus = cx.focus_handle();
         let mut viewer = Viewer {
             handle,
             supervisor,
@@ -2972,6 +3001,7 @@ impl Viewer {
                 note_subscription,
                 note_author_subscription,
                 link_subscription,
+                image_crop_subscription,
             ],
             appearance_observer_installed: false,
             settings,
@@ -3044,6 +3074,12 @@ impl Viewer {
             link_close_focus,
             link_apply_focus,
             hovered_link: None,
+            image_adjust_open: false,
+            image_adjust_state: crate::image_edit::AdjustState::default(),
+            image_crop_input,
+            image_adjust_close_focus,
+            image_adjust_apply_focus,
+            image_fit: crate::image_edit::ImageFit::Contain,
             props_open: false,
             props_view: None,
             props_close: cx.focus_handle(),
@@ -3506,6 +3542,7 @@ impl Viewer {
         self.document_signed = false;
         self.insert_image = None;
         self.insert_image_drag = None;
+        self.image_adjust_open = false;
         self.object_sel = None;
         self.object_rehit = None;
         self.object_drag = None;
@@ -3890,11 +3927,104 @@ impl Viewer {
         cx.notify();
     }
 
+    fn replace_selected_image(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        let Some(sel) = self.object_sel.clone().filter(|s| s.kind == "image") else {
+            return;
+        };
+        let Some(path) = self.choose_image_file(cx) else {
+            return;
+        };
+        match crate::image_edit::replace_image_params(
+            sel.page_index,
+            &sel.id,
+            &path,
+            self.image_fit,
+        ) {
+            Ok(params) => {
+                self.object_rehit = Some((sel.page_index, sel.center()));
+                self.begin_edit(
+                    EditOperation::DrawShape {
+                        op_id: "content.replaceImage",
+                        params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
+    fn open_image_adjust(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        if self.object_sel.as_ref().is_none_or(|s| s.kind != "image") {
+            return;
+        }
+        self.image_adjust_state = crate::image_edit::AdjustState::default();
+        self.image_crop_input
+            .update(cx, |input, cx| input.set_text("", cx));
+        self.message = None;
+        self.image_adjust_open = true;
+        cx.notify();
+    }
+
+    fn close_image_adjust(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.image_adjust_open = false;
+        self.message = None;
+        window.focus(&self.focus, cx);
+        cx.notify();
+    }
+
+    fn apply_image_adjust(&mut self, cx: &mut Context<Self>) {
+        if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
+            return;
+        }
+        let Some(sel) = self.object_sel.clone().filter(|s| s.kind == "image") else {
+            return;
+        };
+        let crop_raw = self.image_crop_input.read(cx).text().to_owned();
+        let crop = match crate::image_edit::parse_crop(&crop_raw) {
+            Ok(crop) => crop,
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+                return;
+            }
+        };
+        let mut adj = self.image_adjust_state.clone();
+        adj.crop = crop;
+        match crate::image_edit::adjust_image_params(sel.page_index, &sel.id, &adj) {
+            Ok(params) => {
+                self.image_adjust_open = false;
+                self.object_rehit = Some((sel.page_index, sel.center()));
+                self.begin_edit(
+                    EditOperation::DrawShape {
+                        op_id: "content.adjustImage",
+                        params,
+                    },
+                    cx,
+                );
+            }
+            Err(error) => {
+                self.message = Some(error);
+                cx.notify();
+            }
+        }
+    }
+
     fn toggle_object_mode(&mut self, cx: &mut Context<Self>) {
         if self.operation_pending || self.switch_rx.is_some() || self.edit_blocked {
             return;
         }
         self.object_mode = !self.object_mode;
+        self.image_adjust_open = false;
         self.object_sel = None;
         self.object_rehit = None;
         self.object_drag = None;
@@ -5823,6 +5953,225 @@ impl Render for Viewer {
         } else {
             None
         };
+        let image_adjust_dialog = if self.image_adjust_open {
+            let adj = self.image_adjust_state.clone();
+            let b_down = entity.clone();
+            let b_up = entity.clone();
+            let c_down = entity.clone();
+            let c_up = entity.clone();
+            let rot_entity = entity.clone();
+            let flip_entity = entity.clone();
+            let gray_entity = entity.clone();
+            let inv_entity = entity.clone();
+            let close_entity = entity.clone();
+            let cancel_entity = entity.clone();
+            let apply_entity = entity.clone();
+            let status_note = self.message.clone();
+            Some(
+                Dialog::new(
+                    "image-adjust",
+                    i18n::t("objects.image.adjust"),
+                    Width::Md,
+                    dark,
+                )
+                .close(
+                    "image-adjust-close",
+                    self.image_adjust_close_focus.clone(),
+                    i18n::t("common.close"),
+                )
+                .tab_order(vec![
+                    self.image_crop_input.read(cx).focus_handle(cx),
+                    self.image_adjust_apply_focus.clone(),
+                ])
+                .return_focus(self.focus.clone())
+                .on_dismiss(move |window, cx| {
+                    close_entity.update(cx, |this, cx| this.close_image_adjust(window, cx));
+                })
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(8.))
+                        .child(
+                            Button::new("image-brightness-down", cx.focus_handle())
+                                .label("-25")
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    b_down.update(cx, |this, cx| {
+                                        this.image_adjust_state.brightness =
+                                            (this.image_adjust_state.brightness - 25)
+                                                .clamp(-100, 100);
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(
+                            Button::new("image-brightness-up", cx.focus_handle())
+                                .label("+25")
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    b_up.update(cx, |this, cx| {
+                                        this.image_adjust_state.brightness =
+                                            (this.image_adjust_state.brightness + 25)
+                                                .clamp(-100, 100);
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(div().text_color(rgb(palette.text)).child(format!(
+                            "{}: {}",
+                            i18n::t("objects.image.brightness"),
+                            adj.brightness
+                        ))),
+                )
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(8.))
+                        .child(
+                            Button::new("image-contrast-down", cx.focus_handle())
+                                .label("-25")
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    c_down.update(cx, |this, cx| {
+                                        this.image_adjust_state.contrast =
+                                            (this.image_adjust_state.contrast - 25)
+                                                .clamp(-100, 100);
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(
+                            Button::new("image-contrast-up", cx.focus_handle())
+                                .label("+25")
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    c_up.update(cx, |this, cx| {
+                                        this.image_adjust_state.contrast =
+                                            (this.image_adjust_state.contrast + 25)
+                                                .clamp(-100, 100);
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(div().text_color(rgb(palette.text)).child(format!(
+                            "{}: {}",
+                            i18n::t("objects.image.contrast"),
+                            adj.contrast
+                        ))),
+                )
+                .child(
+                    div()
+                        .flex()
+                        .gap(px(8.))
+                        .child(
+                            Button::new("image-rotate", cx.focus_handle())
+                                .label(format!(
+                                    "{}: {}°",
+                                    i18n::t("objects.image.rotate"),
+                                    adj.rotate
+                                ))
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    rot_entity.update(cx, |this, cx| {
+                                        this.image_adjust_state.rotate =
+                                            (this.image_adjust_state.rotate + 90) % 360;
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(
+                            Button::new("image-flip", cx.focus_handle())
+                                .label(format!("{}: {}", i18n::t("objects.image.flip"), adj.flip))
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    flip_entity.update(cx, |this, cx| {
+                                        this.image_adjust_state.flip =
+                                            match this.image_adjust_state.flip {
+                                                "none" => "h",
+                                                "h" => "v",
+                                                _ => "none",
+                                            };
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(
+                            Button::new("image-grayscale", cx.focus_handle())
+                                .label(i18n::t("objects.image.grayscale"))
+                                .variant(if adj.grayscale {
+                                    Variant::Secondary
+                                } else {
+                                    Variant::Ghost
+                                })
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    gray_entity.update(cx, |this, cx| {
+                                        this.image_adjust_state.grayscale =
+                                            !this.image_adjust_state.grayscale;
+                                        cx.notify();
+                                    });
+                                }),
+                        )
+                        .child(
+                            Button::new("image-invert", cx.focus_handle())
+                                .label(i18n::t("objects.image.invert"))
+                                .variant(if adj.invert {
+                                    Variant::Secondary
+                                } else {
+                                    Variant::Ghost
+                                })
+                                .dark(dark)
+                                .on_click(move |_, _, cx| {
+                                    inv_entity.update(cx, |this, cx| {
+                                        this.image_adjust_state.invert =
+                                            !this.image_adjust_state.invert;
+                                        cx.notify();
+                                    });
+                                }),
+                        ),
+                )
+                .child(
+                    TextField::new(
+                        "image-crop",
+                        i18n::t("objects.image.crop"),
+                        self.image_crop_input.clone(),
+                    )
+                    .dark(dark),
+                )
+                .when_some(status_note, |dialog, text| {
+                    dialog.child(
+                        div()
+                            .id("image-adjust-error")
+                            .text_color(rgb(palette.accent))
+                            .child(text),
+                    )
+                })
+                .action(
+                    Button::new("image-adjust-cancel", self.image_adjust_close_focus.clone())
+                        .label(i18n::t("common.close"))
+                        .dark(dark)
+                        .on_click(move |_, window, cx| {
+                            cancel_entity
+                                .update(cx, |this, cx| this.close_image_adjust(window, cx));
+                        }),
+                )
+                .action(
+                    Button::new("image-adjust-apply", self.image_adjust_apply_focus.clone())
+                        .label(i18n::t("objects.image.apply"))
+                        .variant(Variant::Primary)
+                        .disabled(self.operation_pending)
+                        .dark(dark)
+                        .on_click(move |_, _, cx| {
+                            apply_entity.update(cx, |this, cx| this.apply_image_adjust(cx));
+                        }),
+                )
+                .into_any_element(),
+            )
+        } else {
+            None
+        };
         let scanning = self.scanning();
         let source_warning = self.source_warning.map(|verdict| {
             let (body, title) = match verdict {
@@ -5909,7 +6258,7 @@ impl Render for Viewer {
             .flex()
             .flex_none()
             .items_center()
-            .gap(px(8.))
+            .gap(px(4.))
             .bg(rgb(palette.surface))
             .text_color(rgb(palette.text))
             .border_b_1()
@@ -5976,6 +6325,41 @@ impl Render for Viewer {
                             }),
                     )
             })
+            .when(
+                self.object_sel
+                    .as_ref()
+                    .is_some_and(|sel| sel.kind == "image"),
+                |toolbar| {
+                    let replace_entity = entity.clone();
+                    let adjust_entity = entity.clone();
+                    let disabled = self.operation_pending
+                        || self.switch_rx.is_some()
+                        || self.edit_blocked
+                        || self.doc.is_none();
+                    toolbar
+                        .child(
+                            Button::new("image-replace", cx.focus_handle())
+                                .label(i18n::t("objects.image.replace"))
+                                .size(ButtonSize::Sm)
+                                .dark(dark)
+                                .disabled(disabled)
+                                .on_click(move |_, _, cx| {
+                                    replace_entity
+                                        .update(cx, |this, cx| this.replace_selected_image(cx))
+                                }),
+                        )
+                        .child(
+                            Button::new("image-adjust", cx.focus_handle())
+                                .label(i18n::t("objects.image.adjust"))
+                                .size(ButtonSize::Sm)
+                                .dark(dark)
+                                .disabled(disabled)
+                                .on_click(move |_, _, cx| {
+                                    adjust_entity.update(cx, |this, cx| this.open_image_adjust(cx))
+                                }),
+                        )
+                },
+            )
             .child(
                 Button::new("object-select", cx.focus_handle())
                     .label(format!(
@@ -6096,7 +6480,7 @@ impl Render for Viewer {
             )
             .child(
                 Button::new("insert-image", cx.focus_handle())
-                    .label(i18n::t("overlay.addImage"))
+                    .label(i18n::t("overlay.cmd.addImage"))
                     .size(ButtonSize::Sm)
                     .variant(if self.insert_image.is_some() {
                         Variant::Secondary
@@ -6574,7 +6958,8 @@ impl Render for Viewer {
                 .children(password_dialog)
                 .children(bookmark_dialog)
                 .children(notes_dialog)
-                .children(links_dialog);
+                .children(links_dialog)
+                .children(image_adjust_dialog);
         };
         if self.fit_width && self.page_mode != PageMode::Slideshow && page_viewport_w > 0.0 {
             let fit = if let Some(spread) = self.spread.as_ref() {
@@ -7670,6 +8055,7 @@ impl Render for Viewer {
             .children(bookmark_dialog)
             .children(notes_dialog)
             .children(links_dialog)
+            .children(image_adjust_dialog)
             .children(page_context)
     }
 }

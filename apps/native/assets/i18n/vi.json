@@ -1,5 +1,5 @@
 {
-  "objects": { "select": "Chọn đối tượng", "on": "Bật" }, "draw": { "erase": "Tẩy vùng", 
+  "draw": { "erase": "Tẩy vùng", 
     "tool": "Vẽ",
     "off": "Tắt",
     "rectangle": "Chữ nhật",
@@ -3491,6 +3491,8 @@
   },
   "objects": {
     "title": "Đối tượng",
+    "select": "Chọn đối tượng",
+    "on": "Bật",
     "cmd": {
       "toggle": "Chọn & sửa đối tượng"
     },
@@ -3572,6 +3574,7 @@
       "replace": "Thay ảnh…",
       "extract": "Lưu ảnh ra…",
       "adjust": "Chỉnh ảnh",
+      "closeBeforeEdit": "Hãy đóng hộp thoại chỉnh ảnh trước khi chỉnh tài liệu.",
       "fit": "Cách đặt ảnh",
       "brightness": "Độ sáng",
       "contrast": "Tương phản",
@@ -3630,6 +3633,11 @@
     "apply": "Áp dụng"
   },
   "layers": {
+    "title": "Lớp",
+    "rename": "Đổi tên",
+    "renamePlaceholder": "Tên lớp",
+    "closeBeforeEdit": "Đóng bảng lớp trước khi chỉnh sửa.",
+    "noDocument": "Mở tài liệu để quản lý lớp.",
     "listing": "Đang đọc các lớp…",
     "label": "Danh sách lớp",
     "unnamed": "Lớp không tên",

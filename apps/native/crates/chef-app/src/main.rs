@@ -38,6 +38,7 @@ mod draw;
 mod drop;
 mod find;
 #[cfg(windows)]
+mod image_edit;
 mod insert_image;
 mod instance;
 mod links;

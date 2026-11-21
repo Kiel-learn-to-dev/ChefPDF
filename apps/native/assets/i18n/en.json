@@ -1,5 +1,5 @@
 {
-  "objects": { "select": "Select object", "on": "On" }, "draw": { "erase": "Erase region", 
+  "draw": { "erase": "Erase region", 
     "tool": "Draw",
     "off": "Off",
     "rectangle": "Rectangle",
@@ -3511,6 +3511,8 @@
   },
   "objects": {
     "title": "Objects",
+    "select": "Select object",
+    "on": "On",
     "cmd": {
       "toggle": "Select & edit objects"
     },
@@ -3592,6 +3594,7 @@
       "replace": "Replace image…",
       "extract": "Save image…",
       "adjust": "Adjust image",
+      "closeBeforeEdit": "Close the image adjustment dialog before editing the document.",
       "fit": "Placement",
       "brightness": "Brightness",
       "contrast": "Contrast",
@@ -3650,6 +3653,11 @@
     "apply": "Apply"
   },
   "layers": {
+    "title": "Layers",
+    "rename": "Rename",
+    "renamePlaceholder": "Layer name",
+    "closeBeforeEdit": "Close the layers panel before editing.",
+    "noDocument": "Open a document to manage layers.",
     "listing": "Reading layers…",
     "label": "Layer list",
     "unnamed": "Unnamed layer",
