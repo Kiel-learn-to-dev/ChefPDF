@@ -131,6 +131,7 @@ Mã tính năng ghi trong bảng này là mã chính thức của FEATURES.md 1.
 | D89 | **Lõi tự tắt khi rảnh, trạng thái `stopped` (vỏ Rust, R3.03).** Lõi khởi động lười và tự tắt khi không có yêu cầu, job hoặc phiên mở quá `idle_stop` (mặc định 10 phút). Tắt bằng `system.shutdown`. Trạng thái `stopped` là riêng của bản Rust, ngoài bốn trạng thái của CONTRACTS §2; CONTRACTS chưa đổi vì Electron 1.3 vẫn dùng | Lõi chỉ chạy khi cần (BLUEPRINT §2.2, R5). Phiên mở giữ lõi vì CONTRACTS §4 xóa thư mục phiên khi `system.shutdown`: tự tắt lúc còn phiên sẽ mất revision chưa lưu |
 | D90 | **Bỏ qua có lý do 10 advisory `unmaintained` từ đồ thị phụ thuộc GPUI đã ghim** trong `apps/native/deny.toml`. Chỉ bỏ qua đúng các ID RustSec đã kiểm tra ngày 2026-11-14; không đổi kiểm tra vulnerability/unsound/yanked, không nới danh sách giấy phép. Rà lại các ID khi nâng GPUI hoặc khi advisory thay đổi | Chủ dự án chọn ignore 10 cảnh báo có lý do (CH-R4). `cargo deny 0.20.2` xác nhận cả 10 ID hiện là `unmaintained`, đều bắc cầu từ GPUI và ghi “No safe upgrade is available” |
 | D91 | **Bỏ qua đúng `RUSTSEC-2026-0543` cho `chrono 0.4.45`** trong `apps/native/deny.toml`. Đây là advisory `unmaintained` bắc cầu từ GPUI/PDFium; cargo-deny báo không có nâng cấp an toàn. Chỉ thêm đúng ID này, không đổi các kiểm tra vulnerability/unsound/yanked hay license; rà lại khi advisory, GPUI hoặc đồ thị dependency đổi | Chủ dự án chọn thêm exact exception ngày 2026-11-21 sau khi xem advisory; task yêu cầu tiến đến 40% |
+| D92 | **Chỉ kiểm UniKey cho IME tiếng Việt; bỏ bộ gõ tích hợp Windows và triển khai TSF khỏi kế hoạch.** R1.24–R1.26 chuyển ❌; R1.27 kiểm UniKey Telex/VNI; R7.09 cũng chỉ kiểm UniKey. Nếu UniKey không hoạt động, ghi nhận giới hạn và đánh giá lại riêng, không tự triển khai TSF | Chủ dự án yêu cầu ngày 2026-11-22 |
 
 
 ## Kiến trúc dự kiến
@@ -225,6 +226,10 @@ Giấy phép ghi theo hiểu biết hiện tại của Claude. **Phải kiểm t
 - Tab nhiều file, file gần đây, chế độ tối, bảng lệnh `Ctrl+K`.
 
 ## Nhật ký
+
+- **2026-11-22 (D92, MAN-1/R1.27):** Theo yêu cầu của chủ dự án, chỉ kiểm UniKey, không dùng bộ gõ tiếng Việt tích hợp Windows. Chủ dự án tự thử UniKey từ ghi chú và xác nhận gõ tiếng Việt ổn; ghi nhận R1.27 đạt. Computer Use `@oai/sky` và CUA không kết nối được native pipe nên không có ảnh chụp từ phiên này. R1.24–R1.26 bị bỏ khỏi phạm vi; R7.09 vẫn chờ kiểm IME trong khung nháp sửa chữ.
+
+- **2026-11-21 (ủy quyền MAN-5, chẩn đoán MAN-1/R1.43):** Chủ dự án ủy quyền tự xử lý các việc đang chờ. Đã xem report sáu cặp R1.43 hiện có: 0/6 đạt; chưa chấp nhận. Ghi rõ sai lệch và ảnh nguồn ở BLUEPRINT_RUST §6.9/TASKS_RUST R1.43. Sửa probe GPUI: tiêu đề nút lên hàng riêng; font 13 px/line-height 19,5 px; cột 300 px không co; đảo thứ tự paint hai lớp focus ring trong `probe.rs` và `chef-ui::button::focus_ring` (GPUI vẽ theo thứ tự slice, nên khác thứ tự CSS). `cargo build -p chef-app` đạt. Chụp lại sau sửa chưa thành công: off-screen capture có client box ngoài ảnh; visible WGC trả `0x80070057`. Process `UniKeyNT` có chạy, nhưng Computer Use (`@oai/sky` và CUA sau reset) đều không kết nối được native pipe, vì vậy không thể nhập composition thật để thử Telex/Unikey/EVKey hoặc đo cursor; không coi nhập Unicode/E2E gõ thường là kiểm IME. Giữ R1.26/R1.27/R1.43 mở cho đến khi có runtime capture/input hợp lệ.
 
 - **2026-11-21 (D91, tiếp tục R4.17–R4.19):** Chủ dự án phê duyệt thêm exact ignore `RUSTSEC-2026-0543` cho `chrono 0.4.45`, advisory unmaintained mới từ đồ thị phụ thuộc GPUI/PDFium, vì cargo-deny xác nhận không có nâng cấp an toàn. Thêm đúng ID vào `apps/native/deny.toml`; không nới license, vulnerability, unsound hoặc yanked. Kiểm tra lại `cargo deny check` trước khi đóng các task đang chờ gate.
 
@@ -512,7 +517,7 @@ TextInput có secure mode che nội dung, chặn copy/cut và zeroize buffer đa
 
 # R2.28 · Đọc ban đêm
 
-D79 trong NOTES chốt dùng `invert(1) hue-rotate(180deg)` chỉ trên bitmap trang. Đảo BGRA thực hiện tại chỗ; khi bật/tắt, Viewer evict cache bitmap trang để ảnh được render lại theo mode mới, trong khi ảnh đang chờ render sẽ dùng mode tại lúc nhận. Thêm unit test màu RGB không xám theo ma trận CSS, bảo toàn alpha/capacity và evict toàn bộ cache. E2E night cũ có 5/5 lần chạy trước, chưa chạy lại. Chưa có đối chiếu ảnh với Electron từ reference R2.02/MAN-5 hoặc số cache đo thực tế; R2.28 giữ 🔄.
+D79 trong NOTES chốt dùng `invert(1) hue-rotate(180deg)` chỉ trên bitmap trang. Đảo BGRA thực hiện tại chỗ; khi bật/tắt, Viewer evict cache bitmap trang để ảnh được render lại theo mode mới, trong khi ảnh đang chờ render sẽ dùng mode tại lúc nhận. Thêm unit test màu RGB không xám theo ma trận CSS, bảo toàn alpha/capacity và evict toàn bộ cache. (2026-11-22) Rà đúng `pdfium-render 0.9.5`: mặc định `set_reverse_byte_order(true)` khiến `as_raw_bytes()` là RGBA, trong khi `PageImage`/GPUI `RenderImage` yêu cầu BGRA. Regression PDF đỏ/xanh thất bại trước sửa; sau khi ghim `set_reverse_byte_order(false)`, kiểm tra đạt, và ảnh native ngày/đêm có đúng thứ tự màu. E2E night Windows đạt, cache tăng 0%. Ảnh cặp và báo cáo mẫu ở `%LOCALAPPDATA%\ChefPDF\R2.28-color-check-20261122`; chưa chạy comparator toàn trang R2.02 do kích thước/crop của hai capture khác nhau và khác biệt raster. R2.28 vẫn 🔄.
 
 # R2.20 native viewer modes
 
@@ -542,3 +547,24 @@ Các thay đổi ngày 2026-11-14 được viết trên Mac và chưa từng ch�
 - Lỗi của script đã sửa: `select` (tọa độ cũ, lấy theo ảnh chụp có thanh tiêu đề thay vì vùng client); `view` (công thức tâm zoom không trừ khoảng cách 16 px giữa các trang; sản phẩm đúng, nên mục "zoom lệch tâm 10 px" của R2.21 đóng); `night` (lấy mẫu cả sidebar và lề tối của giao diện tối); `password` (ba kiểm tra log đòi đủ ba lượt chạy nhưng đặt sau lượt 1).
 - R2.14 và R2.25b về ✅. Cài đặt mở được từ màn hình Start sau khi chuyển sang `SettingsPanel` của cửa sổ.
 - Còn mở: bộ ảnh tham chiếu cho `visual-selftest`; R3.11 thiếu kiểm bằng phím thật; thanh công cụ của viewer tràn chữ ở cửa sổ 1188 px logic (thấy trên ảnh chụp, chưa có task).
+
+# 2026-11-21 · Tiếp tục hàng chờ vỏ Rust: R1.43 chụp lại và MAN-5
+
+- Sửa capture WGC: đo crop vùng client trong DPI-awareness context PMv2, đặt cửa sổ `Normal` khi chụp hiển thị và kiểm tra fail-fast nếu cửa sổ không hiện. Probe visual-only dùng cao 900 logical px để khớp viewport Electron.
+- Chụp thành công 6 ảnh native ở DPR 1.75. Electron ref chụp bằng CDP `Emulation.setDeviceMetricsOverride` (Playwright `setViewportSize` làm DPR về 1). Kích thước và cặp theme/viewports khớp; comparator chạy 6 cặp, 0 đạt (score 0,473–0,519).
+- MAN-5 đã xem ảnh dark 800: Electron nút nội tại cùng một hàng; Rust nút full-width xếp dọc. Thử `.flex_none()` trong `chef-ui::Button` không đổi ảnh; cần điều tra GPUI layout sizing trước khi chỉnh tiếp. Không chấp nhận R1.43.
+- Xác minh: `cargo fmt --all -- --check`, `cargo build -p chef-app`, E2E Electron ref DPR 1.75 pass; `pnpm --filter @chef/e2e typecheck` và parser PowerShell pass ở lần chạy trước. `scripts/e2e-native-visual-selftest.ps1` trước đó xác nhận 220/220 ref. MAN-1/đo con trỏ vẫn không thể làm bằng native pipe hiện tại.
+
+# 2026-11-22 · Đóng R1.43 sau MAN-5
+
+- GPUI modifier `flex_row()` chỉ đặt `flex_direction`; hàng nút thiếu `.flex()`, khiến container vẫn là block và các nút giãn dọc. Thêm `.flex()` sửa bố cục. Section title 11 px kế thừa line-height tuyệt đối 19,5 px từ root; đặt đúng 16,5 px như CSS. Hàng nút icon được đổi sang `Variant::Ghost` giống `icon-btn`.
+- Bộ ảnh cuối ghép 6/6 cặp ở DPR 1.75, kích thước đúng. Comparator vẫn 0/6 theo ngưỡng pixel (score 0,866–0,916); xem diff cho thấy sai khác còn lại chủ yếu là antialias/raster khác engine và vài pixel shadow/icon. MAN-5 đã xem ảnh và chấp nhận khác biệt còn lại.
+- Verdict: font, icon, shadow/focus và layout được chấp nhận; cursor hand được kiểm bằng chuột hệ thống thật, `GetCursorInfo` trả `hand` và probe báo nút hovered. Cursor check dùng PMv2; phải gửi thêm một mouse move sau frame GPUI để Windows cập nhật `WM_SETCURSOR`. Index evidence: `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.19-pointer-check-20261122\capture-index.json`.
+- Cập nhật R1.13, R1.15, R1.16, R1.17, R1.19 và R1.43 thành ✅; ghi trạng thái năm dòng CSS M1 còn lại ở BLUEPRINT_RUST §6.2. `cargo fmt --all -- --check`, `cargo build -p chef-app`, pointer capture và `git diff --check` đạt.
+
+# 2026-11-22 · R1.12 theme hệ thống
+
+- Dùng profile E2E riêng và đổi tạm HKCU `AppsUseLightTheme` với `WM_SETTINGCHANGE` (`ImmersiveColorSet`), luôn khôi phục giá trị gốc trong `finally` (giá trị ban đầu/kết thúc: 0, dark).
+- Start và Viewer settings=`system` đổi tối→sáng→tối trong cùng PID; Viewer render count 3→5→6. `themeDark` và ảnh Start/Viewer thay đổi đúng. Settings cố định `light`/`dark` giữ nguyên khi registry đổi. Ảnh BMP (debug đặt đuôi .png) ở `C:\Users\phamm\AppData\Local\ChefPDF\system-theme-check-20261122`.
+- Ảnh dark Viewer phát hiện dải tab tài liệu hard-code nền trắng/xám. Sửa `tabs_host.rs` theo token `C_SURFACE_SUNKEN`, active `C_SURFACE`, text `C_TEXT`/`C_TEXT_2`; capture lại xác nhận dải tab tối đúng.
+- R1.12 chuyển ✅. `cargo fmt --all -- --check` và `cargo build -p chef-app` đạt. Script test một lần ở `%LOCALAPPDATA%\ChefPDF\e2e-native-system-theme-once.ps1`; không đưa vào repo vì nó thao tác registry Windows người dùng.

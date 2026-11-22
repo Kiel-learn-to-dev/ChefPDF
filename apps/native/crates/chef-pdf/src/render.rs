@@ -363,7 +363,11 @@ fn render_page(
         .get(index as i32)
         .map_err(|e| format!("trang {index}: {e}"))?;
     let config = configure_render(
-        PdfRenderConfig::new().set_target_size(width as i32, height as i32),
+        PdfRenderConfig::new()
+            .set_target_size(width as i32, height as i32)
+            // `as_raw_bytes()` must match the BGRA contract used by PageImage and GPUI RenderImage.
+            // pdfium-render defaults to reversed byte order (RGBA), which swaps red and blue here.
+            .set_reverse_byte_order(false),
         d.has_form_env(),
     );
     let bitmap = page

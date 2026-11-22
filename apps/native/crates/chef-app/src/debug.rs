@@ -634,6 +634,30 @@ static SPLIT_SCROLL: std::sync::Mutex<std::collections::VecDeque<f32>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
 static RESIZE_REQUESTS: std::sync::Mutex<std::collections::VecDeque<(f32, f32)>> =
     std::sync::Mutex::new(std::collections::VecDeque::new());
+static PAGE_EXPORTS: std::sync::Mutex<std::collections::VecDeque<PageExportRequest>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+
+pub struct PageExportRequest {
+    pub page: usize,
+    pub reply: std::sync::mpsc::Sender<Result<PageRaster, String>>,
+}
+
+pub struct PageRaster {
+    pub width: u32,
+    pub height: u32,
+    pub image_id: usize,
+    pub rotation: u8,
+    pub night: bool,
+    pub zoom: f32,
+    pub bytes: Vec<u8>,
+}
+
+pub fn take_page_exports() -> Vec<PageExportRequest> {
+    PAGE_EXPORTS
+        .lock()
+        .map(|mut queue| queue.drain(..).collect())
+        .unwrap_or_default()
+}
 
 /// Lấy các action đang chờ (gọi từ luồng GPUI).
 pub fn take_actions() -> Vec<String> {
@@ -1378,6 +1402,46 @@ fn dispatch(line: &str, token: &str, hwnd: isize) -> String {
     };
     match cmd {
         "state" => state(hwnd),
+        "exportpage" => {
+            let Some((page, path)) = arg.split_once(' ') else {
+                return "{\"ok\":false,\"error\":\"exportpage cần <pageIndex> <path.bmp>\"}".into();
+            };
+            let Ok(page) = page.parse::<usize>() else {
+                return "{\"ok\":false,\"error\":\"pageIndex không hợp lệ\"}".into();
+            };
+            let path = path.trim();
+            if path.is_empty() {
+                return "{\"ok\":false,\"error\":\"thiếu đường dẫn BMP\"}".into();
+            }
+            let (reply, result) = std::sync::mpsc::channel();
+            if let Ok(mut queue) = PAGE_EXPORTS.lock() {
+                queue.push_back(PageExportRequest { page, reply });
+            } else {
+                return "{\"ok\":false,\"error\":\"không khóa được hàng đợi export\"}".into();
+            }
+            match result.recv_timeout(Duration::from_secs(10)) {
+                Ok(Ok(raster)) => match write_bmp(path, raster.width, raster.height, &raster.bytes)
+                {
+                    Ok(()) => format!(
+                        "{{\"ok\":true,\"path\":{},\"page\":{},\"width\":{},\"height\":{},\"imageId\":{},\"night\":{},\"rotation\":{},\"zoom\":{}}}",
+                        json_str(path),
+                        page,
+                        raster.width,
+                        raster.height,
+                        raster.image_id,
+                        raster.night,
+                        raster.rotation,
+                        raster.zoom
+                    ),
+                    Err(e) => format!(
+                        "{{\"ok\":false,\"error\":{}}}",
+                        json_str(&format!("ghi BMP lỗi: {e}"))
+                    ),
+                },
+                Ok(Err(error)) => format!("{{\"ok\":false,\"error\":{}}}", json_str(&error)),
+                Err(_) => "{\"ok\":false,\"error\":\"hết giờ chờ viewer export trang\"}".into(),
+            }
+        }
         "screenshot" if !arg.is_empty() => match screenshot(hwnd, arg) {
             Ok(json) => json,
             Err(e) => format!("{{\"ok\":false,\"error\":{e:?}}}"),
@@ -1679,6 +1743,7 @@ pub fn start(hwnd: isize) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{dispatch, json_str, take_actions, take_scroll_screens};
+    use std::time::Duration;
 
     #[test]
     fn wrong_token_is_rejected_before_any_command_runs() {
@@ -1768,6 +1833,56 @@ mod tests {
             dispatch("dung_token closewindow", "dung_token", 0),
             "{\"ok\":true}"
         );
+    }
+
+    #[test]
+    fn exportpage_waits_for_gpui_snapshot_and_writes_the_cached_bgra_bitmap() {
+        let path =
+            std::env::temp_dir().join(format!("chef-exportpage-test-{}.bmp", std::process::id()));
+        let path_text = path.to_string_lossy().into_owned();
+        let command = format!("dung_token exportpage 2 {path_text}");
+        let dispatch_thread = std::thread::spawn(move || dispatch(&command, "dung_token", 0));
+
+        let request = (0..100)
+            .find_map(|_| {
+                let request = super::take_page_exports().into_iter().next();
+                if request.is_none() {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                request
+            })
+            .expect("exportpage request should reach the GPUI queue");
+        assert_eq!(request.page, 2);
+        request
+            .reply
+            .send(Ok(super::PageRaster {
+                width: 1,
+                height: 1,
+                image_id: 42,
+                rotation: 0,
+                night: true,
+                zoom: 1.0,
+                bytes: vec![1, 2, 3, 255],
+            }))
+            .unwrap();
+
+        let reply = dispatch_thread.join().unwrap();
+        assert!(reply.contains("\"ok\":true"), "{reply}");
+        assert!(reply.contains("\"imageId\":42"), "{reply}");
+        let bmp = std::fs::read(&path).unwrap();
+        assert_eq!(&bmp[..2], b"BM");
+        assert_eq!(&bmp[bmp.len() - 4..], &[1, 2, 3, 255]);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn exportpage_rejects_missing_or_invalid_arguments() {
+        assert!(dispatch("dung_token exportpage", "dung_token", 0).contains("\"ok\":false"));
+        assert!(
+            dispatch("dung_token exportpage nope image.bmp", "dung_token", 0)
+                .contains("\"ok\":false")
+        );
+        assert!(dispatch("dung_token exportpage 0", "dung_token", 0).contains("\"ok\":false"));
     }
 
     #[test]

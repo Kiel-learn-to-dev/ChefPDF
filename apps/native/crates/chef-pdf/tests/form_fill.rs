@@ -4,7 +4,7 @@
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::channel;
+use std::sync::{Mutex, OnceLock, mpsc::channel};
 
 use chef_pdf::form_fill::{DocFormInfo, FormType, PageWidgets, WidgetKind};
 use chef_pdf::render::{self, Job, PageImage, RenderHandle, Reply};
@@ -46,8 +46,19 @@ fn dll_dir() -> PathBuf {
         })
 }
 
+static PDFIUM: OnceLock<RenderHandle> = OnceLock::new();
+static TEST_LOCK: Mutex<()> = Mutex::new(());
+
+fn lock_tests() -> std::sync::MutexGuard<'static, ()> {
+    TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 fn spawn_pdfium() -> RenderHandle {
-    render::spawn(dll_dir()).expect("nạp pdfium thất bại")
+    PDFIUM
+        .get_or_init(|| render::spawn(dll_dir()).expect("nạp pdfium thất bại"))
+        .clone()
 }
 
 fn call<R>(
@@ -219,7 +230,9 @@ fn build_xfa_pdf() -> Vec<u8> {
 
 #[test]
 fn form_env_initializes_on_form_pdfs_and_exits_on_close() {
+    let _guard = lock_tests();
     let h = spawn_pdfium();
+    let baseline = h.form_env_stats();
     let plain_f = TempPdf::new("plain", &build_plain_pdf());
     let form_a = TempPdf::new("form_a", &build_form_pdf(0, None, true));
     let form_b = TempPdf::new("form_b", &build_form_pdf(0, None, false));
@@ -251,26 +264,27 @@ fn form_env_initializes_on_form_pdfs_and_exits_on_close() {
     let s1 = h.form_env_stats();
     assert_eq!(s1.active_docs, 3);
     assert_eq!(s1.active_form_envs, 2);
-    assert_eq!(s1.total_form_inits, 2);
-    assert_eq!(s1.total_form_exits, 0);
+    assert_eq!(s1.total_form_inits, baseline.total_form_inits + 2);
+    assert_eq!(s1.total_form_exits, baseline.total_form_exits);
 
     close(&h, doc_a);
     let s2 = h.form_env_stats();
     assert_eq!(s2.active_docs, 2);
     assert_eq!(s2.active_form_envs, 1);
-    assert_eq!(s2.total_form_exits, 1);
+    assert_eq!(s2.total_form_exits, baseline.total_form_exits + 1);
 
     close(&h, doc_b);
     close(&h, doc_plain);
     let s3 = h.form_env_stats();
     assert_eq!(s3.active_docs, 0);
     assert_eq!(s3.active_form_envs, 0);
-    assert_eq!(s3.total_form_inits, 2);
-    assert_eq!(s3.total_form_exits, 2);
+    assert_eq!(s3.total_form_inits, baseline.total_form_inits + 2);
+    assert_eq!(s3.total_form_exits, baseline.total_form_exits + 2);
 }
 
 #[test]
 fn reads_all_widget_kinds_and_coordinates_across_rotate_and_cropbox() {
+    let _guard = lock_tests();
     let h = spawn_pdfium();
 
     // 1. Standard 0 deg, checked radio = true
@@ -350,6 +364,7 @@ fn reads_all_widget_kinds_and_coordinates_across_rotate_and_cropbox() {
 
 #[test]
 fn renders_form_widgets_into_page_bitmap_via_ffl_draw() {
+    let _guard = lock_tests();
     let h = spawn_pdfium();
     let pdf = TempPdf::new("render_widgets", &build_form_pdf(0, None, true));
     let doc = open(&h, &pdf.path);
@@ -399,6 +414,7 @@ fn renders_form_widgets_into_page_bitmap_via_ffl_draw() {
 
 #[test]
 fn javascript_actions_never_execute_in_form_fill_environment() {
+    let _guard = lock_tests();
     let h = spawn_pdfium();
     let pdf = TempPdf::new("js_attack", &build_js_attack_pdf());
     let doc = open(&h, &pdf.path);
@@ -441,6 +457,7 @@ fn javascript_actions_never_execute_in_form_fill_environment() {
 
 #[test]
 fn xfa_document_never_loads_xfa_or_js() {
+    let _guard = lock_tests();
     let h = spawn_pdfium();
     let pdf = TempPdf::new("xfa", &build_xfa_pdf());
     let doc = open(&h, &pdf.path);
@@ -461,6 +478,7 @@ fn xfa_document_never_loads_xfa_or_js() {
 
 #[test]
 fn has_signatures_distinguishes_signed_from_unsigned_sig_fields() {
+    let _guard = lock_tests();
     let h = spawn_pdfium();
     let plain_f = TempPdf::new("sig_plain", &build_plain_pdf());
     let unsigned_form_f = TempPdf::new("sig_unsigned_form", &build_form_pdf(0, None, true));

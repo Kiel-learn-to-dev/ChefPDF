@@ -1,0 +1,71 @@
+{
+  "app": "Chef PDF Electron 1.3.0 visual reference for native R1.43 probes",
+  "captures": [
+    {
+      "file": "probe_light_w800_dpr1_75.png",
+      "theme": "light",
+      "logicalWidth": 800,
+      "logicalHeight": 900,
+      "dpr": 1.75,
+      "devicePixelRatio": 1.75,
+      "width": 1400,
+      "height": 1575,
+      "sha256": "783b64467353e338074c37d05985a4cb682dec62813a37cb6eae15185ba46e33"
+    },
+    {
+      "file": "probe_dark_w800_dpr1_75.png",
+      "theme": "dark",
+      "logicalWidth": 800,
+      "logicalHeight": 900,
+      "dpr": 1.75,
+      "devicePixelRatio": 1.75,
+      "width": 1400,
+      "height": 1575,
+      "sha256": "eb0a367d5dc969b4427d7f77972c8ffd70e337a16558854a6bb2cbecbb4c0e7d"
+    },
+    {
+      "file": "probe_light_w1184_dpr1_75.png",
+      "theme": "light",
+      "logicalWidth": 1184,
+      "logicalHeight": 900,
+      "dpr": 1.75,
+      "devicePixelRatio": 1.75,
+      "width": 2072,
+      "height": 1575,
+      "sha256": "9ca3ec696494a8c21a541ddc3b500ebaf1eed1e70caff8fe5f917ca5f24031b2"
+    },
+    {
+      "file": "probe_dark_w1184_dpr1_75.png",
+      "theme": "dark",
+      "logicalWidth": 1184,
+      "logicalHeight": 900,
+      "dpr": 1.75,
+      "devicePixelRatio": 1.75,
+      "width": 2072,
+      "height": 1575,
+      "sha256": "b5da1ae3f8a78a517a15a2ed034d8dad073dd7406d65bcd3443c8ffedc776371"
+    },
+    {
+      "file": "probe_light_w1484_dpr1_75.png",
+      "theme": "light",
+      "logicalWidth": 1484,
+      "logicalHeight": 900,
+      "dpr": 1.75,
+      "devicePixelRatio": 1.75,
+      "width": 2597,
+      "height": 1575,
+      "sha256": "71fec03ee82e486f5d1edc341060f6a2d99a23880d3a5e20a48cbe96fe10a755"
+    },
+    {
+      "file": "probe_dark_w1484_dpr1_75.png",
+      "theme": "dark",
+      "logicalWidth": 1484,
+      "logicalHeight": 900,
+      "dpr": 1.75,
+      "devicePixelRatio": 1.75,
+      "width": 2597,
+      "height": 1575,
+      "sha256": "8d9a7d6b565e02d37778c2feb879a0557bbfef7c7c4ec34dae47e8abd13610be"
+    }
+  ]
+}

@@ -41,7 +41,6 @@ mod forms_create;
 mod forms_fill;
 mod forms_flatten;
 mod forms_overlay;
-#[cfg(windows)]
 mod image_edit;
 mod insert_image;
 mod instance;
@@ -218,7 +217,8 @@ fn open_probe_window(cx: &mut App, min: Option<gpui::Size<gpui::Pixels>>) {
         .and_then(|v| v.parse::<f32>().ok())
         .unwrap_or(DEFAULT_SIZE.0);
     let task_dialog_probe = std::env::var("CHEF_E2E_PROBE_TASK_DIALOG").as_deref() == Ok("1");
-    let height = if task_dialog_probe {
+    let visual_only = std::env::var("CHEF_E2E_PROBE_VISUAL_ONLY").as_deref() == Ok("1");
+    let height = if task_dialog_probe || visual_only {
         900.0
     } else {
         PROBE_HEIGHT
@@ -614,6 +614,10 @@ fn main() {
                                 if let Some(action) = action_for(&name) {
                                     window.dispatch_action(action, cx);
                                 }
+                            }
+                            for request in debug::take_page_exports() {
+                                let result = host.debug_export_page(request.page, cx);
+                                let _ = request.reply.send(result);
                             }
                             if let Some((text, selection, focused)) = host.active_search(window, cx)
                             {

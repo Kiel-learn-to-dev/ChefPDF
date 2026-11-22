@@ -24,6 +24,7 @@ if (-not $OutputDirectory) {
     $OutputDirectory = Join-Path $env:LOCALAPPDATA 'ChefPDF/visual-candidates/R1.43'
 }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
+$logicalHeight = 900 # CHEF_E2E_PROBE_VISUAL_ONLY uses a shorter viewport to fit at the Windows DPR.
 if (-not (Test-Path -LiteralPath $Exe -PathType Leaf)) { throw "chef-app.exe not found: $Exe" }
 if (-not (Test-Path -LiteralPath (Join-Path (Split-Path $Exe) 'pdfium.dll') -PathType Leaf)) {
     throw "pdfium.dll must be beside chef-app.exe: $Exe"
@@ -80,6 +81,9 @@ public static class NativeCursorProbe {
     private static extern bool ClientToScreen(IntPtr hwnd, ref POINT point);
 
     [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
+    [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetCursorPos(int x, int y);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -90,18 +94,28 @@ public static class NativeCursorProbe {
 
     public static string MoveToControlAndRead(long hwndValue, float[] bounds, double scale) {
         if (bounds == null || bounds.Length != 4) throw new ArgumentException("Expected x,y,width,height bounds.");
-        var origin = new POINT { X = 0, Y = 0 };
-        if (!ClientToScreen(new IntPtr(hwndValue), ref origin)) throw new InvalidOperationException("ClientToScreen failed.");
-        int x = origin.X + (int)Math.Round((bounds[0] + bounds[2] / 2.0) * scale);
-        int y = origin.Y + (int)Math.Round((bounds[1] + bounds[3] / 2.0) * scale);
-        if (!SetCursorPos(x, y)) throw new InvalidOperationException("SetCursorPos failed.");
-        System.Threading.Thread.Sleep(180);
-        var info = new CURSORINFO { cbSize = Marshal.SizeOf<CURSORINFO>() };
-        if (!GetCursorInfo(ref info)) throw new InvalidOperationException("GetCursorInfo failed.");
-        if ((info.flags & 1) == 0) return "hidden";
-        if (info.hCursor == LoadCursor(IntPtr.Zero, new IntPtr(32649))) return "hand";
-        if (info.hCursor == LoadCursor(IntPtr.Zero, new IntPtr(32512))) return "arrow";
-        return "other";
+        IntPtr previousDpi = SetThreadDpiAwarenessContext(new IntPtr(-4)); // PER_MONITOR_AWARE_V2
+        if (previousDpi == IntPtr.Zero) throw new InvalidOperationException("SetThreadDpiAwarenessContext failed.");
+        try {
+            var origin = new POINT { X = 0, Y = 0 };
+            if (!ClientToScreen(new IntPtr(hwndValue), ref origin)) throw new InvalidOperationException("ClientToScreen failed.");
+            int x = origin.X + (int)Math.Round((bounds[0] + bounds[2] / 2.0) * scale);
+            int y = origin.Y + (int)Math.Round((bounds[1] + bounds[3] / 2.0) * scale);
+            if (!SetCursorPos(x, y)) throw new InvalidOperationException("SetCursorPos failed.");
+            System.Threading.Thread.Sleep(120);
+            // First move causes the GPUI hover frame to set its cursor style; a second in-control
+            // move makes Windows deliver WM_SETCURSOR for that newly rendered style.
+            if (!SetCursorPos(x + 1, y + 1)) throw new InvalidOperationException("SetCursorPos failed.");
+            System.Threading.Thread.Sleep(180);
+            var info = new CURSORINFO { cbSize = Marshal.SizeOf<CURSORINFO>() };
+            if (!GetCursorInfo(ref info)) throw new InvalidOperationException("GetCursorInfo failed.");
+            if ((info.flags & 1) == 0) return "hidden";
+            if (info.hCursor == LoadCursor(IntPtr.Zero, new IntPtr(32649))) return "hand";
+            if (info.hCursor == LoadCursor(IntPtr.Zero, new IntPtr(32512))) return "arrow";
+            return "other";
+        } finally {
+            SetThreadDpiAwarenessContext(previousDpi);
+        }
     }
 }
 '@
@@ -149,7 +163,8 @@ try {
             $env:CHEF_THEME = $theme
             $env:CHEF_USER_DATA_DIR = $userData
             try {
-                $process = Start-Process -FilePath $Exe -PassThru -RedirectStandardError $log -WindowStyle Hidden
+                $startupWindowStyle = if ($VisibleProbe -or $MeasurePointer) { 'Normal' } else { 'Hidden' }
+                $process = Start-Process -FilePath $Exe -PassThru -RedirectStandardError $log -WindowStyle $startupWindowStyle
             } finally {
                 Restore-Env 'CHEF_E2E' $previous.E2E
                 Restore-Env 'CHEF_E2E_PROBE' $previous.Probe
@@ -177,6 +192,9 @@ try {
                 Start-Sleep -Milliseconds 200
             } while ([DateTime]::UtcNow -lt $deadline)
             if (-not $state -or [int]$state.renders -le 0) { throw "Probe did not render: $key; log: $log" }
+            if (($VisibleProbe -or $MeasurePointer) -and -not $state.visible) {
+                throw "Visible probe did not become visible: $key; log: $log"
+            }
 
             if ($MeasurePointer) {
                 if (-not $state.cursor.ok) { throw "GetCursorInfo unavailable while measuring $key" }
@@ -206,6 +224,7 @@ public static class ProbeClientCrop {
     [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr h, ref POINT p);
     [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int attr, out RECT r, int size);
+    [DllImport("user32.dll", SetLastError = true)] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
 
     // Cửa sổ hiện của tiến trình có vùng client lớn nhất (trang thử chỉ có một cửa sổ hiện).
     public static IntPtr FindVisibleWindow(uint pid) {
@@ -223,10 +242,18 @@ public static class ProbeClientCrop {
 
     // [offX, offY, width, height] của vùng client trong ảnh WGC (WGC bắt đầu từ khung hiển thị).
     public static int[] ClientBox(IntPtr h) {
-        RECT ext; DwmGetWindowAttribute(h, 9, out ext, Marshal.SizeOf(typeof(RECT)));
-        POINT o = new POINT { X = 0, Y = 0 }; ClientToScreen(h, ref o);
-        RECT c; GetClientRect(h, out c);
-        return new int[] { o.X - ext.L, o.Y - ext.T, c.R - c.L, c.B - c.T };
+        // WGC/DWM dimensions are physical pixels. PowerShell may be DPI-unaware and receive
+        // virtualized ClientToScreen coordinates, so make this thread PMv2-aware for the query.
+        IntPtr previous = SetThreadDpiAwarenessContext(new IntPtr(-4)); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        if (previous == IntPtr.Zero) throw new InvalidOperationException("Cannot set per-monitor DPI context.");
+        try {
+            RECT ext; DwmGetWindowAttribute(h, 9, out ext, Marshal.SizeOf(typeof(RECT)));
+            POINT o = new POINT { X = 0, Y = 0 }; ClientToScreen(h, ref o);
+            RECT c; GetClientRect(h, out c);
+            return new int[] { o.X - ext.L, o.Y - ext.T, c.R - c.L, c.B - c.T };
+        } finally {
+            SetThreadDpiAwarenessContext(previous);
+        }
     }
 }
 '@
@@ -251,12 +278,12 @@ public static class ProbeClientCrop {
                 name = $key
                 theme = $theme
                 logicalWidth = $width
-                logicalHeight = 1600
+                logicalHeight = $logicalHeight
                 devicePixelRatio = [double]$state.controls.scale
                 widthPx = [int]$clientW
                 heightPx = [int]$clientH
                 format = 'bmp'
-                visible = [bool]$VisibleProbe
+                visible = [bool]($VisibleProbe -or $MeasurePointer)
                 file = [IO.Path]::GetFileName($capturePath)
                 sha256 = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([IO.File]::ReadAllBytes($capturePath))).Replace('-', '').ToLowerInvariant()
             })
@@ -271,10 +298,14 @@ public static class ProbeClientCrop {
                         [single[]]@($button.bounds),
                         [double]$state.controls.scale
                     )
+                    $hoverState = Send 'state'
                 } finally {
                     [NativeCursorProbe]::SetCursorPos($originalCursor.x, $originalCursor.y) | Out-Null
                 }
-                if ($cursorType -ne 'hand') { throw "Expected hand cursor over probe-primary, got '$cursorType' for $key" }
+                $hovered = [bool](($hoverState.controls.controls | Where-Object { $_.id -eq 'probe-primary' } | Select-Object -First 1).hovered)
+                if ($cursorType -ne 'hand' -or -not $hovered) {
+                    throw "Expected hand cursor over probe-primary, got '$cursorType' (state=$($hoverState.cursor.type); hovered=$hovered; foreground=$($hoverState.foreground); cursor=$($hoverState.cursor.x),$($hoverState.cursor.y); bounds=$($button.bounds -join ','); scale=$($state.controls.scale)) for $key"
+                }
                 $cursorChecks.Add([pscustomobject]@{ capture = $key; cursor = $cursorType })
                 Write-Output "CURSOR $key $cursorType"
             }

@@ -7,13 +7,14 @@
   Mặc định tự tạo PDF trắng một trang; có thể truyền PDF riêng. Đo tỉ lệ điểm tối qua ảnh chụp và
   so byte cache giữa ngày/đêm khi cùng tập trang đã render. Chỉ chuẩn bị/kết hợp với chef-app.exe có sẵn.
 #>
-param([string]$Exe, [string]$Pdf)
+param([string]$Exe, [string]$Pdf, [string]$ArtifactDir)
 
 $ErrorActionPreference = "Stop"
 if (-not $Exe) { $Exe = Join-Path $PSScriptRoot "..\apps\native\target\debug\chef-app.exe" }
 if (-not (Test-Path -LiteralPath $Exe)) { throw "chef-app.exe not found: $Exe" }
 $work = Join-Path $env:TEMP ("chef-native-night-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force $work | Out-Null
+$customPdf = -not [string]::IsNullOrWhiteSpace($Pdf)
 if (-not $Pdf) {
     $Pdf = Join-Path $work 'night-fixture.pdf'
     Push-Location (Join-Path $PSScriptRoot '..\core')
@@ -101,19 +102,60 @@ try {
     # The first frame renders a placeholder-sized bitmap (a few hundred bytes) before the viewport is
     # known; wait for a full-size page so the day screenshot and cache size are the real ones.
     WaitFor { $s = State; $null -ne $s.view -and -not $s.view.night -and $s.pending -eq 0 -and $s.cachedBytes -gt 100000 } 'day-mode page cache to settle'
+    if ($ArtifactDir) {
+        Send 'action focuszoom' | Out-Null
+        Start-Sleep -Milliseconds 200
+        Send 'action selectall' | Out-Null
+        Start-Sleep -Milliseconds 200
+        Send 'char 146.6667%' | Out-Null
+        Start-Sleep -Milliseconds 200
+        Send 'action submit' | Out-Null
+        WaitFor { $s = State; [math]::Abs([double]$s.view.zoom - 1.466667) -lt 0.002 -and -not $s.view.fitWidth -and $s.pending -eq 0 -and $s.cachedBytes -gt 100000 } 'comparison zoom and page cache to settle'
+    }
     $dayState = State
     Expect "starts in day mode" $dayState.view.night $false
     $dayPath = (Send ("screenshot " + (Join-Path $work "night-day.bmp")) | ConvertFrom-Json).path
     $day = DarkShare $dayPath
+    $dayRasterPath = Join-Path $work "night-day-cache.bmp"
+    $dayRaster = Send ("exportpage 0 " + $dayRasterPath) | ConvertFrom-Json
+    Expect "day export succeeds from the active cached page" $dayRaster.ok $true
+    Expect "day export image id matches the active viewer cache" ($dayRaster.imageId -eq $dayState.cachedPageImages.'0') $true
+    Expect "day export writes the full cached page" ((Test-Path -LiteralPath $dayRasterPath) -and $dayRaster.width -gt 100 -and $dayRaster.height -gt 100) $true
     Send "action togglenight" | Out-Null
     WaitFor { $s = State; $s.view.night -and $s.pending -eq 0 -and $s.cachedBytes -gt 0 } 'night-mode page cache to settle'
     $nightState = State
     Expect "togglenight turns night on" $nightState.view.night $true
     $nightPath = (Send ("screenshot " + (Join-Path $work "night-on.bmp")) | ConvertFrom-Json).path
     $night = DarkShare $nightPath
+    $nightRasterPath = Join-Path $work "night-on-cache.bmp"
+    $nightRaster = Send ("exportpage 0 " + $nightRasterPath) | ConvertFrom-Json
+    Expect "night export succeeds from the active cached page" $nightRaster.ok $true
+    Expect "night export image id matches the active viewer cache" ($nightRaster.imageId -eq $nightState.cachedPageImages.'0') $true
+    Expect "night export records night mode and full page dimensions" (($nightRaster.night -eq $true) -and (Test-Path -LiteralPath $nightRasterPath) -and $nightRaster.width -gt 100 -and $nightRaster.height -gt 100) $true
+    if ($ArtifactDir) {
+        New-Item -ItemType Directory -Force -Path $ArtifactDir | Out-Null
+        $dayArtifactPath = Join-Path $ArtifactDir 'native-day-cache.bmp'
+        $nightArtifactPath = Join-Path $ArtifactDir 'native-night-cache.bmp'
+        Copy-Item -LiteralPath $dayRasterPath -Destination $dayArtifactPath -Force
+        Copy-Item -LiteralPath $nightRasterPath -Destination $nightArtifactPath -Force
+        $dayRaster.path = $dayArtifactPath
+        $nightRaster.path = $nightArtifactPath
+        [ordered]@{
+            fixture = (Resolve-Path -LiteralPath $Pdf).Path
+            fixtureSha256 = (Get-FileHash -LiteralPath $Pdf -Algorithm SHA256).Hash.ToLowerInvariant()
+            day = $dayRaster
+            night = $nightRaster
+            dayCacheBytes = $dayState.cachedBytes
+            nightCacheBytes = $nightState.cachedBytes
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $ArtifactDir 'native-cache.json') -Encoding utf8
+    }
     Write-Output ("dark share day=$day night=$night")
-    Expect "page turns dark at night" ($night -gt 80) $true
-    Expect "page is light by day" ($day -lt 20) $true
+    if (-not $customPdf) {
+        Expect "page turns dark at night" ($night -gt 80) $true
+        Expect "page is light by day" ($day -lt 20) $true
+    } else {
+        Write-Output 'SKIP whole-window darkness thresholds for custom color fixture; use full-page color comparison'
+    }
     $dayPages = @($dayState.cachedPageImages.PSObject.Properties.Name | Sort-Object)
     $nightPages = @($nightState.cachedPageImages.PSObject.Properties.Name | Sort-Object)
     Expect "day/night compare has the same cached pages" (($dayPages.Count -gt 0) -and (($dayPages -join ',') -ceq ($nightPages -join ','))) $true

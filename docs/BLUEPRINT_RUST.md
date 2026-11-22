@@ -66,7 +66,7 @@
 | Supervisor | Khởi động, `system.ping`, khởi động lại khi lõi chết | Theo `CONTRACTS.md` §2 |
 
 - Lõi khởi động với cờ **không tạo cửa sổ console** (`CREATE_NO_WINDOW`). Electron hiện làm việc này ở đâu chưa đối chiếu; kiểm ở M3 (TASKS R3.02).
-- Bitmap được pdfium render sang **BGRA**, khớp với định dạng GPUI dùng trên DirectX. Chưa xác minh việc tải lên không sao chép thừa; kiểm ở M1.
+- Bitmap được pdfium render sang **BGRA**, khớp với định dạng GPUI dùng trên DirectX. `pdfium-render` mặc định đảo thứ tự byte thành RGBA, nên pipeline đặt rõ `set_reverse_byte_order(false)` trước khi đọc `as_raw_bytes()`. Regression đỏ/xanh ở R2.28 giữ hợp đồng này. Chưa xác minh việc tải lên không sao chép thừa; kiểm ở M1.
 
 ### 2.2 Thiết kế tiết kiệm RAM
 
@@ -179,7 +179,7 @@ Phần này là trọng tâm của yêu cầu giữ hình họa. Nguồn sự th
 - `apps/ui/src/app/styles/tokens.css` có **126 khai báo** cho hai theme (`:root` và `:root[data-theme='dark']`), gồm font, cỡ chữ, khoảng cách (lưới 4 px), bo góc, kích thước điều khiển, motion, màu, bóng và focus ring.
 - **Theme Rust sinh từ tokens.css** bằng một script codegen (`scripts/gen-native-theme.mjs`). Kết quả là `crates/chef-theme/src/generated.rs` gồm ba hằng số: light, dark, và chọn theo hệ thống.
 - **Chống lệch:** CI chạy lại script và so sánh với file đã commit. Đúng cơ chế kiểm tra codegen contracts đang dùng.
-- **Theme hệ thống:** đọc chế độ sáng/tối của Windows (registry `AppsUseLightTheme` hoặc API tương đương). Theme cài đặt `system/light/dark` như `app/theme.ts` hiện nay. **Kiểm ở M1.**
+- **Theme hệ thống:** đọc registry Windows `AppsUseLightTheme`; cài đặt `system/light/dark` như `app/theme.ts`. Đã kiểm trên Windows 2026-11-22: Start và Viewer mode `system` tự đổi tối→sáng→tối trong cùng tiến trình sau `WM_SETTINGCHANGE` (`ImmersiveColorSet`); `light`/`dark` cố định giữ lựa chọn. Tab strip Viewer dùng token `C_SURFACE_SUNKEN`, tab đang chọn `C_SURFACE`, chữ `C_TEXT`/`C_TEXT_2`.
 
 **Cách biểu diễn màu:**
 
@@ -199,11 +199,11 @@ Mỗi dòng cần kiểm trên commit đã ghim trước khi M2. Cột "Đã th�
 
 | CSS trong dự án | Số lần | Hướng xử lý trong GPUI | Trạng thái |
 |---|---|---|---|
-| `display: flex`, gap, căn lề | nhiều | Layout của GPUI (dựa trên Taffy) | Kiểm ở M1 |
+| `display: flex`, gap, căn lề | nhiều | Layout của GPUI (dựa trên Taffy); modifier `flex_row()` chỉ đặt hướng, phải thêm `flex()` để bật flex display | Đạt (R1.43 probe) |
 | `grid-template-columns` (`minmax`, `repeat(auto-fit, minmax())`, `max-content`) | 52 | GPUI không có `auto-fit`; cách khác: số cột tính từ chiều rộng khung (§6.9) | Cách khác (R1.17) |
 | `text-overflow: ellipsis` | nhiều | `truncate()` cho một dòng đạt (§6.9); nhiều dòng là `line_clamp`, chưa kiểm | Đạt một dòng (R1.17) |
-| `@keyframes` | 7 (`fade-in`, `dialog-in`, `toast-in`, `spin`, `indeterminate`, `thumb-shimmer`, `tedit-blink`) | Animation của GPUI, hoặc giá trị nội suy theo thời gian trong `render` | **Kiểm ở M1** |
-| `transition` | 11 | Animation có thời lượng và đường cong. Đường cong `cubic-bezier(0.2,0,0,1)` cần hàm tự viết | Kiểm ở M1 |
+| `@keyframes` | 7 (`fade-in`, `dialog-in`, `toast-in`, `spin`, `indeterminate`, `thumb-shimmer`, `tedit-blink`) | Ánh xạ sang `with_animation` hoặc nội suy theo thời gian trong `render`; từng component tự quản lý trạng thái | Cách khác (R1.43 code review) |
+| `transition` | 11 | Animation có thời lượng và đường cong; cubic-bezier được giải bằng hàm riêng | Đạt (button transition tests, R1.43) |
 | `@media` (thu về một cột) | 13 | Rẽ nhánh theo chiều rộng cửa sổ trong code | Đã biết |
 | `aspect-ratio: 260 / 100` | 1 (`signTemplate.css`) | `aspect_ratio(260/100)` | Đạt (R1.17) |
 | `repeating-linear-gradient` | 1 (`overlay.css`, thước kẻ) | Vẽ các vạch bằng quad | Đã biết |
@@ -213,10 +213,10 @@ Mỗi dòng cần kiểm trên commit đã ghim trước khi M2. Cột "Đã th�
 | `:hover` | nhiều | `.hover()` | Đạt (R1.19) |
 | `:active` | nhiều | `.active()` | Đạt (R1.19) |
 | `:focus-visible` | 12 | `focus_visible()` chỉ hiện khi lần nhập gần nhất là bàn phím (§6.9) | Đạt (R1.19) |
-| `cursor: pointer` | 24 | `.cursor_pointer()` | Chưa đo con trỏ (R1.19) |
-| `user-select: none` | 11 | Chọn chữ tắt cho chrome giao diện | Kiểm ở M1 |
+| `cursor: pointer` | 24 | `.cursor_pointer()` | Đạt (Win32 GetCursorInfo, R1.19) |
+| `user-select: none` | 11 | GPUI không chọn text chrome mặc định; viewer dùng selection overlay riêng | Đạt theo hành vi mặc định/selection riêng (R1.43 code review) |
 | `font-variant-numeric` | 12 | `tnum` qua `font_features` đạt; Be Vietnam Pro không có `tnum` (§6.9) | Đạt, font không hỗ trợ (R1.18) |
-| `letter-spacing` | 6 | Hỗ trợ theo phần tử | Kiểm ở M1 |
+| `letter-spacing` | 6 | Pinned GPUI không có style API letter-spacing; cần custom glyph spacing nếu một thành phần đòi khớp chính xác | Hạn chế đã xác định (R1.43 code review) |
 | `text-transform: uppercase` | 2 | Chuyển trong code | Đã biết |
 | `::before`, `::after` | 7 | Phần tử con giả trong code | Đã biết |
 | `scrollbar` (tùy biến) | 3 | GPUI không vẽ thanh cuộn, không có API màu: vẽ riêng trong chef-ui (§6.9) | Vẽ riêng (R1.20) |
@@ -238,7 +238,7 @@ Mỗi dòng cần kiểm trên commit đã ghim trước khi M2. Cột "Đã th�
 
 - Giao diện đang nạp qua `@fontsource/be-vietnam-pro` (`main.tsx`, các độ đậm 400, 500, 600). Gói này **chỉ có woff và woff2**.
 - **Hướng xử lý:** lấy TTF của Be Vietnam Pro từ nguồn gốc (OFL-1.1), giữ đủ tập Latin và Latin-Extended (có ký tự tiếng Việt). Đổi woff2 sang TTF bằng `fontTools` nếu cần. OFL cho phép chuyển định dạng.
-- **Đã kiểm ở M1 (R1.13):** DirectWrite nạp TTF 400, 500, 600 qua `add_fonts` (nhúng vào exe bằng build.rs, R1.02); ba độ đậm hiển thị khác nhau và chữ có dấu không thiếu glyph. woff không dùng. So với Electron còn mở (R1.21).
+- **Đã kiểm ở M1 (R1.13):** DirectWrite nạp TTF 400, 500, 600 qua `add_fonts` (nhúng vào exe bằng build.rs, R1.02); ba độ đậm hiển thị khác nhau và chữ có dấu không thiếu glyph. So ảnh Electron ở R1.43; sai khác raster được MAN-5 chấp nhận. woff không dùng.
 - **Font mono:** `--font-mono` dùng `Cascadia Code`, `Consolas`, có sẵn trên Windows.
 - Chữ trên Windows (DirectWrite) và trên Chromium có khác nhau nhỏ về kết xuất. Chấp nhận, không ép khớp từng điểm ảnh.
 
@@ -317,12 +317,16 @@ Dự án dùng **14 primitive Radix**. gpui-component có giao diện riêng, n�
 
 ### 6.9 Kết quả probe hình họa (M1, R1.13–R1.20)
 
-Trang thử: `CHEF_E2E=1 CHEF_E2E_PROBE=1` (`apps/native/crates/chef-app/src/probe.rs`), đặt ngoài màn hình, chụp bằng lệnh `screenshot`. **Chưa so với Electron:** cần ảnh tham chiếu của R1.21.
+Trang thử: `CHEF_E2E=1 CHEF_E2E_PROBE=1` (`apps/native/crates/chef-app/src/probe.rs`), đặt ngoài màn hình, chụp bằng lệnh `screenshot`. Ảnh tham chiếu Electron của R1.21 đã có; kết quả so với probe Rust ghi dưới đây và được gom ở R1.43.
 
-- **Bóng (R1.16):** shader của GPUI (`gpui_windows/src/shaders.hlsl`, `shadow_fragment`) dùng `blur_radius` làm σ của hàm Gauss. CSS dùng σ = blur/2, nên bóng CSS `B px` tương ứng `B/2` trong GPUI. `blur_radius = 0` cho ra NaN và không vẽ gì, nên vòng focus cứng dùng 0,5 px. Vòng `0 0 0 2px surface, 0 0 0 4px focus` đã vẽ đúng: khe 2 px màu nền, viền 2 px màu focus.
+**Đánh giá ảnh R1.43 (2026-11-22, MAN-5 được chủ dự án ủy quyền):** bộ cuối gồm sáu cặp DPR 1.75, viewports 800/1184/1484 × sáng/tối, kích thước khớp. Lỗi hàng nút do thiếu `.flex()` đã sửa; line-height tiêu đề 11 px khớp CSS bằng 16,5 px thay vì thừa hưởng 19,5 px. Comparator vẫn **0/6 đạt ngưỡng pixel**, score 0,866–0,916; xem diff, sai khác còn lại nằm chủ yếu ở antialias/raster Chromium so với DirectWrite và vài pixel shadow/icon. MAN-5 xem ảnh cuối và **chấp nhận** các sai khác này. Verdict: R1.13 font chấp nhận; R1.15 icon chấp nhận; R1.16 shadow/focus chấp nhận (khe 2 px có); R1.17 layout chấp nhận (cột 3/4/6, ellipsis, 300 px, ratio khớp); R1.19 cursor hand đo được. Report: `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.43-man5-20261121-latest\report\report.html`. Cursor evidence: `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.19-pointer-check-20261122\capture-index.json`.
+
+Đã tách tiêu đề/nút trong probe; đặt root 13 px/19,5 px; title 11 px/16,5 px; khóa cột 300 px; đảo thứ tự shadow; bật flex display trên hàng nút. WGC crop và cursor geometry dùng DPI-awareness PMv2; Electron DPR 1.75 đặt bằng CDP vì `page.setViewportSize` đưa DPR về 1. `cargo build -p chef-app` đạt. Comparator pixel không đạt ngưỡng nhưng MAN-5 chấp nhận sai khác raster sau khi xem cả sáu cặp; R1.43 đã có verdict cho năm probe và năm dòng §6.2.
+
+- **Bóng (R1.16):** shader của GPUI (`gpui_windows/src/shaders.hlsl`, `shadow_fragment`) dùng `blur_radius` làm σ của hàm Gauss. CSS dùng σ = blur/2, nên bóng CSS `B px` tương ứng `B/2` trong GPUI. `blur_radius = 0` cho ra NaN và không vẽ gì, nên vòng focus cứng dùng 0,5 px. GPUI vẽ shadow theo thứ tự slice, khác thứ tự lớp CSS; đã đảo thứ tự trong helper. MAN-5 đã xem ảnh mới: khe 2 px có, sai khác độ mềm được chấp nhận.
 - **Chữ số cố định (R1.18):** GPUI chuyển `font_features` xuống DirectWrite, kiểm bằng Constantia (có `tnum`, chữ số mặc định không đều): cột `tnum` thẳng hàng. **Be Vietnam Pro không có `tnum`** (kiểm bằng fontTools: không có trong GSUB), nên `tabular-nums` của 12 chỗ trong CSS không có tác dụng ở cả hai bản. Nếu một cột số cần thẳng hàng, cách bù là vẽ mỗi chữ số trong một ô cố định; chưa cần làm.
 - **Icon (R1.15):** `svg()` tô bằng `text_color`; xem §6.3.
-- **Trạng thái nút (R1.19):** hover và active đổi đúng màu (kiểm bằng lệnh debug `mouse move` và `mouse down`). Token hover và active là RGBA trong suốt, nên phải dùng `rgba_hex`, không dùng `hex` (`hex` bỏ alpha, nút thành màu tối). `focus_visible()` chỉ áp khi tiêu điểm đang có và lần nhập gần nhất là bàn phím (`window.last_input_was_keyboard`). `state.cursor` đọc loại cursor Win32 hiện tại và tọa độ màn hình; phải hiện probe và đưa con trỏ hệ thống thật lên nút để kiểm `hand`. Chưa đo vì WGC không chụp con trỏ và E2E mặc định đặt cửa sổ ngoài màn hình.
+- **Trạng thái nút (R1.19):** hover và active đổi đúng màu (kiểm bằng lệnh debug `mouse move` và `mouse down`). Token hover và active là RGBA trong suốt, nên phải dùng `rgba_hex`, không dùng `hex` (`hex` bỏ alpha, nút thành màu tối). `focus_visible()` chỉ áp khi tiêu điểm đang có và lần nhập gần nhất là bàn phím (`window.last_input_was_keyboard`). `state.cursor` đọc loại cursor Win32 hiện tại; đã đưa con trỏ hệ thống thật lên nút hiển thị, state báo hovered và `GetCursorInfo` trả `hand` (2026-11-22).
 - **Bố cục (R1.17):** `grid` của GPUI chỉ có số cột cố định (`grid_cols`), không có `auto-fit` hay `minmax(220px, 1fr)`. Cách đã chọn: số cột = ⌊(W + gap) / (220 + gap)⌋, tính từ chiều rộng khung. Đo ở ba khung: 3 cột (800 px), 4 cột (1184 px), 6 cột (1484 px). `truncate()` cắt một dòng đúng (glyph cắt trông như ba dấu chấm; so với `…` của Electron ở R1.21). `flex_1().min_w_0()` cho `minmax(0, 1fr) 300px`. `aspect_ratio(260/100)` giữ 260×100.
 - **Thanh cuộn (R1.20):** GPUI core không vẽ thanh cuộn; `scrollbar_width` chỉ chừa chỗ và không có API màu. Thanh cuộn của dự án (`scrollbar-color` trong `base.css`) phải vẽ riêng trong chef-ui khi có chỗ dùng đầu tiên.
 
@@ -493,7 +497,7 @@ Thứ tự theo rủi ro. Từ 2026-11-11 (D86) thứ tự làm không đi thẳ
 
 | Mốc | Nội dung | Việc rủi ro được giải quyết | Demo nghiệm thu |
 |---|---|---|---|
-| **M1 Khung và rủi ro** | Cửa sổ; theme từ tokens; ô nhập nhận IME; viewer pdfium một file với cache LRU; bộ đo RAM; cửa sổ ngoài màn hình; debug channel; lõi lười (chỉ khởi động stub) | IME tiếng Việt (§13.1); off-screen (§10.3); pdfium chung DLL (§9); font TTF (§6.4); cache (R1–R2) | Gõ Telex đúng dấu trong ô nhập (Unikey hoặc bộ gõ Windows). File 1000 trang: cuộn 350 màn hình, báo `nativeMB` và `coreMB` (lõi chưa chạy) |
+| **M1 Khung và rủi ro** | Cửa sổ; theme từ tokens; ô nhập nhận UniKey IME; viewer pdfium một file với cache LRU; bộ đo RAM; cửa sổ ngoài màn hình; debug channel; lõi lười (chỉ khởi động stub) | UniKey IME (§13.1); off-screen (§10.3); pdfium chung DLL (§9); font TTF (§6.4); cache (R1–R2) | Dùng UniKey gõ Telex và VNI trong ô tìm kiếm. File 1000 trang: cuộn 350 màn hình, báo `nativeMB` và `coreMB` (lõi chưa chạy) |
 | **M2 Xem đầy đủ** | Tab; mở/lưu file bằng hộp thoại; thumbnail (R4); tìm kiếm; liên kết; chọn và copy chữ; zoom, vừa khổ; theme sáng/tối/hệ thống; i18n; toàn bộ icon; chế độ đọc trang tối (§6.2) | Hình họa viewer; chọn chữ | Ảnh ui-audit viewer trong ngưỡng; copy đúng chuỗi |
 | **M3 Phiên và thao tác** | Chuyển mô hình lười (§4); `session.open`; `ops.run`; undo/redo; lưu; giám sát lõi; panel job | Chuyển file gốc sang rev (§4); lõi lười (R5) | Smoke và demo-v07 (phần không sửa chữ); lõi chỉ chạy sau thao tác đầu |
 | **M4 Trang và chú thích** | Lưới trang; menu chuột phải; chọn nhiều; ghi chú, tô sáng, vẽ; form qua FFI của pdfium | FFI form-fill (rủi ro trung bình) | E2E `page-menu`, `annots`, `forms` tương đương |
@@ -503,11 +507,11 @@ Thứ tự theo rủi ro. Từ 2026-11-11 (D86) thứ tự làm không đi thẳ
 | **M8 Chụp và xử lý ảnh** | L5 (máy chủ LAN); QR; ScanDialog; cắt, tách trang, khử ngón tay, làm phẳng | Máy chủ HTTP trong Rust | `capture`, `dewarp`, `crop-review`, `demo-v08` tương đương |
 | **M9 Hoàn thiện** | Tab Giới thiệu; cài đặt; nhật ký; bộ cài; cập nhật thủ công; di chuyển userData; rà parity theo mã FEATURES | Kích thước và RAM cuối cùng | Chủ dự án dùng hằng ngày. Báo cáo RAM so với Electron |
 
-### 13.1 IME: đường đi đã biết
+### 13.1 IME: UniKey
 
-- **Trạng thái (R1.23, 2026-11-09):** "một phần". `gpui_windows` xử lý `WM_IME_STARTCOMPOSITION` và `WM_IME_COMPOSITION` qua IMM32 (`ImmGetCompositionStringW`); không thấy đường TSF. Chưa xác nhận bằng bộ gõ thật: MAN-1 (R1.26, R1.27) là việc đầu tiên trong thứ tự làm tiếp (D86).
-- **Nếu không đạt:** đường đi đã biết là **hiện thực TSF composition trong lớp nền Windows** của GPUI đã ghim (phần đọc và đặt composition string, vị trí ứng viên, underline). Việc này nằm trong M1 như một mục việc, không phải điểm dừng. Ước lượng công sức chỉ làm sau khi M1 đo được mức độ thiếu.
-- Trường nhập văn bản dùng trong toàn app (Sửa chữ, khung ghi chú, ô tìm kiếm) đều cần đường này.
+- **Trạng thái:** `gpui_windows` xử lý `WM_IME_STARTCOMPOSITION` và `WM_IME_COMPOSITION` qua IMM32 (`ImmGetCompositionStringW`); không thấy đường TSF. Chủ dự án xác nhận UniKey gõ tiếng Việt ổn trong ô ghi chú native ngày 2026-11-22 (R1.27). Không dùng bộ gõ tiếng Việt tích hợp Windows và không triển khai TSF (D92).
+- Nếu UniKey không hoạt động, ghi nhận giới hạn của GPUI và đánh giá lại riêng; triển khai TSF không nằm trong kế hoạch hiện tại.
+- Trường nhập văn bản dùng trong toàn app (Sửa chữ, khung ghi chú, ô tìm kiếm) cần hỗ trợ UniKey.
 
 ## 14. Ước lượng
 
@@ -517,7 +521,7 @@ Chưa ước lượng. Sau M1 có số task và tốc độ thực tế, mới �
 
 | Rủi ro | Mức | Xử lý trong kế hoạch |
 |---|---|---|
-| IME tiếng Việt không hoạt động trong GPUI trên Windows | Cao | M1; đường đi §13.1 |
+| UniKey không hoạt động qua IMM32 trong GPUI trên Windows | Cao | Kiểm UniKey ở M1 (§13.1); nếu lỗi, ghi nhận và đánh giá lại riêng, không tự triển khai TSF |
 | GPUI thay đổi API liên tục | Cao | Ghim commit; cập nhật có kế hoạch; mỗi lần nâng cấp chạy lại M1 |
 | Cửa sổ ngoài màn hình không vẽ | Trung bình | M1; §10.3 |
 | Cache bitmap không đạt mức RAM mong muốn | Trung bình | R1–R2; đo ở mỗi mốc |

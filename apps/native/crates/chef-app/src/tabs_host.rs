@@ -113,6 +113,22 @@ pub struct DocumentHost {
 }
 
 impl DocumentHost {
+    pub(crate) fn debug_export_page(
+        &self,
+        page: usize,
+        cx: &App,
+    ) -> Result<crate::debug::PageRaster, String> {
+        let id = self
+            .tabs
+            .active_id()
+            .ok_or_else(|| "không có tab đang hoạt động".to_string())?;
+        let viewer = self
+            .viewers
+            .get(&id)
+            .ok_or_else(|| "tab hiện tại không có viewer".to_string())?;
+        viewer.read(cx).debug_cached_page_raster(page)
+    }
+
     pub fn new(
         paths: Vec<PathBuf>,
         handle: RenderHandle,
@@ -1531,6 +1547,22 @@ impl Render for DocumentHost {
                     .collect(),
             );
         }
+        let dark = crate::theme::is_dark(mode);
+        let (strip_bg, active_tab_bg, tab_text, tab_text_2) = if dark {
+            (
+                crate::theme::hex(chef_theme::dark::C_SURFACE_SUNKEN),
+                crate::theme::hex(chef_theme::dark::C_SURFACE),
+                crate::theme::hex(chef_theme::dark::C_TEXT),
+                crate::theme::hex(chef_theme::dark::C_TEXT_2),
+            )
+        } else {
+            (
+                crate::theme::hex(chef_theme::light::C_SURFACE_SUNKEN),
+                crate::theme::hex(chef_theme::light::C_SURFACE),
+                crate::theme::hex(chef_theme::light::C_TEXT),
+                crate::theme::hex(chef_theme::light::C_TEXT_2),
+            )
+        };
         let mut strip = div()
             .id("document-tabs")
             .flex()
@@ -1539,7 +1571,8 @@ impl Render for DocumentHost {
             .gap(px(4.0))
             .h(px(40.0))
             .px(px(8.0))
-            .bg(rgb(0xf0f0f0));
+            .text_color(rgb(tab_text_2))
+            .bg(rgb(strip_bg));
         for tab in self.tabs.tabs() {
             let id = tab.id();
             let selected = Some(id) == self.tabs.active_id();
@@ -1575,7 +1608,8 @@ impl Render for DocumentHost {
                             .px(px(8.0))
                             .py(px(4.0))
                             .cursor_pointer()
-                            .bg(rgb(if selected { 0xffffff } else { 0xe5e5e5 }))
+                            .text_color(rgb(if selected { tab_text } else { tab_text_2 }))
+                            .bg(rgb(if selected { active_tab_bg } else { 0 }))
                             .child(title)
                             .child(
                                 div()
@@ -1610,7 +1644,6 @@ impl Render for DocumentHost {
                     .child(SharedString::from(message.clone())),
             );
         }
-        let dark = crate::theme::is_dark(mode);
         crate::debug::set_close_prompt(
             self.close_prompt.open,
             self.close_prompt.tab_id,

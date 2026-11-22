@@ -156,10 +156,10 @@ pub fn geometry(size: Size) -> Geometry {
     }
 }
 
-/// Vòng focus `--focus-ring: 0 0 0 2px surface, 0 0 0 4px focus`. Blur 0,5 px vì blur 0 không vẽ
-/// (D80). Hai bóng theo thứ tự CSS: khe 2 px màu nền, rồi viền 2 px màu focus.
+/// Vòng focus CSS `0 0 0 2px surface, 0 0 0 4px focus`. Blur 0,5 px vì blur 0 không vẽ (D80).
+/// GPUI vẽ bóng lần lượt trong thứ tự slice nên đảo thứ tự so với CSS: viền ngoài trước, khe trong sau.
 pub fn focus_ring(paint: &Paint) -> Vec<BoxShadow> {
-    vec![ring(paint.surface, 2.0), ring(paint.focus, 4.0)]
+    vec![ring(paint.focus, 4.0), ring(paint.surface, 2.0)]
 }
 
 /// Một bóng lan có màu, dùng để vẽ vòng focus (D80: blur 0,5 px).
@@ -637,9 +637,10 @@ mod tests {
     fn focus_ring_has_gap_then_outer_ring() {
         let ring = focus_ring(&paint(Variant::Secondary, false));
         assert_eq!(ring.len(), 2);
-        assert_eq!(ring[0].spread_radius, px(2.0));
-        assert_eq!(ring[0].color, rgba(pack(light::C_SURFACE)).into());
-        assert_eq!(ring[1].spread_radius, px(4.0));
+        assert_eq!(ring[0].spread_radius, px(4.0));
+        assert_eq!(ring[0].color, rgba(pack(light::C_FOCUS)).into());
+        assert_eq!(ring[1].spread_radius, px(2.0));
+        assert_eq!(ring[1].color, rgba(pack(light::C_SURFACE)).into());
         assert_eq!(ring[1].blur_radius, px(0.5));
     }
 

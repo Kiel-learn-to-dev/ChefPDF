@@ -1,0 +1,11 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "apps/native/Cargo.toml"
+    ],
+    "rust-analyzer.check.command": "check",
+    "rust-analyzer.cargo.features": [],
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true
+    }
+}

@@ -7,7 +7,10 @@ use gpui::{Entity, IntoElement, SharedString, div, prelude::*, px, rgb};
 use crate::settings::RecentFile;
 use crate::tabs_host::DocumentHost;
 use crate::theme;
-use chef_ui::i18n;
+use chef_ui::{
+    a11y::{self, Registered},
+    i18n,
+};
 
 struct Tile {
     id: &'static str,
@@ -87,9 +90,9 @@ pub fn build(
 ) -> impl IntoElement {
     let colors = theme::palette(dark);
     let width = width.max(320.0);
-    let padding = if width >= 960.0 { 36.0 } else { 24.0 };
-    let inner_width = (width - padding * 2.0).clamp(272.0, 980.0);
-    let gap = 16.0;
+    // Match `.start__inner`: a 980 px border-box with 36 px side padding.
+    let inner_width = (width.min(980.0) - 72.0).max(272.0);
+    let gap = 12.0;
     let columns = columns_for_width(inner_width, gap);
     let tile_width = ((inner_width - gap * (columns - 1) as f32) / columns as f32).max(0.0);
 
@@ -103,11 +106,11 @@ pub fn build(
             let mut card = div()
                 .id(tile.id)
                 .w(px(tile_width))
-                .h(px(144.0))
+                .min_h(px(132.0))
                 .flex_none()
                 .flex()
                 .flex_col()
-                .gap(px(8.0))
+                .gap(px(4.0))
                 .p(px(16.0))
                 .rounded(px(14.0))
                 .border_1()
@@ -131,12 +134,13 @@ pub fn build(
             };
             card = card.child(
                 div()
-                    .w(px(38.0))
-                    .h(px(38.0))
+                    .w(px(42.0))
+                    .h(px(42.0))
                     .flex()
                     .items_center()
                     .justify_center()
                     .rounded(px(10.0))
+                    .mb(px(8.0))
                     .bg(rgb(icon_bg))
                     .text_size(px(22.0))
                     .text_color(rgb(icon_color))
@@ -189,76 +193,98 @@ pub fn build(
     for (index, entry) in recent.iter().take(8).enumerate() {
         let host_for_click = host.clone();
         let path = entry.path.clone();
+        let control_id = format!("start-recent-{index}");
+        a11y::register(Registered {
+            id: control_id.clone(),
+            role: "button",
+            name: entry.name.clone(),
+            disabled: false,
+            focused: false,
+            hovered: false,
+            checked: None,
+            value: None,
+            bounds: None,
+        });
+        let bounds_key = control_id.clone();
         let dirname = PathBuf::from(&entry.path)
             .parent()
             .map(|parent| parent.to_string_lossy().into_owned())
             .unwrap_or_default();
         recent_rows.push(
             div()
-                .id(format!("start-recent-{index}"))
                 .w_full()
-                .min_w_0()
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(12.0))
-                .px(px(12.0))
-                .py(px(8.0))
-                .rounded(px(8.0))
-                .cursor_pointer()
-                .hover(|style| style.bg(rgb(colors.canvas)))
-                .on_click(move |_, window, cx| {
-                    host_for_click.update(cx, |host, cx| {
-                        host.open_paths(vec![PathBuf::from(path.clone())], window, cx)
-                    });
-                })
                 .child(
                     div()
-                        .w(px(30.0))
-                        .h(px(30.0))
-                        .flex_none()
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .rounded(px(8.0))
-                        .bg(rgb(if dark { 0x472e36 } else { 0xfce8ec }))
-                        .text_color(rgb(if dark { 0xf08a9b } else { 0x2f6be4 }))
-                        .text_size(px(chef_theme::shared::TEXT_SM))
-                        .child("PDF"),
-                )
-                .child(
-                    div()
-                        .flex_1()
+                        .id(control_id)
+                        .w_full()
                         .min_w_0()
                         .flex()
-                        .flex_col()
-                        .gap(px(2.0))
+                        .flex_row()
+                        .items_center()
+                        .gap(px(12.0))
+                        .px(px(12.0))
+                        .py(px(8.0))
+                        .rounded(px(8.0))
+                        .cursor_pointer()
+                        .hover(|style| style.bg(rgb(colors.canvas)))
+                        .on_click(move |_, window, cx| {
+                            host_for_click.update(cx, |host, cx| {
+                                host.open_paths(vec![PathBuf::from(path.clone())], window, cx)
+                            });
+                        })
                         .child(
                             div()
-                                .w_full()
-                                .text_size(px(chef_theme::shared::TEXT_MD))
-                                .font_weight(gpui::FontWeight::MEDIUM)
-                                .text_ellipsis()
-                                .child(entry.name.clone()),
+                                .w(px(30.0))
+                                .h(px(30.0))
+                                .flex_none()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded(px(8.0))
+                                .bg(rgb(if dark { 0x472e36 } else { 0xfce8ec }))
+                                .text_color(rgb(if dark { 0xf08a9b } else { 0x2f6be4 }))
+                                .text_size(px(chef_theme::shared::TEXT_SM))
+                                .child("PDF"),
                         )
                         .child(
                             div()
-                                .w_full()
+                                .flex_1()
+                                .min_w_0()
+                                .flex()
+                                .flex_col()
+                                .gap(px(2.0))
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .text_size(px(chef_theme::shared::TEXT_MD))
+                                        .font_weight(gpui::FontWeight::MEDIUM)
+                                        .text_ellipsis()
+                                        .child(entry.name.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .text_size(px(chef_theme::shared::TEXT_SM))
+                                        .text_color(rgb(colors.text_2))
+                                        .text_ellipsis()
+                                        .child(dirname),
+                                ),
+                        )
+                        .child(
+                            div()
+                                .w(px(125.0))
+                                .flex_none()
                                 .text_size(px(chef_theme::shared::TEXT_SM))
                                 .text_color(rgb(colors.text_2))
-                                .text_ellipsis()
-                                .child(dirname),
+                                .text_right()
+                                .child(SharedString::from(entry.opened_at.clone())),
                         ),
                 )
-                .child(
-                    div()
-                        .w(px(125.0))
-                        .flex_none()
-                        .text_size(px(chef_theme::shared::TEXT_SM))
-                        .text_color(rgb(colors.text_2))
-                        .text_right()
-                        .child(SharedString::from(entry.opened_at.clone())),
-                ),
+                .on_children_prepainted(move |bounds, _, _| {
+                    if let Some(bounds) = bounds.first() {
+                        a11y::set_bounds(&bounds_key, *bounds);
+                    }
+                }),
         );
     }
 
@@ -275,18 +301,18 @@ pub fn build(
                 .w(px(inner_width))
                 .flex()
                 .flex_col()
-                .gap(px(28.0))
-                .py(px(36.0))
+                .gap(px(32.0))
+                .py(px(40.0))
                 .child(
                     div()
                         .flex()
                         .flex_row()
                         .items_center()
-                        .gap(px(18.0))
+                        .gap(px(16.0))
                         .child(
                             div()
-                                .w(px(52.0))
-                                .h(px(52.0))
+                                .w(px(44.0))
+                                .h(px(44.0))
                                 .flex()
                                 .items_center()
                                 .justify_center()
@@ -321,15 +347,15 @@ pub fn build(
                     div()
                         .flex()
                         .flex_col()
-                        .gap(px(12.0))
+                        .gap(px(20.0))
                         .child(section_title("start.tasks", colors.text_2))
-                        .children(tile_rows),
+                        .child(div().flex().flex_col().gap(px(12.0)).children(tile_rows)),
                 )
                 .child(
                     div()
                         .flex()
                         .flex_col()
-                        .gap(px(12.0))
+                        .gap(px(20.0))
                         .child(section_title("start.recent", colors.text_2))
                         .child(
                             div()
@@ -426,8 +452,8 @@ mod tests {
 
     #[test]
     fn start_tile_columns_match_css_auto_fill_at_narrow_medium_and_wide_widths() {
-        assert_eq!(columns_for_width(500.0, 16.0), 2);
-        assert_eq!(columns_for_width(700.0, 16.0), 3);
-        assert_eq!(columns_for_width(980.0, 16.0), 4);
+        assert_eq!(columns_for_width(728.0, 12.0), 3); // 800 px outer width
+        assert_eq!(columns_for_width(908.0, 12.0), 4); // capped at 980 px
+        assert_eq!(columns_for_width(500.0, 12.0), 2);
     }
 }

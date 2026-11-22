@@ -30,7 +30,7 @@ try {
   Wait {(State).view} 'document open'
   $hwnd=[IntPtr]::new([long](State).hwnd)
   $scale=1.0 # this process is DPI-unaware: Win32 sizes are already logical
-  $sidebar=210.0; $margin=24.0; $pageW=612.0
+  $sidebar=210.0; $margin=28.0; $pageW=612.0
   foreach($w in 800,1184,1484){
     # SWP_NOACTIVATE|SWP_NOZORDER|SWP_NOMOVE; outer size is larger than the client area, so adjust until the client width matches.
     $outer=[int]($w*$scale)+40

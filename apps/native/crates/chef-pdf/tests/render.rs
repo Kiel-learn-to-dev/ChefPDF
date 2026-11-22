@@ -3,6 +3,7 @@
 //! tải bằng scripts/fetch-pdfium.mjs).
 //! Cần PDF: CHEF_TEST_PDF (mặc định %TEMP%/chef-perf/pages1000.pdf). Thiếu thì bỏ qua có thông báo.
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::channel;
 
 use chef_pdf::render::{self, Job, Reply};
@@ -44,6 +45,55 @@ fn open(h: &render::RenderHandle, path: PathBuf) -> u64 {
     let r = rx.recv().unwrap();
     assert_eq!(r.id, id, "id trả lời không khớp");
     r.result.expect("mở PDF thất bại")
+}
+
+struct TempPdf(PathBuf);
+
+impl TempPdf {
+    fn color_swatches() -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        let path = std::env::temp_dir().join(format!(
+            "chef-color-swatches-{}-{}.pdf",
+            std::process::id(),
+            NEXT_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        let content = b"1 0 0 rg 10 10 30 30 re f\n0 0 1 rg 60 60 30 30 re f\n";
+        let objects = [
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_vec(),
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << >> /Contents 4 0 R >>".to_vec(),
+            format!("<< /Length {} >>\nstream\n", content.len())
+                .into_bytes()
+                .into_iter()
+                .chain(content.iter().copied())
+                .chain(b"endstream".iter().copied())
+                .collect(),
+        ];
+        let mut pdf = b"%PDF-1.4\n".to_vec();
+        let mut offsets = Vec::with_capacity(objects.len());
+        for (index, object) in objects.iter().enumerate() {
+            offsets.push(pdf.len());
+            pdf.extend_from_slice(format!("{} 0 obj\n", index + 1).as_bytes());
+            pdf.extend_from_slice(object);
+            pdf.extend_from_slice(b"\nendobj\n");
+        }
+        let xref = pdf.len();
+        pdf.extend_from_slice(b"xref\n0 5\n0000000000 65535 f \n");
+        for offset in offsets {
+            pdf.extend_from_slice(format!("{offset:010} 00000 n \n").as_bytes());
+        }
+        pdf.extend_from_slice(
+            format!("trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes(),
+        );
+        std::fs::write(&path, pdf).expect("ghi PDF màu tạm thất bại");
+        Self(path)
+    }
+}
+
+impl Drop for TempPdf {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
 }
 
 #[test]
@@ -106,7 +156,37 @@ fn renders_first_page_as_bgra_with_white_background() {
     );
 }
 
-/// Ghi BGRA trang 1 ra CHEF_RENDER_DUMP (nếu đặt) để so với pypdfium2 (R1.31). Không chạy khi không đặt.
+#[test]
+fn rendered_red_and_blue_swatches_use_bgra_channel_order() {
+    let pdf = TempPdf::color_swatches();
+    let h = handle();
+    let doc = open(&h, pdf.0.clone());
+    let (tx, rx) = channel();
+    h.send(Job::Render {
+        id: h.next_id(),
+        doc,
+        index: 0,
+        width: 100,
+        height: 100,
+        reply: tx,
+    })
+    .unwrap();
+    let img = rx.recv().unwrap().result.expect("render màu thất bại");
+
+    let pixel = |x: usize, y: usize| {
+        let offset = (y * img.width as usize + x) * 4;
+        &img.bgra[offset..offset + 4]
+    };
+    assert_eq!(pixel(20, 80), &[0, 0, 255, 255], "ô đỏ phải là BGRA đỏ");
+    assert_eq!(
+        pixel(80, 20),
+        &[255, 0, 0, 255],
+        "ô xanh dương phải là BGRA xanh dương"
+    );
+}
+
+/// Ghi BGRA các trang đầu ra CHEF_RENDER_DUMP (nếu đặt) để so với pypdfium2 (R1.31).
+/// CHEF_RENDER_PAGE_COUNT tùy chọn số trang; mặc định giữ tương thích bằng một file đơn.
 #[test]
 fn dumps_first_page_when_asked() {
     let Ok(out) = std::env::var("CHEF_RENDER_DUMP") else {
@@ -120,21 +200,39 @@ fn dumps_first_page_when_asked() {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(850);
+    let page_count: usize = std::env::var("CHEF_RENDER_PAGE_COUNT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1);
+    assert!(
+        (1..=64).contains(&page_count),
+        "CHEF_RENDER_PAGE_COUNT must be 1..=64"
+    );
     let Some(pdf) = test_pdf() else { return };
     let h = handle();
     let doc = open(&h, pdf);
-    let (tx, rx) = channel();
-    h.send(Job::Render {
-        id: h.next_id(),
-        doc,
-        index: 0,
-        width: w,
-        height: hgt,
-        reply: tx,
-    })
-    .unwrap();
-    let img = rx.recv().unwrap().result.expect("render thất bại");
-    std::fs::write(out, &img.bgra).expect("ghi file dump lỗi");
+    for index in 0..page_count {
+        let (tx, rx) = channel();
+        h.send(Job::Render {
+            id: h.next_id(),
+            doc,
+            index,
+            width: w,
+            height: hgt,
+            reply: tx,
+        })
+        .unwrap();
+        let img = rx.recv().unwrap().result.expect("render thất bại");
+        let output = if page_count == 1 {
+            PathBuf::from(&out)
+        } else {
+            let path = PathBuf::from(&out);
+            let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+            let extension = path.extension().unwrap_or_default().to_string_lossy();
+            path.with_file_name(format!("{stem}-page-{index}.{extension}"))
+        };
+        std::fs::write(output, &img.bgra).expect("ghi file dump lỗi");
+    }
 }
 
 #[test]

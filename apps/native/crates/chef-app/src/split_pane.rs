@@ -29,8 +29,8 @@ use crate::settings_dialog::SettingsPanel;
 use crate::tabs::TabId;
 use crate::theme;
 use crate::viewer::{
-    BUFFER_PAGES, LINE_PX, MARGIN, PAGE_GAP, POLL_MS, SharedCache, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP,
-    lock_shared_cache, to_render_image,
+    BUFFER_PAGES, FIT_WIDTH_MARGIN, LINE_PX, PAGE_GAP, POLL_MS, SharedCache, ZOOM_MAX, ZOOM_MIN,
+    ZOOM_STEP, lock_shared_cache, to_render_image,
 };
 
 /// Document snapshot passed from the active/selected tab's [`crate::viewer::Viewer`] into
@@ -526,7 +526,7 @@ impl Render for ComparePane {
         let owner = self.cache_owner;
         if let Some(layout) = self.layout.as_mut() {
             if self.fit_width && vw > 0.0 {
-                let fit = layout.fit_width_zoom(vw, MARGIN);
+                let fit = layout.fit_width_zoom(vw, FIT_WIDTH_MARGIN);
                 if (fit - layout.zoom()).abs() > 1e-6 {
                     let anchor = reload::capture(layout, self.scroll_y, vh);
                     layout.set_zoom(fit);

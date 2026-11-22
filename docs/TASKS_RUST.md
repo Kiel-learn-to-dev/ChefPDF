@@ -36,7 +36,7 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 
 | Mã | Việc | Task | Vì sao không tự động hóa được |
 |---|---|---|---|
-| MAN-1 | Gõ Telex bằng bộ gõ Windows và bằng Unikey/EVKey trong ô "Tìm trong tài liệu" của viewer (Ctrl+F, ô nhập R1.22; app chưa có khung ghi chú); báo đúng/sai dấu, có mất ký tự không. **Lần đầu (R1.26, R1.27) làm ngay:** ô nhập R1.22 đã có, kết quả quyết định có phải làm R1.24 và R1.25 không | R1.26, R1.27, R7.09 | Cần bộ gõ thật của máy chủ dự án. (2026-11-14) Chủ dự án hiện chưa thể thử trên Windows; chưa có kết quả để quyết định R1.24/R1.25. |
+| MAN-1 | Dùng UniKey gõ Telex và VNI trong ô "Tìm trong tài liệu" của viewer (Ctrl+F, ô nhập R1.22); kiểm tra dấu và ký tự bị lặp. Kiểm tra lại ở khung nháp R7.09. | R1.27, R7.09 | Cần UniKey và nhập composition bằng bàn phím thật. Chủ dự án không muốn dùng bộ gõ tiếng Việt tích hợp của Windows; nhánh TSF dự phòng không thuộc kế hoạch. |
 | MAN-2 | Ký thật bằng token Viettel-CA; mở bằng Adobe Reader và Foxit kiểm tra chữ ký | R6.18, R6.19 | Token vật lý, phần mềm đọc PDF bên ngoài |
 | MAN-3 | Chụp bằng điện thoại qua mã QR (cùng Wi-Fi) | R8.07, R8.08 | Điện thoại thật |
 | MAN-4 | Đồng ý dùng cửa sổ hiện khi R1.08 và R1.09 đều không đạt (quy tắc E2E nền trong memory) | R1.10 | Quyết định về cách chạy kiểm thử |
@@ -60,21 +60,23 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 
 Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
 
-## Thứ tự làm tiếp (chốt 2026-11-11, D86)
+## Thứ tự làm tiếp (cập nhật 2026-11-22)
 
 Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi theo rủi ro còn lại, không theo số mốc. Điểm kiểm cuối mốc không chặn việc của mốc sau.
 
-1. **MAN-1 ngay (R1.26, R1.27).** Khoảng 10 phút của chủ dự án. IME là rủi ro cao nhất và là việc duy nhất quyết định có phải làm R1.24, R1.25 (hai task L). Nếu đạt: R1.24 và R1.25 chuyển ❌.
-2. **(Đã xong, 2026-11-16: R3.02, R3.04, R3.05, R3.06, R3.08, R3.11, R3.12 đều ✅.)** Lát cắt dọc M3, trước phần còn lại của M2: R3.02 → R3.04 → R3.05 → R3.06 → R3.08 (chỉ `page.rotate`) → R3.11 → R3.12. Lý do: khoảng 170 task của M4–M8 phụ thuộc chuỗi này, và R3.06 (đổi viewer từ file gốc sang rev file) là rủi ro kiến trúc lớn nhất chưa kiểm. Demo của lát cắt: mở file, xoay một trang, viewer giữ vị trí, hoàn tác, lưu; chỉ xem thì không có tiến trình `chef-core`.
-3. **Gom đuôi M1 rồi làm Điểm kiểm M1:** R2.33 (script chạy gộp E2E), R1.43 (so probe với Electron, đóng R1.13, R1.15, R1.16, R1.17, R1.19), R1.37 và R1.38 (cần lõi chạy từ bước 2 để có `coreMB`), R1.35 (bộ đếm GPU), R1.12 (tiêu chí 2), R1.32 (tiêu chí 3). R1.05 giữ 🔄 đến khi xác minh workflow/native build trên HEAD và branch protection; hiện tạm hoãn package build theo yêu cầu.
-4. **Phần còn lại của M2:** các task 🔄 còn lại (R2.02, R2.16, R2.17, R2.19, R2.21, R2.26, R2.28), rồi R2.32. R2.15, R2.18, R2.20, R2.22, R2.31 đã ✅.
-5. **Phần còn lại của M3:** R3.09 (🔄). R3.03, R3.07, R3.11, R3.13, R3.14, R3.15 đã ✅. Sau đó M4 đến M9 theo thứ tự cũ; ở M4 hiện R4.01 (🔄), R4.02–R4.04 đã ✅, tiếp theo là R4.05–R4.06.
+1. **Khép các kiểm chứng M1/M2 còn tự động hóa được.** R1.21 refs đã chụp lại đủ 12 ảnh, DPR 1/1,75, hash trùng manifest; R2.01 corpus 208 ảnh cũng đã xác minh. `e2e-native-visual-selftest.ps1` xác nhận 220/220 ảnh và comparator; R2.02 đóng ✅. R1.12, R1.27, R1.31, R1.35, R1.38 và R1.43 đã đóng; R1.31 so ba trang native với pypdfium2 đạt pixel-exact sau khi sửa byte order. R1.32 hiện bị chính sách Windows chặn ETW; ghi nhận làm cổng môi trường. R2.16 đã chụp đủ sáu cặp và MAN-5 chấp nhận sai khác còn lại. R2.21 fit-width đã khớp Electron ở ba kích thước sau khi so cùng viewer bounds; phép thử file lớn cùng fixture cũng đạt.
+2. **Giữ các việc cần môi trường/nghiệm thu thành cổng rõ.** MAN-1 tại R1.27 đã ✅ theo xác nhận trực tiếp của chủ dự án ngày 2026-11-22; UniKey Telex/VNI trong khung nháp R7.09 vẫn thuộc mốc sau. R2.17 còn cần kéo thả từ Explorer; R2.19 còn cần OS wheel/key và present/frame thật. Computer Use (`@oai/sky` và CUA) không kết nối được native pipe trong lần thử 2026-11-22, nên không gửi input giả. MAN-5 đã xem sáu cặp cuối và chấp nhận sai khác raster còn lại; cursor hand cũng đã đo bằng Win32.
+3. **Làm điểm kiểm M1 và M2 sau khi các kiểm chứng tự động sẵn sàng.** R2.33, R1.37 và R1.38 đều ✅; số đo RAM native/Electron ba mốc đã được ghi ở R1.38. Điểm kiểm M1 vẫn phải liệt kê rõ các mục chưa thể nghiệm thu hoặc bị môi trường chặn, gồm phép đo frame/present của R1.32. R2.26 đã ✅: E2E Windows đạt và vùng nhớ do app sở hữu được zeroize; bản sao tạm trong thư viện/allocator nằm ngoài bảo đảm này.
+4. **Tiếp tục phần còn lại của M3/M4:** R3.09 còn 🔄; M4 còn R4.01 và R4.05 đang 🔄 (R4.02–R4.04 và R4.06–R4.08 đã ✅). Cập nhật thứ tự theo task thực sự còn mở.
+5. **M5 tiếp tục từ R5.03** sau khi hàng đợi kiểm chứng trên được rà soát; R5.01–R5.02 đã ✅. Có thể làm task M5 độc lập song song về mặt kỹ thuật, nhưng cập nhật lại hàng đợi tại đây để tránh mất dấu phần nghiệm thu M1/M2.
+
+**Vì sao M1/M2 bị bỏ lại:** D86 đã ưu tiên lát cắt dọc M3 do chuỗi revision là phụ thuộc kỹ thuật của nhiều task sau. Sau khi lát cắt đó qua được, các đợt code tiếp theo ưu tiên task giao diện M4/M5; quy tắc cho phép làm trước khi xong checkpoint, nhưng hàng đợi không được cập nhật theo tiến độ thực tế. M1/M2 chưa đóng chủ yếu vì thiếu ảnh Electron và MAN-5, cùng một số lượt xác minh runtime/OS-input; không có một blocker kỹ thuật duy nhất buộc phải dừng cả hai mốc.
 
 ---
 
 ## M1: Khung & rủi ro
 
-**Mục tiêu:** kiểm các điều chưa biết sớm nhất (IME tiếng Việt, cửa sổ ngoài màn hình, pdfium, cache, đo RAM, font, icon, bóng), với mỗi thứ là một task kiểm có kết quả ghi lại. Không có tính năng người dùng nào ở đây.
+**Mục tiêu:** kiểm các điều chưa biết sớm nhất (UniKey IME, cửa sổ ngoài màn hình, pdfium, cache, đo RAM, font, icon, bóng), với mỗi thứ là một task kiểm có kết quả ghi lại. Không có tính năng người dùng nào ở đây.
 **Demo:** cửa sổ GPUI với theme từ `tokens.css`; mở file PDF 1000 trang từ argv, cuộn 350 màn hình; kênh debug trả `state` và `screenshot`; bảng RAM có `nativeMB` và `coreMB`.
 **Thứ tự:** 7 luồng có thể làm song song: (0) nền repo, (1) cửa sổ và kênh debug, (2) theme và probe hình họa, (3) IME, (4) pdfium và viewer, (5) đo RAM, (6) lõi lười, (7) codegen. Luồng (6) chạm `core/` nên mỗi task có pytest. Các luồng 2, 3, 4 phụ thuộc R1.06 và R1.07.
 
@@ -128,6 +130,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `.github/workflows/native-builds.yml`
 - **Tính năng:** —
 - **Ghi chú:** (2026-11-14) Có workflow `Native Rust Builds` riêng cho nhánh `new-rust`, chạy fmt, clippy, test, deny và đóng gói Windows/macOS. Run `43575990879` xanh ở commit cũ `9266133`; không phải HEAD hiện tại. Run `43598218212` ở `ae60a2f` lỗi biên dịch Mac: app gọi RPC modules chỉ có trên Windows; phần tương thích Mac được bổ sung ở `be643d9`, nhưng các lần chạy native sau đó bị hủy theo yêu cầu tạm gác build nên chưa xác nhận bản sửa. CI thường `43599187531` trên HEAD `be643d9` đang chạy; chưa kiểm tra branch protection. Giữ 🔄.
+- **Ghi chú:** (2026-11-22) Run `44937156215` của Native Rust Builds và `44937156208` của CI thường trên HEAD `1e305050` đều đỏ. Đã xác định lỗi native: hai test `form_fill` tranh instance/counter PDFium khi chạy song song; macOS build không biên dịch vì `image_edit` bị cfg Windows trong khi `viewer.rs` dùng module này. Bản sửa cục bộ dùng một `RenderHandle` dùng chung và khóa test form, bỏ cfg nền tảng cho module thuần Rust; workspace tests, clippy, fmt, build và cargo-deny đã xanh ở máy Windows. Branch không bật required checks. Chưa có run CI trên các sửa đổi cục bộ vì repo không commit/push trong lượt này; giữ 🔄 tới khi run branch xanh.
 - **Trạng thái:** 🔄
 
 ### M1.1 Cửa sổ và kênh debug
@@ -199,10 +202,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) nền cửa sổ bằng `--c-bg` của theme đã chọn; (2) đổi theme hệ thống thì cửa sổ cập nhật; (3) không cần khởi động lại.
 - **Kiểm chứng:** screenshot ở hai theme; đổi registry và chụp lại.
 - **Phụ thuộc:** R1.11, R1.07
-- **File:** `apps/native/crates/chef-theme/src/system.rs`, `apps/native/crates/chef-app/src/window.rs`
+- **File:** `apps/native/crates/chef-app/src/theme.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`, `apps/native/crates/chef-app/src/viewer.rs`
 - **Tính năng:** A4 (theme)
-- **Ghi chú:** bảng màu lấy từ chef-theme; chế độ hệ thống đọc AppsUseLightTheme mỗi lần vẽ. (2026-11-14) Viewer đăng ký `observe_window_appearance`, gọi render lại ở mode System; debug state có `themeDark` để so trước/sau. Windows GNU check/clippy và test compile đạt; vẫn chưa đổi theme thật trong Windows profile tạm. Nền viewer dùng --c-canvas, không phải --c-bg.
-- **Trạng thái:** 🔄
+- **Ghi chú:** bảng màu lấy từ chef-theme; chế độ system đọc `AppsUseLightTheme` mỗi lần render. Viewer và Start quan sát `observe_window_appearance`. (2026-11-22) Chạy trên Windows bằng `CHEF_E2E=1`, userData riêng: Start và Viewer cùng PID đều đổi tối→sáng→tối; Viewer `renders` 3→5→6, Start `themeDark` cập nhật và ảnh đổi. Cài đặt cố định `light`/`dark` không đổi theo registry. Ảnh Start/Viewer ở `C:\Users\phamm\AppData\Local\ChefPDF\system-theme-check-20261122`; trạng thái `AppsUseLightTheme` gốc (0, dark) được khôi phục trong `finally`. Capture Viewer lộ dải tab hard-code trắng/xám ở dark; đã đổi sang token `C_SURFACE_SUNKEN`/`C_SURFACE`/`C_TEXT`/`C_TEXT_2` và chụp lại, tab strip tối đã đúng. Mã ở `chef-app/src/theme.rs`, `tabs_host.rs`, `viewer.rs`; build `cargo build -p chef-app` và `cargo fmt --all -- --check` đạt.
+- **Trạng thái:** ✅
 
 ### R1.13 · Probe font Be Vietnam Pro · S
 - **Mô tả:** lấy TTF 400, 500, 600 từ nguồn OFL, đủ tập Latin và Latin-Extended. Nạp bằng `add_fonts` của GPUI. So chữ "Thanh toán được" 13 px với bản Electron.
@@ -211,8 +214,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.06
 - **File:** `apps/native/assets/fonts/`, `apps/native/crates/chef-ui/src/fonts.rs`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09) Nạp 3 TTF qua `add_fonts` (`assets::register_fonts`). Ảnh probe: ba độ đậm khác nhau, chữ có dấu không thiếu glyph. Còn lại: so ảnh với Electron ở 13 px (cần R1.21). Định dạng ghi ở BLUEPRINT_RUST §6.4
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-09) Nạp 3 TTF qua `add_fonts` (`assets::register_fonts`). (2026-11-21, MAN-5) So ảnh DPR 1.75: ba độ đậm và dấu tiếng Việt tương đương về hình dạng/kích thước; còn khác raster giữa Chromium và DirectWrite, được chấp nhận. Chi tiết ở BLUEPRINT_RUST §6.9.
+- **Trạng thái:** ✅
 
 ### R1.14 · Script xuất 153 icon Lucide · S
 - **Mô tả:** `scripts/export-icons.mjs` đọc import Lucide trong `apps/ui` (gồm import nhiều dòng và alias `as`), lấy SVG từ gói `lucide`, ghi vào `assets/icons/`, và báo tên thiếu.
@@ -231,8 +234,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.14
 - **File:** `apps/native/crates/chef-ui/src/icon.rs`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09) Probe `CHEF_E2E_PROBE=1`: 10 icon ở 16 px và 18 px, nét 2 hiển thị liền trong ảnh. GPUI `paint_svg` tô bằng `text_color`, không cần `currentColor`; kết quả ghi ở BLUEPRINT_RUST §6.3 và §6.9. Còn lại: so với Electron (R1.21)
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-09) Probe `CHEF_E2E_PROBE=1`: 10 icon ở 16 px và 18 px, nét 2 hiển thị liền trong ảnh. (2026-11-21, MAN-5) Hình dạng/nét tương đương ảnh Electron; sai khác raster nhỏ được chấp nhận. GPUI `paint_svg` tô bằng `text_color`, không cần `currentColor`; ghi ở BLUEPRINT_RUST §6.3 và §6.9.
+- **Trạng thái:** ✅
 
 ### R1.16 · Probe bóng nhiều lớp và vòng focus · S
 - **Mô tả:** dựng `--shadow-md` và `--focus-ring` bằng `BoxShadow` (spread, blur, nhiều bóng). Kiểm thứ tự vẽ của vòng focus (2px surface rồi 4px focus).
@@ -241,8 +244,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.11, R1.06
 - **File:** `apps/native/crates/chef-ui/src/shadow.rs`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09) BoxShadow đạt: `shadow-md` và vòng focus vẽ đúng thứ tự (khe 2 px, viền 2 px). Phát hiện: blur_radius của GPUI là σ, CSS là blur/2; blur 0 không vẽ, nên vòng cứng dùng 0,5 px. Còn lại: so với Electron ở vùng mờ (R1.21). API ghi ở BLUEPRINT_RUST §6.9
-- **Trạng thái:** 🔄
+- **Ghi chú:** `shadow-md` và vòng focus dùng `BoxShadow`; GPUI coi `blur_radius` là σ, CSS là blur/2; blur 0 không vẽ nên vòng cứng dùng 0,5 px. (2026-11-21, MAN-5) Đã đảo thứ tự hai shadow theo paint order GPUI để giữ khe 2 px. So ảnh DPR 1.75, khe và viền focus đều hiện đúng; sai khác độ mềm nhỏ được chấp nhận. API ghi ở BLUEPRINT_RUST §6.9.
+- **Trạng thái:** ✅
 
 ### R1.17 · Probe layout: flex, grid auto-fit, ellipsis, aspect-ratio · M
 - **Mô tả:** dựng bốn mẫu lấy từ CSS hiện có: `docTools.css` (`repeat(auto-fit, minmax(220px,1fr))`), `TaskDialog.css` (`minmax(0,1fr) 300px`), ellipsis ở `app.css:80`, `signTemplate.css:186` (`aspect-ratio: 260/100`).
@@ -251,8 +254,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.06
 - **File:** `apps/native/crates/chef-ui/src/layout_probe.rs`, `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09) Probe: auto-fit không có trong GPUI, thay bằng số cột tính từ chiều rộng (3, 4, 6 cột ở 800, 1184, 1484 px); ellipsis một dòng đạt; `minmax(0,1fr) 300px` đạt; aspect-ratio 260/100 đạt. Còn lại: so với Electron ở ba cỡ (R1.21). Kết quả ở BLUEPRINT_RUST §6.9
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-09) Probe: auto-fit không có trong GPUI, thay bằng số cột tính từ chiều rộng (3, 4, 6 cột ở 800, 1184, 1484 px); ellipsis một dòng đạt; `minmax(0,1fr) 300px` đạt; aspect-ratio 260/100 đạt. (2026-11-21, MAN-5) Chụp ba kích thước xác nhận số cột, ellipsis, cột phải 300 px và tỉ lệ; chấp nhận sai khác raster nhỏ. Kết quả ở BLUEPRINT_RUST §6.9.
+- **Trạng thái:** ✅
 
 ### R1.18 · Probe số chữ cố định và khoảng cách chữ · XS
 - **Mô tả:** kiểm `font-variant-numeric: tabular-nums` (12 chỗ dùng) và `letter-spacing` (6 chỗ).
@@ -271,8 +274,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.16
 - **File:** `apps/native/crates/chef-ui/src/button_probe.rs`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09) Bốn trạng thái đổi đúng màu: hover và active qua `mouse move` và `mouse down`; focus-visible cần lần nhập gần nhất là bàn phím (kiểm bằng `key 65`). Token hover và active là RGBA trong suốt. Còn lại: con trỏ tay chưa đo (WGC không chụp con trỏ)
-- **Trạng thái:** 🔄
+- **Ghi chú:** Bốn trạng thái đổi đúng màu; hover/active qua `mouse move` và `mouse down`, focus-visible qua phím. Token hover/active là RGBA trong suốt. (2026-11-22) `capture-native-probes.ps1 -Widths 800 -Themes light -MeasurePointer` đưa chuột thật lên nút; state báo hovered và `GetCursorInfo` trả `hand`. Đã đặt helper đo tọa độ trong PMv2 và gửi hai bước move để Windows áp WM_SETCURSOR sau frame GPUI. Capture/index: `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.19-pointer-check-20261122`.
+- **Trạng thái:** ✅
 
 ### R1.20 · Probe thanh cuộn tùy biến · XS
 - **Mô tả:** kiểm cách đổi style thanh cuộn (3 chỗ dùng `scrollbar` trong CSS hiện có). Nếu GPUI không cho đổi, ghi lựa chọn: vẽ thanh cuộn riêng hoặc giữ mặc định.
@@ -304,9 +307,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Ghi chú:** (2026-11-11) thêm ở bản 0.2 để năm task 🔄 không đóng lẻ từng cái. (2026-11-14) CLI R2.02 nhận manifest cặp ảnh và sinh report. Thêm `CHEF_E2E_PROBE_VISUAL_ONLY=1` để native capture chỉ vẽ đúng nhóm nút, font, icon, bóng và layout cần so; `scripts/capture-native-probes.ps1` chụp ứng viên ở ba chiều rộng, hai theme, lưu BMP/index ngoài repo và thư mục tạm. `-VisibleProbe`/`-MeasurePointer` bật cửa sổ chỉ trong probe E2E; đo cursor di chuyển chuột hệ thống lên `probe-primary`, yêu cầu `state.cursor.type == hand`, rồi phục hồi tọa độ ban đầu. `state.cursor` lấy loại/vị trí bằng Win32 `GetCursorInfo`. Thêm `tests/e2e/specs/native-probe-refs.spec.ts` tạo ảnh Electron cùng kích thước, theme, nội dung probe ở DPR 1/1,75; capture index Electron lưu cạnh ảnh ngoài repo, manifest trong repo chỉ giữ kích thước/hash. `scripts/make-native-probe-pairs.mjs` kiểm tra file/hash, ghép theo theme/kích thước/DPR, kiểm pixel dimensions rồi ghi manifest cho CLI; Node tests 2/2 đạt. E2E/UI/desktop typecheck đạt với Node 22/pnpm 10.28. `pnpm install --frozen-lockfile --ignore-scripts` không chạy lifecycle/build scripts. Chưa chụp được ảnh vì UI dist chưa có và build đang tạm gác. PowerShell parser, Windows GNU `cargo check --tests` và Clippy `-D warnings` đạt; capture Rust/Electron, cursor và comparator runtime vẫn chưa chạy trên Windows. R1.21 chỉ có màn hình Start/view/dialog; corpus `CHEF_VISUAL_REFS` cũng cần khôi phục. Đây là capture helper nên nằm ngoài `e2e-native-all.ps1`. Giữ 🔄; không suy luận kết quả so ảnh từ probe đơn lẻ.
 - **Ghi chú:** (2026-11-16) Chụp đã chạy được một phần. Native: `scripts/capture-native-probes.ps1` (mặc định, `CHEF_E2E_PROBE_VISIBLE=0`, cửa sổ ngoài màn hình) cho 6 ảnh (800/1184/1484 × light/dark, DPR 1) ở `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.43`. Electron: `native-probe-refs.spec.ts` cho 6 ảnh DPR 1 ở `D:\ChefPDF-visual-refs\native-probes` (index đủ 6 mục). Manifest trong repo chưa được tạo: lượt 12 ảnh fail ở DPR 1,75 nên không ghi, và manifest 6 mục đã xóa vì dở. **Chưa ghép cặp**: `make-native-probe-pairs.mjs` từ chối vì kích thước khác nhau: Electron 800×1600, native 802×1593. Màn hình chính 1920×1080 (vùng làm việc 1032 px). Cửa sổ probe 1600 px bị giới hạn còn 1593 dù off-screen, và khung Windows thêm 2 px ngang. Nguyên nhân chính xác chưa kiểm. **Hai việc chặn**: (a) DPR 1,75 của Electron chưa chạy: `--force-device-scale-factor` không được áp dụng, `devicePixelRatio` đọc ra 1,0. (b) Bước kế tiếp đề xuất: đổi chiều cao probe về ≤ 1000 px ở cả spec Electron và probe Rust, chụp lại cả hai bên, rồi kiểm lại kích thước (cả chiều rộng 802 vs 800). Chưa có kết quả so sánh nào; giữ 🔄.
 - **Ghi chú:** (2026-11-16, sửa kích thước) Nguyên nhân lệch 802×1593 và 1170×1593: `SetWindowPos` đặt khung ngoài, nên client thật là (W−16)×1561. Đo bằng GetWindowRect/GetClientRect: W=800 bị min-size của GPUI nâng client lên 800 (khung 816); W=1184 và 1484 ra client 1168 và 1468. WGC chụp cả thanh tiêu đề 31 px và khung. Sửa: `fit_client_size` trong `chef-app/src/main.rs` (chỉ trang thử) đặt lại khung ngoài = client mong muốn + phần khung đo được. `scripts/capture-native-probes.ps1` cắt BMP về đúng vùng client (ClientToScreen và DWMWA_EXTENDED_FRAME_BOUNDS), ghi kích thước client vào index, và băm SHA-256 bằng .NET vì `Get-FileHash` không có trong tiến trình powershell này. Kết quả: 6/6 ảnh native (800/1184/1484 × sáng/tối) đúng 800×1600, 1184×1600, 1484×1600, khớp kích thước Electron; `make-native-probe-pairs` ghép đủ 6 cặp; ảnh ở `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.43-client`, báo cáo ở `...\R1.43-client\report\report.html`. Căn chỉnh đúng ở offset (0,0). `visual-compare`: 0/6 đạt (điểm 0,73–0,83; lệch tập trung ở 800 hàng trên). Ảnh ghép cho thấy lệch thật, không phải lỗi đo: R2.03 native xuống dòng hàng nút (thêm nút "Vô hiệu" và nút copy), R1.17 cắt chữ và độ rộng ô khác, glyph lệch vài px. Chưa có verdict "đạt/lệch/chấp nhận" từng probe: cần chủ dự án xem báo cáo (MAN-5) rồi quyết định sửa bố cục native hay chấp nhận. Còn thiếu: 12 ảnh DPR 1,75 (chưa chụp lại sau sửa), nên manifest chưa ghi và R2.02 self-test vẫn đỏ. R1.19 (con trỏ tay) chưa kiểm: cần chuột thật, để chủ dự án. fmt, clippy `-D warnings` và build chef-app đều sạch. Giữ 🔄.
-- **Trạng thái:** 🔄
+- **Ghi chú (2026-11-22, MAN-5 delegated):** Bộ cuối có 6 cặp DPR 1.75, kích thước khớp. Nguyên nhân nút xuống hàng là thiếu `.flex()` (đã sửa); section title trước đó thừa line-height 3 px vì kế thừa px cố định từ root (đã đặt 16,5 px). Comparator vẫn 0/6 theo ngưỡng pixel, score 0,866–0,916. MAN-5 xem ảnh và chấp nhận sai khác còn lại là raster/font antialias giữa Chromium và DirectWrite; không còn sai bố cục hay thiếu glyph/icon. Verdict: R1.13 font chấp nhận; R1.15 icon chấp nhận; R1.16 shadow/focus chấp nhận; R1.17 layout chấp nhận; R1.19 con trỏ hand đã đo bằng input thật. Năm dòng §6.2 có kết quả ghi ở BLUEPRINT_RUST. WGC crop và cursor geometry dùng PMv2; Electron DPR dùng CDP `Emulation.setDeviceMetricsOverride`. `cargo fmt --all -- --check`, `cargo build -p chef-app`, và capture pointer đạt. Report: `C:\Users\phamm\AppData\Local\ChefPDF\visual-candidates\R1.43-man5-20261121-latest\report\report.html`.
+- **Trạng thái:** ✅
 
-### M1.3 IME (rủi ro cao nhất)
+### M1.3 IME (UniKey)
 
 ### R1.22 · Ô nhập một dòng cơ bản · M
 - **Mô tả:** ô nhập GPUI: ký tự Unicode qua `WM_CHAR`, con trỏ, chọn bằng chuột và Shift, Ctrl+A, Ctrl+C/V/X, Backspace và Delete.
@@ -315,17 +319,17 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.07
 - **File:** `apps/native/crates/chef-ui/src/text_input.rs`, `apps/native/crates/chef-ui/src/text_buffer.rs`, `apps/native/crates/chef-app/src/debug.rs`, `scripts/e2e-native-input.ps1`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-09) hoàn tất. Chữ ô nhập dùng màu theme (`text` trên thanh viewer), placeholder mờ 50%. Phần IME (gõ Telex, Unikey, EVKey) không thuộc R1.22; xem R1.23 đến R1.27.
+- **Ghi chú:** (2026-11-09) hoàn tất. Chữ ô nhập dùng màu theme (`text` trên thanh viewer), placeholder mờ 50%. Phần IME UniKey không thuộc R1.22; xem R1.23 và R1.27.
 - **Trạng thái:** ✅
 
 ### R1.23 · Kiểm composition của GPUI trên Windows · S
 - **Mô tả:** đọc mã Windows của commit đã ghim tìm `WM_IME_COMPOSITION`, `WM_IME_STARTCOMPOSITION`, TSF. Viết một ô thử để xem composition có đi qua không.
-- **Tiêu chí:** (1) kết luận "có / không / một phần" kèm đường dẫn mã; (2) ghi vào BLUEPRINT_RUST §13.1; (3) nếu "không", R1.24 được kích hoạt.
+- **Tiêu chí:** (1) kết luận "có / không / một phần" kèm đường dẫn mã; (2) ghi vào BLUEPRINT_RUST §13.1; (3) ghi rõ giới hạn nếu thiếu TSF; không tự kích hoạt triển khai TSF.
 - **Kiểm chứng:** log sự kiện IME trong ô thử.
 - **Phụ thuộc:** R1.22
 - **File:** `docs/BLUEPRINT_RUST.md`, `apps/native/crates/chef-ui/src/ime_probe.rs`
 - **Tính năng:** —
-- **Ghi chú:** một phần: gpui_windows xử lý WM_IME_STARTCOMPOSITION và WM_IME_COMPOSITION qua IMM32 (ImmGetCompositionStringW, GCS_RESULTSTR/GCS_COMPSTR). Không thấy đường TSF. Bộ gõ Telex của Windows chưa xác nhận: chờ R1.22 và MAN-1 (R1.26)
+- **Ghi chú:** một phần: gpui_windows xử lý WM_IME_STARTCOMPOSITION và WM_IME_COMPOSITION qua IMM32 (ImmGetCompositionStringW, GCS_RESULTSTR/GCS_COMPSTR). Không thấy đường TSF. Chủ dự án chọn chỉ dùng UniKey; không kiểm bộ gõ tích hợp của Windows và không triển khai TSF (D92).
 - **Trạng thái:** ✅
 
 ### R1.24 · Dự phòng TSF: đăng ký context và nhận composition · L
@@ -335,7 +339,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.23
 - **File:** `apps/native/crates/chef-ui/src/tsf.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-22) Bỏ khỏi phạm vi theo D92: chủ dự án chỉ dùng UniKey, không cần triển khai TSF để hỗ trợ bộ gõ tích hợp của Windows.
+- **Trạng thái:** ❌
 
 ### R1.25 · Dự phòng TSF: underline và vị trí ứng viên · L
 - **Mô tả:** vẽ gạch chân composition, đặt cửa sổ ứng viên tại con trỏ, xử lý phím số trong chế độ chọn ký tự.
@@ -344,7 +349,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.24
 - **File:** `apps/native/crates/chef-ui/src/tsf.rs`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-22) Bỏ khỏi phạm vi theo D92 cùng R1.24; không cần underline/vị trí ứng viên cho bộ gõ tích hợp của Windows.
+- **Trạng thái:** ❌
 
 ### R1.26 · Kiểm Telex built-in trong ô nhập · S
 - **Mô tả:** test tự động cho phần commit (ký tự đã chốt) và MAN-1 cho phần gõ thật bằng bộ gõ Windows.
@@ -353,16 +359,21 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.22, R1.23 (hoặc R1.25 nếu được kích hoạt)
 - **File:** `apps/native/crates/chef-ui/src/text_input.rs`, `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-22) Bỏ khỏi phạm vi theo D92; không kiểm bộ gõ tích hợp của Windows. Kiểm thử IME thủ công thực hiện riêng với UniKey ở R1.27.
+- **Trạng thái:** ❌
 
-### R1.27 · Kiểm Unikey và EVKey trong khung ghi chú · XS
-- **Mô tả:** MAN-1, chạy trên máy chủ dự án với Unikey hoặc EVKey, gõ trong cùng ô "Tìm trong tài liệu" của viewer (Ctrl+F) như R1.26. Cách chạy: `cargo run -p chef-app -- "D:\ChefPDF\core\token-check-out\mau.pdf"` từ `apps\native`, không đặt `CHEF_E2E`.
-- **Tiêu chí:** (1) gõ Telex và VNI đúng; (2) kết quả ghi vào BLUEPRINT_RUST §13.1.
-- **Kiểm chứng:** ảnh chụp kết quả.
-- **Phụ thuộc:** R1.26
+  **Ghi chú (2026-11-21):** đã thử mở danh sách app bằng Computer Use sau reset runtime; cả `@oai/sky` và CUA đều báo native pipe không tồn tại (`The system cannot find the file specified`). Chưa nhập văn bản vào ô; không coi E2E gõ thường là kiểm IME.
+
+### R1.27 · Kiểm UniKey trong ô ghi chú · XS
+- **Mô tả:** MAN-1, chạy trên máy chủ dự án với UniKey, gõ Telex và VNI trong ô ghi chú của Chef PDF.
+- **Tiêu chí:** (1) UniKey gõ tiếng Việt ổn định trong ô ghi chú; (2) kết quả ghi vào BLUEPRINT_RUST §13.1.
+- **Kiểm chứng:** ảnh chụp hoặc xác nhận trực tiếp của chủ dự án.
+- **Phụ thuộc:** R1.22, R1.23
 - **File:** `docs/BLUEPRINT_RUST.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+  **Ghi chú (2026-11-21):** process `UniKeyNT` đang chạy trên máy; chưa thể gõ/đọc kết quả vì Computer Use native pipe không tồn tại ở phiên này. Chưa xác nhận Telex/VNI bằng composition thật.
+  **Ghi chú (2026-11-22):** Chủ dự án tự thử UniKey từ ghi chú và xác nhận gõ tiếng Việt ổn; chấp nhận kết quả làm bằng chứng MAN-1. Computer Use không kết nối được nên không có ảnh chụp từ phiên này.
+- **Trạng thái:** ✅
 
 ### M1.4 pdfium và viewer
 
@@ -399,11 +410,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 ### R1.31 · So bitmap pdfium với pypdfium2 · S
 - **Mô tả:** render 3 trang mẫu ở cùng DPI bằng cả hai, so pixel. Ghi số chênh lệch trung bình.
 - **Tiêu chí:** (1) kích thước khớp; (2) chênh lệch ghi thành số; (3) nếu lệch lớn, ghi nguyên nhân (anti-alias, màu nền).
-- **Kiểm chứng:** script so sánh trong `chef-testkit`.
+- **Kiểm chứng:** `chef-pdf` integration render test và đối chiếu BGRA với pypdfium2 trên ba trang cùng kích thước.
 - **Phụ thuộc:** R1.30
-- **File:** `apps/native/crates/chef-testkit/src/compare.rs`
+- **File:** `apps/native/crates/chef-pdf/src/render.rs`, `apps/native/crates/chef-pdf/tests/render.rs`
 - **Tính năng:** —
-- **Ghi chú:** cùng kích thước 893×1263: sai lệch 0 trên mọi điểm ảnh so với pypdfium2 (DLL 8076). Trước đó so ở kích thước khác có sai lệch do resize, đã loại bỏ
+- **Ghi chú:** `PdfRenderConfig` được ghim sang BGRA bằng `set_reverse_byte_order(false)`, khớp `PageImage` và GPUI. (2026-11-22) Tạo PDF ba trang A4 gồm swatch RGB/xám, chữ Việt, vector anti-alias và ảnh alpha. Render native (PDFium 8125) và pypdfium2 5.14.0/PDFium 8076 ở cùng 893×1263 px, chuẩn hóa hai đầu về BGRA. Cả ba trang: MAE RGB/BGRA 0, max diff 0, pixel khác 0/1,127,859 mỗi trang. Sáu tâm swatch xác nhận BGRA đúng, gồm đỏ và xanh dương. DLL hash và PNG tham chiếu/native/diff nằm trong `%LOCALAPPDATA%\ChefPDF\R1.31-bitmap-check-20261122\comparison-report.json`.
 - **Trạng thái:** ✅
 
 ### R1.32 · Mô hình cuộn liên tục · M
@@ -413,7 +424,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.30
 - **File:** `apps/native/crates/chef-viewer/src/scroll.rs`
 - **Tính năng:** B2 (cuộn liên tục)
-- **Ghi chú:** hình học cuộn và visible ±1 có unit test. `debug.state.renderTiming` ghi GPUI `Render` body duration và khoảng giữa các lần gọi `Render`; các giá trị này không phải thời gian khung hình đã trình bày. Cần xác nhận frame/present thật trên Windows.
+- **Ghi chú:** hình học cuộn và visible ±1 có unit test. `debug.state.renderTiming` ghi GPUI `Render` body duration và khoảng giữa các lần gọi `Render`; các giá trị này không phải thời gian khung hình đã trình bày. Cần xác nhận frame/present thật trên Windows. (2026-11-22) Thử khả năng ETW bằng WPR profile `GPU` + `DesktopComposition`, nhưng `wpr -start ... -filemode` bị Windows từ chối với `0xc5585011` (“Failed to enable the policy to profile system performance”); chưa tạo ETL và chưa có bằng chứng frame/present riêng cho Chef. Cần chạy phép đo trong môi trường có quyền ETW hoặc cài decoder đã duyệt; giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R1.33 · Cache LRU tính theo MB · M
@@ -561,9 +572,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-testkit/src/visual.rs`, `apps/native/crates/chef-testkit/src/bin/visual-compare.rs`
 - **E2E:** `ui-audit-selftest`, `visual-compare`
 - **Tính năng:** —
-- **Ghi chú:** (2026-11-14) Comparator dùng lưới 16 px, mean threshold 6.0, giới hạn đồng thời `maxBadRatio` 2% và `maxBadTiles` 3; cấu hình/báo cáo JSON ghi cả hai ngưỡng. Có self-test cho ảnh giống, AA nhẹ, lệch chữ 1 px, đổi màu, sai kích thước và output báo cáo; `scripts/e2e-native-visual-selftest.ps1` kiểm manifest R1.21 ở root và manifest R2.01 theo `ui-audit-$theme/$file` (manifest có 104 file/theme nhưng basename lặp giữa light/dark). Fixture hai theme cùng tên, nội dung/hash khác đã xác nhận cả hai file riêng biệt được verify. Script kiểm hash, byte size nếu manifest ghi, kích thước PNG, path traversal, và giữ refs ngoài repo/%TEMP%; default là thư mục data user ổn định. (2026-11-14) Thêm CLI `cargo run -p chef-testkit --bin visual-compare -- pairs.json report-dir`: đọc manifest cặp ảnh, resolve đường dẫn tương đối theo manifest, tạo report JSON/HTML và diff, thoát khác 0 nếu có cặp không đạt. 8/8 test comparator cũ và 4/4 test CLI cùng clippy `-D warnings` đạt; smoke test hai cặp tạo đúng report/diff (một cặp giống, một cặp lệch), xác nhận exit 1; `e2e-native-visual-selftest.ps1 -SelfTestOnly` chạy toàn bộ và resolver fixture đạt với SDK macOS 15.4. **Còn mở:** corpus thật chưa có ở thư mục refs (lần chạy báo thiếu 220 file); chưa có ảnh Rust/Electron tương ứng, driver chụp native và MAN-5 duyệt bằng mắt. Giữ 🔄.
+- **Ghi chú:** (2026-11-14) Comparator dùng lưới 16 px, mean threshold 6.0, giới hạn đồng thời `maxBadRatio` 2% và `maxBadTiles` 3; cấu hình/báo cáo JSON ghi cả hai ngưỡng. Có self-test cho ảnh giống, AA nhẹ, lệch chữ 1 px, đổi màu, sai kích thước và output báo cáo; `scripts/e2e-native-visual-selftest.ps1` kiểm manifest R1.21 ở root và manifest R2.01 theo `ui-audit-$theme/$file` (manifest có 104 file/theme nhưng basename lặp giữa light/dark). Fixture hai theme cùng tên, nội dung/hash khác đã xác nhận cả hai file riêng biệt được verify. Script kiểm hash, byte size nếu manifest ghi, kích thước PNG, path traversal, và giữ refs ngoài repo/%TEMP%; default là thư mục data user ổn định. (2026-11-14) Thêm CLI `cargo run -p chef-testkit --bin visual-compare -- pairs.json report-dir`: đọc manifest cặp ảnh, resolve đường dẫn tương đối theo manifest, tạo report JSON/HTML và diff, thoát khác 0 nếu có cặp không đạt. 8/8 test comparator cũ và 4/4 test CLI cùng clippy `-D warnings` đạt; smoke test hai cặp tạo đúng report/diff, xác nhận exit 1. (2026-11-21) Tạo lại 12 ảnh R1.21 trong `D:\ChefPDF-visual-refs` (DPR 1/1,75, hash vẫn khớp manifest); chạy lại comparator/self-test trên Windows: 8/8 unit + 4/4 CLI test đạt, resolver fixture đạt, xác minh 220/220 ảnh SHA-256/kích thước đạt. Script lỗi do PowerShell không gọi được `AsSpan()` trên `byte[]`; thay bằng giải mã trực tiếp trường IHDR big-endian. R2.02 đóng ✅.
 - **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-visual-selftest.ps1` với `CHEF_VISUAL_REFS=D:\ChefPDF-visual-refs`: 208 ảnh khớp băm, 12 ảnh thiếu. Cả 12 nằm trong `tests/visual/native-refs/manifest.json` (ảnh probe DPR 1 và 1,75, cần chụp từ Electron cho R1.43), nên script thoát 1. Không đóng vì self-test còn đỏ. Việc của chủ dự án: chụp 12 ảnh Electron. Giữ 🔄.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-21, xử lý tồn): đã chụp đủ 12 ảnh R1.21 vào root `D:\ChefPDF-visual-refs`; chúng khớp hash manifest. Lượt chạy hiện tại xác minh đủ 220 ảnh; dòng trên là trạng thái lịch sử.
+- **Trạng thái:** ✅
 
 ### R2.33 · Script chạy gộp E2E native · XS
 - **Mô tả:** `scripts/e2e-native-all.ps1` chạy lần lượt mọi `scripts/e2e-native-*.ps1` trong PowerShell ẩn, không bật Windows OS input, in bảng tổng (tên, số kiểm tra, số lỗi, thời gian) và thoát khác 0 khi có lỗi. Kịch bản cần phím/chuột thật chỉ chạy riêng với `CHEF_E2E_OS_INPUT=1`. Là cổng kiểm cục bộ cho định nghĩa "xong" mục (a); native build workflow là job riêng (R1.05).
@@ -574,6 +586,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** —
 - **Ghi chú:** (2026-11-11) thêm ở bản 0.2. (2026-11-14) `e2e-native-all.ps1` tự tìm script, bỏ qua chính nó, chạy tuần tự trong PowerShell ẩn, gom PASS/FAIL/thời gian, tiếp tục sau lỗi và trả exit tổng; timeout dừng cả cây tiến trình; giữ log khi có lỗi. Runner xóa `CHEF_E2E_OS_INPUT` trong môi trường child để không chiếm chuột/bàn phím; script input vật lý chỉ opt-in khi chạy riêng. Yêu cầu PowerShell 7. Parser và `-SelfTest` xanh trên Mac (5 script tạm, 10 kiểm tra; xác nhận tự loại runner, hai dạng đếm lỗi, lỗi tổng hợp, tiếp tục sau lỗi và mã thoát tổng). Chưa chạy bộ UI trên Windows. (2026-11-15) Chạy thật trên Windows (MSVC, build debug, cửa sổ ngoài màn hình): runner chạy đủ 28 script: 17 xanh, 11 đỏ (316 kiểm tra, 16 lỗi; lần chạy đầu là 20 đỏ, 56 lỗi). Runner nay trỏ TEMP của tiến trình con vào một thư mục riêng cho mỗi lần chạy: xanh thì xóa, đỏ thì giữ đến lần chạy sau, nên không còn rác trong %TEMP%. Đã sửa lỗi script: vòng chờ log thoát sớm khi file log rỗng (9 script), fixture `os.replace` trên file đang mở, fixture trang cao 1 pt, `quit` không trả lời. Còn đỏ: night (2), palette, password (3, về log), select, settings (4), spread, toc, view, zoom, visual-selftest (thiếu ảnh tham chiếu). Lưu ý: script 0 kiểm tra (keyboard, perf-scroll khi không có OS input) vẫn được tính PASS.
 - **Ghi chú:** (2026-11-16) Chạy lại `e2e-native-all.ps1` trên Windows: 28 script, 333 kiểm tra, 1 lỗi. Mọi script UI đều xanh (select 5/5 sau sửa R2.25b). Lỗi duy nhất là `e2e-native-visual-selftest`: 208/220 ảnh tham chiếu khớp băm; 12 ảnh probe native (`tests/visual/native-refs/manifest.json`, DPR 1 và 1,75) chưa có vì phải chụp từ Electron, phụ thuộc R1.43/R2.02 (UI dist tạm gác). Bộ 208 ảnh đã chuyển từ `%TEMP%` sang `D:\ChefPDF-visual-refs` (ngoài repo, ngoài temp) và chạy với `CHEF_VISUAL_REFS`. Runner đã chứng minh các tiêu chí: tự tìm 28 script, script lỗi không dừng các script sau, mã thoát 1. Đóng R2.33 ở mức runner; cổng xanh hoàn toàn chờ 12 ảnh probe.
+- **Ghi chú:** (2026-11-21) Sau khi tạo đủ 12 ảnh R1.21, `e2e-native-visual-selftest.ps1` chạy xanh: comparator 8/8, CLI 4/4, resolver fixture đạt, manifest refs 220/220 khớp. `scripts/e2e-native-all.ps1` toàn bộ chưa chạy lại trong lượt này.
 - **Trạng thái:** ✅
 
 ### M2.1 Thư viện thành phần (thay Radix)
@@ -722,9 +735,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/start.rs`
 - **E2E:** `smoke`, `start-tiles`, `start-workflows` (phần Start; phần quy trình để M5f)
 - **Tính năng:** A1
-- **Ghi chú:** (2026-11-14) `start.rs` hiển thị ô Mở PDF có tác dụng mở hộp thoại; các ô Ghép/Tách/Scan/Ký số/Đóng dấu/Nén được đánh dấu chưa hỗ trợ. Có RecentFiles truy cập cùng `settings.json`, sắp newest-first, chuẩn hóa dedupe đường dẫn, cap 20, ghi `openedAt` ISO-8601 và giữ khóa settings chưa biết; bấm mục gần đây mở tài liệu thành tab. Lưới khớp ngưỡng CSS min 208 px, theme lấy từ settings/system và EN/VI có khóa trạng thái. CH-R3 được chốt: chỉ icon disabled grayscale 0.6 + opacity 0.7. `e2e-native-start.ps1` kiểm thứ tự recents/dark theme, dùng thư mục temp làm `defaultSaveDir`, kiểm hủy native Open/Save As không báo lỗi; click recent mặc định qua debug pipe, `CHEF_E2E_OS_INPUT=1` bật chuột Windows thật. Parser PowerShell đạt trên Mac. **Còn mở:** E2E Windows, ui-audit/screenshot ở ba chiều rộng, kiểm trực quan theme sáng/tối.
-- **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-start.ps1` PASS 5/5 (recents mới nhất trước, theo theme tối, mở recent thành tab, hủy Open/Save As không lỗi, đúng thư mục và bộ lọc PDF). Còn mở: tiêu chí 3 (bố cục khớp `StartScreen.css` ở ba chiều rộng) và kiểm trực quan theme sáng/tối cần ảnh tham chiếu (R2.02, MAN-5). Giữ 🔄.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-14) `start.rs` hiển thị ô Mở PDF có tác dụng mở hộp thoại; các ô Ghép/Tách/Scan/Ký số/Đóng dấu/Nén được đánh dấu chưa hỗ trợ. Có RecentFiles truy cập cùng `settings.json`, sắp newest-first, chuẩn hóa dedupe đường dẫn, cap 20, ghi `openedAt` ISO-8601 và giữ khóa settings chưa biết; bấm mục gần đây mở tài liệu thành tab. Lưới khớp ngưỡng CSS min 208 px, theme lấy từ settings/system và EN/VI có khóa trạng thái. CH-R3 được chốt: chỉ icon disabled grayscale 0.6 + opacity 0.7. `e2e-native-start.ps1` kiểm thứ tự recents/dark theme, dùng thư mục temp làm `defaultSaveDir`, kiểm hủy native Open/Save As không báo lỗi; click recent mặc định qua debug pipe, `CHEF_E2E_OS_INPUT=1` bật chuột Windows thật. Parser PowerShell đạt trên Mac. **Còn mở:** ui-audit/screenshot ở ba chiều rộng, kiểm trực quan theme sáng/tối.
+- **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-start.ps1` PASS 5/5 (recents mới nhất trước, theo theme tối, mở recent thành tab, hủy Open/Save As không lỗi, đúng thư mục và bộ lọc PDF). (2026-11-22) Chạy lại trên Windows: PASS 5/5, gồm thứ tự recent, mở file, hủy Open/Save As, đúng thư mục, bộ lọc, buffer và extension. Còn mở tiêu chí 3: so bố cục `StartScreen.css` ở ba chiều rộng và xem theme sáng/tối theo R2.02/MAN-5. Giữ 🔄.
+- **Ghi chú:** (2026-11-22) Đối chiếu token/layout cho thấy content width, lưới, hero, icon và card lệch khỏi `StartScreen.css`; cập nhật `start.rs` sang container 980 px với padding 36 px, gap lưới 12 px, card tối thiểu 132 px, icon 42 px và hero 44 px. Recent item đăng ký accessibility bounds; E2E click theo bounds thay vì tọa độ cố định. Unit test cột đạt, clippy đạt, E2E Start PASS 5/5. (2026-11-22) Chụp đủ sáu cặp Electron/Native tại 800/1184/1484 × sáng/tối, DPR 1.75, lưu ngoài repo ở `%LOCALAPPDATA%/ChefPDF/R2.16-start`; kích thước cặp khớp. Comparator toàn cửa sổ vượt ngưỡng do chrome và khác biệt phạm vi tile giữa hai app; MAN-5 đã xem và chấp nhận sai khác raster còn lại. Harness: `tests/e2e/specs/native-start-width-refs.spec.ts`, `scripts/capture-native-start.ps1`. Đóng ✅ theo nghiệm thu MAN-5.
+- **Trạng thái:** ✅
 
 ### R2.17 · Kéo thả file, argv và một phiên bản · M
 - **Mô tả:** kéo file vào Start hoặc cửa sổ, nhận file từ argv, và khi mở file thứ hai thì chuyển cửa sổ đã có (single instance). Dùng named pipe nội bộ.
@@ -736,6 +750,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** A1 (kéo thả), A5 (argv)
 - **Ghi chú:** (2026-11-14) Có parser argv nhiều đường dẫn Unicode, `--` cho tên bắt đầu bằng dấu gạch; đường dẫn được chuẩn hóa; xác thực PDF/đọc được từng file, tiếp tục nhận các file tốt khi có file lỗi. GPUI `ExternalPaths` kéo thả vào host; second launch gửi JSON versioned (giới hạn 512 path/128 KiB) qua named pipe per-user, mutex tồn tại suốt đời primary, pipe dùng default DACL và từ chối remote clients. Primary thêm các tab vào cửa sổ hiện có, focus tab cuối, activate app/window. E2E hai tiến trình kiểm tra Unicode, hai PDF hợp lệ + file thiếu, thứ tự tab, foreground và second process thoát. Windows GNU check/clippy `-D warnings`/test compile, fmt/diff, PowerShell parse đạt trên Mac. **Còn mở:** chưa chạy E2E Windows và chưa thử kéo file thật từ Explorer.
 - **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-instance.ps1` PASS: second launch chuyển file Unicode sang tiến trình gốc, file hợp lệ mở, file thiếu được báo, không còn tiến trình trùng. Còn mở: kéo thả file thật từ Explorer (cần chuột/OS drag, chủ dự án chạy). Giữ 🔄.
+- **Ghi chú:** (2026-11-22) Chạy lại `scripts/e2e-native-instance.ps1` trên Windows: PASS, chuyển đường dẫn Unicode sang primary, mở file hợp lệ, báo file thiếu và không để tiến trình trùng. Chuẩn bị phiên kéo thả thật với Chef và Explorer đang mở, nhưng cả Computer Use `sky` lẫn CUA native pipe đều báo không kết nối được (`The system cannot find the file specified`); dừng trước khi gửi input. Chưa có bằng chứng kéo thả Explorer, giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R2.18 · Bảng lệnh Ctrl+K với tìm không dấu · M
@@ -760,6 +775,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** B2
 - **Ghi chú:** Continuous vẫn là mode mặc định. `e2e-native-perf-scroll.ps1` kiểm PageUp/PageDown qua debug action, cuộn 350 viewport theo nhịp, và xuất max/đếm GPUI Render-body trên/qua 50 ms cùng khoảng cách giữa lần gọi Render. Opt-in `CHEF_E2E_OS_INPUT=1` gửi phím PageDown/PageUp thật và dùng fixture `b2_top_window.ps1` + `b2_os_wheel.ps1` để kiểm wheel trên Viewer khi topmost khác che strip trên, rồi control wheel trên strip bị che. Mặc định không inject input OS. Timing là proxy, không đo frame đã present. Chưa chạy Windows wheel/UI hoặc có log frame/present thật.
 - **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-perf-scroll.ps1` (mặc định, không OS input): `renderBodyMaxMs` 1,845 ms (phần thân Render, cần xem lại), `renderBodyOver50ms=0`; `renderCallGapOver50ms=349/350` nhưng khoảng cách này bám nhịp script 150 ms/bước, không phải thời gian khung đã trình bày nên không chứng minh được tiêu chí 3. Còn mở: đo frame/present thật và bánh xe chuột thật (OS input). Giữ 🔄.
+- **Ghi chú:** (2026-11-22) Sửa OS-input E2E để so PageDown/PageUp với trang hiện tại sau bước cuộn 350 viewport, thay vì giả định luôn ở trang 0; parser đạt. Benchmark mặc định Windows: `deltaPx=251,799`, `renderBodyOver50ms=0`, khoảng gọi Render trên 50 ms `349/350` (nhịp do script, không phải frame time). Opt-in thử foreground tối đa 2 s rồi dừng an toàn: `SetForegroundWindow returned False`, foreground HWND khác target HWND, nên không gửi phím/chuột. Còn mở đo present/frame thật (R1.32) và OS wheel/key input khi desktop foreground được cấp.
+- **Ghi chú:** (2026-11-22, lượt bổ sung) Lượt native perf mới cũng đạt cuộn 350 viewport; `renderBodyMaxMs=3,117`, `renderBodyOver50ms=0`, `renderCallGapOver50ms=349/350` (nhịp gọi script, không đo frame đã present). WPR profile `GPU + DesktopComposition` bị policy Windows từ chối với `0xc5585011`; chưa có ETW/present trace thay thế. Giữ R2.19 mở cho OS wheel/key và present/frame.
 - **Trạng thái:** 🔄
 
 ### R2.20 · Viewer: hai trang, kiểu sách, toàn màn hình · M
@@ -784,7 +801,9 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Ghi chú:** (2026-11-14) Đã thêm nút vừa trang, nhập zoom phần trăm, xoay khung nhìn 90° chỉ thay đổi cách hiển thị; debug action/state và script `e2e-native-zoom.ps1` đã chuẩn bị. Mặc định dùng debug actions; `CHEF_E2E_OS_INPUT=1` bật Ctrl+=, Ctrl+−, Ctrl+0 thật; parser PowerShell đạt trên Mac. Có unit regression cho chọn trang giữa viewport khi fit từ giữa trang, giữ page id sau khi fit lại khi đổi viewport và chuyển đổi rect/point ở cả bốn góc xoay. Đã sửa zoom giữ neo giữa viewport, fit-page ghim nhóm hiện tại và geometry xoay cho render/search/text selection/hit-test. Chưa xác minh runtime, chưa so vừa chiều rộng với Electron ở ba cỡ cửa sổ và chưa đo file 305 MB; giữ 🔄.
 - **Ghi chú:** (2026-11-15d) Thêm `scripts/e2e-native-fitwidth.ps1` (không cần focus hay OS input): đổi cỡ cửa sổ 800/1184/1484 px logic bằng `SetWindowPos` NOACTIVATE rồi đọc `state.view.zoom`. Chạy thật trên Windows: 3/3 đạt, zoom khớp công thức native `(client − 210 sidebar − 2×24 margin)/612` trong 0,001 (0,8861; 1,5135; 2,0037). Lưu ý: PowerShell là tiến trình DPI-unaware nên kích thước Win32 đã là logic, không nhân hệ số DPI. **Chưa so với Electron**: công thức Electron là của pdf.js (lề 40 px + viền trang), khác lề native 24 px; cần số đo từ bản Electron chạy cùng cỡ cửa sổ hoặc quyết định chấp nhận khác biệt. Tiêu chí 3 (305 MB) chưa đo. Giữ 🔄.
 - **Ghi chú:** (2026-11-15e) Tiêu chí 3: thêm `scripts/gen-perf-large-fixture.py` (31 trang JPEG nhiễu, 307 MB) và `scripts/e2e-native-perf-large.ps1`. Đo trên Windows, **build debug**, tiến trình khởi động đến khi ảnh trang 0 vào cache: **1,18 s** (mốc Electron 5,1 s) → đạt. 20 lần nextpage đến khi trang 20 có ảnh: 3,0 s; số này đo đến lúc ảnh vẽ xong nên **không so được** với mốc Electron 52 ms (chỉ đo đến lúc cuộn). Chưa đo bản release. Không chạy Electron.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-22) Chạy lại fit-width E2E trên Windows: PASS tại 800/1184/1484 px, zoom `0.8861/1.5135/2.0037`, sai số công thức dưới 0,001. So số đo với Electron cùng kích thước và kiểm file lớn vẫn còn.
+- **Ghi chú:** (2026-11-22) Harness Electron đóng properties panel (272 px) trước khi đo để khớp shell Native; sidebar vẫn mở ở cả hai app. Viewer Electron tại 800/1184/1484 rộng 574/958/1258 px, trang rộng 534/918/1218 px. Native trước sửa hiển thị trang rộng 542/926/1226 px; đặt riêng `FIT_WIDTH_MARGIN=28` (giữ `MARGIN=24` cho fit-page) cho ra zoom 0.873/1.5005/1.9907, tức trang khoảng 534/918/1218 px. `scripts/e2e-native-fitwidth.ps1` đạt 3/3, sai số zoom dưới 0,001; `native-fitwidth-parity.spec.ts` đo Electron 3/3; E2E TypeScript, build, Clippy `-D warnings` và `e2e-native-zoom.ps1` đạt. Tiêu chí file lớn chạy cùng fixture `big300.pdf` (306,882,654 bytes): Native đạt cache ảnh trang đầu sau 0.61 s, Electron đạt canvas trang đầu sau 4.223 s. 20 lần chuyển trang có endpoint khác nhau (Native chờ ảnh trang 20, Electron chờ canvas visible), không dùng số này làm so sánh hiệu năng. Đóng R2.21 ✅.
+- **Trạng thái:** ✅
 
 ### R2.22 · Thanh bên: thumbnail ảo hóa và mục lục · M
 - **Mô tả:** thumbnail chỉ render dòng nhìn thấy, cap 60 thumbnail mỗi tài liệu (`c3496fc`), chiều cao dòng tính từ kích thước trang. Mục lục từ bookmark của pdfium.
@@ -847,9 +866,9 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.10, R1.28
 - **File:** `apps/native/crates/chef-app/src/password.rs`, `apps/native/crates/chef-pdf/src/render.rs`, `apps/native/crates/chef-pdf/Cargo.toml`, `apps/native/crates/chef-ui/src/text_input.rs`, `apps/native/crates/chef-ui/src/text_buffer.rs`, `apps/native/crates/chef-ui/Cargo.toml`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/tabs_host.rs`
 - **Tính năng:** B6
-- **Ghi chú:** (2026-11-14) Ô mật khẩu dùng secure mode: nội dung được che khi vẽ, Ctrl+C/Ctrl+X bị chặn, `TextBuffer` zeroize khi xóa và khi `TextInput` bị drop. Viewer truyền `Zeroizing<String>` xuyên qua `Job::Open`, nên cả đường lỗi trước lúc gửi lẫn khi render thread drop job đều xóa vùng chuỗi do app sở hữu. Khi đóng tab, viewer xóa buffer và drop mật khẩu nguồn. `e2e-native-password.ps1` cô lập PDF fixture, userData và stderr cho mỗi lượt, chờ debug pipe sẵn sàng, rồi quét chính xác stderr và toàn bộ file dữ liệu app để dò mật khẩu; kiểm buffer sau mật khẩu sai, khi đóng tab lúc prompt còn chữ, và thả mật khẩu nguồn sau khi mở đúng. Parser đạt trên Mac, script chưa chạy Windows. Unit tests xác nhận buffer state sau zeroize và masking giữ offset UTF-8; đây không phải bằng chứng về toàn bộ physical-memory lifetime. Các bản sao/transient allocation bên trong GPUI hoặc pdfium và trang bộ nhớ do allocator quản lý ngoài vùng String hiện tại chưa thể chứng minh đã bị ghi đè; không khẳng định physical-memory erasure.
-- **Ghi chú:** (2026-11-15c) Chạy thật trên Windows (debug build, PowerShell 5.1): `e2e-native-password.ps1` 0 FAIL. Sửa script: `Encoding.Latin1` không có trong PowerShell 5.1, đổi sang `GetEncoding(28591)`. Giữ 🔄 vì tiêu chí 3 chỉ chứng minh được ở mức buffer của app, chưa chứng minh xóa bộ nhớ vật lý.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-14) Ô mật khẩu dùng secure mode: nội dung được che khi vẽ, Ctrl+C/Ctrl+X bị chặn, `TextBuffer` zeroize khi xóa và khi `TextInput` bị drop. Viewer truyền `Zeroizing<String>` xuyên qua `Job::Open`, nên cả đường lỗi trước lúc gửi lẫn khi render thread drop job đều xóa vùng chuỗi do app sở hữu. Khi đóng tab, viewer xóa buffer và drop mật khẩu nguồn. `e2e-native-password.ps1` cô lập PDF fixture, userData và stderr cho mỗi lượt, chờ debug pipe sẵn sàng, rồi quét chính xác stderr và toàn bộ file dữ liệu app để dò mật khẩu; kiểm buffer sau mật khẩu sai, khi đóng tab lúc prompt còn chữ, và thả mật khẩu nguồn sau khi mở đúng. Unit tests xác nhận buffer state sau zeroize và masking giữ offset UTF-8. **Giới hạn:** không cam kết xóa vật lý các bản sao tạm trong GPUI/PDFium hoặc trang bộ nhớ allocator quản lý ngoài vùng do app sở hữu.
+- **Ghi chú:** (2026-11-15c) Chạy thật trên Windows (debug build, PowerShell 5.1): `e2e-native-password.ps1` 0 FAIL. Sửa script: `Encoding.Latin1` không có trong PowerShell 5.1, đổi sang `GetEncoding(28591)`. (2026-11-22) Đóng task theo phạm vi vùng nhớ app sở hữu: E2E đạt, mật khẩu không lộ trong log/dữ liệu, secure input và các buffer/chuỗi do app giữ được zeroize khi xóa/drop. Không tuyên bố xóa bản sao tạm hoặc bộ nhớ vật lý do thư viện/allocator quản lý.
+- **Trạng thái:** ✅
 
 ### R2.27 · Thuộc tính tài liệu · S
 - **Mô tả:** hiện tiêu đề, tác giả, số trang, khổ giấy, phiên bản PDF, dung lượng từ pdfium và file. Phần lấy từ lõi để M3.
@@ -870,7 +889,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `ui-audit` (màn hình đọc ban đêm)
 - **Tính năng:** B9
 - **Ghi chú:** (2026-11-14) D79 nằm ở `docs/NOTES.md` (không phải D75). Công thức CPU dùng cùng thứ tự CSS `invert(1)` rồi `hue-rotate(180deg)`, đổi tại chỗ; khi bật/tắt, Viewer evict cache ảnh trang và chuyển ảnh cũ cho GPUI giải phóng. Unit tests so màu RGB không xám với đầu ra công thức, giữ alpha/capacity và kiểm helper evict trả toàn bộ ảnh cache. State debug bổ sung `cachedBytes` từ bộ đếm byte thực của LRU. `e2e-native-night.ps1` tự tạo PDF mẫu khi không truyền fixture, chờ cache ngày/đêm ổn định, yêu cầu cùng tập trang và tính mức tăng byte cache; parser đạt trên Mac, chưa chạy Windows. Chưa có ảnh Rust/Electron theo R2.02/MAN-5 hoặc số đo runtime để xác nhận ngưỡng 10%; giữ 🔄.
-- **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-night.ps1` PASS (đổi ngày/đêm, trang tối khi đêm, trang sáng khi ngày, cache giữ cùng tập trang, tăng byte cache 0%, tắt đêm). Còn mở: tiêu chí 1 (màu đảo khớp Electron trên ảnh mẫu, ngưỡng R2.02) cần ảnh Electron. Giữ 🔄.
+- **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-night.ps1` PASS (đổi ngày/đêm, trang tối khi đêm, trang sáng khi ngày, cache giữ cùng tập trang, tăng byte cache 0%, tắt đêm). (2026-11-22) Chạy lại trên Windows: PASS toàn bộ, cùng tập trang cache, byte cache ngày/đêm `13,654,592`, tăng 0%. Tạo PDF màu sáu mảng và chụp Electron/native. Phát hiện PDFium mặc định trả RGBA nhưng `PageImage`/GPUI dùng BGRA; đặt rõ `set_reverse_byte_order(false)` để sửa đỏ/xanh bị tráo. Regression đỏ/xanh thất bại trước sửa và đạt sau. Báo cáo mẫu `sample-report.json` kiểm 12/12 swatch phẳng: ngày→đêm đúng ma trận CSS trong từng app; ảnh native sau sửa có đúng thứ tự màu. Còn mở so ảnh đầy đủ theo R2.02 (cần cùng crop/kích thước và xử lý khác biệt raster giữa capture Electron/native). Giữ 🔄.
+- **Ghi chú:** (2026-11-22, tiếp tục) Thử capture cùng trang màu ở DPR 1.75 để chạy comparator: crop từ cửa sổ Native bị giới hạn vùng render nên kích thước trang lệch Electron; gửi debug `zoomfitpage` trong cửa sổ resize ẩn làm vùng viewer trống dù cache báo đã render. Không dùng các crop này làm kết quả. Computer Use cũng không kết nối native pipe (`The system cannot find the file specified`) sau hai lần `list_apps`; chưa có đường capture toàn trang đáng tin trong môi trường này. Giữ 🔄, không đổi ngưỡng comparator.
 - **Trạng thái:** 🔄
 
 ### R2.29 · Chip "có chữ, scan, hỗn hợp" · XS
@@ -914,7 +934,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** báo cáo trong NOTES.
 - **Phụ thuộc:** R2.01 đến R2.31
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-22) Đã có bảng RAM Native/Electron 1000 trang tại R1.38, phép cuộn 350 viewport tại R2.19, bộ so ảnh R2.16 gồm sáu cặp Start (MAN-5 chấp nhận), và R2.21 đã đạt. Còn thiếu báo cáo so ảnh viewer theo R2.02/MAN-5 và đóng các cổng còn lại của M2 (R2.17 kéo thả Explorer, R2.19 input/present-frame, R2.28 so ảnh ban đêm đầy đủ). Điểm kiểm đã được lập và còn mở, trạng thái 🔄.
+- **Trạng thái:** 🔄
 
 ---
 
@@ -2378,7 +2399,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 
 **Mục tiêu:** chế độ Chỉnh sửa với sửa chữ theo dòng, đoạn, và hàng định dạng. Đây là tính năng khó nhất về hành vi: bôi đen rồi Sửa (D70), viền đứt quanh đoạn (D69), phiên đoạn (D62), font gốc hoặc font thay thế (D66). IME tiếng Việt được kiểm lại ở đây.
 **Demo:** bôi đen một câu, Sửa, đổi thành câu có ư và ớ; sửa đoạn ba dòng và đổi cỡ; tìm và thay một cụm; cảnh báo font hiện khi thiếu ký tự.
-**Đầu vào:** M2 (viewer và chọn chữ), M4 (đối tượng), M3 (ops text.*), R1.26 (IME).
+**Đầu vào:** M2 (viewer và chọn chữ), M4 (đối tượng), M3 (ops text.*), R1.27 (UniKey IME).
 
 ### M7.0 Chế độ và chọn
 
@@ -2450,7 +2471,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Mô tả:** hộp chữ mới, hỗ trợ đầy đủ tiếng Việt, nhúng font Unicode. Esc hủy không ghi gì. Khung nháp lấy tiêu điểm đúng lúc (lỗi đã biết ở D66).
 - **Tiêu chí:** (1) chữ tiếng Việt đúng dấu khi lưu; (2) khung đặt đúng điểm đã bấm (sai số 4 px ngang, 12 px dọc, như E2E cũ); (3) Esc không ghi.
 - **Kiểm chứng:** E2E `text-merged`; test.
-- **Phụ thuộc:** R7.05, R1.26
+- **Phụ thuộc:** R7.05, R1.27
 - **File:** `apps/native/crates/chef-app/src/text_add.rs`
 - **E2E:** `text-merged`
 - **Tính năng:** D1
@@ -2467,7 +2488,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Trạng thái:** ❌
 
 ### R7.09 · Gõ tiếng Việt trong khung nháp (MAN-1, bản đoạn) · XS
-- **Mô tả:** MAN-1 cho cả hai khung nháp, làm trong một lần: khung Thêm văn bản (R7.07) và khung sửa đoạn (R7.04). Gõ Telex và VNI, nhiều dòng, xuống dòng, dấu tiếng Việt, qua bộ gõ Windows và Unikey hoặc EVKey. Đây là điểm kiểm IME lần hai, trong môi trường phức tạp hơn R1.26. (2026-11-11: nhận phần của R7.08.)
+- **Mô tả:** MAN-1 cho cả hai khung nháp, làm trong một lần: khung Thêm văn bản (R7.07) và khung sửa đoạn (R7.04). Dùng UniKey gõ Telex và VNI, nhiều dòng, xuống dòng và dấu tiếng Việt. Đây là điểm kiểm IME lần hai, trong môi trường phức tạp hơn R1.27. (2026-11-11: nhận phần của R7.08.)
 - **Tiêu chí:** (1) gõ đúng dấu trong cả hai khung, kể cả nhiều dòng; (2) không mất ký tự khi xuống dòng; (3) ghi kết quả vào BLUEPRINT_RUST §13.1.
 - **Kiểm chứng:** MAN-1 kèm ảnh chụp.
 - **Phụ thuộc:** R7.04, R7.07, R1.27
@@ -2975,11 +2996,11 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 | §9 | Giấy phép `pdfium-render`, `typify`, `gpui-component` | R1.04 |
 | §10.3 | Cửa sổ ngoài màn hình vẽ và chụp được | R1.08, R1.09 |
 | §11 | Công cụ đóng gói (NSIS hoặc cargo-packager) | R9.05 |
-| §13.1 | IME Telex, TSF | R1.23, R1.26, R1.27 (MAN-1); dự phòng R1.24, R1.25 |
+| §13.1 | UniKey IME Telex/VNI | R1.23, R1.27 (MAN-1); R1.24–R1.26 bỏ khỏi phạm vi theo D92 |
 | §14 | Ước lượng sau M1 | Điểm kiểm M1 |
 | §15 | Thời gian học Rust/GPUI | Điểm kiểm M1 |
 
-**Việc thủ công (MAN) → task:** MAN-1 → R1.26, R1.27, R7.09 (R7.08 đã gộp vào R7.09); MAN-2 → R6.18, R6.19; MAN-3 → R8.07, R8.08; MAN-4 → R1.10; MAN-5 → R2.02 và mỗi điểm kiểm; MAN-6 → R9.12.
+**Việc thủ công (MAN) → task:** MAN-1 → R1.27, R7.09 (R7.08 đã gộp vào R7.09); MAN-2 → R6.18, R6.19; MAN-3 → R8.07, R8.08; MAN-4 → R1.10; MAN-5 → R2.02 và mỗi điểm kiểm; MAN-6 → R9.12.
 
 **Quyết định (CH) → task:** CH-R1 → R5.16; CH-R2 → R9.11; CH-R3 → R2.16, R2.28.
 
@@ -3070,12 +3091,12 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 
 ### Điểm kiểm M1 (cuối mốc)
 
-- [ ] Bảng RAM: `nativeMB` và `coreMB` cạnh số Electron (R1.38), có ghi tổng và chênh lệch
-- [ ] R1.43 xong: năm probe hình họa đã so với Electron; năm dòng "Kiểm ở M1" của BLUEPRINT_RUST §6.2 có kết quả
+- [x] Bảng RAM: `nativeMB` và `coreMB` cạnh số Electron (R1.38), có ghi tổng và chênh lệch
+- [x] R1.43 xong: năm probe hình họa đã so với Electron; năm dòng "Kiểm ở M1" của BLUEPRINT_RUST §6.2 có kết quả
 - [x] CH-R4 đã chốt (`cargo deny` advisories) theo D90; full `cargo deny check` chạy lại ngày 2026-11-14 và xanh (advisories, bans, licenses, sources)
-- [ ] Danh sách "đã kiểm / chưa kiểm": IME (R1.26), cửa sổ ngoài màn hình (R1.08/R1.09), texture (R1.35), DPR (R1.21), font, icon, bóng, layout
+- [x] Danh sách "đã kiểm / chưa kiểm": UniKey IME (R1.27), cửa sổ ngoài màn hình (R1.08/R1.09), texture (R1.35), DPR (R1.21), font, icon, bóng, layout — kết quả ở các task tương ứng; frame/present của R1.32 vẫn bị chặn bởi chính sách ETW Windows
 - [ ] Đọc lại M2–M9, sửa task theo kết quả đo, ghi thay đổi vào NOTES
 - [ ] Ước lượng điểm cho M2–M9 (BLUEPRINT_RUST §14), dựa trên số giờ thực tế của M1 và số task đã xong; ghi tốc độ học Rust/GPUI (BLUEPRINT_RUST §15)
-- [ ] MAN-1 đã làm (R1.27)
-- [ ] Điểm kiểm không phải cổng dừng: nếu một việc không đạt, ghi lại và đưa vào mốc sau, không dừng cả dự án
+- [x] MAN-1 đã làm (R1.27; xác nhận trực tiếp 2026-11-22)
+- [x] Điểm kiểm không phải cổng dừng: nếu một việc không đạt, ghi lại và đưa vào mốc sau, không dừng cả dự án
 | 2026-11-21 | R5.02 | Đóng ✅ | Renderer hộp thoại từ JSON Schema (`schema_form.rs`) và bảng phân loại 68 hộp thoại ui-audit (`DIALOG_CLASSIFICATION_RUST.md`: 6 S, 44 S+, 17 H, 1 bỏ). Rà kích thước M5: R5.04, R5.44, R5.46 từ M xuống S; bảng Tổng quan M5 thành 20 S, 42 M. |

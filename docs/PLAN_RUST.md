@@ -13,7 +13,7 @@ Trạng thái từng task xem ở [TASKS_RUST.md](TASKS_RUST.md). Thiết kế t
 
 | Mốc | Nội dung chính | Số task |
 |---|---|---|
-| M1 Khung và rủi ro | Cửa sổ, theme từ tokens, IME Telex, viewer pdfium, bộ đo RAM, off-screen, kênh debug, lõi lười | 43 |
+| M1 Khung và rủi ro | Cửa sổ, theme từ tokens, UniKey IME Telex/VNI, viewer pdfium, bộ đo RAM, off-screen, kênh debug, lõi lười | 43 |
 | M2 Xem đầy đủ | Tab, mở và lưu, thumbnail, tìm kiếm, chọn và copy, theme, i18n, thư viện thành phần | 34 |
 | M3 Phiên và thao tác | RPC, giám sát lõi, lõi lười, mô hình revision, undo, lưu, khôi phục | 15 |
 | M4 Trang và chú thích | Lưới trang, chọn nhiều, menu, đối tượng, lớp, ghi chú, form | 25 |
@@ -23,15 +23,14 @@ Trạng thái từng task xem ở [TASKS_RUST.md](TASKS_RUST.md). Thiết kế t
 | M8 Chụp và xử lý ảnh | Trình sửa ảnh trang, chụp qua LAN, tách trang đôi, xóa ngón tay, tự dò viền | 23 |
 | M9 Hoàn thiện | Cài đặt đầy đủ, mở bằng app PDF, in, bộ cài, dữ liệu từ Electron, nghiệm thu, gỡ Electron | 17 |
 
-## Thứ tự làm tiếp (chốt 2026-11-11, D86)
+## Thứ tự làm tiếp (cập nhật 2026-11-22, D92 và rà trạng thái M1/M2)
 
 Mốc là cách chia việc. Thứ tự làm đi theo rủi ro còn lại, nên có chỗ không theo số mốc. Danh sách task cụ thể ở mục "Thứ tự làm tiếp" của [TASKS_RUST.md](TASKS_RUST.md).
 
-1. **MAN-1 ngay:** chủ dự án gõ thử Telex, Unikey/EVKey trong ô nhập đã có (R1.26, R1.27). Kết quả quyết định có phải làm đường TSF dự phòng (R1.24, R1.25, hai task L) hay không.
-2. **Lát cắt dọc M3:** một thao tác thật (`page.rotate`) chạy trọn qua lõi: khởi động lõi, `session.open`, `ops.run`, viewer đổi sang rev file và giữ vị trí, hoàn tác, lưu. Làm trước phần còn lại của M2, vì khoảng 170 task của M4–M8 phụ thuộc chuỗi này và việc đổi sang rev file (R3.06) là rủi ro kiến trúc lớn nhất chưa kiểm.
-3. **Gom đuôi M1 và làm Điểm kiểm M1:** script chạy gộp E2E, so các probe hình họa với Electron trong một lần, đo RAM có `coreMB` (cần lõi từ bước 2), rồi đọc lại M2–M9 và ước lượng điểm.
-4. **Phần còn lại của M2** (tab, thumbnail, Start, bảng lệnh, chế độ xem), rồi điểm kiểm M2.
-5. **Phần còn lại của M3**, rồi M4 đến M9 theo thứ tự bảng trên. Sau khi xong renderer hộp thoại từ schema (R5.02), rà lại kích thước các task hộp thoại của M5.
+1. **Khép các cổng M1 còn mở:** R1.05 cần một run Native CI xanh trên branch sau khi bản sửa cục bộ được đưa lên; R1.32 cần đo frame/present, hiện Windows policy chặn WPR. Hoàn tất các dòng còn thiếu của Điểm kiểm M1 khi có dữ liệu giờ thực tế; không suy đoán giờ.
+2. **Khép M2 theo bằng chứng:** R2.17 cần kéo file thật từ Explorer; R2.19 cần OS wheel/key và present/frame; R2.28 cần full-page visual comparison ngày/đêm; rồi hoàn tất R2.32 và MAN-5. R2.16, R2.21 và R2.26 đã ✅ trong lần rà 2026-11-22.
+3. **Sau khi các cổng môi trường đã được ghi rõ hoặc hoàn tất, tiếp tục phần còn lại của M3** (R3.09 còn mở), rồi M4 đến M9 theo thứ tự bảng trên. Điểm kiểm M1/M2 không phải phụ thuộc kỹ thuật hay cổng dừng.
+4. Sau khi xong renderer hộp thoại từ schema (R5.02), rà lại kích thước các task hộp thoại của M5.
 
 ## Quy tắc đi kèm
 

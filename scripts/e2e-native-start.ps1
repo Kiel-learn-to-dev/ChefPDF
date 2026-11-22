@@ -123,8 +123,12 @@ public static class ChefStartWindowInput {
     }
     Write-Output 'PASS settings recentFiles render newest first; Start follows the dark theme'
 
-    # At the default 1200px window, the first recent row is below the 4-column task grid.
-    Click-Client 600 541 $state.scale
+    $recentControl = $state.controls.controls | Where-Object { $_.id -eq 'start-recent-0' } | Select-Object -First 1
+    if (-not $recentControl -or -not $recentControl.bounds) {
+        throw 'newest recent entry is missing its accessible bounds'
+    }
+    $recentBounds = $recentControl.bounds
+    Click-Client ($recentBounds[0] + $recentBounds[2] / 2) ($recentBounds[1] + $recentBounds[3] / 2) $state.scale
     WaitFor { $s = State; $s.tabs.Count -eq 1 -and $s.tabs[0].title -eq 'recent-3.pdf' -and $s.tabs[0].active } 'opening the newest recent file in a tab'
     Write-Output 'PASS clicking the newest recent file opens its document tab'
 

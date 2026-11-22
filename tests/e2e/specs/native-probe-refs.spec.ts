@@ -13,7 +13,7 @@ import { launchApp, repoRoot, type Launched } from '../fixtures/app';
 import { DIST_INDEX } from '../fixtures/uiAudit';
 
 const WIDTHS = [800, 1184, 1484] as const;
-const HEIGHT = 1600;
+const HEIGHT = 900;
 const THEMES = ['light', 'dark'] as const;
 const DPRS = [1, 1.75] as const;
 const OUT_DIR =
@@ -198,9 +198,15 @@ for (const dpr of DPRS) {
     try {
       await launched.page.waitForFunction(() => typeof window.chef === 'object');
       await launched.page.evaluate(() => document.fonts.ready.then(() => undefined));
+      const cdp = await launched.page.context().newCDPSession(launched.page);
 
       for (const width of WIDTHS) {
-        await launched.page.setViewportSize({ width, height: HEIGHT });
+        await cdp.send('Emulation.setDeviceMetricsOverride', {
+          width,
+          height: HEIGHT,
+          deviceScaleFactor: dpr,
+          mobile: false,
+        });
         await launched.page.evaluate(
           ({ theme, markup, style }) => {
             document.documentElement.dataset.theme = theme;

@@ -34,6 +34,22 @@ pub fn set_palette_state(_: serde_json::Value) {}
 pub fn set_theme_dark(_: bool) {}
 pub fn set_viewer_stats(_: usize, _: usize, _: usize) {}
 pub fn set_viewer_cache_images(_: impl IntoIterator<Item = (usize, usize)>) {}
+pub fn take_page_exports() -> Vec<PageExportRequest> {
+    Vec::new()
+}
+pub struct PageExportRequest {
+    pub page: usize,
+    pub reply: std::sync::mpsc::Sender<Result<PageRaster, String>>,
+}
+pub struct PageRaster {
+    pub width: u32,
+    pub height: u32,
+    pub image_id: usize,
+    pub rotation: u8,
+    pub night: bool,
+    pub zoom: f32,
+    pub bytes: Vec<u8>,
+}
 pub fn set_cache_invalidation(_: serde_json::Value) {}
 pub fn set_source_warning(_: Option<(&str, &str)>) {}
 pub fn set_sidebar_thumbnail_count(_: usize, _: usize) {}

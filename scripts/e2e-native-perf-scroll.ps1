@@ -73,6 +73,7 @@ public static class ChefPerfWindow {
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
   [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, int data, UIntPtr extra);
   [DllImport("user32.dll")] public static extern void keybd_event(byte key, byte scan, uint flags, UIntPtr extra);
@@ -83,8 +84,20 @@ public static class ChefPerfWindow {
   [void][ChefPerfWindow]::ShowWindow($hwnd, 9) # SW_RESTORE
   [void][ChefPerfWindow]::SetWindowPos($hwnd, [IntPtr]::Zero, 100, 100, 1280, 900, 0x0040) # SWP_SHOWWINDOW
   Start-Sleep -Milliseconds 500
-  [void][ChefPerfWindow]::SetForegroundWindow($hwnd)
-  return $hwnd
+  $activationReturned = $false
+  $foreground = [IntPtr]::Zero
+  $deadline = [DateTime]::UtcNow.AddSeconds(2)
+  do {
+    $activationReturned = [ChefPerfWindow]::SetForegroundWindow($hwnd)
+    Start-Sleep -Milliseconds 100
+    $foreground = [ChefPerfWindow]::GetForegroundWindow()
+    if ($foreground -eq $hwnd) { break }
+  } while ([DateTime]::UtcNow -lt $deadline)
+  return [pscustomobject]@{
+    Hwnd = $hwnd
+    ActivationReturned = $activationReturned
+    ForegroundHwnd = $foreground
+  }
 }
 
 function Send-RealKey([byte] $VirtualKey) {
@@ -142,13 +155,29 @@ try {
   Write-Output 'TIMING NOTE: Render-body duration and gaps between Render starts are proxies; neither is a presented-frame interval.'
 
   if ($env:CHEF_E2E_OS_INPUT -eq '1') {
-    $hwnd = Enable-VisibleWindow ([int]$perf.hwnd)
+    $activation = Enable-VisibleWindow ([int]$perf.hwnd)
     $state = Get-State
+    if (-not $state.foreground) {
+      throw ("The native Viewer did not take foreground before physical-key testing: " +
+        "SetForegroundWindow returned $($activation.ActivationReturned), foreground HWND=$($activation.ForegroundHwnd), target HWND=$($activation.Hwnd).")
+    }
+    $basePage = [int]$state.view.firstPage
+    $baseScrollY = [double]$state.view.scrollY
     Send-RealKey 0x22 # VK_NEXT / PageDown
-    Wait-ForPage 1 1
+    Wait-For {
+      $afterDown = Get-State
+      return ([int]$afterDown.view.firstPage -eq ($basePage + 1)) -and
+        ([double]$afterDown.view.scrollY -gt $baseScrollY + 2)
+    } "physical PageDown advances from page $basePage" 15
+    $downScrollY = [double](Get-State).view.scrollY
     Send-RealKey 0x21 # VK_PRIOR / PageUp
-    Wait-ForPage 0 0
-    Write-Output 'OS PageDown/PageUp input smoke passed.'
+    Wait-For {
+      $afterUp = Get-State
+      return ([int]$afterUp.view.firstPage -eq $basePage) -and
+        ([double]$afterUp.view.scrollY -lt $downScrollY - 2)
+    } "physical PageUp returns to page $basePage" 15
+    Write-Output 'OS PageUp/PageDown input smoke passed.'
+    $state = Get-State
 
     $rect = $state.rect
     $contentHeight = [int]$rect.bottom - [int]$rect.top

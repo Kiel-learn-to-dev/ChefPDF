@@ -195,6 +195,8 @@ const CACHE_BUDGET: usize = 256 * 1024 * 1024;
 pub(crate) const PAGE_GAP: f32 = 16.0;
 /// Lề hai bên khi vừa chiều rộng, pixel logic.
 pub(crate) const MARGIN: f32 = 24.0;
+/// Lề ngang khi vừa chiều rộng, khớp PDF.js sau khi quy đổi kích thước trang sang pixel logic.
+pub(crate) const FIT_WIDTH_MARGIN: f32 = 28.0;
 /// Số trang giữ bitmap đầy đủ ngoài vùng nhìn (R2 của BLUEPRINT_RUST §2.2).
 pub(crate) const BUFFER_PAGES: usize = 1;
 /// Chiều cao thanh tìm kiếm phía trên trang, pixel logic.
@@ -6798,6 +6800,48 @@ impl Viewer {
         self.lock_cache().get(self.cache_owner, page).cloned()
     }
 
+    pub(crate) fn debug_cached_page_raster(
+        &self,
+        page: usize,
+    ) -> Result<crate::debug::PageRaster, String> {
+        let Some(layout) = self.layout.as_ref() else {
+            return Err("viewer chưa có tài liệu/layout".into());
+        };
+        if page >= layout.page_count() {
+            return Err(format!(
+                "trang {page} ngoài phạm vi {} trang",
+                layout.page_count()
+            ));
+        }
+        if self.stale.contains(&page) {
+            return Err(format!("ảnh trang {page} đã stale"));
+        }
+        if self.pending.contains_key(&page) {
+            return Err(format!("trang {page} đang render"));
+        }
+        let image = self
+            .cache_get(page)
+            .ok_or_else(|| format!("trang {page} chưa có trong cache"))?;
+        let size = image.size(0);
+        let width = u32::try_from(size.width.0).map_err(|_| "chiều rộng ảnh không hợp lệ")?;
+        let height = u32::try_from(size.height.0).map_err(|_| "chiều cao ảnh không hợp lệ")?;
+        let bytes = image
+            .as_bytes(0)
+            .ok_or_else(|| "cache không có frame 0".to_string())?;
+        if bytes.len() != width as usize * height as usize * 4 {
+            return Err("kích thước byte ảnh không khớp dimensions".into());
+        }
+        Ok(crate::debug::PageRaster {
+            width,
+            height,
+            image_id: image.id.0,
+            rotation: self.view_rotation,
+            night: self.night,
+            zoom: layout.zoom(),
+            bytes: bytes.to_vec(),
+        })
+    }
+
     fn cache_insert(&self, page: usize, image: Arc<RenderImage>, bytes: usize) {
         self.lock_cache()
             .insert(self.cache_owner, page, image, bytes);
@@ -10295,9 +10339,9 @@ impl Render for Viewer {
         let content_vh = (vh - TOOLBAR_H - FOOTER_H).max(0.0);
         if self.fit_width && self.page_mode != PageMode::Slideshow && page_viewport_w > 0.0 {
             let fit = if let Some(spread) = self.spread.as_ref() {
-                spread.fit_width_zoom(page_viewport_w, MARGIN)
+                spread.fit_width_zoom(page_viewport_w, FIT_WIDTH_MARGIN)
             } else {
-                layout.fit_width_zoom(page_viewport_w, MARGIN)
+                layout.fit_width_zoom(page_viewport_w, FIT_WIDTH_MARGIN)
             };
             if (fit - layout.zoom()).abs() > 1e-6 {
                 let spread_anchor = self

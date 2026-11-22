@@ -59,8 +59,12 @@ function Test-VisualManifest {
       if ($bytes.Length -lt 24 -or [Text.Encoding]::ASCII.GetString($bytes, 1, 3) -ne 'PNG') {
         throw "Expected PNG for dimension check: $($item.file)"
       }
-      $width = [System.Buffers.Binary.BinaryPrimitives]::ReadInt32BigEndian($bytes.AsSpan(16, 4))
-      $height = [System.Buffers.Binary.BinaryPrimitives]::ReadInt32BigEndian($bytes.AsSpan(20, 4))
+      # PowerShell does not expose Span<T> instance methods on byte arrays consistently.
+      # Decode PNG's big-endian IHDR dimensions directly instead of calling AsSpan().
+      $width = ([int]$bytes[16] -shl 24) -bor ([int]$bytes[17] -shl 16) -bor
+        ([int]$bytes[18] -shl 8) -bor [int]$bytes[19]
+      $height = ([int]$bytes[20] -shl 24) -bor ([int]$bytes[21] -shl 16) -bor
+        ([int]$bytes[22] -shl 8) -bor [int]$bytes[23]
       if ($width -ne [int]$item.width -or $height -ne [int]$item.height) {
         throw "PNG dimensions mismatch for $($item.file): expected $($item.width)x$($item.height), got ${width}x${height}"
       }

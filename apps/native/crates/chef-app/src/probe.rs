@@ -726,6 +726,7 @@ fn section(title: &str, c: &Colors) -> Div {
         .child(
             div()
                 .text_size(px(11.))
+                .line_height(px(16.5))
                 .text_color(rgb(c.text_2))
                 .child(title.to_string()),
         )
@@ -847,18 +848,21 @@ fn shadow_section(c: &Colors) -> Div {
             },
         ]
     };
+    // GPUI paints shadows in slice order (later shadows over earlier ones), while CSS paints
+    // the first listed shadow on top. Paint outer focus first so the inner surface ring leaves
+    // the intended 2 px gap.
     let ring = vec![
-        BoxShadow {
-            color: shade((c.surface << 8) | 0xff),
-            offset: point(px(0.), px(0.)),
-            blur_radius: px(0.5),
-            spread_radius: px(2.),
-        },
         BoxShadow {
             color: shade(c.focus),
             offset: point(px(0.), px(0.)),
             blur_radius: px(0.5),
             spread_radius: px(4.),
+        },
+        BoxShadow {
+            color: shade((c.surface << 8) | 0xff),
+            offset: point(px(0.), px(0.)),
+            blur_radius: px(0.5),
+            spread_radius: px(2.),
         },
     ];
     section("R1.16 · bóng --shadow-md và vòng focus", c)
@@ -914,50 +918,55 @@ fn tnum_section(c: &Colors) -> Div {
 
 /// R2.03: nút của chef-ui theo biến thể, cỡ, trạng thái vô hiệu và nút chỉ icon.
 fn button_section(c: &Colors, h: &[FocusHandle]) -> Div {
+    let buttons = div()
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .gap(px(16.))
+        .child(
+            Button::new("probe-primary", h[0].clone())
+                .label("Primary")
+                .variant(Variant::Primary)
+                .dark(c.dark),
+        )
+        .child(
+            Button::new("probe-secondary", h[1].clone())
+                .label("Secondary")
+                .variant(Variant::Secondary)
+                .dark(c.dark),
+        )
+        .child(
+            Button::new("probe-ghost", h[2].clone())
+                .label("Ghost")
+                .variant(Variant::Ghost)
+                .dark(c.dark),
+        )
+        .child(
+            Button::new("probe-danger", h[3].clone())
+                .label("Danger")
+                .variant(Variant::Danger)
+                .dark(c.dark),
+        )
+        .child(
+            Button::new("probe-disabled", h[4].clone())
+                .label("Vô hiệu")
+                .disabled(true)
+                .dark(c.dark),
+        )
+        .child(
+            Button::new("probe-icon", h[5].clone())
+                .icon("icons/copy.svg")
+                .aria_label("Sao chép")
+                .variant(Variant::Ghost)
+                .size(Size::Sm)
+                .dark(c.dark),
+        );
+
     section(
         "R2.03 · nút chef-ui (Tab đi qua nút, nút vô hiệu bỏ qua)",
         c,
     )
-    .flex_row()
-    .flex_wrap()
-    .gap(px(16.))
-    .child(
-        Button::new("probe-primary", h[0].clone())
-            .label("Primary")
-            .variant(Variant::Primary)
-            .dark(c.dark),
-    )
-    .child(
-        Button::new("probe-secondary", h[1].clone())
-            .label("Secondary")
-            .variant(Variant::Secondary)
-            .dark(c.dark),
-    )
-    .child(
-        Button::new("probe-ghost", h[2].clone())
-            .label("Ghost")
-            .variant(Variant::Ghost)
-            .dark(c.dark),
-    )
-    .child(
-        Button::new("probe-danger", h[3].clone())
-            .label("Danger")
-            .variant(Variant::Danger)
-            .dark(c.dark),
-    )
-    .child(
-        Button::new("probe-disabled", h[4].clone())
-            .label("Vô hiệu")
-            .disabled(true)
-            .dark(c.dark),
-    )
-    .child(
-        Button::new("probe-icon", h[5].clone())
-            .icon("icons/copy.svg")
-            .aria_label("Sao chép")
-            .size(Size::Sm)
-            .dark(c.dark),
-    )
+    .child(buttons)
 }
 
 /// R1.17: lưới kiểu `repeat(auto-fit, minmax(220px,1fr))`, ellipsis một dòng, `minmax(0,1fr) 300px`,
@@ -999,7 +1008,13 @@ fn layout_section(c: &Colors, viewport_w: f32) -> Div {
                 .truncate()
                 .child("Cột trái co lại được, chữ dài bị cắt bằng ellipsis khi khung hẹp"),
         )
-        .child(div().w(px(300.)).bg(rgb(c.bg)).child("Cột phải 300 px"));
+        .child(
+            div()
+                .w(px(300.))
+                .flex_none()
+                .bg(rgb(c.bg))
+                .child("Cột phải 300 px"),
+        );
     let ratio = div()
         .w(px(260.))
         .aspect_ratio(260. / 100.)
@@ -1296,6 +1311,8 @@ impl Render for Probe {
             .bg(rgb(c.bg))
             .text_color(rgb(c.text))
             .font_family("Be Vietnam Pro")
+            .text_size(px(13.))
+            .line_height(px(19.5))
             .p(px(24.))
             .flex()
             .flex_col()
