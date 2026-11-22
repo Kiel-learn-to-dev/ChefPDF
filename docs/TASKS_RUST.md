@@ -131,6 +131,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tính năng:** —
 - **Ghi chú:** (2026-11-14) Có workflow `Native Rust Builds` riêng cho nhánh `new-rust`, chạy fmt, clippy, test, deny và đóng gói Windows/macOS. Run `43575990879` xanh ở commit cũ `9266133`; không phải HEAD hiện tại. Run `43598218212` ở `ae60a2f` lỗi biên dịch Mac: app gọi RPC modules chỉ có trên Windows; phần tương thích Mac được bổ sung ở `be643d9`, nhưng các lần chạy native sau đó bị hủy theo yêu cầu tạm gác build nên chưa xác nhận bản sửa. CI thường `43599187531` trên HEAD `be643d9` đang chạy; chưa kiểm tra branch protection. Giữ 🔄.
 - **Ghi chú:** (2026-11-22) Run `44937156215` của Native Rust Builds và `44937156208` của CI thường trên HEAD `1e305050` đều đỏ. Đã xác định lỗi native: hai test `form_fill` tranh instance/counter PDFium khi chạy song song; macOS build không biên dịch vì `image_edit` bị cfg Windows trong khi `viewer.rs` dùng module này. Bản sửa cục bộ dùng một `RenderHandle` dùng chung và khóa test form, bỏ cfg nền tảng cho module thuần Rust; workspace tests, clippy, fmt, build và cargo-deny đã xanh ở máy Windows. Branch không bật required checks. Chưa có run CI trên các sửa đổi cục bộ vì repo không commit/push trong lượt này; giữ 🔄 tới khi run branch xanh.
+- **Ghi chú:** (2026-11-22, lượt kiểm trên container Linux/Windows target) `cargo fmt --check` sạch; `cargo clippy -p chef-pdf -p chef-app --all-targets --target x86_64-pc-windows-gnu -- -D warnings` sạch; `cargo test -p chef-pdf` (16 unit, 6 `form_fill`, 9 `render`) đạt với PDFium chromium/8125 của bblanchon, 3 lượt liên tiếp. Run `44972325446` trên `a4299775` đang chạy lúc ghi chú này; chưa có kết quả, giữ 🔄 đến khi run xanh.
 - **Trạng thái:** 🔄
 
 ### M1.1 Cửa sổ và kênh debug
@@ -425,6 +426,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-viewer/src/scroll.rs`
 - **Tính năng:** B2 (cuộn liên tục)
 - **Ghi chú:** hình học cuộn và visible ±1 có unit test. `debug.state.renderTiming` ghi GPUI `Render` body duration và khoảng giữa các lần gọi `Render`; các giá trị này không phải thời gian khung hình đã trình bày. Cần xác nhận frame/present thật trên Windows. (2026-11-22) Thử khả năng ETW bằng WPR profile `GPU` + `DesktopComposition`, nhưng `wpr -start ... -filemode` bị Windows từ chối với `0xc5585011` (“Failed to enable the policy to profile system performance”); chưa tạo ETL và chưa có bằng chứng frame/present riêng cho Chef. Cần chạy phép đo trong môi trường có quyền ETW hoặc cài decoder đã duyệt; giữ 🔄.
+- **Ghi chú:** (2026-11-22, lượt cuối) Container này không có máy Windows được gắn nên không đo được frame/present; WPR vẫn bị policy chặn. Giữ 🔄, cần máy có quyền ETW.
 - **Trạng thái:** 🔄
 
 ### R1.33 · Cache LRU tính theo MB · M
@@ -751,6 +753,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Ghi chú:** (2026-11-14) Có parser argv nhiều đường dẫn Unicode, `--` cho tên bắt đầu bằng dấu gạch; đường dẫn được chuẩn hóa; xác thực PDF/đọc được từng file, tiếp tục nhận các file tốt khi có file lỗi. GPUI `ExternalPaths` kéo thả vào host; second launch gửi JSON versioned (giới hạn 512 path/128 KiB) qua named pipe per-user, mutex tồn tại suốt đời primary, pipe dùng default DACL và từ chối remote clients. Primary thêm các tab vào cửa sổ hiện có, focus tab cuối, activate app/window. E2E hai tiến trình kiểm tra Unicode, hai PDF hợp lệ + file thiếu, thứ tự tab, foreground và second process thoát. Windows GNU check/clippy `-D warnings`/test compile, fmt/diff, PowerShell parse đạt trên Mac. **Còn mở:** chưa chạy E2E Windows và chưa thử kéo file thật từ Explorer.
 - **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-instance.ps1` PASS: second launch chuyển file Unicode sang tiến trình gốc, file hợp lệ mở, file thiếu được báo, không còn tiến trình trùng. Còn mở: kéo thả file thật từ Explorer (cần chuột/OS drag, chủ dự án chạy). Giữ 🔄.
 - **Ghi chú:** (2026-11-22) Chạy lại `scripts/e2e-native-instance.ps1` trên Windows: PASS, chuyển đường dẫn Unicode sang primary, mở file hợp lệ, báo file thiếu và không để tiến trình trùng. Chuẩn bị phiên kéo thả thật với Chef và Explorer đang mở, nhưng cả Computer Use `sky` lẫn CUA native pipe đều báo không kết nối được (`The system cannot find the file specified`); dừng trước khi gửi input. Chưa có bằng chứng kéo thả Explorer, giữ 🔄.
+- **Ghi chú:** (2026-11-22, lượt cuối) Không có máy Windows gắn vào phiên nên không kéo thả file từ Explorer được. Giữ 🔄, cần chủ dự án hoặc máy đã gắn để kiểm.
 - **Trạng thái:** 🔄
 
 ### R2.18 · Bảng lệnh Ctrl+K với tìm không dấu · M
@@ -777,6 +780,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-perf-scroll.ps1` (mặc định, không OS input): `renderBodyMaxMs` 1,845 ms (phần thân Render, cần xem lại), `renderBodyOver50ms=0`; `renderCallGapOver50ms=349/350` nhưng khoảng cách này bám nhịp script 150 ms/bước, không phải thời gian khung đã trình bày nên không chứng minh được tiêu chí 3. Còn mở: đo frame/present thật và bánh xe chuột thật (OS input). Giữ 🔄.
 - **Ghi chú:** (2026-11-22) Sửa OS-input E2E để so PageDown/PageUp với trang hiện tại sau bước cuộn 350 viewport, thay vì giả định luôn ở trang 0; parser đạt. Benchmark mặc định Windows: `deltaPx=251,799`, `renderBodyOver50ms=0`, khoảng gọi Render trên 50 ms `349/350` (nhịp do script, không phải frame time). Opt-in thử foreground tối đa 2 s rồi dừng an toàn: `SetForegroundWindow returned False`, foreground HWND khác target HWND, nên không gửi phím/chuột. Còn mở đo present/frame thật (R1.32) và OS wheel/key input khi desktop foreground được cấp.
 - **Ghi chú:** (2026-11-22, lượt bổ sung) Lượt native perf mới cũng đạt cuộn 350 viewport; `renderBodyMaxMs=3,117`, `renderBodyOver50ms=0`, `renderCallGapOver50ms=349/350` (nhịp gọi script, không đo frame đã present). WPR profile `GPU + DesktopComposition` bị policy Windows từ chối với `0xc5585011`; chưa có ETW/present trace thay thế. Giữ R2.19 mở cho OS wheel/key và present/frame.
+- **Ghi chú:** (2026-11-22, lượt cuối) Không có OS input và present/frame trong phiên này; chỉ chạy được phần mặc định. Giữ 🔄.
 - **Trạng thái:** 🔄
 
 ### R2.20 · Viewer: hai trang, kiểu sách, toàn màn hình · M
@@ -891,6 +895,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Ghi chú:** (2026-11-14) D79 nằm ở `docs/NOTES.md` (không phải D75). Công thức CPU dùng cùng thứ tự CSS `invert(1)` rồi `hue-rotate(180deg)`, đổi tại chỗ; khi bật/tắt, Viewer evict cache ảnh trang và chuyển ảnh cũ cho GPUI giải phóng. Unit tests so màu RGB không xám với đầu ra công thức, giữ alpha/capacity và kiểm helper evict trả toàn bộ ảnh cache. State debug bổ sung `cachedBytes` từ bộ đếm byte thực của LRU. `e2e-native-night.ps1` tự tạo PDF mẫu khi không truyền fixture, chờ cache ngày/đêm ổn định, yêu cầu cùng tập trang và tính mức tăng byte cache; parser đạt trên Mac, chưa chạy Windows. Chưa có ảnh Rust/Electron theo R2.02/MAN-5 hoặc số đo runtime để xác nhận ngưỡng 10%; giữ 🔄.
 - **Ghi chú:** (2026-11-15, lượt /build) `scripts/e2e-native-night.ps1` PASS (đổi ngày/đêm, trang tối khi đêm, trang sáng khi ngày, cache giữ cùng tập trang, tăng byte cache 0%, tắt đêm). (2026-11-22) Chạy lại trên Windows: PASS toàn bộ, cùng tập trang cache, byte cache ngày/đêm `13,654,592`, tăng 0%. Tạo PDF màu sáu mảng và chụp Electron/native. Phát hiện PDFium mặc định trả RGBA nhưng `PageImage`/GPUI dùng BGRA; đặt rõ `set_reverse_byte_order(false)` để sửa đỏ/xanh bị tráo. Regression đỏ/xanh thất bại trước sửa và đạt sau. Báo cáo mẫu `sample-report.json` kiểm 12/12 swatch phẳng: ngày→đêm đúng ma trận CSS trong từng app; ảnh native sau sửa có đúng thứ tự màu. Còn mở so ảnh đầy đủ theo R2.02 (cần cùng crop/kích thước và xử lý khác biệt raster giữa capture Electron/native). Giữ 🔄.
 - **Ghi chú:** (2026-11-22, tiếp tục) Thử capture cùng trang màu ở DPR 1.75 để chạy comparator: crop từ cửa sổ Native bị giới hạn vùng render nên kích thước trang lệch Electron; gửi debug `zoomfitpage` trong cửa sổ resize ẩn làm vùng viewer trống dù cache báo đã render. Không dùng các crop này làm kết quả. Computer Use cũng không kết nối native pipe (`The system cannot find the file specified`) sau hai lần `list_apps`; chưa có đường capture toàn trang đáng tin trong môi trường này. Giữ 🔄, không đổi ngưỡng comparator.
+- **Ghi chú:** (2026-11-22, lượt cuối) Chưa có capture toàn trang cùng kích thước để so ảnh đầy đủ; giữ 🔄 đến khi có máy Windows.
 - **Trạng thái:** 🔄
 
 ### R2.29 · Chip "có chữ, scan, hỗn hợp" · XS
@@ -935,6 +940,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.01 đến R2.31
 - **Tính năng:** —
 - **Ghi chú:** (2026-11-22) Đã có bảng RAM Native/Electron 1000 trang tại R1.38, phép cuộn 350 viewport tại R2.19, bộ so ảnh R2.16 gồm sáu cặp Start (MAN-5 chấp nhận), và R2.21 đã đạt. Còn thiếu báo cáo so ảnh viewer theo R2.02/MAN-5 và đóng các cổng còn lại của M2 (R2.17 kéo thả Explorer, R2.19 input/present-frame, R2.28 so ảnh ban đêm đầy đủ). Điểm kiểm đã được lập và còn mở, trạng thái 🔄.
+- **Ghi chú:** (2026-11-22, lượt cuối) Chưa đóng được: còn R2.17, R2.19, R2.28 cần máy Windows và thao tác thật. Điểm kiểm được ghi lại là chưa đạt.
 - **Trạng thái:** 🔄
 
 ---
