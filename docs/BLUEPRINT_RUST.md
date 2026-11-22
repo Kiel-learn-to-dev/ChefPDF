@@ -515,7 +515,12 @@ Thứ tự theo rủi ro. Từ 2026-11-11 (D86) thứ tự làm không đi thẳ
 
 ## 14. Ước lượng
 
-Chưa ước lượng. Sau M1 có số task và tốc độ thực tế, mới đưa ra mốc thời gian cho M2–M9.
+Chưa ước lượng giờ. Chủ dự án chưa cung cấp số giờ thực tế của M1 (2026-11-22), nên điểm M2–M9 trong TASKS_RUST vẫn để trống (—) và chưa có mốc thời gian.
+
+Số liệu hiện có để tính sau, không phải giờ:
+- M1 có 43 task: 38 ✅; 1 🔄 (R1.05, chờ run Native Windows xanh trên HEAD đã push); 4 ❌ (R1.09 và R1.24–R1.26, bỏ theo D92).
+- Lịch: M1 kéo dài 15 ngày, từ 2026-11-08 (phiên bản 0.1) đến 2026-11-22 (nghiệm thu, D93).
+- Khi có số giờ M1, ước lượng M2–M9 theo giờ trên mỗi task ✅ của M1 (38 task), rồi nhân với số task của từng mốc (bảng Tổng quan TASKS_RUST). Điểm kiểm M2 ghi lại số giờ để so với ước lượng này.
 
 ## 15. Rủi ro
 
@@ -532,4 +537,4 @@ Chưa ước lượng. Sau M1 có số task và tốc độ thực tế, mới �
 | Mất electron-updater; repo private | Trung bình | M9; cập nhật thủ công trước |
 | Mật khẩu PFX phải nhập lại | Thấp | §7.1; ghi thành D73 |
 | Lõi Python vẫn là sàn ~139 MB khi đang sửa hoặc ký | Chấp nhận | R5, R6 giảm xuống khi không dùng |
-| Thời gian làm và học Rust/GPUI | Chưa đo | Đo ở M1 |
+| Thời gian làm và học Rust/GPUI | Chưa đo giờ (không có số giờ của M1, 2026-11-22). M1 xong 38/43 task trong 15 ngày lịch | Ghi số giờ khi chủ dự án cung cấp; so lại ở điểm kiểm M2 |
