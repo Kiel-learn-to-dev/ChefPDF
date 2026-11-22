@@ -43,6 +43,12 @@ pub fn is_dark(mode: Mode) -> bool {
 }
 
 /// `AppsUseLightTheme` = 0 nghĩa là Windows đang dùng chế độ tối cho ứng dụng.
+#[cfg(not(windows))]
+pub fn system_uses_dark() -> bool {
+    false
+}
+
+#[cfg(windows)]
 pub fn system_uses_dark() -> bool {
     use std::ffi::c_void;
     const HKEY_CURRENT_USER: isize = 0x8000_0001u32 as i32 as isize;
