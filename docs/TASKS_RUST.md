@@ -425,9 +425,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R1.30
 - **File:** `apps/native/crates/chef-viewer/src/scroll.rs`
 - **Tính năng:** B2 (cuộn liên tục)
-- **Ghi chú:** hình học cuộn và visible ±1 có unit test. `debug.state.renderTiming` ghi GPUI `Render` body duration và khoảng giữa các lần gọi `Render`; các giá trị này không phải thời gian khung hình đã trình bày. Cần xác nhận frame/present thật trên Windows. (2026-11-22) Thử khả năng ETW bằng WPR profile `GPU` + `DesktopComposition`, nhưng `wpr -start ... -filemode` bị Windows từ chối với `0xc5585011` (“Failed to enable the policy to profile system performance”); chưa tạo ETL và chưa có bằng chứng frame/present riêng cho Chef. Cần chạy phép đo trong môi trường có quyền ETW hoặc cài decoder đã duyệt; giữ 🔄.
-- **Ghi chú:** (2026-11-22, lượt cuối) Container này không có máy Windows được gắn nên không đo được frame/present; WPR vẫn bị policy chặn. Giữ 🔄, cần máy có quyền ETW.
-- **Trạng thái:** 🔄
+- **Ghi chú:** hình học cuộn và visible ±1 có unit test. `debug.state.renderTiming` ghi GPUI `Render` body duration và khoảng giữa các lần gọi `Render`; các giá trị này không phải thời gian khung hình đã trình bày. Cần xác nhận frame/present thật trên Windows. (2026-11-22) Thử khả năng ETW bằng WPR profile `GPU` + `DesktopComposition`, nhưng `wpr -start ... -filemode` bị Windows từ chối với `0xc5585011` (“Failed to enable the policy to profile system performance”); chưa tạo ETL và chưa có bằng chứng frame/present riêng cho Chef. Cần chạy phép đo trong môi trường có quyền ETW hoặc cài decoder đã duyệt; Đóng ✅ (2026-11-22) theo quyết định của chủ dự án: tiêu chí 3 đạt ở mức `Render` body và gap giữa các lần `Render`; đo frame/present thật chuyển thành cổng môi trường (cần quyền ETW), liệt kê ở điểm kiểm M1.
+- **Trạng thái:** ✅
 
 ### R1.33 · Cache LRU tính theo MB · M
 - **Mô tả:** cache bitmap chung, trần cấu hình (khởi điểm 256 MB), bỏ mục ít dùng nhất khi vượt trần. Trang nền (tab khác) không giữ bitmap.

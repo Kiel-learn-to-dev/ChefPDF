@@ -502,7 +502,7 @@ fn main() {
                 Some(Arc::new(Mutex::new(Supervisor::lazy(config))))
             };
             #[cfg(not(windows))]
-            let supervisor = None;
+            let supervisor: Option<Arc<Mutex<chef_rpc::Supervisor>>> = None;
             if let Some(sup_for_shutdown) = supervisor.clone() {
                 debug::set_shutdown_hook(move || {
                     if let Ok(mut sup) = sup_for_shutdown.lock() {
