@@ -27,7 +27,7 @@ Trạng thái từng task xem ở [TASKS_RUST.md](TASKS_RUST.md). Thiết kế t
 
 Mốc là cách chia việc. Thứ tự làm đi theo rủi ro còn lại, nên có chỗ không theo số mốc. Danh sách task cụ thể ở mục "Thứ tự làm tiếp" của [TASKS_RUST.md](TASKS_RUST.md).
 
-1. **M1 đã được chủ dự án nghiệm thu (2026-11-22, D93).** Hai cổng môi trường còn mở: R1.05 cần một run Native CI Windows xanh trên HEAD đã push (cargo-deny đã sửa cục bộ bằng `url` 2.5.9, chưa push); R1.32 cần đo frame/present, hiện Windows policy chặn WPR. Ước lượng điểm M2–M9 chờ số giờ thực tế; không suy đoán giờ.
+1. **M1 đã được chủ dự án nghiệm thu (2026-11-22, D93).** R1.05 đã đóng (run `45044608231` xanh trên `d6caeda`). Cổng môi trường còn mở: R1.32 cần đo frame/present, hiện Windows policy chặn WPR. Ước lượng điểm M2–M9 chờ số giờ thực tế; không suy đoán giờ.
 2. **Khép M2 theo bằng chứng:** R2.17 cần kéo file thật từ Explorer; R2.19 cần OS wheel/key và present/frame; R2.28 cần full-page visual comparison ngày/đêm; rồi hoàn tất R2.32 và MAN-5. R2.16, R2.21 và R2.26 đã ✅ trong lần rà 2026-11-22.
 3. **Sau khi các cổng môi trường đã được ghi rõ hoặc hoàn tất, tiếp tục phần còn lại của M3** (R3.09 còn mở), rồi M4 đến M9 theo thứ tự bảng trên. Điểm kiểm M1/M2 không phải phụ thuộc kỹ thuật hay cổng dừng.
 4. Sau khi xong renderer hộp thoại từ schema (R5.02), rà lại kích thước các task hộp thoại của M5.

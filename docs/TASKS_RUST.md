@@ -66,7 +66,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 
 1. **Khép các kiểm chứng M1/M2 còn tự động hóa được.** R1.21 refs đã chụp lại đủ 12 ảnh, DPR 1/1,75, hash trùng manifest; R2.01 corpus 208 ảnh cũng đã xác minh. `e2e-native-visual-selftest.ps1` xác nhận 220/220 ảnh và comparator; R2.02 đóng ✅. R1.12, R1.27, R1.31, R1.35, R1.38 và R1.43 đã đóng; R1.31 so ba trang native với pypdfium2 đạt pixel-exact sau khi sửa byte order. R1.32 hiện bị chính sách Windows chặn ETW; ghi nhận làm cổng môi trường. R2.16 đã chụp đủ sáu cặp và MAN-5 chấp nhận sai khác còn lại. R2.21 fit-width đã khớp Electron ở ba kích thước sau khi so cùng viewer bounds; phép thử file lớn cùng fixture cũng đạt.
 2. **Giữ các việc cần môi trường/nghiệm thu thành cổng rõ.** MAN-1 tại R1.27 đã ✅ theo xác nhận trực tiếp của chủ dự án ngày 2026-11-22; UniKey Telex/VNI trong khung nháp R7.09 vẫn thuộc mốc sau. R2.17 còn cần kéo thả từ Explorer; R2.19 còn cần OS wheel/key và present/frame thật. Computer Use (`@oai/sky` và CUA) không kết nối được native pipe trong lần thử 2026-11-22, nên không gửi input giả. MAN-5 đã xem sáu cặp cuối và chấp nhận sai khác raster còn lại; cursor hand cũng đã đo bằng Win32.
-3. **Điểm kiểm M1 đã được chủ dự án nghiệm thu (2026-11-22).** Còn mở: ước lượng điểm M2–M9 (chờ số giờ thực tế của M1), cổng R1.05 và frame/present của R1.32 (ghi ở "Điểm kiểm M1"). M2 vẫn 🔄 theo các cổng R2.17, R2.19, R2.28 và MAN-5. R2.26 đã ✅: E2E Windows đạt và vùng nhớ do app sở hữu được zeroize; bản sao tạm trong thư viện/allocator nằm ngoài bảo đảm này.
+3. **Điểm kiểm M1 đã được chủ dự án nghiệm thu (2026-11-22).** Còn mở: ước lượng điểm M2–M9 (chờ số giờ thực tế của M1) và frame/present của R1.32 (ghi ở "Điểm kiểm M1"). R1.05 đã đóng. M2 vẫn 🔄 theo các cổng R2.17, R2.19, R2.28 và MAN-5. R2.26 đã ✅: E2E Windows đạt và vùng nhớ do app sở hữu được zeroize; bản sao tạm trong thư viện/allocator nằm ngoài bảo đảm này.
 4. **Tiếp tục phần còn lại của M3/M4:** R3.09 còn 🔄; M4 còn R4.01 và R4.05 đang 🔄 (R4.02–R4.04 và R4.06–R4.08 đã ✅). Cập nhật thứ tự theo task thực sự còn mở.
 5. **M5 tiếp tục từ R5.03** sau khi hàng đợi kiểm chứng trên được rà soát; R5.01–R5.02 đã ✅. Có thể làm task M5 độc lập song song về mặt kỹ thuật, nhưng cập nhật lại hàng đợi tại đây để tránh mất dấu phần nghiệm thu M1/M2.
 
@@ -133,7 +133,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Ghi chú:** (2026-11-22) Run `44937156215` của Native Rust Builds và `44937156208` của CI thường trên HEAD `1e305050` đều đỏ. Đã xác định lỗi native: hai test `form_fill` tranh instance/counter PDFium khi chạy song song; macOS build không biên dịch vì `image_edit` bị cfg Windows trong khi `viewer.rs` dùng module này. Bản sửa cục bộ dùng một `RenderHandle` dùng chung và khóa test form, bỏ cfg nền tảng cho module thuần Rust; workspace tests, clippy, fmt, build và cargo-deny đã xanh ở máy Windows. Branch không bật required checks. Chưa có run CI trên các sửa đổi cục bộ vì repo không commit/push trong lượt này; giữ 🔄 tới khi run branch xanh.
 - **Ghi chú:** (2026-11-22, lượt kiểm trên container Linux/Windows target) `cargo fmt --check` sạch; `cargo clippy -p chef-pdf -p chef-app --all-targets --target x86_64-pc-windows-gnu -- -D warnings` sạch; `cargo test -p chef-pdf` (16 unit, 6 `form_fill`, 9 `render`) đạt với PDFium chromium/8125 của bblanchon, 3 lượt liên tiếp. Run `44972325446` trên `a4299775` đang chạy lúc ghi chú này; chưa có kết quả, giữ 🔄 đến khi run xanh.
 - **Ghi chú:** (2026-11-22, lượt sau) Run `45013800861` (Native Rust Builds) trên HEAD `e445958` đã push: macOS ARM64 xanh; Windows x64 đỏ ở bước `cargo deny` advisories do RUSTSEC-2026-0592 (`url` 2.5.8, bắc cầu từ GPUI; sửa ở 2.5.9). Đã nâng `url` lên 2.5.9 trong `apps/native/Cargo.lock` cục bộ (`cargo update -p url --precise 2.5.9`), chưa commit/push; `cargo deny check` đủ 4 mục xanh và `cargo build -p chef-app` đạt. Vẫn giữ 🔄 cho tới khi một run Native Windows xanh trên HEAD đã push. CI thường (Core, JS, E2E) đỏ từ trước các commit này (run `44973610790`), không thuộc phạm vi R1.05.
-- **Trạng thái:** 🔄
+- **Ghi chú:** (2026-11-22, sau khi push `d6caeda`) Run `45044608231` (Native Rust Builds): Windows x64 và macOS ARM64 đều xanh. Tiêu chí (1) đạt. Workflow không đặt làm required check nên tiêu chí (3) vẫn đạt.
+- **Trạng thái:** ✅
 
 ### M1.1 Cửa sổ và kênh debug
 
@@ -3096,7 +3097,8 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 | 2026-11-21 | R5.01 | Đóng ✅ | Khung `TaskDialog` dùng chung (`task_dialog.rs`) với cột phụ `300 px` (hai cột ở `1484`/`1184`/`800` và xếp một cột ở `<= 760 px`), `Button::loading`, `RadioGroup::horizontal`, mở rộng `Dialog`, 4 khóa i18n xác nhận dừng khi đóng lúc chạy và trang thử cô lập; workspace 375/375 (`chef-ui` 73/73, `chef-app` 163/163), fmt, clippy, build, cargo deny đạt; E2E `e2e-native-task-dialog.ps1` 57/57 PASS (`FAILS: 0`) cùng hồi quy `dialog`/`button`/`choice`/`jobs` đều `FAILS: 0` (đối chiếu pixel ui-audit thuộc R5.09/R2.02) |
 | 2026-11-21 | R5.02 | Đóng ✅ | Renderer hộp thoại từ JSON Schema (`schema_form.rs`) và bảng phân loại 68 hộp thoại ui-audit (`DIALOG_CLASSIFICATION_RUST.md`: 6 S, 44 S+, 17 H, 1 bỏ). Rà kích thước M5: R5.04, R5.44, R5.46 từ M xuống S; bảng Tổng quan M5 thành 20 S, 42 M. |
 | 2026-11-22 | R1.05 | Giữ 🔄 | Run `45013800861` trên HEAD `e445958` đã push: macOS ARM64 xanh, Windows x64 đỏ ở `cargo deny` advisories (RUSTSEC-2026-0592, `url` 2.5.8). Nâng `url` lên 2.5.9 trong `apps/native/Cargo.lock` cục bộ; chưa commit/push, chờ chủ dự án quyết |
-| 2026-11-22 | Điểm kiểm M1 | Chủ dự án nghiệm thu M1 | Xem mục "Điểm kiểm M1" bên dưới. Hai cổng môi trường còn mở: R1.05 (run Native Windows xanh trên branch đã push) và frame/present của R1.32 (ETW) |
+| 2026-11-22 | R1.05 | Đóng ✅ | Run `45044608231` trên `d6caeda` (đã push): Native Windows x64 và macOS ARM64 xanh |
+| 2026-11-22 | Điểm kiểm M1 | Chủ dự án nghiệm thu M1 | Xem mục "Điểm kiểm M1" bên dưới. Cổng môi trường còn mở: frame/present của R1.32 (ETW) |
 
 ### Điểm kiểm M1 (cuối mốc)
 
@@ -3105,7 +3107,7 @@ Ghi thay đổi task, phụ thuộc hoặc phạm vi (ngày, ID, thay đổi, l�
 - [x] CH-R4 đã chốt (`cargo deny` advisories) theo D90; full `cargo deny check` chạy lại ngày 2026-11-14 và xanh (advisories, bans, licenses, sources)
 - [x] Danh sách "đã kiểm / chưa kiểm": UniKey IME (R1.27), cửa sổ ngoài màn hình (R1.08/R1.09), texture (R1.35), DPR (R1.21), font, icon, bóng, layout — kết quả ở các task tương ứng; frame/present của R1.32 vẫn bị chặn bởi chính sách ETW Windows
 - [x] Đọc lại M2–M9 theo kết quả M1 (2026-11-22): đối chiếu các task nhắc TSF, cửa sổ ngoài màn hình, WGC, BGRA, RAM và texture. Chỉ TSF đổi phạm vi (R1.24–R1.26, D92), và không task M2–M9 nào phụ thuộc TSF, nên không sửa task. Ghi ở NOTES nhật ký
-- [x] Chủ dự án nghiệm thu M1 (2026-11-22). Cổng môi trường còn mở: R1.05 (run Native Windows xanh trên branch đã push) và frame/present của R1.32 (ETW)
+- [x] Chủ dự án nghiệm thu M1 (2026-11-22). R1.05 đã đóng (run `45044608231` xanh trên `d6caeda`). Cổng môi trường còn mở: frame/present của R1.32 (ETW)
 - [ ] Ước lượng điểm cho M2–M9 (BLUEPRINT_RUST §14), dựa trên số giờ thực tế của M1 và số task đã xong; ghi tốc độ học Rust/GPUI (BLUEPRINT_RUST §15). **Chưa làm được:** chủ dự án chưa cung cấp số giờ (2026-11-22). §14–§15 đã ghi số liệu lịch và task thay thế; điểm vẫn để trống
 - [x] MAN-1 đã làm (R1.27; xác nhận trực tiếp 2026-11-22)
 - [x] Điểm kiểm không phải cổng dừng: nếu một việc không đạt, ghi lại và đưa vào mốc sau, không dừng cả dự án
