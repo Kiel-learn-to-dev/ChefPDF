@@ -1,6 +1,7 @@
 //! Mô hình công cụ ảnh trang (TASKS_RUST R8.09, R8.10, R8.11, R8.15): port `spineModel.ts`,
 //! `eraseModel.ts`, `fingerModel.ts`. Tách trang đôi (khe gáy), tẩy vùng, xóa vết màu và mặt nạ xóa
-//! ngón tay (cọ tròn). Logic thuần, không phụ thuộc giao diện.
+//! ngón tay (cọ tròn), làm phẳng trang cong (`dewarpModel.ts`) và chỉnh ảnh (`adjustModel.ts`: nền
+//! trắng, khử nhiễu, Levels, Curves, DPI). Logic thuần, không phụ thuộc giao diện.
 #![allow(dead_code)]
 
 use crate::scan_convert::parse_pages;
@@ -277,6 +278,187 @@ pub fn brush_radius_px(slider: f64, mask_width: usize) -> usize {
     ((clamped / 1000.0 * mask_width as f64).round() as usize).max(1)
 }
 
+// ---- Làm phẳng trang cong (dewarp) ----
+
+pub const DEWARP_MIN_CONFIDENCE: f64 = 0.35;
+pub const DEWARP_PREVIEW_LIMIT: usize = 3;
+
+/// `pageimg.dewarpPreview`: tối đa 3 trang đầu của vùng chọn.
+pub fn dewarp_preview_params(text: &str, page_count: usize) -> Option<Value> {
+    let pages: Vec<u64> = match parse_choice(text, page_count) {
+        PageChoice::Invalid => return None,
+        PageChoice::All => (0..page_count as u64).collect(),
+        PageChoice::Pages(p) => p,
+    };
+    let pages: Vec<u64> = pages.into_iter().take(DEWARP_PREVIEW_LIMIT).collect();
+    (!pages.is_empty()).then(|| json!({ "pages": pages }))
+}
+
+/// `pageimg.dewarp`: trang rỗng là tất cả; ngưỡng tin cậy cố định.
+pub fn dewarp_apply_params(text: &str, page_count: usize) -> Option<Value> {
+    let mut v = json!({ "minConfidence": DEWARP_MIN_CONFIDENCE });
+    match parse_choice(text, page_count) {
+        PageChoice::Invalid => return None,
+        PageChoice::Pages(p) => v["pages"] = json!(p),
+        PageChoice::All => {}
+    }
+    Some(v)
+}
+
+/// Trang lõi đánh dấu `review` (độ tin cậy thấp) trong kết quả dewarp.
+pub fn dewarp_review_pages(data: &Value) -> Vec<u64> {
+    data.get("pages")
+        .and_then(Value::as_array)
+        .map(|rows| {
+            rows.iter()
+                .filter(|r| r.get("status").and_then(Value::as_str) == Some("review"))
+                .filter_map(|r| r.get("pageIndex")?.as_u64())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+// ---- Chỉnh ảnh (adjust) ----
+
+/// Năm mức vào của đường cong tông màu; người dùng đặt mức ra ở mỗi mức.
+pub const CURVE_INPUTS: [i64; 5] = [0, 64, 128, 192, 255];
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AdjustState {
+    pub whiten: bool,
+    pub whiten_strength: f64,
+    pub denoise: bool,
+    pub denoise_strength: f64,
+    pub black: i64,
+    pub white: i64,
+    pub gamma: f64,
+    pub curve: [f64; 5],
+    pub contrast: f64,
+    pub brightness: f64,
+    pub invert: bool,
+    pub grayscale: bool,
+    /// Chữ người dùng gõ; rỗng là không đổi DPI.
+    pub dpi: String,
+    pub resize_page: bool,
+}
+
+impl Default for AdjustState {
+    fn default() -> Self {
+        Self {
+            whiten: false,
+            whiten_strength: 0.8,
+            denoise: false,
+            denoise_strength: 0.5,
+            black: 0,
+            white: 255,
+            gamma: 1.0,
+            curve: [0.0, 64.0, 128.0, 192.0, 255.0],
+            contrast: 0.0,
+            brightness: 0.0,
+            invert: false,
+            grayscale: false,
+            dpi: String::new(),
+            resize_page: false,
+        }
+    }
+}
+
+pub fn curve_is_default(curve: &[f64; 5]) -> bool {
+    curve.iter().zip(CURVE_INPUTS).all(|(o, i)| *o == i as f64)
+}
+
+/// Trắng phải cao hơn đen.
+pub fn levels_valid(s: &AdjustState) -> bool {
+    s.white > s.black
+}
+
+fn dpi_of(s: &AdjustState) -> Option<Option<u32>> {
+    let t = s.dpi.trim();
+    if t.is_empty() {
+        return Some(None);
+    }
+    let n: u32 = t.parse().ok().filter(|n| (50..=1200).contains(n))?;
+    Some(Some(n))
+}
+
+pub fn dpi_valid(s: &AdjustState) -> bool {
+    dpi_of(s).is_some()
+}
+
+/// Chỉ gửi phần khác "không đổi gì".
+pub fn enhance_settings(s: &AdjustState) -> serde_json::Map<String, Value> {
+    let mut m = serde_json::Map::new();
+    if s.whiten {
+        m.insert("whiten".into(), true.into());
+        m.insert("whitenStrength".into(), s.whiten_strength.into());
+    }
+    if s.denoise {
+        m.insert("denoise".into(), true.into());
+        m.insert("denoiseStrength".into(), s.denoise_strength.into());
+    }
+    if s.black != 0 || s.white != 255 || s.gamma != 1.0 {
+        m.insert(
+            "levels".into(),
+            json!({"black": s.black, "white": s.white, "gamma": s.gamma}),
+        );
+    }
+    if !curve_is_default(&s.curve) {
+        let pts: Vec<Value> = CURVE_INPUTS
+            .iter()
+            .zip(s.curve)
+            .map(|(i, o)| json!({"input": i, "output": o.round() as i64}))
+            .collect();
+        m.insert("curve".into(), pts.into());
+    }
+    if s.contrast != 0.0 {
+        m.insert("contrast".into(), s.contrast.into());
+    }
+    if s.brightness != 0.0 {
+        m.insert("brightness".into(), s.brightness.into());
+    }
+    if s.invert {
+        m.insert("invert".into(), true.into());
+    }
+    if s.grayscale {
+        m.insert("grayscale".into(), true.into());
+    }
+    if let Some(Some(dpi)) = dpi_of(s) {
+        m.insert("dpi".into(), dpi.into());
+        if s.resize_page {
+            m.insert("resizePage".into(), true.into());
+        }
+    }
+    m
+}
+
+/// `pageimg.enhance`: trang rỗng là tất cả.
+pub fn adjust_apply_params(s: &AdjustState, text: &str, page_count: usize) -> Option<Value> {
+    if !levels_valid(s) || !dpi_valid(s) {
+        return None;
+    }
+    let mut m = enhance_settings(s);
+    match parse_choice(text, page_count) {
+        PageChoice::Invalid => return None,
+        PageChoice::Pages(p) => {
+            m.insert("pages".into(), json!(p));
+        }
+        PageChoice::All => {}
+    }
+    Some(Value::Object(m))
+}
+
+/// `pageimg.enhancePreview`: bỏ DPI (xem trước chỉ cho thấy tông màu và làm sạch).
+pub fn adjust_preview_params(s: &AdjustState, page: usize) -> Option<Value> {
+    if !levels_valid(s) || !dpi_valid(s) {
+        return None;
+    }
+    let mut m = enhance_settings(s);
+    m.remove("dpi");
+    m.remove("resizePage");
+    m.insert("pageIndex".into(), page.into());
+    Some(Value::Object(m))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -394,5 +576,97 @@ mod tests {
         assert_eq!(brush_radius_px(1.0, 1000), 4);
         assert_eq!(brush_radius_px(24.0, 10), 1);
         FingerMask::new(0, 0).stamp_disc(0.0, 0.0, 3.0, 255);
+    }
+    #[test]
+    fn dewarp_params() {
+        assert_eq!(
+            dewarp_preview_params("", 5).unwrap()["pages"],
+            json!([0, 1, 2])
+        );
+        assert!(dewarp_preview_params("0", 5).is_none());
+        let a = dewarp_apply_params("2,4", 5).unwrap();
+        assert_eq!(
+            (&a["pages"], a["minConfidence"].as_f64()),
+            (&json!([1, 3]), Some(0.35))
+        );
+        assert!(dewarp_apply_params("", 5).unwrap().get("pages").is_none());
+        let d = json!({"pages":[{"pageIndex":1,"status":"review"},{"pageIndex":2,"status":"done"},{"pageIndex":4,"status":"review"},{"status":"review"}]});
+        assert_eq!(dewarp_review_pages(&d), [1, 4]);
+    }
+
+    #[test]
+    fn adjust_sends_only_changes() {
+        let s = AdjustState::default();
+        assert!(enhance_settings(&s).is_empty());
+        let s = AdjustState {
+            whiten: true,
+            black: 10,
+            curve: [0.0, 70.4, 128.0, 192.0, 255.0],
+            dpi: " 300 ".into(),
+            resize_page: true,
+            invert: true,
+            ..Default::default()
+        };
+        let m = enhance_settings(&s);
+        assert_eq!(m["whitenStrength"], 0.8);
+        assert_eq!(m["levels"], json!({"black":10,"white":255,"gamma":1.0}));
+        assert_eq!(m["curve"][1], json!({"input":64,"output":70}));
+        assert_eq!(
+            (
+                m["dpi"].as_u64(),
+                m["resizePage"].as_bool(),
+                m["invert"].as_bool()
+            ),
+            (Some(300), Some(true), Some(true))
+        );
+        assert!(!m.contains_key("denoise") && !m.contains_key("contrast"));
+        // resizePage không đi một mình khi không có DPI
+        let only = AdjustState {
+            resize_page: true,
+            ..Default::default()
+        };
+        assert!(enhance_settings(&only).is_empty());
+    }
+
+    #[test]
+    fn adjust_validation_and_pages() {
+        let bad_levels = AdjustState {
+            black: 100,
+            white: 100,
+            ..Default::default()
+        };
+        assert!(adjust_apply_params(&bad_levels, "", 3).is_none());
+        for dpi in ["49", "1201", "abc", "300.5"] {
+            let s = AdjustState {
+                dpi: dpi.into(),
+                ..Default::default()
+            };
+            assert!(!dpi_valid(&s), "{dpi}");
+            assert!(adjust_apply_params(&s, "", 3).is_none());
+        }
+        let s = AdjustState {
+            grayscale: true,
+            ..Default::default()
+        };
+        let p = adjust_apply_params(&s, "3, 1", 3).unwrap();
+        assert_eq!(
+            (&p["pages"], p["grayscale"].as_bool()),
+            (&json!([0, 2]), Some(true))
+        );
+        assert!(adjust_apply_params(&s, "9", 3).is_none());
+        assert!(
+            adjust_apply_params(&s, "", 3)
+                .unwrap()
+                .get("pages")
+                .is_none()
+        );
+        let with_dpi = AdjustState {
+            dpi: "200".into(),
+            whiten: true,
+            ..Default::default()
+        };
+        let pv = adjust_preview_params(&with_dpi, 2).unwrap();
+        assert_eq!((pv["pageIndex"].as_u64(), pv.get("dpi")), (Some(2), None));
+        assert_eq!(pv["whiten"], true);
     }
 }
