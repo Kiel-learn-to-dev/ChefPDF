@@ -1647,7 +1647,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scan_convert.rs`
 - **E2E:** `scan`
 - **Tính năng:** K1, K2, K3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `scan_convert.rs` là mô hình form dùng chung cho R5.23, R5.26, R5.27 (port từ `scanModel.ts`): form ↔ tham số `scan.rasterize`, `apply_params`, tên preset, lỗi giới hạn dpi, khóa cảnh báo, parse MB, `parse_fit`. 7 test đạt trên Linux. Preset dựng sẵn lấy từ RPC `scan.presets`, chưa gọi. Chưa có hộp thoại, xem trước, lưu preset ra đĩa, E2E `scan`.
+- **Trạng thái:** 🔄
 
 ### R5.24 · Hiệu ứng scan thật · M
 - **Mô tả:** thêm nghiêng nhẹ, hạt nhiễu, ám màu giấy, bóng mép, mờ nhẹ, lệch tương phản. Ngẫu nhiên khác nhau từng trang, có hạt giống để lặp lại.
@@ -1677,7 +1678,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scan_presets.rs`
 - **E2E:** `scan`
 - **Tính năng:** K7, K8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `scan_convert.rs` là mô hình form dùng chung cho R5.23, R5.26, R5.27 (port từ `scanModel.ts`): form ↔ tham số `scan.rasterize`, `apply_params`, tên preset, lỗi giới hạn dpi, khóa cảnh báo, parse MB, `parse_fit`. 7 test đạt trên Linux. Preset dựng sẵn lấy từ RPC `scan.presets`, chưa gọi. Chưa có hộp thoại, xem trước, lưu preset ra đĩa, E2E `scan`.
+- **Trạng thái:** 🔄
 
 ### R5.27 · Cảnh báo và giới hạn dung lượng · M
 - **Mô tả:** cảnh báo khi dùng chế độ làm mất chữ (bản scan không có chữ tìm được). Giới hạn 5, 10, 25 MB: tự dò DPI và chất lượng để file dưới giới hạn, hoặc báo không đạt được.
@@ -1687,7 +1689,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scan_limits.rs`
 - **E2E:** `scan`, `demo-v08`
 - **Tính năng:** K9, K10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `scan_convert.rs` là mô hình form dùng chung cho R5.23, R5.26, R5.27 (port từ `scanModel.ts`): form ↔ tham số `scan.rasterize`, `apply_params`, tên preset, lỗi giới hạn dpi, khóa cảnh báo, parse MB, `parse_fit`. 7 test đạt trên Linux. Preset dựng sẵn lấy từ RPC `scan.presets`, chưa gọi. Chưa có hộp thoại, xem trước, lưu preset ra đĩa, E2E `scan`.
+- **Trạng thái:** 🔄
 
 ### R5.28 · Điểm kiểm 5b · —
 - **Mô tả:** E2E `tools5-convert`, `scan`, `scan-save-reopen`, `web2pdf`; đo RAM khi chuyển file 305 MB sang ảnh.

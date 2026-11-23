@@ -8,7 +8,7 @@ git fetch origin claude/gifted-ritchie-qrrvzj && git checkout claude/gifted-ritc
 cd apps/native
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test -p chef-app merge:: split:: split_page:: crop_page:: blank_pages:: smart_split::
+cargo test -p chef-app merge:: split:: split_page:: crop_page:: blank_pages:: smart_split:: scan_convert::
 cargo test -p chef-contracts
 cargo deny check
 ```
@@ -22,6 +22,7 @@ Trên Linux các test này đã đạt (11/11) qua crate tạm với bản thay 
 | R5.05 Cắt/đổi khổ | `crop_page.rs` | `crop_params`, `resize_params` | hộp thoại, xem trước, E2E |
 | R5.06 Trang trắng | `blank_pages.rs` | `find_params`, `parse_rows`, `Review` (xác nhận trước khi xóa) | hộp thoại, nối `page.delete`, E2E |
 | R5.08 Tách thông minh | `smart_split.rs` | `params`, xem trước điểm tách | hộp thoại, E2E |
+| R5.23/26/27 Scan | `scan_convert.rs` | form ↔ `scan.rasterize`, preset, giới hạn dung lượng (logic) | hộp thoại, xem trước (R5.25), lưu preset, gọi RPC, E2E `scan` |
 | R5.07 Chia trang | `split_page.rs` | `halves`, `grid`, đếm trang sau chia | hộp thoại, E2E |
 
 Mỗi file có `#![allow(dead_code)]`; bỏ khi nối giao diện (clippy sẽ báo nếu quên).

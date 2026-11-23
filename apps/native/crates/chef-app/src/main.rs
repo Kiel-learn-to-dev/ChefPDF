@@ -55,6 +55,7 @@ mod blank_pages;
 mod crop_page;
 mod merge;
 mod page_ops;
+mod scan_convert;
 mod split;
 mod smart_split;
 mod split_page;
