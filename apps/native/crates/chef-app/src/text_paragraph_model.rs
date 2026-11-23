@@ -6,8 +6,14 @@
 use serde_json::{Value, json};
 
 /// Dòng chữ của `text.getLines` (phần chế độ đoạn đọc).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TextLine {
+    pub id: String,
+    pub page_index: usize,
+    pub font_name: String,
+    pub can_encode_any: bool,
+    /// [trái, phải] (pt) của từng ký tự trong `text`, theo thứ tự đọc; None khi lõi cũ không có.
+    pub glyphs: Option<Vec<(f64, f64)>>,
     pub paragraph_id: Option<String>,
     pub editable: bool,
     pub artifact: bool,
@@ -347,6 +353,7 @@ mod tests {
             bold: false,
             italic: true,
             colour: Some("#112233".into()),
+            ..Default::default()
         }
     }
 
