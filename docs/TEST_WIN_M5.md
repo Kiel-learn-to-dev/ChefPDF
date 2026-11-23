@@ -44,3 +44,6 @@ Thêm: `find_replace_model.rs` (R7.10), `verify_batch_model.rs` (R6.29), `prefli
 Thêm: `page_range.rs` (port `pageRange.ts`; `scan_convert::parse_pages` giờ gọi nó nên nhận "5-", "-3", dấu `;`), `overlay_common.rs`, `stamp_model.rs` (R5.30–31), `watermark_model.rs` (R5.40).
 Thêm: `redact_model.rs` (R5.49), `inspect_model.rs` (R5.46–47).
 Thêm: `doc_tools_model.rs` (R5.18–22), `text_paragraph_model.rs` (R7.04–06).
+Thêm: `sig_library_model.rs` (R6.07–09), `sign_template_model.rs` (R6.11–16), `update_check.rs` (R9.08).
+
+Còn chưa port (logic thuần): `overlayModel.ts` (R5.29–R5.38, 1092 dòng) và `objectModel.ts` (R7.11). R9.11 (script độ phủ mã tính năng) là script Python, không thuộc `chef-app`.
