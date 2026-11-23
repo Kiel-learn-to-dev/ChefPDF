@@ -1897,7 +1897,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/preflight.rs`
 - **E2E:** `redact`
 - **Tính năng:** J5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `preflight_model.rs`: đọc danh sách kiểm, nút Sửa chạy thao tác/mở hộp thoại/gợi ý (port `preflightModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R5.49 · Che thông tin mật · M
 - **Mô tả:** chọn vùng chữ hoặc ảnh, tìm và che hàng loạt (CCCD, số điện thoại, email, số tài khoản), xóa hẳn nội dung bên dưới. Khác với tẩy vùng (D5).
@@ -2414,6 +2415,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `signflow`
 - **Tính năng:** I36
 - **Ghi chú:** (2026-11-23) `sign_verify_model.rs::export_csv`: CSV có BOM cho Excel, thoát dấu phẩy và ngoặc kép. Chưa có quét thư mục, xuất xlsx/PDF. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Ghi chú:** (2026-11-23) `verify_batch_model.rs`: form, tham số `sign.verifyBatch`, đếm theo trạng thái, đường dẫn báo cáo (port `verifyBatchModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
 - **Trạng thái:** 🔄
 
 ### R6.30 · Điểm kiểm M6 · —
@@ -2533,7 +2535,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/text_replace_all.rs`
 - **E2E:** `demo-v07`
 - **Tính năng:** D10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `find_replace_model.rs`: form, tham số `text.findReplace`, gom kết quả xem trước theo trang, tóm tắt (port `findReplaceModel.ts`). Kiểm regex do bên gọi truyền vào (chef-app chưa có crate regex). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R7.11 · Bảng thuộc tính đối tượng · M
 - **Mô tả:** panel phải hiện thuộc tính của đối tượng đang chọn: chữ (font, cỡ, màu), ảnh, ghi chú, chữ ký. Thay một phần của `objects.css`.
