@@ -1450,7 +1450,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/merge.rs`
 - **E2E:** `tools5`
 - **Tính năng:** C4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `merge.rs` có phần thuần: `MergeList` (thêm, bỏ, đổi chỗ, mật khẩu), `params()` dựng `FileMergeParams` và chặn ghi đè nguồn, tên file ra gợi ý; 4 unit test đạt (chạy qua crate tạm trên Linux, vì chef-app chưa build được ở đây). Chưa làm: hộp thoại TaskDialog với danh sách kéo sắp, nối lệnh mở hộp thoại, E2E `tools5` trên Windows, SHA-256 nguồn.
+- **Trạng thái:** 🔄
 
 ### R5.04 · Tách file · S
 - **Mô tả:** tách theo khoảng trang, mỗi N trang, theo bookmark, theo dung lượng, trang chẵn hoặc lẻ. Operation `pdf.split`.
