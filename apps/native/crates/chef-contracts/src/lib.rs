@@ -75,4 +75,25 @@ mod tests {
             "field lạ phải bị từ chối (additionalProperties: false)"
         );
     }
+
+    /// Enum nội tuyến trùng title (`Mode`, `Fit`, ...) không được gộp giữa các operation.
+    #[test]
+    fn same_titled_enums_stay_separate_per_operation() {
+        use super::ops_types::{FileSplitParams, PageCropParams, PageResizeParams};
+        let split: FileSplitParams = serde_json::from_value(serde_json::json!(
+            {"mode":"ranges","ranges":"1-3","outputDir":"/o","nameTemplate":"{name}_{index}"}
+        ))
+        .expect("file.split");
+        assert_eq!(serde_json::to_value(&split).unwrap()["mode"], "ranges");
+        let crop: PageCropParams = serde_json::from_value(
+            serde_json::json!({"mode":"cropbox","scope":"all","autoTrim":true}),
+        )
+        .expect("page.crop");
+        assert_eq!(serde_json::to_value(&crop).unwrap()["mode"], "cropbox");
+        let resize: PageResizeParams = serde_json::from_value(
+            serde_json::json!({"fit":"scale","scope":"all","size":"A4"}),
+        )
+        .expect("page.resize");
+        assert_eq!(serde_json::to_value(&resize).unwrap()["size"], "A4");
+    }
 }

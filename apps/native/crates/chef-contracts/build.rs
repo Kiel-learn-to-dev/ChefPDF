@@ -65,11 +65,81 @@ fn find_failing_definitions(text: &str) -> Vec<String> {
     }
     bad
 }
-fn generate(schema_path: &Path, out_name: &str) {
+
+/// Gom các enum nội tuyến theo `title`: title → các tập giá trị khác nhau đã gặp.
+fn collect_enum_titles(
+    value: &serde_json::Value,
+    out: &mut std::collections::BTreeMap<String, Vec<serde_json::Value>>,
+) {
+    match value {
+        serde_json::Value::Object(map) => {
+            if let (Some(title), Some(values)) = (
+                map.get("title").and_then(|t| t.as_str()),
+                map.get("enum"),
+            ) {
+                let seen = out.entry(title.to_string()).or_default();
+                if !seen.contains(values) {
+                    seen.push(values.clone());
+                }
+            }
+            map.values().for_each(|v| collect_enum_titles(v, out));
+        }
+        serde_json::Value::Array(items) => items.iter().for_each(|v| collect_enum_titles(v, out)),
+        _ => {}
+    }
+}
+
+/// Đổi `title` của enum nội tuyến thành `<Definition><Title>` khi cùng title mà khác tập giá trị.
+/// Nếu không, typify gộp chúng thành một enum (ví dụ `Mode` của `file.split` thành `remove`/
+/// `replaceColor`) và struct sinh không đọc lại được JSON hợp lệ của lõi.
+fn qualify_colliding_enums(root: &mut serde_json::Value) {
+    fn rename(value: &mut serde_json::Value, prefix: &str, colliding: &[String]) {
+        match value {
+            serde_json::Value::Object(map) => {
+                if map.contains_key("enum") {
+                    if let Some(t) = map.get("title").and_then(|t| t.as_str()) {
+                        if colliding.iter().any(|c| c == t) {
+                            let new = format!("{prefix}{t}");
+                            map.insert("title".into(), serde_json::Value::String(new));
+                        }
+                    }
+                }
+                map.values_mut().for_each(|v| rename(v, prefix, colliding));
+            }
+            serde_json::Value::Array(items) => {
+                items.iter_mut().for_each(|v| rename(v, prefix, colliding))
+            }
+            _ => {}
+        }
+    }
+    let mut titles = std::collections::BTreeMap::new();
+    collect_enum_titles(root, &mut titles);
+    let colliding: Vec<String> = titles
+        .into_iter()
+        .filter(|(_, sets)| sets.len() > 1)
+        .map(|(t, _)| t)
+        .collect();
+    if colliding.is_empty() {
+        return;
+    }
+    if let Some(defs) = root.get_mut("definitions").and_then(|d| d.as_object_mut()) {
+        for (name, def) in defs.iter_mut() {
+            rename(def, name, &colliding);
+        }
+    }
+}
+
+fn generate(schema_path: &Path, out_name: &str, qualify_enums: bool) {
     println!("cargo:rerun-if-changed={}", schema_path.display());
     let text = std::fs::read_to_string(schema_path)
         .unwrap_or_else(|e| panic!("đọc {}: {e}", schema_path.display()));
-    let schema: schemars::schema::RootSchema = serde_json::from_str(&text).unwrap_or_else(|e| {
+    let mut json: serde_json::Value = serde_json::from_str(&text)
+        .unwrap_or_else(|e| panic!("{} không phải JSON: {e}", schema_path.display()));
+    if qualify_enums {
+        qualify_colliding_enums(&mut json);
+    }
+    let text = json.to_string();
+    let schema: schemars::schema::RootSchema = serde_json::from_value(json).unwrap_or_else(|e| {
         panic!(
             "{} không đọc được bằng schemars: {e}",
             schema_path.display()
@@ -94,6 +164,7 @@ fn main() {
     generate(
         &manifest.join("../../../../core/chef_core/layout/schema.json"),
         "layout_types.rs",
+        false,
     );
-    generate(&manifest.join("schema/ops.schema.json"), "ops_types.rs");
+    generate(&manifest.join("schema/ops.schema.json"), "ops_types.rs", true);
 }

@@ -30,7 +30,7 @@ pub enum SplitReject {
 pub const DEFAULT_TEMPLATE: &str = "{name}_{index}";
 
 /// Mẫu tên chỉ nhận {name} {index} {start} {end}; ký tự lạ trong ngoặc nhọn bị từ chối.
-fn template_ok(t: &str) -> bool {
+pub fn template_ok(t: &str) -> bool {
     if t.is_empty() {
         return false;
     }

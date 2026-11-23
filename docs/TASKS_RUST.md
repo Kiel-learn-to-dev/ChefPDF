@@ -1482,7 +1482,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02
 - **File:** `apps/native/crates/chef-app/src/blank_pages.rs`
 - **Tính năng:** C8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `blank_pages.rs`: `find_params` (độ nhạy, viền), `parse_rows`, `Review` (mặc định chọn các trang trắng, bỏ chọn được, `confirm()` mới trả danh sách để `page.delete`; chặn xóa hết và chưa chọn). 3 test đạt trên Linux. Chưa có hộp thoại, undo qua revision và E2E.
+- **Trạng thái:** 🔄
 
 ### R5.07 · Chia đôi trang và lưới N phần · S
 - **Mô tả:** trang A3 hoặc trang đôi thành hai trang A4, hoặc cắt trang thành lưới N phần.
@@ -1501,7 +1502,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.04
 - **File:** `apps/native/crates/chef-app/src/smart_split.rs`
 - **Tính năng:** C10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `smart_split.rs`: `params` 3 chế độ, xem trước điểm tách `parts_from_starts`/`parts_at_blanks` cùng quy tắc lõi. 3 test đạt trên Linux. Chưa có hộp thoại, danh sách điểm tách từ kết quả `findBlank`/bookmark/chữ, E2E.
+- **Trạng thái:** 🔄
 
 ### R5.09 · Đối chiếu ui-audit hộp thoại xử lý · S
 - **Mô tả:** chụp và so ảnh các hộp thoại Ghép, Tách, Cắt, Xóa trang trắng, Chia đôi, Tách thông minh.
