@@ -59,6 +59,7 @@ mod initials_model;
 mod insert_image;
 mod inspect_model;
 mod instance;
+mod job_runner;
 mod layers;
 mod links;
 mod logging;
@@ -70,6 +71,7 @@ pub mod notes;
 mod notes_list;
 mod object_model;
 mod objects;
+mod op_dialog;
 mod ordering;
 mod overlay_common;
 mod overlay_model;
@@ -420,6 +422,12 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "insertblankafter" => Box::new(viewer::InsertBlankAfter),
         "insertpagesfromfile" => Box::new(viewer::InsertPagesFromFile),
         "mergefiles" => Box::new(viewer::MergeFiles),
+        "oprepair" => Box::new(viewer::OpRepair),
+        "opcompress" => Box::new(viewer::OpCompress),
+        "opencrypt" => Box::new(viewer::OpEncrypt),
+        "oppdftoimages" => Box::new(viewer::OpPdfToImages),
+        "opimagestopdf" => Box::new(viewer::OpImagesToPdf),
+        "opverifybatch" => Box::new(viewer::OpVerifyBatch),
         "replaceselectedpages" => Box::new(viewer::ReplaceSelectedPages),
         "selectallpages" => Box::new(viewer::SelectAllPages),
         "invertpageselection" => Box::new(viewer::InvertPageSelection),

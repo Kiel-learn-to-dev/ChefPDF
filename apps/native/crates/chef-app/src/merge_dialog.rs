@@ -7,22 +7,18 @@
 //! trùng nguồn. Chưa có kéo thả để sắp thứ tự (dùng nút mũi tên), chưa nhập mật khẩu từng file.
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{Receiver, TryRecvError, channel};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 use gpui::{App, Context, Entity, FocusHandle, SharedString, Window, div, prelude::*, px, rgba};
 
-use chef_rpc::{CallError, Supervisor};
+use chef_rpc::Supervisor;
 use chef_ui::button::{Button, Size, Variant};
 use chef_ui::form::{CheckState, Checkbox};
 use chef_ui::i18n::{t, t_with};
 use chef_ui::task_dialog::{TaskDialog, TaskResult, display_basename};
 
+use crate::job_runner::Outcome;
 use crate::merge::{MergeList, MergeReject};
-
-const JOB_TIMEOUT: Duration = Duration::from_secs(600);
-const POLL: Duration = Duration::from_millis(100);
 
 /// Ba nút của một dòng: lên, xuống, bỏ.
 struct RowHandles {
@@ -184,13 +180,15 @@ impl MergePanel {
         self.running = true;
         self.confirm_cancel = false;
         self.result = None;
-        let (tx, rx) = channel();
-        let job_id = self.job_id.clone();
-        std::thread::spawn(move || {
-            let _ = tx.send(run_job(&supervisor, &params, &job_id));
-        });
         cx.notify();
-        watch_result(rx, output, cx);
+        crate::job_runner::spawn_job(
+            supervisor,
+            "file.merge".into(),
+            params,
+            self.job_id.clone(),
+            cx,
+            move |panel: &mut MergePanel, outcome, cx| panel.finish(outcome, &output, cx),
+        );
     }
 
     fn finish(&mut self, outcome: Outcome, output: &Path, cx: &mut Context<Self>) {
@@ -200,7 +198,7 @@ impl MergePanel {
             *id = None;
         }
         self.result = Some(match outcome {
-            Outcome::Done => {
+            Outcome::Done(_) => {
                 let name = output
                     .file_name()
                     .map(|n| n.to_string_lossy().into_owned())
@@ -216,17 +214,7 @@ impl MergePanel {
 
     /// Dừng job đang chạy (hợp tác): kết quả `Cancelled` về qua kênh như bình thường.
     fn cancel_job(&mut self) {
-        let (Some(supervisor), Some(id)) = (
-            self.supervisor.clone(),
-            self.job_id.lock().ok().and_then(|g| g.clone()),
-        ) else {
-            return;
-        };
-        std::thread::spawn(move || {
-            if let Ok(sup) = supervisor.lock() {
-                let _ = chef_rpc::ops::cancel(&sup, &id);
-            }
-        });
+        crate::job_runner::cancel(&self.supervisor, &self.job_id);
     }
 }
 
@@ -236,69 +224,6 @@ fn reject_key(reject: MergeReject) -> &'static str {
         MergeReject::OutputIsSource => "pages.extractOutputSameFile",
         MergeReject::BadOutput => "merge.failed",
     }
-}
-
-enum Outcome {
-    Done,
-    Cancelled,
-    Failed(String),
-}
-
-/// Chạy job ở luồng nền: gửi `ops.run`, ghi mã job để dừng được, rồi chờ kết quả.
-fn run_job(
-    supervisor: &Arc<Mutex<Supervisor>>,
-    params: &serde_json::Value,
-    job_slot: &Arc<Mutex<Option<String>>>,
-) -> Outcome {
-    let sup = match supervisor.lock() {
-        Ok(s) => s,
-        Err(_) => return Outcome::Failed(t("editor.coreUnavailable")),
-    };
-    let id = match chef_rpc::ops::start(&sup, "file.merge", None, params) {
-        Ok(id) => id,
-        Err(error) => return Outcome::Failed(call_error_text(error)),
-    };
-    let waiter = sup.waiter();
-    drop(sup);
-    if let Ok(mut slot) = job_slot.lock() {
-        *slot = Some(id.clone());
-    }
-    match chef_rpc::ops::wait_job_with_waiter(&waiter, &id, JOB_TIMEOUT) {
-        chef_rpc::ops::JobEnd::Finished(_) => Outcome::Done,
-        chef_rpc::ops::JobEnd::Failed(error) => {
-            Outcome::Failed(call_error_text(CallError::Rpc(error)))
-        }
-        chef_rpc::ops::JobEnd::Cancelled => Outcome::Cancelled,
-        chef_rpc::ops::JobEnd::TimedOut | chef_rpc::ops::JobEnd::Stopped => {
-            Outcome::Failed(t("editor.coreUnavailable"))
-        }
-    }
-}
-
-fn call_error_text(error: CallError) -> String {
-    match error {
-        CallError::Rpc(value) => t(&chef_rpc::errors::message_key(chef_rpc::errors::kind_of(
-            &value,
-        ))),
-        CallError::Timeout | CallError::Closed | CallError::Io(_) => t("editor.coreUnavailable"),
-    }
-}
-
-/// Đọc kênh kết quả mỗi 100 ms cho tới khi job xong.
-fn watch_result(rx: Receiver<Outcome>, output: PathBuf, cx: &mut Context<MergePanel>) {
-    cx.spawn(async move |this, cx| {
-        loop {
-            cx.background_executor().timer(POLL).await;
-            let outcome = match rx.try_recv() {
-                Ok(o) => o,
-                Err(TryRecvError::Empty) => continue,
-                Err(TryRecvError::Disconnected) => Outcome::Failed(t("editor.coreUnavailable")),
-            };
-            let _ = this.update(cx, |panel, cx| panel.finish(outcome, &output, cx));
-            break;
-        }
-    })
-    .detach();
 }
 
 /// Dựng hộp thoại nếu đang mở. Mọi thay đổi đi qua `panel`.

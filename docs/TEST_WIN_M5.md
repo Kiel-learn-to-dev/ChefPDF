@@ -53,3 +53,12 @@ Thêm: `overlay_variables.rs`, `overlay_model.rs` (R5.29, R5.34–R5.39; chữ v
 Thêm: `cleanup_model.rs` (R5.41–42), `color_model.rs` (R5.17), `export_model.rs` (R5.53–56), `security_model.rs` (R5.44–45), `initials_model.rs` (R5.33), `workflow_model.rs` (R5.61–63), `recovery_model.rs` (khôi phục phiên, A9), `sig_separate_model.rs` (R8.12), `text_edit_model.rs` (R7.01–03, R7.12). `text_paragraph_model::TextLine` có thêm các trường `id`, `page_index`, `font_name`, `can_encode_any`, `glyphs`.
 
 **Đã port** (2026-11-23): mọi `apps/ui/src/features/*/*Model.ts` có logic thuần, trừ `web2pdfModel` (R5.16 đã bỏ), phần bất đồng bộ của `recoveryModel` (thử lại kiểm tra khi khởi động, thuộc luồng chạy), và các tệp `pagetools/*Model` đã có bản Rust ở `blank_pages.rs`, `crop_page.rs`, `split_page.rs`, `smart_split.rs`, `replaceModel` (R4.x chưa đối chiếu). `annotModel`, `formsModel`, `layersModel`, `linksModel` có module Rust riêng (`annots.rs`, `forms_*.rs`, `layers.rs`, `links.rs`), chưa đối chiếu từng hàm.
+
+## Hộp thoại đã có (2026-11-23, lượt 2) — thử trên Windows
+Mở bảng lệnh (Ctrl+K) rồi gõ: **Ghép file**, **Sửa file PDF hỏng**, **Nén PDF**, **Mật khẩu & quyền**, **Chuyển đổi** (có hai dòng: PDF sang ảnh và Ảnh sang PDF), **Kiểm tra chữ ký hàng loạt**.
+- `merge_dialog.rs`: Ghép file (R5.03): thêm file, mũi tên lên/xuống, bookmark, lưu, chạy, dừng.
+- `op_dialog.rs`: hộp thoại chung dựng từ schema (`SPECS`); thêm thao tác mới chỉ cần một dòng + một action.
+- `job_runner.rs`: chạy `ops.run` ở luồng nền, ghi mã job, dừng, chờ kết quả.
+- Đã kiểm kiểu và clippy cho target Windows (`cargo clippy -p chef-app --target x86_64-pc-windows-gnu --all-targets -- -D warnings`, cần `gcc-mingw-w64-x86-64`). **Chưa chạy lần nào.**
+- Cần xem: nút chọn file mở đúng hộp thoại Windows; trường nào của form sinh từ schema bị `Unsupported` (hiện báo khi chạy nếu bắt buộc); tên nhãn tiếng Anh của trường (chưa có chuỗi `schemaForm.fields.*` đủ); có bị lỗi tiêu điểm bàn phím trong TaskDialog không.
+- Test mới ở `op_dialog.rs` (chạy được trên Windows): mọi `SPECS` dựng được form và có chuỗi giao diện.

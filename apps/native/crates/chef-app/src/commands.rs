@@ -35,6 +35,12 @@ pub enum CommandAction {
     InsertBlankAfter,
     InsertPagesFromFile,
     MergeFiles,
+    OpRepair,
+    OpCompress,
+    OpEncrypt,
+    OpPdfToImages,
+    OpImagesToPdf,
+    OpVerifyBatch,
     ReplaceSelectedPages,
     SelectAllPages,
     InvertPageSelection,
@@ -77,6 +83,12 @@ impl CommandAction {
             Self::InsertBlankAfter => Box::new(v::InsertBlankAfter),
             Self::InsertPagesFromFile => Box::new(v::InsertPagesFromFile),
             Self::MergeFiles => Box::new(v::MergeFiles),
+            Self::OpRepair => Box::new(v::OpRepair),
+            Self::OpCompress => Box::new(v::OpCompress),
+            Self::OpEncrypt => Box::new(v::OpEncrypt),
+            Self::OpPdfToImages => Box::new(v::OpPdfToImages),
+            Self::OpImagesToPdf => Box::new(v::OpImagesToPdf),
+            Self::OpVerifyBatch => Box::new(v::OpVerifyBatch),
             Self::ReplaceSelectedPages => Box::new(v::ReplaceSelectedPages),
             Self::SelectAllPages => Box::new(v::SelectAllPages),
             Self::InvertPageSelection => Box::new(v::InvertPageSelection),
@@ -424,6 +436,48 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
             A::MergeFiles,
         )
         .keywords(["merge pdf", "ghep file", "gop pdf"]),
+        Command::new(
+            "doc.repair",
+            t("repair.title"),
+            t("palette.group.file"),
+            A::OpRepair,
+        )
+        .keywords(["repair", "sua file hong", "khoi phuc pdf"]),
+        Command::new(
+            "file.compress",
+            t("compress.title"),
+            t("palette.group.file"),
+            A::OpCompress,
+        )
+        .keywords(["compress pdf", "nen pdf", "giam dung luong"]),
+        Command::new(
+            "file.encrypt",
+            t("security.title"),
+            t("palette.group.file"),
+            A::OpEncrypt,
+        )
+        .keywords(["password", "mat khau", "ma hoa pdf"]),
+        Command::new(
+            "file.pdfToImages",
+            t("convert.title"),
+            t("palette.group.file"),
+            A::OpPdfToImages,
+        )
+        .keywords(["pdf to images", "pdf sang anh"]),
+        Command::new(
+            "file.imagesToPdf",
+            t("convert.title"),
+            t("palette.group.file"),
+            A::OpImagesToPdf,
+        )
+        .keywords(["images to pdf", "anh sang pdf"]),
+        Command::new(
+            "sign.verifyBatch",
+            t("verifyBatch.title"),
+            t("palette.group.file"),
+            A::OpVerifyBatch,
+        )
+        .keywords(["verify signatures", "kiem tra chu ky hang loat"]),
         Command::new(
             "pages.replace",
             t("pageTools.cmd.replace"),
