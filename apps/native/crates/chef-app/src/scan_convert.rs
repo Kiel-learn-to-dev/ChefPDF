@@ -12,7 +12,7 @@ pub const MAX_PRESET_NAME: usize = 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Color {
-    Color,
+    Full,
     Gray,
     Bw,
 }
@@ -20,14 +20,14 @@ pub enum Color {
 impl Color {
     pub fn as_str(self) -> &'static str {
         match self {
-            Color::Color => "color",
+            Color::Full => "color",
             Color::Gray => "gray",
             Color::Bw => "bw",
         }
     }
     fn parse(s: &str) -> Option<Self> {
         match s {
-            "color" => Some(Color::Color),
+            "color" => Some(Color::Full),
             "gray" => Some(Color::Gray),
             "bw" => Some(Color::Bw),
             _ => None,

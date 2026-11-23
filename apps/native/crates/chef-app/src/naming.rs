@@ -59,14 +59,14 @@ fn tokens(template: &str) -> (Vec<(String, usize, usize)>, String) {
     let mut i = 0;
     let b = template.as_bytes();
     while i < b.len() {
-        if b[i] == b'{' {
-            if let Some(rel) = template[i + 1..].find(['{', '}']) {
-                let end = i + 1 + rel;
-                if b[end] == b'}' {
-                    found.push((template[i + 1..end].trim().to_string(), i, end + 1));
-                    i = end + 1;
-                    continue;
-                }
+        if b[i] == b'{'
+            && let Some(rel) = template[i + 1..].find(['{', '}'])
+        {
+            let end = i + 1 + rel;
+            if b[end] == b'}' {
+                found.push((template[i + 1..end].trim().to_string(), i, end + 1));
+                i = end + 1;
+                continue;
             }
         }
         let ch = template[i..].chars().next().expect("char");

@@ -421,7 +421,7 @@ pub fn selection_boxes(rows: &[SessionRow], from: usize, to: usize, font_size: f
                 .index
                 .iter()
                 .enumerate()
-                .filter(|(_, &at)| at >= lo && at < hi)
+                .filter(|(_, at)| **at >= lo && **at < hi)
                 .map(|(k, _)| k)
                 .collect();
             let (start, end) = (*ks.first()?, ks.last()? + 1);

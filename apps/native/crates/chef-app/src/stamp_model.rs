@@ -360,10 +360,10 @@ pub fn check_seam_form(f: &SeamForm, page_count: usize, current: usize) -> FormC
     if !in_range(f.scale_width_mm, 0.0, 1000.0) {
         return Err("scaleWidthMm");
     }
-    if let SeamVertical::Mm(v) = f.vertical {
-        if !in_range(v, 0.0, 10_000.0) {
-            return Err("verticalMm");
-        }
+    if let SeamVertical::Mm(v) = f.vertical
+        && !in_range(v, 0.0, 10_000.0)
+    {
+        return Err("verticalMm");
     }
     if !in_range(f.opacity, 0.0, 1.0) {
         return Err("opacity");

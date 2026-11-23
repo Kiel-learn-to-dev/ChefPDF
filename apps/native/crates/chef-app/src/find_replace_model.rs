@@ -54,10 +54,10 @@ pub fn build_params(f: &FindForm, page_count: usize, preview: bool) -> Value {
         "wholeWord": f.whole_word, "regex": f.regex, "preview": preview,
         "fontStrategy": "auto", "keepStyle": true, "fitWidth": "none",
     });
-    if f.only_pages {
-        if let Some(p) = parse_pages(&f.page_range, page_count) {
-            v["pages"] = json!(p);
-        }
+    if f.only_pages
+        && let Some(p) = parse_pages(&f.page_range, page_count)
+    {
+        v["pages"] = json!(p);
     }
     v
 }

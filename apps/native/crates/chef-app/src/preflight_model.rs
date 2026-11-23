@@ -120,10 +120,10 @@ fn dialog_for(op: &str) -> Option<&'static str> {
 fn page_list(v: Option<&Value>) -> Option<Vec<u64>> {
     let mut out: Vec<u64> = Vec::new();
     for n in v?.as_array()? {
-        if let Some(n) = n.as_u64() {
-            if !out.contains(&n) {
-                out.push(n);
-            }
+        if let Some(n) = n.as_u64()
+            && !out.contains(&n)
+        {
+            out.push(n);
         }
     }
     (!out.is_empty()).then_some(out)

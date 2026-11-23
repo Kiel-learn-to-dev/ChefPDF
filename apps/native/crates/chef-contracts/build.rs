@@ -73,10 +73,9 @@ fn collect_enum_titles(
 ) {
     match value {
         serde_json::Value::Object(map) => {
-            if let (Some(title), Some(values)) = (
-                map.get("title").and_then(|t| t.as_str()),
-                map.get("enum"),
-            ) {
+            if let (Some(title), Some(values)) =
+                (map.get("title").and_then(|t| t.as_str()), map.get("enum"))
+            {
                 let seen = out.entry(title.to_string()).or_default();
                 if !seen.contains(values) {
                     seen.push(values.clone());
@@ -96,13 +95,12 @@ fn qualify_colliding_enums(root: &mut serde_json::Value) {
     fn rename(value: &mut serde_json::Value, prefix: &str, colliding: &[String]) {
         match value {
             serde_json::Value::Object(map) => {
-                if map.contains_key("enum") {
-                    if let Some(t) = map.get("title").and_then(|t| t.as_str()) {
-                        if colliding.iter().any(|c| c == t) {
-                            let new = format!("{prefix}{t}");
-                            map.insert("title".into(), serde_json::Value::String(new));
-                        }
-                    }
+                if map.contains_key("enum")
+                    && let Some(t) = map.get("title").and_then(|t| t.as_str())
+                    && colliding.iter().any(|c| c == t)
+                {
+                    let new = format!("{prefix}{t}");
+                    map.insert("title".into(), serde_json::Value::String(new));
                 }
                 map.values_mut().for_each(|v| rename(v, prefix, colliding));
             }
@@ -166,5 +164,9 @@ fn main() {
         "layout_types.rs",
         false,
     );
-    generate(&manifest.join("schema/ops.schema.json"), "ops_types.rs", true);
+    generate(
+        &manifest.join("schema/ops.schema.json"),
+        "ops_types.rs",
+        true,
+    );
 }

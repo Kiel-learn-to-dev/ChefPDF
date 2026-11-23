@@ -187,10 +187,10 @@ pub fn reselect_paragraph(
 ) -> Option<String> {
     let mut ids: Vec<&str> = Vec::new();
     for l in lines {
-        if let Some(id) = l.paragraph_id.as_deref() {
-            if !ids.contains(&id) {
-                ids.push(id);
-            }
+        if let Some(id) = l.paragraph_id.as_deref()
+            && !ids.contains(&id)
+        {
+            ids.push(id);
         }
     }
     let index = paragraph_index(old_id);
