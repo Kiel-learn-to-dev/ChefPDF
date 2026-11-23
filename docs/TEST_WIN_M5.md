@@ -43,3 +43,4 @@ Thêm: `compress_model.rs` (R5.11), `convert_model.rs` (R5.12–13), phần dewa
 Thêm: `find_replace_model.rs` (R7.10), `verify_batch_model.rs` (R6.29), `preflight_model.rs` (R5.48).
 Thêm: `page_range.rs` (port `pageRange.ts`; `scan_convert::parse_pages` giờ gọi nó nên nhận "5-", "-3", dấu `;`), `overlay_common.rs`, `stamp_model.rs` (R5.30–31), `watermark_model.rs` (R5.40).
 Thêm: `redact_model.rs` (R5.49), `inspect_model.rs` (R5.46–47).
+Thêm: `doc_tools_model.rs` (R5.18–22), `text_paragraph_model.rs` (R7.04–06).
