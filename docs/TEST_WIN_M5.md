@@ -8,7 +8,7 @@ git fetch origin claude/gifted-ritchie-qrrvzj && git checkout claude/gifted-ritc
 cd apps/native
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test -p chef-app merge:: split:: split_page:: crop_page:: blank_pages:: smart_split:: scan_convert::
+cargo test -p chef-app merge:: split:: split_page:: crop_page:: blank_pages:: smart_split:: scan_convert:: naming:: ordering:: rename::
 cargo test -p chef-contracts
 cargo deny check
 ```
@@ -23,6 +23,9 @@ Trên Linux các test này đã đạt (11/11) qua crate tạm với bản thay 
 | R5.06 Trang trắng | `blank_pages.rs` | `find_params`, `parse_rows`, `Review` (xác nhận trước khi xóa) | hộp thoại, nối `page.delete`, E2E |
 | R5.08 Tách thông minh | `smart_split.rs` | `params`, xem trước điểm tách | hộp thoại, E2E |
 | R5.23/26/27 Scan | `scan_convert.rs` | form ↔ `scan.rasterize`, preset, giới hạn dung lượng (logic) | hộp thoại, xem trước (R5.25), lưu preset, gọi RPC, E2E `scan` |
+| R5.64 Đặt tên | `naming.rs` | mẫu, làm sạch Windows, trùng tên, kế hoạch | nối vào quy trình/hộp thoại |
+| R5.65 Thứ tự an toàn | `ordering.rs` | kiểm thứ tự bước, tự sắp, sắp tự nhiên | nối vào trình tạo quy trình |
+| R5.66 Đổi tên hàng loạt | `rename.rs` | `apply`/`undo` hai pha | hộp thoại xem trước, nhật ký đĩa, E2E `rename` |
 | R5.07 Chia trang | `split_page.rs` | `halves`, `grid`, đếm trang sau chia | hộp thoại, E2E |
 
 Mỗi file có `#![allow(dead_code)]`; bỏ khi nối giao diện (clippy sẽ báo nếu quên).
@@ -31,4 +34,4 @@ Mỗi file có `#![allow(dead_code)]`; bỏ khi nối giao diện (clippy sẽ b
 Trước đây typify gộp nhầm enum nội tuyến cùng title (`Mode`, `Fit`, `Size`...) giữa các operation, nên `FileSplitParams`, `PageCropParams`, `PageResizeParams` không đọc lại được JSON hợp lệ của lõi. `build.rs` giờ đổi title thành `<Definition><Title>` khi cùng title mà khác tập giá trị (chỉ cho schema ops). Test `same_titled_enums_stay_separate_per_operation` đạt trên Linux. `split.rs` và `crop_page.rs` vẫn trả `serde_json::Value` (đủ dùng); có thể đổi sang struct sinh sau. Trên Windows cần chạy lại `cargo test -p chef-contracts` và `cargo clippy` vì tên type sinh ra có thể đổi.
 
 ## Chưa làm của M5
-R5.09–R5.10 và M5b–M5f (R5.11 trở đi): cần giao diện và/hoặc lõi chạy thật để kiểm, chưa bắt đầu.
+R5.09–R5.10 và M5b–M5f (R5.11 trở đi, trừ R5.23, R5.26, R5.27, R5.64–R5.66). R5.24 (hạt giống hiệu ứng scan) và R5.59 (mục lục) không có logic thuần đáng viết: lõi làm hết, chỉ còn giao diện: cần giao diện và/hoặc lõi chạy thật để kiểm, chưa bắt đầu.

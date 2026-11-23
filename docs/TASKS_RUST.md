@@ -2049,7 +2049,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.62
 - **File:** `apps/native/crates/chef-app/src/naming.rs`
 - **Tính năng:** O4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `naming.rs`: `check_template`, `render_template`, `sanitize_base` (quy tắc Windows), `unique_target` (đánh số khi trùng, không phát một tên hai lần), `plan_renames`. Ngày/giờ do bên gọi truyền vào. Test đạt trên Linux (crate tạm).
+- **Trạng thái:** 🔄
 
 ### R5.65 · Tự sắp xếp thứ tự an toàn · S
 - **Mô tả:** sắp xếp file trong lô theo tên hoặc ngày, không làm mất file (dùng `ordering.py`).
@@ -2058,7 +2059,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.62
 - **File:** `apps/native/crates/chef-app/src/ordering.rs`
 - **Tính năng:** O5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `ordering.rs`: `check_op_order` (không có bước đổi nội dung sau bước ký, như `ordering.py`), `safe_permutation` (đưa bước ký ra sau cùng, không mất bước), `natural_cmp` và sắp theo tên/ngày (2 trước 10). Theo FEATURES O5 (thứ tự bước), thêm sắp file như mô tả task. Test đạt trên Linux (crate tạm).
+- **Trạng thái:** 🔄
 
 ### R5.66 · Đổi tên file hàng loạt · S
 - **Mô tả:** đổi tên theo mẫu, xem trước danh sách mới trước khi chạy.
@@ -2068,7 +2070,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/rename.rs`
 - **E2E:** `rename`
 - **Tính năng:** O6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `rename.rs`: `apply` đổi tên hai pha (đổi chỗ được, không ghi đè), `undo` từ nhật ký; test dùng thư mục tạm. Chưa có hộp thoại xem trước, lưu nhật ký ra đĩa, E2E `rename`. Test đạt trên Linux (crate tạm).
+- **Trạng thái:** 🔄
 
 ### R5.67 · Quy trình mẫu có sẵn · S
 - **Mô tả:** các quy trình mẫu: Nhẹ, Chuẩn, Nét, Văn bản hành chính, Nộp hồ sơ online, Phát hành văn bản, Chụp sách (phần chụp sách chờ M8).
