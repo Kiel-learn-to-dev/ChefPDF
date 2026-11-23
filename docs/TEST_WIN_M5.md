@@ -47,3 +47,7 @@ Thêm: `doc_tools_model.rs` (R5.18–22), `text_paragraph_model.rs` (R7.04–06)
 Thêm: `sig_library_model.rs` (R6.07–09), `sign_template_model.rs` (R6.11–16), `update_check.rs` (R9.08).
 
 Còn chưa port (logic thuần): `overlayModel.ts` (R5.29–R5.38, 1092 dòng) và `objectModel.ts` (R7.11). R9.11 (script độ phủ mã tính năng) là script Python, không thuộc `chef-app`.
+
+Thêm: `overlay_variables.rs`, `overlay_model.rs` (R5.29, R5.34–R5.39; chữ và ảnh thêm vào trang R7.07 dùng chung), `object_model.rs` (R4.12–R4.15, R7.11; bổ sung cho `objects.rs`).
+
+**Đã port hết** các mô hình thuần của `apps/ui/src/features/*Model.ts` có đối tượng tương ứng trong kế hoạch Rust. Không còn mô hình Electron nào có logic thuần mà chưa có bản Rust, trừ `annotModel`, `layersModel`, `linksModel`, `formsModel`, `objectModel` phần tương tác và `stampModel` phần ghi chú, vốn đã có module riêng (`annots.rs`, `layers.rs`, `links.rs`, `forms_*.rs`, `objects.rs`).
