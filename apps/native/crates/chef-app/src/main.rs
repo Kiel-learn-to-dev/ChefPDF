@@ -63,6 +63,8 @@ mod rename;
 mod page_ops;
 mod scan_convert;
 mod sign_anchor;
+mod sign_batch;
+mod sign_verify_model;
 mod split;
 mod smart_split;
 mod split_page;

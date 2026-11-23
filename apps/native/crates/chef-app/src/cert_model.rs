@@ -141,6 +141,30 @@ pub fn format_date_time(iso: &str, local_offset_min: i64) -> String {
     format!("{d:02}/{m:02}/{y} {:02}:{:02}", t / 3600, t % 3600 / 60)
 }
 
+/// "dd/MM/yyyy HH:mm:ss" theo múi giờ cục bộ (panel chữ ký); None khi thiếu hoặc sai dạng.
+pub fn format_date_time_sec(iso: Option<&str>, local_offset_min: i64) -> Option<String> {
+    let secs = parse_iso(iso.filter(|s| !s.is_empty())?)? + local_offset_min * 60;
+    let (y, m, d) = civil_from_days(secs.div_euclid(86_400));
+    let t = secs.rem_euclid(86_400);
+    Some(format!(
+        "{d:02}/{m:02}/{y} {:02}:{:02}:{:02}",
+        t / 3600,
+        t % 3600 / 60,
+        t % 60
+    ))
+}
+
+/// "dd/MM/yyyy" theo múi giờ cục bộ; trả nguyên chuỗi nếu không phải ngày.
+pub fn format_date(iso: &str, local_offset_min: i64) -> String {
+    match parse_iso(iso) {
+        Some(secs) => {
+            let (y, m, d) = civil_from_days((secs + local_offset_min * 60).div_euclid(86_400));
+            format!("{d:02}/{m:02}/{y}")
+        }
+        None => iso.to_string(),
+    }
+}
+
 /// 16 chữ số hex đầu của dấu vân tay, theo cặp ("AB:CD:EF:01:...").
 pub fn fingerprint_short(hex: &str) -> String {
     let clean: String = hex
