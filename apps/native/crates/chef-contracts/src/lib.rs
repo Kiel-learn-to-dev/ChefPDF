@@ -90,10 +90,9 @@ mod tests {
         )
         .expect("page.crop");
         assert_eq!(serde_json::to_value(&crop).unwrap()["mode"], "cropbox");
-        let resize: PageResizeParams = serde_json::from_value(
-            serde_json::json!({"fit":"scale","scope":"all","size":"A4"}),
-        )
-        .expect("page.resize");
+        let resize: PageResizeParams =
+            serde_json::from_value(serde_json::json!({"fit":"scale","scope":"all","size":"A4"}))
+                .expect("page.resize");
         assert_eq!(serde_json::to_value(&resize).unwrap()["size"], "A4");
     }
 }
