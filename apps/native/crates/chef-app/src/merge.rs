@@ -3,9 +3,6 @@
 //! Phần thuần (không GPUI): thêm, bỏ, đổi chỗ file; dựng `FileMergeParams`; đặt tên file ra; chặn
 //! ghi đè file nguồn. Hộp thoại (TaskDialog + danh sách kéo sắp thứ tự) gọi các hàm này.
 
-// Chưa có hộp thoại gọi; bỏ dòng này khi nối giao diện.
-#![allow(dead_code)]
-
 use std::path::{Path, PathBuf};
 
 use chef_contracts::ops_types::{FileMergeParams, MergeInput, Outputpath};
@@ -43,6 +40,7 @@ impl MergeList {
         self.entries.len()
     }
 
+    #[allow(dead_code)] // clippy::len_without_is_empty đòi có
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
@@ -64,6 +62,7 @@ impl MergeList {
         }
     }
 
+    #[allow(dead_code)] // chưa có ô nhập mật khẩu từng file trong hộp thoại
     pub fn set_password(&mut self, index: usize, password: Option<String>) {
         if let Some(entry) = self.entries.get_mut(index) {
             entry.password = password;

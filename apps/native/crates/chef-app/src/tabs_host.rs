@@ -25,6 +25,7 @@ use gpui::{
 
 use crate::close::{CloseTabStatus, UnsavedClosePrompt, WindowCloseStep, next_window_close_step};
 use crate::commands::{self, Command, CommandRegistry};
+use crate::merge_dialog::{self, MergePanel};
 use crate::recovery::{ConfirmDiscard, RecoverableSession, RecoveryModal};
 use crate::settings_dialog::{self, SettingsPanel};
 use crate::split_pane::ComparePane;
@@ -99,6 +100,8 @@ pub struct DocumentHost {
     poll_started: bool,
     /// Cài đặt của cửa sổ, dùng chung cho màn hình Start và mọi tab.
     settings: Entity<SettingsPanel>,
+    /// Hộp thoại Ghép file (R5.03), dùng chung cho cửa sổ.
+    merge: Entity<MergePanel>,
     appearance_observer_installed: bool,
     _subscriptions: Vec<Subscription>,
     command_registry: CommandRegistry,
@@ -145,6 +148,8 @@ impl DocumentHost {
         );
         let settings = cx.new(SettingsPanel::new);
         let settings_subscription = cx.observe(&settings, |_, _, cx| cx.notify());
+        let merge = cx.new(|cx| MergePanel::new(supervisor.clone(), cx));
+        let merge_subscription = cx.observe(&merge, |_, _, cx| cx.notify());
         let shared_cache = viewer::new_shared_cache();
         let split = SplitState::new();
         let core_events = supervisor
@@ -180,8 +185,13 @@ impl DocumentHost {
             core_events,
             poll_started: false,
             settings,
+            merge,
             appearance_observer_installed: false,
-            _subscriptions: vec![palette_subscription, settings_subscription],
+            _subscriptions: vec![
+                palette_subscription,
+                settings_subscription,
+                merge_subscription,
+            ],
             command_registry: commands::viewer_commands(chef_ui::i18n::t),
             palette_open: false,
             palette_query: String::new(),
@@ -1747,6 +1757,11 @@ impl Render for DocumentHost {
                 this.settings
                     .update(cx, |settings, cx| settings.open(window, cx));
             }))
+            .on_action(cx.listener(|this, _: &viewer::MergeFiles, window, cx| {
+                let initial_dir = this.settings.read(cx).save_dir().map(PathBuf::from);
+                this.merge
+                    .update(cx, |merge, cx| merge.open(initial_dir, None, window, cx));
+            }))
             .on_action(cx.listener(|this, _: &commands::OpenPalette, window, cx| {
                 this.open_palette(window, cx)
             }))
@@ -1886,6 +1901,9 @@ impl Render for DocumentHost {
             root = root.child(dialog);
         }
         let settings = self.settings.clone();
+        let dark = crate::theme::is_dark(self.settings.read(cx).mode());
+        let merge = self.merge.clone();
         root.children(settings_dialog::build(&settings, window, cx))
+            .children(merge_dialog::build(&merge, dark, cx))
     }
 }

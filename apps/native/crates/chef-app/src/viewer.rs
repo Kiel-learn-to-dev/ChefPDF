@@ -85,6 +85,7 @@ actions!(
         InsertBlankBefore,
         InsertBlankAfter,
         InsertPagesFromFile,
+        MergeFiles,
         ReplaceSelectedPages,
         SelectAllPages,
         InvertPageSelection,

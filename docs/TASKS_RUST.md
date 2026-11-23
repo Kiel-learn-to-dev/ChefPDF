@@ -1451,6 +1451,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `tools5`
 - **Tính năng:** C4
 - **Ghi chú:** (2026-11-23) `merge.rs` có phần thuần: `MergeList` (thêm, bỏ, đổi chỗ, mật khẩu), `params()` dựng `FileMergeParams` và chặn ghi đè nguồn, tên file ra gợi ý; 4 unit test đạt (chạy qua crate tạm trên Linux, vì chef-app chưa build được ở đây). Chưa làm: hộp thoại TaskDialog với danh sách kéo sắp, nối lệnh mở hộp thoại, E2E `tools5` trên Windows, SHA-256 nguồn.
+- **Ghi chú:** (2026-11-23, lượt 2) Có hộp thoại: `merge_dialog.rs` (`MergePanel` dùng `TaskDialog`, thực thể của cửa sổ như `SettingsPanel`) nối vào `tabs_host.rs`, lệnh palette "Ghép file" (`file.merge`, action `MergeFiles`). Chọn file (`dialogs::open_pdfs`), sắp bằng nút mũi tên, bookmark theo tên file, hỏi nơi lưu, chạy `file.merge` qua `ops::start` + `wait_job_with_waiter` ở luồng nền, dừng được (`ops::cancel`), báo kết quả. Đã kiểm kiểu và clippy `-D warnings` cho target `x86_64-pc-windows-gnu` trên Linux; **chưa chạy thật**. Chưa có: kéo thả để sắp thứ tự, mật khẩu từng file, chọn trang từng file, phím tắt, E2E `tools5`, SHA-256 nguồn, tiến độ chi tiết.
 - **Trạng thái:** 🔄
 
 ### R5.04 · Tách file · S

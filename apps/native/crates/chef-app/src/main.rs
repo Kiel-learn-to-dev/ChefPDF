@@ -63,6 +63,7 @@ mod layers;
 mod links;
 mod logging;
 mod merge;
+mod merge_dialog;
 mod naming;
 mod night;
 pub mod notes;
@@ -418,6 +419,7 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "insertblankbefore" => Box::new(viewer::InsertBlankBefore),
         "insertblankafter" => Box::new(viewer::InsertBlankAfter),
         "insertpagesfromfile" => Box::new(viewer::InsertPagesFromFile),
+        "mergefiles" => Box::new(viewer::MergeFiles),
         "replaceselectedpages" => Box::new(viewer::ReplaceSelectedPages),
         "selectallpages" => Box::new(viewer::SelectAllPages),
         "invertpageselection" => Box::new(viewer::InvertPageSelection),

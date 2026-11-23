@@ -34,6 +34,7 @@ pub enum CommandAction {
     InsertBlankBefore,
     InsertBlankAfter,
     InsertPagesFromFile,
+    MergeFiles,
     ReplaceSelectedPages,
     SelectAllPages,
     InvertPageSelection,
@@ -75,6 +76,7 @@ impl CommandAction {
             Self::InsertBlankBefore => Box::new(v::InsertBlankBefore),
             Self::InsertBlankAfter => Box::new(v::InsertBlankAfter),
             Self::InsertPagesFromFile => Box::new(v::InsertPagesFromFile),
+            Self::MergeFiles => Box::new(v::MergeFiles),
             Self::ReplaceSelectedPages => Box::new(v::ReplaceSelectedPages),
             Self::SelectAllPages => Box::new(v::SelectAllPages),
             Self::InvertPageSelection => Box::new(v::InvertPageSelection),
@@ -415,6 +417,13 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
             A::InsertPagesFromFile,
         )
         .keywords(["insert from pdf", "chen trang tu pdf"]),
+        Command::new(
+            "file.merge",
+            t("merge.title"),
+            t("palette.group.file"),
+            A::MergeFiles,
+        )
+        .keywords(["merge pdf", "ghep file", "gop pdf"]),
         Command::new(
             "pages.replace",
             t("pageTools.cmd.replace"),
