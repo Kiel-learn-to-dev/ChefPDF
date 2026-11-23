@@ -1532,7 +1532,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/compress.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `compress_model.rs`: form, 4 preset dựng sẵn khớp lõi, preset người dùng (≤ 50), `compress.pdf`/`fitSize`, báo cáo kết quả (port `compressModel.ts`). Chưa có hộp thoại. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R5.12 · PDF sang ảnh · M
 - **Mô tả:** xuất PNG, JPG, TIFF (nhiều trang), chọn DPI. Dùng pdfium render.
@@ -1542,7 +1543,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/to_images.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `convert_model.rs`: form và tham số `convert.pdfToImages` (port `convertModel.ts`). Chưa có hộp thoại. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R5.13 · Ảnh sang PDF · M
 - **Mô tả:** nhiều ảnh, sắp thứ tự, chọn khổ giấy, lề, tự xoay theo EXIF. Operation `image.topdf`.
@@ -1552,7 +1554,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/from_images.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `convert_model.rs`: form và tham số `convert.imagesToPdf`, danh sách ảnh (thứ tự, thêm, tên ra). Chưa có hộp thoại. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R5.14 · Ảnh chụp màn hình và clipboard sang PDF · S
 - **Mô tả:** dán ảnh từ clipboard hoặc chụp một vùng màn hình thành PDF (`clipboardImage.ts`).
@@ -2607,7 +2610,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/whiten.rs`
 - **E2E:** `demo-v08`
 - **Tính năng:** L3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs::AdjustState`: làm trắng nền, tham số `pageimg.enhance` chỉ gửi phần đổi (port `adjustModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.05 · Khử nhiễu và chỉnh sáng · M
 - **Mô tả:** chỉnh sáng và tương phản, khử nhiễu, xóa chấm bẩn.
@@ -2617,7 +2621,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/denoise.rs`
 - **E2E:** `adjust`
 - **Tính năng:** L4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: khử nhiễu, sáng/tương phản trong `AdjustState`. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.06 · Levels, Curves, đảo màu, đổi DPI · M
 - **Mô tả:** Levels và Curves, đảo màu (âm bản), đổi độ phân giải (giảm hoặc tăng DPI).
@@ -2627,7 +2632,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/levels.rs`
 - **E2E:** `adjust`
 - **Tính năng:** L12
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: Levels, Curves 5 điểm, đảo màu, DPI trong `AdjustState`. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### M8.1 Chụp bằng điện thoại
 
@@ -2706,7 +2712,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/dewarp_detect.rs`
 - **E2E:** `dewarp`
 - **Tính năng:** L13
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: `dewarp_preview_params`, `dewarp_apply_params`, `dewarp_review_pages` (port `dewarpModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.14 · Làm phẳng trang cong: kéo và áp dụng · M
 - **Mô tả:** kéo lưới cho thẳng, xem trước, áp dụng. Thay `dewarp.css`.
@@ -2716,7 +2723,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/dewarp_apply.rs`
 - **E2E:** `dewarp`
 - **Tính năng:** L13
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: tham số áp dụng dewarp (ngưỡng tin cậy 0,35). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.15 · Xóa ngón tay bán tự động · M
 - **Mô tả:** dò vùng da chạm mép trang (ngón tay giữ giấy khi chụp), đề xuất vùng xóa. Người dùng chỉnh bằng cọ, rồi tô bằng màu nền giấy. Không khôi phục được chữ nằm dưới ngón tay (ghi cảnh báo).

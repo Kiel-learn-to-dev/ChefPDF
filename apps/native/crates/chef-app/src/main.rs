@@ -55,6 +55,8 @@ mod blank_pages;
 mod capture_model;
 mod cert_model;
 mod diag_model;
+mod compress_model;
+mod convert_model;
 mod crop_geometry;
 mod crop_page;
 mod merge;

@@ -38,3 +38,5 @@ R5.09–R5.10 và M5b–M5f (R5.11 trở đi, trừ R5.23, R5.26, R5.27, R5.64�
 
 ## Ngoài M5
 `cert_model.rs`, `diag_model.rs`, `sign_anchor.rs`, `sign_batch.rs`, `sign_verify_model.rs`, `capture_model.rs`, `page_image_tools.rs`, `crop_geometry.rs`: port mô hình Electron, test `cargo test -p chef-app`.
+
+Thêm: `compress_model.rs` (R5.11), `convert_model.rs` (R5.12–13), phần dewarp và adjust của `page_image_tools.rs` (R8.04–06, R8.13–14).
