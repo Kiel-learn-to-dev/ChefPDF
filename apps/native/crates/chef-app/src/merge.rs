@@ -116,8 +116,11 @@ impl MergeList {
         if output.as_os_str().is_empty() {
             return Err(MergeReject::BadOutput);
         }
-        let sources: Vec<Option<&Path>> =
-            self.entries.iter().map(|e| Some(e.path.as_path())).collect();
+        let sources: Vec<Option<&Path>> = self
+            .entries
+            .iter()
+            .map(|e| Some(e.path.as_path()))
+            .collect();
         if crate::page_ops::output_conflicts_with_protected_path(output, &sources) {
             return Err(MergeReject::OutputIsSource);
         }
@@ -212,7 +215,13 @@ mod tests {
 
     #[test]
     fn suggested_name_uses_first_file() {
-        assert_eq!(list(&["Hop dong.pdf", "b.pdf"]).suggested_output_name("ghep"), "Hop dong_ghep.pdf");
-        assert_eq!(MergeList::default().suggested_output_name("ghep"), "merged_ghep.pdf");
+        assert_eq!(
+            list(&["Hop dong.pdf", "b.pdf"]).suggested_output_name("ghep"),
+            "Hop dong_ghep.pdf"
+        );
+        assert_eq!(
+            MergeList::default().suggested_output_name("ghep"),
+            "merged_ghep.pdf"
+        );
     }
 }

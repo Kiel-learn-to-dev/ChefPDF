@@ -1461,7 +1461,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/split.rs`
 - **E2E:** `tools5`
 - **Tính năng:** C5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `split.rs`: `params()` cho 6 chế độ, kiểm khoảng trang và mẫu tên, trả `Value` (struct sinh sai enum, xem docs/TEST_WIN_M5.md). 2 test đạt trên Linux. Chưa có hộp thoại và E2E.
+- **Trạng thái:** 🔄
 
 ### R5.05 · Cắt lề và đổi khổ · M
 - **Mô tả:** tự dò lề trắng, đưa về A4 hoặc Letter, co nội dung. Áp cho trang PDF bằng đặt CropBox, không mất nội dung. Cắt ảnh scan thật dùng R5.23 đến R5.27 và M8.
@@ -1471,7 +1472,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/crop_page.rs`
 - **E2E:** `tools5`
 - **Tính năng:** C7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `crop_page.rs`: `crop_params`, `resize_params` (trả `Value`), 3 test đạt trên Linux. Chưa có hộp thoại, xem trước, E2E.
+- **Trạng thái:** 🔄
 
 ### R5.06 · Xóa trang trắng · M
 - **Mô tả:** tự tìm trang trắng (thường gặp khi scan hai mặt), xem trước danh sách, rồi mới xóa.
@@ -1489,7 +1491,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02
 - **File:** `apps/native/crates/chef-app/src/split_page.rs`
 - **Tính năng:** C9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `split_page.rs`: `halves`, `grid`, đếm trang sau chia, 2 test đạt trên Linux. Chưa có hộp thoại, E2E.
+- **Trạng thái:** 🔄
 
 ### R5.08 · Tách thông minh · M
 - **Mô tả:** tách file mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách.
