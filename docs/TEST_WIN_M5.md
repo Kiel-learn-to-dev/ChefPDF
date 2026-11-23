@@ -35,3 +35,6 @@ Trước đây typify gộp nhầm enum nội tuyến cùng title (`Mode`, `Fit`
 
 ## Chưa làm của M5
 R5.09–R5.10 và M5b–M5f (R5.11 trở đi, trừ R5.23, R5.26, R5.27, R5.64–R5.66). R5.24 (hạt giống hiệu ứng scan) và R5.59 (mục lục) không có logic thuần đáng viết: lõi làm hết, chỉ còn giao diện: cần giao diện và/hoặc lõi chạy thật để kiểm, chưa bắt đầu.
+
+## Ngoài M5
+`cert_model.rs`, `diag_model.rs`, `sign_anchor.rs`, `sign_batch.rs`, `sign_verify_model.rs`, `capture_model.rs`, `page_image_tools.rs`, `crop_geometry.rs`: port mô hình Electron, test `cargo test -p chef-app`.

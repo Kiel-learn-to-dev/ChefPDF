@@ -2138,7 +2138,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/cert_info.rs`
 - **E2E:** `certs`
 - **Tính năng:** I3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `cert_model.rs`: thẻ chứng thư (tên, bên cấp, hạn, mã định danh, dấu vân tay) và định dạng ngày theo múi giờ cục bộ (port `certModel.ts`). Chưa có giao diện và nhắc hết hạn 30 ngày. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R6.04 · Danh bạ driver token · M
 - **Mô tả:** file dữ liệu CA → đời token → hệ điều hành → đường dẫn thư viện PKCS#11. Cập nhật được mà không cần bản app mới (`sign_trust` và `docs/TOKENS.md` làm nguồn).
@@ -2168,7 +2169,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/diagnose.rs`
 - **E2E:** `certs`
 - **Tính năng:** I6, I7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `diag_model.rs`: sắp 8 bước chẩn đoán, kết quả chung, cảnh báo PIN, báo cáo văn bản (port `diagModel.ts`). Chưa có giao diện, link driver. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### M6.1 Ảnh chữ ký và thư viện
 
@@ -2312,7 +2314,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_anchor.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I26
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `sign_anchor.rs`: form chữ mốc và vị trí cố định ↔ `sign.placeFromAnchor` (port `anchorModel.ts`), bỏ dấu tiếng Việt khi so mốc. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R6.21 · Tùy chọn kỹ thuật · S
 - **Mô tả:** tùy chọn SHA-256, cấp độ PAdES, máy chủ TSA (danh sách TSA Việt Nam, có dự phòng), và các thiết lập của chữ ký trong file.
@@ -2352,7 +2355,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sign_batch.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I31
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `sign_batch.rs`: danh sách file (≤ 200, không trùng), hậu tố tên ra, đọc `sign.batch`, tổng kết, tập thử lại (port `batchModel.ts`). PIN một lần chưa làm. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R6.25 · Sau khi ký · S
 - **Mô tả:** phiên chuyển sang trạng thái `signed`. Thao tác làm mất chữ ký bị chặn có cảnh báo. Ký thêm và ghi chú (nếu cấp độ cho phép) thì ghi kiểu incremental.
@@ -2384,7 +2388,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/verify_panel.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I34
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `sign_verify_model.rs`: sắp theo mức nghiêm trọng, tóm tắt lý do vi/en, chip trạng thái (port `verifyModel.ts`). Chưa có panel. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R6.28 · Kho tin cậy · S
 - **Mô tả:** nạp sẵn hai hệ Root CA Việt Nam (NEAC và Ban Cơ yếu Chính phủ), thêm hoặc xóa chứng thư tin cậy. Dùng `trust.py`.
@@ -2394,7 +2399,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/trust_store.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I35
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `sign_verify_model.rs` (phần kho tin cậy): nhóm, sắp xếp, chỉ xóa được gốc người dùng thêm, sắp hết hạn (port `trustModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R6.29 · Kiểm tra chữ ký hàng loạt · M
 - **Mô tả:** kiểm tra cả thư mục, xuất bảng kết quả ra Excel và CSV, xuất kết quả kiểm tra ra PDF.
@@ -2404,7 +2410,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/verify_batch.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I36
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `sign_verify_model.rs::export_csv`: CSV có BOM cho Excel, thoát dấu phẩy và ngoặc kép. Chưa có quét thư mục, xuất xlsx/PDF. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R6.30 · Điểm kiểm M6 · —
 - **Mô tả:** E2E `certs`, `sigstudio`, `signflow`; MAN-2 đã làm (R6.18, R6.19); đo RAM lúc ký (lõi chạy, pyHanko đã import lười).
@@ -2632,7 +2639,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-capture/src/server.rs`, `apps/native/crates/chef-capture/src/qr.rs`
 - **E2E:** `capture`
 - **Tính năng:** L5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `capture_model.rs`: máy trạng thái chờ → xem lại (port `captureModel.ts`). Máy chủ LAN và QR thuộc `chef-capture`, chưa đụng. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.08 · Nhận ảnh chụp và tự cắt nắn · M
 - **Mô tả:** điện thoại gửi ảnh, máy tính nhận và tự cắt và nắn (L2, L15). Điện thoại thật qua MAN-3 (chụp qua QR). Dùng `captureModel.ts` và `demo-v08` làm chuẩn.
@@ -2642,7 +2650,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-capture/src/receive.rs`
 - **E2E:** `capture`, `demo-v08`
 - **Tính năng:** L5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `capture_model.rs`: kế hoạch xử lý sau chụp cắt → tách → nắn → làm trắng (D39), `pdf_params`, `review_pages`. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### M8.2 Tách trang và sửa trang
 
@@ -2654,7 +2663,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/spine.rs`
 - **E2E:** `spine`
 - **Tính năng:** L6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: tham số `pageimg.spinePreview`/`splitSpread`, vị trí tách tự động cho thanh trượt (port `spineModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.10 · Tẩy và tô · M
 - **Mô tả:** cọ tẩy, chọn vùng chữ nhật hoặc vẽ tự do. Tô bằng màu nền giấy tự dò (có thêm hạt giấy để vùng tô không lộ) hoặc màu tự chọn.
@@ -2664,7 +2674,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/erase_paint.rs`
 - **E2E:** `erase`
 - **Tính năng:** L10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: `rect_from_drag`, `erase_params` (port `eraseModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.11 · Xóa vết màu · M
 - **Mô tả:** xóa nét bút bi, bút dạ quang, con dấu theo màu. Chọn màu bằng ống hút. Dùng chung công cụ tách màu với R8.12.
@@ -2674,7 +2685,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/color_remove.rs`
 - **E2E:** `erase`
 - **Tính năng:** L11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs`: ba dải màu mực và `stain_params`. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.12 · Tách chữ ký và con dấu theo màu · M
 - **Mô tả:** ảnh có chữ ký xanh đè lên con dấu đỏ thành hai ảnh riêng. Dùng công cụ tách màu chung với R8.11. Đây là mục I22 (thuộc M6 về nghiệp vụ, làm ở đây vì là công cụ ảnh).
@@ -2714,7 +2726,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/finger.rs`
 - **E2E:** `finger`, `demo-v08`
 - **Tính năng:** L14
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `page_image_tools.rs::FingerMask`: mặt nạ cọ tròn, nét liền, lớp phủ, PNG xám (port `fingerModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### M8.3 Tự dò viền và cắt
 
@@ -2736,7 +2749,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/autocrop_view.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L15
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `crop_geometry.rs`: `valid_quad` (port `quadModel.ts`). Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.18 · Cắt thủ công: khung chữ nhật và kéo bốn góc · M
 - **Mô tả:** khung chữ nhật với tám nắm, kính lúp khi kéo góc, tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do, giữ tỉ lệ khổ giấy), nhập số đo bằng mm. Khung tự hít vào viền đã dò trong 8 px (T8.06). Kéo bốn góc độc lập và xem trước.
@@ -2746,7 +2760,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/crop_manual.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L16, L17
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-23) `crop_geometry.rs`: hít vào viền đã dò, đổi cỡ khung bằng tám nắm, giữ tỉ lệ (port `quadModel.ts`). Chưa có kính lúp, nhập mm, tỉ lệ có sẵn. Test đạt trên Linux (crate tạm), chưa chạy trên Windows.
+- **Trạng thái:** 🔄
 
 ### R8.19 · Cắt hàng loạt và duyệt nhanh · M
 - **Mô tả:** áp một khung cho nhiều trang, duyệt nhanh bằng lưới, kính lúp cho trang đã chọn. Dùng trong quy trình.
