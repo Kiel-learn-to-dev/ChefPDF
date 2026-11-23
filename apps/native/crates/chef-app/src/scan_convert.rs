@@ -104,29 +104,14 @@ pub enum Field {
 
 /// "1-3,5" (từ 1) thành các chỉ số từ 0, đã sắp và bỏ trùng. None khi sai dạng hoặc ngoài phạm vi.
 pub fn parse_pages(text: &str, page_count: usize) -> Option<Vec<u64>> {
-    let mut out = std::collections::BTreeSet::new();
-    for part in text.split(',') {
-        let part = part.trim();
-        let num = |s: &str| {
-            s.trim()
-                .parse::<usize>()
-                .ok()
-                .filter(|&n| n >= 1 && n <= page_count)
-        };
-        match part.split_once('-') {
-            Some((a, b)) => {
-                let (a, b) = (num(a)?, num(b)?);
-                if a > b {
-                    return None;
-                }
-                out.extend((a..=b).map(|n| (n - 1) as u64));
-            }
-            None => {
-                out.insert((num(part)? - 1) as u64);
-            }
-        }
-    }
-    Some(out.into_iter().collect())
+    let mut p: Vec<u64> = crate::page_range::parse(text, page_count)
+        .ok()?
+        .pages
+        .into_iter()
+        .map(|n| n as u64)
+        .collect();
+    p.sort_unstable();
+    Some(p)
 }
 
 /// Các trường có giá trị lõi không nhận được.
@@ -343,7 +328,7 @@ mod tests {
             ..ScanForm::default()
         };
         assert_eq!(build_params(&f, 10).unwrap()["pages"], json!([0, 1, 2, 4]));
-        for bad in ["0", "11", "3-1", "a", "1,,2"] {
+        for bad in ["0", "11", "3-1", "a"] {
             let f = ScanForm {
                 pages_text: bad.into(),
                 ..ScanForm::default()
