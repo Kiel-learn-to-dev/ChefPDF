@@ -42,3 +42,4 @@ R5.09–R5.10 và M5b–M5f (R5.11 trở đi, trừ R5.23, R5.26, R5.27, R5.64�
 Thêm: `compress_model.rs` (R5.11), `convert_model.rs` (R5.12–13), phần dewarp và adjust của `page_image_tools.rs` (R8.04–06, R8.13–14).
 Thêm: `find_replace_model.rs` (R7.10), `verify_batch_model.rs` (R6.29), `preflight_model.rs` (R5.48).
 Thêm: `page_range.rs` (port `pageRange.ts`; `scan_convert::parse_pages` giờ gọi nó nên nhận "5-", "-3", dấu `;`), `overlay_common.rs`, `stamp_model.rs` (R5.30–31), `watermark_model.rs` (R5.40).
+Thêm: `redact_model.rs` (R5.49), `inspect_model.rs` (R5.46–47).
