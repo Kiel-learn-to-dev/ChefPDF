@@ -35,6 +35,12 @@ pub enum CommandAction {
     InsertBlankAfter,
     InsertPagesFromFile,
     ReplaceSelectedPages,
+    MergeFiles,
+    SplitFile,
+    CropResizePages,
+    RemoveBlankPages,
+    GridSplitPages,
+    SmartSplitFile,
     SelectAllPages,
     InvertPageSelection,
     SelectOddPages,
@@ -76,6 +82,12 @@ impl CommandAction {
             Self::InsertBlankAfter => Box::new(v::InsertBlankAfter),
             Self::InsertPagesFromFile => Box::new(v::InsertPagesFromFile),
             Self::ReplaceSelectedPages => Box::new(v::ReplaceSelectedPages),
+            Self::MergeFiles => Box::new(v::OpenMerge),
+            Self::SplitFile => Box::new(v::OpenSplit),
+            Self::CropResizePages => Box::new(v::OpenCropResize),
+            Self::RemoveBlankPages => Box::new(v::OpenRemoveBlank),
+            Self::GridSplitPages => Box::new(v::OpenGridSplit),
+            Self::SmartSplitFile => Box::new(v::OpenSmartSplit),
             Self::SelectAllPages => Box::new(v::SelectAllPages),
             Self::InvertPageSelection => Box::new(v::InvertPageSelection),
             Self::SelectOddPages => Box::new(v::SelectOddPages),
@@ -422,6 +434,48 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
             A::ReplaceSelectedPages,
         )
         .keywords(["replace page", "thay trang"]),
+        Command::new(
+            "file.merge",
+            t("cmd.merge"),
+            t("palette.group.file"),
+            A::MergeFiles,
+        )
+        .keywords(["merge", "combine", "ghep file", "gop pdf"]),
+        Command::new(
+            "file.split",
+            t("cmd.split"),
+            t("palette.group.file"),
+            A::SplitFile,
+        )
+        .keywords(["split", "tach file", "tach pdf"]),
+        Command::new(
+            "file.smartSplit",
+            t("pageTools.cmd.smartSplit"),
+            t("palette.group.file"),
+            A::SmartSplitFile,
+        )
+        .keywords(["smart split", "tach thong minh", "trang trang phan cach"]),
+        Command::new(
+            "pages.cropResize",
+            t("pageTools.cmd.cropResize"),
+            t("palette.group.pages"),
+            A::CropResizePages,
+        )
+        .keywords(["crop", "resize", "cat le", "doi kho", "a4", "letter"]),
+        Command::new(
+            "pages.removeBlank",
+            t("pageTools.cmd.blank"),
+            t("palette.group.pages"),
+            A::RemoveBlankPages,
+        )
+        .keywords(["blank pages", "remove blank", "xoa trang trang"]),
+        Command::new(
+            "pages.gridSplit",
+            t("pageTools.cmd.gridSplit"),
+            t("palette.group.pages"),
+            A::GridSplitPages,
+        )
+        .keywords(["split page", "chia doi trang", "chia trang", "a3"]),
         Command::new(
             "pages.selectAll",
             t("pageMenu.selectAll"),

@@ -1,0 +1,77 @@
+{
+  "_comment": "Tham số mà hộp thoại M5 của bản Rust gửi cho lõi (R5.03-R5.08). Test Rust so JSON do builder dựng với file này; core/tests/test_native_op_params.py chạy chính JSON này trên lõi thật. Đường dẫn dạng {a}, {b}, {out}, {dir} được thay bằng đường dẫn thật khi chạy bằng Python.",
+  "merge": {
+    "op": "file.merge",
+    "params": {
+      "inputs": [{ "path": "{a}" }, { "path": "{b}", "pages": [1, 2] }],
+      "outputPath": "{out}",
+      "bookmarksFromFilenames": true
+    }
+  },
+  "split.ranges": {
+    "op": "file.split",
+    "params": { "mode": "ranges", "ranges": "1-2, 3-6", "outputDir": "{dir}", "nameTemplate": "{name}_{index}" }
+  },
+  "split.everyN": {
+    "op": "file.split",
+    "params": { "mode": "everyN", "n": 2, "outputDir": "{dir}", "nameTemplate": "{name}_{index}" }
+  },
+  "split.oddEven": {
+    "op": "file.split",
+    "params": { "mode": "oddEven", "outputDir": "{dir}", "nameTemplate": "{name}_{start}-{end}" }
+  },
+  "split.maxSize": {
+    "op": "file.split",
+    "params": { "mode": "maxSize", "maxBytes": 1572864, "outputDir": "{dir}", "nameTemplate": "{name}_{index}" }
+  },
+  "smart.blank": {
+    "op": "file.splitSmart",
+    "params": {
+      "path": "{a}", "mode": "blank", "outputDir": "{dir}", "nameTemplate": "{name}_{index}",
+      "dropSeparatorPages": true, "blankSensitivity": 0.5
+    }
+  },
+  "smart.bookmarkLevel": {
+    "op": "file.splitSmart",
+    "params": { "path": "{a}", "mode": "bookmarkLevel", "outputDir": "{dir}", "nameTemplate": "{name}_{index}", "level": 1 }
+  },
+  "smart.pattern": {
+    "op": "file.splitSmart",
+    "params": {
+      "path": "{a}", "mode": "pattern", "outputDir": "{dir}", "nameTemplate": "{name}_{index}",
+      "pattern": "Chương [0-9]+", "ignoreCase": false
+    }
+  },
+  "crop.margins": {
+    "op": "page.crop",
+    "params": { "scope": "all", "mode": "cropbox", "margins": { "top": 5.0, "right": 6.5, "bottom": 7.0, "left": 8.0 } }
+  },
+  "crop.autoTrim": {
+    "op": "page.crop",
+    "params": { "scope": "pages", "mode": "cropbox", "pages": [0, 2], "autoTrim": true, "trimPaddingMm": 3.0 }
+  },
+  "crop.box": {
+    "op": "page.crop",
+    "params": { "scope": "odd", "mode": "cropbox", "box": [0.0, 0.0, 300.0, 400.0] }
+  },
+  "resize.a4": {
+    "op": "page.resize",
+    "params": { "scope": "all", "size": "A4", "fit": "scale" }
+  },
+  "resize.custom": {
+    "op": "page.resize",
+    "params": { "scope": "even", "size": "custom", "fit": "center", "customWidthMm": 100.5, "customHeightMm": 297.0 }
+  },
+  "grid.split": {
+    "op": "page.split",
+    "params": { "pages": [0], "rows": 2, "cols": 2, "overlapMm": 1.5, "order": "rtl" }
+  },
+  "blank.find": {
+    "op": "page.findBlank",
+    "params": { "sensitivity": 0.5, "borderMm": 5.0, "keepIfAnnotations": true }
+  },
+  "blank.remove": {
+    "op": "page.removeBlank",
+    "params": { "pages": [1, 2], "sensitivity": 0.5, "borderMm": 5.0, "keepIfAnnotations": true }
+  }
+}

@@ -86,6 +86,12 @@ actions!(
         InsertBlankAfter,
         InsertPagesFromFile,
         ReplaceSelectedPages,
+        OpenMerge,
+        OpenSplit,
+        OpenCropResize,
+        OpenRemoveBlank,
+        OpenGridSplit,
+        OpenSmartSplit,
         SelectAllPages,
         InvertPageSelection,
         SelectOddPages,
@@ -429,6 +435,8 @@ pub struct Viewer {
     page_context_root: Rc<Cell<Option<ContentBounds>>>,
     page_context_focus: Vec<FocusHandle>,
     pending_open_tabs: Vec<PathBuf>,
+    /// Hộp thoại xử lý M5 đang mở (ghép, tách, cắt lề…), nếu có.
+    process_host: Option<ProcessHost>,
     thumbnail_cache: HashMap<usize, Arc<RenderImage>>,
     thumbnail_pending: HashMap<usize, Receiver<Reply<PageImage>>>,
     to_drop: Vec<Arc<RenderImage>>,
@@ -475,6 +483,23 @@ enum FormControlState {
     Listbox {
         item_focuses: Vec<FocusHandle>,
     },
+}
+
+/// Hộp thoại xử lý M5 đang mở: view để vẽ và đăng ký nghe sự kiện của nó.
+struct ProcessHost {
+    view: gpui::AnyView,
+    _subscription: Subscription,
+}
+
+/// Loại hộp thoại xử lý mà viewer mở được.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ProcessKind {
+    Merge,
+    Split,
+    Crop,
+    RemoveBlank,
+    GridSplit,
+    SmartSplit,
 }
 
 enum OperationResult {
@@ -1329,6 +1354,138 @@ impl Viewer {
             },
             cx,
         );
+    }
+
+    /// Ảnh chụp trạng thái cho hộp thoại xử lý (không giữ tham chiếu tới viewer).
+    fn process_context(&self, cx: &Context<Self>) -> crate::process::ProcessContext {
+        let bookmarks = (!self.bookmarks.is_empty()).then(|| {
+            self.bookmarks
+                .iter()
+                .filter_map(|b| b.page_index.map(|page| (b.depth, page + 1)))
+                .collect()
+        });
+        crate::process::ProcessContext {
+            supervisor: self.supervisor.clone(),
+            session_id: self.session_id.clone(),
+            source: self.source_path.clone(),
+            guard: self.source_fingerprint.clone(),
+            password: self.source_password.clone(),
+            file_name: self.tab_title(),
+            page_count: self.page_sizes.len(),
+            target_pages: self.target_pages(),
+            page_sizes: self.page_sizes.clone(),
+            dirty: self.dirty,
+            bookmarks,
+            initial_dir: self.settings.read(cx).save_dir().map(PathBuf::from),
+            dark: theme::is_dark(self.settings.read(cx).mode()),
+        }
+    }
+
+    /// Mở hộp thoại xử lý. Thao tác sửa trang bị chặn khi tài liệu đã ký số hoặc đang bận.
+    fn open_process(&mut self, kind: ProcessKind, window: &mut Window, cx: &mut Context<Self>) {
+        if self.process_host.is_some() {
+            return;
+        }
+        let edits_pages = matches!(
+            kind,
+            ProcessKind::Crop | ProcessKind::RemoveBlank | ProcessKind::GridSplit
+        );
+        if kind != ProcessKind::Merge && self.page_sizes.is_empty() {
+            return;
+        }
+        if edits_pages && self.document_signed {
+            self.message = Some(i18n::t("pageTools.signedBlocked"));
+            cx.notify();
+            return;
+        }
+        if self.tab_closing
+            || self.operation_pending
+            || self.switch_rx.is_some()
+            || self.edit_blocked
+        {
+            return;
+        }
+        let ctx = self.process_context(cx);
+        let return_to = self.focus.clone();
+        let (view, subscription): (gpui::AnyView, Subscription) = match kind {
+            ProcessKind::Merge => {
+                let initial = self.source_path.clone().into_iter().collect();
+                let entity =
+                    cx.new(|cx| crate::merge::MergeDialog::new(ctx, initial, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::Split => {
+                let entity = cx.new(|cx| crate::split::SplitDialog::new(ctx, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::Crop => {
+                let entity = cx.new(|cx| {
+                    crate::crop_page::CropDialog::new(
+                        ctx,
+                        crate::crop_page::Kind::Crop,
+                        return_to,
+                        cx,
+                    )
+                });
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::RemoveBlank => {
+                let entity = cx.new(|cx| crate::blank_pages::BlankDialog::new(ctx, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::GridSplit => {
+                let entity =
+                    cx.new(|cx| crate::split_page::GridSplitDialog::new(ctx, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::SmartSplit => {
+                let entity =
+                    cx.new(|cx| crate::smart_split::SmartSplitDialog::new(ctx, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+        };
+        self.process_host = Some(ProcessHost {
+            view,
+            _subscription: subscription,
+        });
+        cx.notify();
+    }
+
+    /// Việc của viewer khi hộp thoại xử lý yêu cầu: đóng, mở file kết quả, hoặc chạy thao tác đổi
+    /// revision qua `begin_edit` (vẽ lại trang, hoàn tác, đối soát revision như mọi thao tác trang).
+    fn on_process_event<T: 'static>(
+        &mut self,
+        _entity: &Entity<T>,
+        event: &crate::process::ProcessEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        use crate::process::ProcessEvent;
+        match event {
+            ProcessEvent::Close => self.close_process(window, cx),
+            ProcessEvent::OpenFile(path) => {
+                self.pending_open_tabs.push(path.clone());
+                self.close_process(window, cx);
+            }
+            ProcessEvent::ApplyRevision { op_id, params } => {
+                let (op_id, params) = (*op_id, params.clone());
+                self.close_process(window, cx);
+                self.begin_edit(EditOperation::DrawShape { op_id, params }, cx);
+            }
+        }
+    }
+
+    fn close_process(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.process_host.take().is_some() {
+            window.focus(&self.focus, cx);
+            cx.notify();
+        }
     }
 
     fn begin_extract_pages(&mut self, cx: &mut Context<Self>) {
@@ -4661,6 +4818,7 @@ impl Viewer {
             page_context_root: Rc::new(Cell::new(None)),
             page_context_focus: (0..23).map(|_| cx.focus_handle()).collect(),
             pending_open_tabs: Vec::new(),
+            process_host: None,
             thumbnail_cache: HashMap::new(),
             thumbnail_pending: HashMap::new(),
             to_drop: Vec::new(),
@@ -7276,6 +7434,7 @@ impl Render for Viewer {
         } else {
             None
         };
+        let process_dialog = self.process_host.as_ref().map(|host| host.view.clone());
         let props_dialog = if self.props_open {
             self.props_view.as_ref().map(|view| {
                 crate::debug::set_properties(Some(properties::to_json(view)));
@@ -10234,6 +10393,24 @@ impl Render for Viewer {
                 .on_action(cx.listener(|this, _: &InsertPagesFromFile, _window, cx| {
                     this.begin_insert_from_file(cx)
                 }))
+                .on_action(cx.listener(|this, _: &OpenMerge, window, cx| {
+                    this.open_process(ProcessKind::Merge, window, cx)
+                }))
+                .on_action(cx.listener(|this, _: &OpenSplit, window, cx| {
+                    this.open_process(ProcessKind::Split, window, cx)
+                }))
+                .on_action(cx.listener(|this, _: &OpenCropResize, window, cx| {
+                    this.open_process(ProcessKind::Crop, window, cx)
+                }))
+                .on_action(cx.listener(|this, _: &OpenRemoveBlank, window, cx| {
+                    this.open_process(ProcessKind::RemoveBlank, window, cx)
+                }))
+                .on_action(cx.listener(|this, _: &OpenGridSplit, window, cx| {
+                    this.open_process(ProcessKind::GridSplit, window, cx)
+                }))
+                .on_action(cx.listener(|this, _: &OpenSmartSplit, window, cx| {
+                    this.open_process(ProcessKind::SmartSplit, window, cx)
+                }))
                 .on_action(cx.listener(|this, _: &ReplaceSelectedPages, _window, cx| {
                     this.begin_replace_pages(cx)
                 }))
@@ -10328,6 +10505,7 @@ impl Render for Viewer {
                         .child(text),
                 )
                 .children(props_dialog)
+                .children(process_dialog.clone())
                 .children(password_dialog)
                 .children(bookmark_dialog)
                 .children(notes_dialog)
@@ -11714,6 +11892,7 @@ impl Render for Viewer {
             .child(body)
             .child(footer)
             .children(props_dialog)
+            .children(process_dialog)
             .children(password_dialog)
             .children(bookmark_dialog)
             .children(notes_dialog)

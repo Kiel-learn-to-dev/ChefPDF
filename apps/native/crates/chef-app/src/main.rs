@@ -19,11 +19,13 @@ use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 mod annots;
 mod assets;
+mod blank_pages;
 pub mod bookmarks;
 #[cfg(windows)]
 mod capture;
 mod close;
 mod commands;
+mod crop_page;
 #[cfg(windows)]
 mod debug;
 #[cfg(not(windows))]
@@ -41,26 +43,34 @@ mod forms_create;
 mod forms_fill;
 mod forms_flatten;
 mod forms_overlay;
+#[cfg(test)]
+mod golden_tests;
 mod image_edit;
 mod insert_image;
 mod instance;
 mod layers;
 mod links;
 mod logging;
+mod merge;
 mod night;
 pub mod notes;
 mod notes_list;
 mod objects;
 mod page_ops;
+mod page_range;
 mod password;
 mod probe;
+mod process;
 mod properties;
 mod recovery;
 mod session;
 mod settings;
 mod settings_dialog;
+mod smart_split;
 #[allow(dead_code)]
 mod source_guard;
+mod split;
+mod split_page;
 mod split_pane;
 mod start;
 mod tabs;

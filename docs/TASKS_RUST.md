@@ -68,7 +68,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 2. **Giữ các việc cần môi trường/nghiệm thu thành cổng rõ.** MAN-1 tại R1.27 đã ✅ theo xác nhận trực tiếp của chủ dự án ngày 2026-11-22; UniKey Telex/VNI trong khung nháp R7.09 vẫn thuộc mốc sau. R2.17 còn cần kéo thả từ Explorer; R2.19 còn cần OS wheel/key và present/frame thật. Computer Use (`@oai/sky` và CUA) không kết nối được native pipe trong lần thử 2026-11-22, nên không gửi input giả. MAN-5 đã xem sáu cặp cuối và chấp nhận sai khác raster còn lại; cursor hand cũng đã đo bằng Win32.
 3. **Điểm kiểm M1 đã được chủ dự án nghiệm thu (2026-11-22).** Còn mở: ước lượng điểm M2–M9 (chờ số giờ thực tế của M1) và frame/present của R1.32 (ghi ở "Điểm kiểm M1"). R1.05 đã đóng. M2 vẫn 🔄 theo các cổng R2.17, R2.19, R2.28 và MAN-5. R2.26 đã ✅: E2E Windows đạt và vùng nhớ do app sở hữu được zeroize; bản sao tạm trong thư viện/allocator nằm ngoài bảo đảm này.
 4. **Tiếp tục phần còn lại của M3/M4:** R3.09 còn 🔄; M4 còn R4.01 và R4.05 đang 🔄 (R4.02–R4.04 và R4.06–R4.08 đã ✅). Cập nhật thứ tự theo task thực sự còn mở.
-5. **M5 tiếp tục từ R5.03** sau khi hàng đợi kiểm chứng trên được rà soát; R5.01–R5.02 đã ✅. Có thể làm task M5 độc lập song song về mặt kỹ thuật, nhưng cập nhật lại hàng đợi tại đây để tránh mất dấu phần nghiệm thu M1/M2.
+5. **M5a (R5.03–R5.08) đã có code và test (2026-11-24), đang 🔄 chờ kiểm trên Windows:** E2E `tools5`, ui-audit R5.09 và bộ fmt/clippy/test/deny trên Windows. Tiếp theo từ R5.11 (M5b) sau khi các kiểm đó xong; R5.01–R5.02 đã ✅. Có thể làm task M5 độc lập song song về mặt kỹ thuật, nhưng cập nhật lại hàng đợi tại đây để tránh mất dấu phần nghiệm thu M1/M2.
 
 **Vì sao M1/M2 bị bỏ lại:** D86 đã ưu tiên lát cắt dọc M3 do chuỗi revision là phụ thuộc kỹ thuật của nhiều task sau. Sau khi lát cắt đó qua được, các đợt code tiếp theo ưu tiên task giao diện M4/M5; quy tắc cho phép làm trước khi xong checkpoint, nhưng hàng đợi không được cập nhật theo tiến độ thực tế. M1/M2 chưa đóng chủ yếu vì thiếu ảnh Electron và MAN-5, cùng một số lượt xác minh runtime/OS-input; không có một blocker kỹ thuật duy nhất buộc phải dừng cả hai mốc.
 
@@ -1447,57 +1447,63 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Tiêu chí:** (1) số trang tổng đúng; (2) bookmark theo tên đúng; (3) file nguồn không đổi.
 - **Kiểm chứng:** E2E `tools5`; SHA-256 nguồn.
 - **Phụ thuộc:** R5.02
-- **File:** `apps/native/crates/chef-app/src/merge.rs`
+- **File:** `apps/native/crates/chef-app/src/merge.rs`, `apps/native/crates/chef-app/src/process.rs`, `apps/native/crates/chef-app/src/page_range.rs`, `apps/native/crates/chef-app/src/golden_tests.rs`, `apps/native/crates/chef-app/testdata/op_params.json`, `core/tests/test_native_op_params.py`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **E2E:** `tools5`
 - **Tính năng:** C4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `MergeDialog` bản GPUI của `MergeDialog.tsx` dựng trên `TaskDialog`: thêm file bằng hộp chọn, dò số trang/dung lượng bằng phiên tạm (như `probePdf` của Electron), khoảng trang từng file ("1-3, 5, 8-", lỗi theo `range.*`), chuyển lên/xuống/bỏ, tổng trang và dung lượng ở cột phụ, cảnh báo thiếu file và file đang mở chưa lưu, bookmark theo tên file, chọn nơi lưu, kết quả có "Mở file kết quả" (mở tab mới) và "Hiện trong thư mục". Operation thật là `file.merge` (standalone), không phải `pdf.merge` như mô tả cũ. Phần thuần (`plan`, `build_params`, `move_row`, chặn ghi đè file nguồn) có 7 test; `golden_tests.rs` so JSON dựng ra với `testdata/op_params.json`, và `core/tests/test_native_op_params.py` chạy đúng JSON đó trên lõi thật (14/14 đạt): tổng trang 12 = 10 + 2 trang chọn, bookmark gốc theo tên file `numbered_10`, `five`, file nguồn còn nguyên số trang. Hạ tầng dùng chung ở `process.rs` (`ProcessContext`, `Runner`, `spawn_job(s)`, `wire`, hủy job, phiên tạm). Mở bằng lệnh Ctrl+K "Ghép file" (`OpenMerge`). **Chưa làm:** kéo thả đổi thứ tự (đang dùng nút lên/xuống); file có mật khẩu (báo lỗi "không đọc được", chưa hỏi mật khẩu như `askPassword`); băm SHA-256 file nguồn (hiện kiểm số trang và chặn chọn đích trùng nguồn). Kiểm trên Linux (không có Windows/pdfium trong phiên này): `cargo fmt`, `cargo clippy`, `cargo test` cho chef-app (188) và chef-ui (85) đạt; vì `chef-rpc` là bản stub ngoài Windows nên chưa chạy được hộp thoại thật. Còn thiếu để ✅: E2E `tools5` trên Windows (script PowerShell chưa viết và chưa chạy), `cargo deny check` và cả bộ fmt/clippy/test trên Windows, và ảnh ui-audit (R5.09).
+- **Trạng thái:** 🔄
 
 ### R5.04 · Tách file · S
 - **Mô tả:** tách theo khoảng trang, mỗi N trang, theo bookmark, theo dung lượng, trang chẵn hoặc lẻ. Operation `pdf.split`.
 - **Tiêu chí:** (1) mỗi cách tách ra đúng số file và trang; (2) tên file theo mẫu; (3) file gốc không đổi.
 - **Kiểm chứng:** E2E `tools5`; test.
 - **Phụ thuộc:** R5.02
-- **File:** `apps/native/crates/chef-app/src/split.rs`
+- **File:** `apps/native/crates/chef-app/src/split.rs`, `apps/native/crates/chef-app/src/page_range.rs`, `apps/native/crates/chef-app/src/process.rs`, `apps/native/crates/chef-app/src/golden_tests.rs`, `apps/native/crates/chef-app/testdata/op_params.json`, `core/tests/test_native_op_params.py`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **E2E:** `tools5`
 - **Tính năng:** C5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `SplitDialog` bản GPUI của `SplitDialog.tsx`: 5 cách tách (khoảng trang, mỗi N trang, bookmark cấp 1, dung lượng tối đa theo MB, lẻ/chẵn), 5 mẫu thiết lập, thư mục xuất (mặc định thư mục lưu trong cài đặt, nếu không thì thư mục file gốc; nút Chọn… dùng hộp lưu file lấy thư mục cha vì chưa có hộp chọn thư mục), mẫu tên file có nút biến `{name}`, `{index}`, `{start}`, `{end}` và cảnh báo biến lạ, xem trước tên file và nhóm trang (cùng `planSplit`/`renderName` của Electron), "Nhiều file…" chạy tuần tự trên phiên tạm của từng file, hủy giữa chừng. Chạy `file.split` trên phiên đang mở nên tách theo cả thay đổi chưa lưu (có cảnh báo). Không dùng `SchemaForm` cho hộp thoại này vì trường phụ thuộc cách tách (form sinh từ schema hiện mọi trường cùng lúc); vì vậy nhóm S+ như `DIALOG_CLASSIFICATION_RUST.md`. Kiểm bằng lõi thật: `ranges` → 2 file [2,4] trang, `everyN` → 3 file [2,2,2], `oddEven` → 2 file [3,3], `maxSize` → 1 file 6 trang, file gốc còn 6 trang. **Lỗi codegen đã gặp:** typify trong `chef-contracts` gộp nhầm các enum `mode` thành một kiểu `Mode` nên struct `FileSplitParams` sinh sẵn từ chối `"ranges"`; hộp thoại dựng JSON trực tiếp nên không bị ảnh hưởng, nhưng không nên dùng struct đó cho tới khi sửa codegen. **Chưa làm:** đọc bookmark cho tài liệu khác (chỉ tài liệu đang mở có xem trước bookmark), hộp chọn thư mục thật. Kiểm trên Linux (không có Windows/pdfium trong phiên này): `cargo fmt`, `cargo clippy`, `cargo test` cho chef-app (188) và chef-ui (85) đạt; vì `chef-rpc` là bản stub ngoài Windows nên chưa chạy được hộp thoại thật. Còn thiếu để ✅: E2E `tools5` trên Windows (script PowerShell chưa viết và chưa chạy), `cargo deny check` và cả bộ fmt/clippy/test trên Windows, và ảnh ui-audit (R5.09).
+- **Trạng thái:** 🔄
 
 ### R5.05 · Cắt lề và đổi khổ · M
 - **Mô tả:** tự dò lề trắng, đưa về A4 hoặc Letter, co nội dung. Áp cho trang PDF bằng đặt CropBox, không mất nội dung. Cắt ảnh scan thật dùng R5.23 đến R5.27 và M8.
 - **Tiêu chí:** (1) CropBox đổi, nội dung còn nguyên (so chữ trước và sau); (2) khổ A4 và Letter đúng; (3) hoàn tác được.
 - **Kiểm chứng:** E2E `tools5`; test.
 - **Phụ thuộc:** R5.02
-- **File:** `apps/native/crates/chef-app/src/crop_page.rs`
+- **File:** `apps/native/crates/chef-app/src/crop_page.rs`, `apps/native/crates/chef-app/src/process.rs`, `apps/native/crates/chef-app/src/golden_tests.rs`, `apps/native/crates/chef-app/testdata/op_params.json`, `core/tests/test_native_op_params.py`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **E2E:** `tools5`
 - **Tính năng:** C7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `CropDialog` cho cả cắt lề (`page.crop`: theo lề mm, theo khung pt, tự cắt viền trắng với khoảng đệm) và đổi khổ (`page.resize`: A3, A4, Letter, tùy chỉnh mm; co cho vừa hoặc căn giữa), phạm vi tất cả/lẻ/chẵn/các trang (mặc định là trang đang chọn). Luôn đặt CropBox (`mode: cropbox`) nên không mất nội dung. Hộp thoại không tự chạy mà phát `ProcessEvent::ApplyRevision`, viewer chạy qua `begin_edit(DrawShape)` nên có hoàn tác, vẽ lại trang và đối soát revision như thao tác trang khác; tài liệu đã ký số bị chặn (`pageTools.signedBlocked`). Kiểm bằng lõi thật: 5 tham số mẫu (lề, tự cắt, khung, A4, tùy chỉnh) đều chạy và tạo revision có thể hoàn tác. **Chưa kiểm:** tiêu chí 1 (so chữ trước/sau) và 2 (kích thước A4/Letter đo trên trang kết quả) chỉ có test lõi sẵn có ở `test_pageedit.py`, chưa có kiểm riêng cho đường vỏ Rust; chưa có lệnh riêng "Đổi khổ" (dùng chung hộp thoại, chọn "Đổi khổ" ở đầu hộp thoại). Kiểm trên Linux (không có Windows/pdfium trong phiên này): `cargo fmt`, `cargo clippy`, `cargo test` cho chef-app (188) và chef-ui (85) đạt; vì `chef-rpc` là bản stub ngoài Windows nên chưa chạy được hộp thoại thật. Còn thiếu để ✅: E2E `tools5` trên Windows (script PowerShell chưa viết và chưa chạy), `cargo deny check` và cả bộ fmt/clippy/test trên Windows, và ảnh ui-audit (R5.09).
+- **Trạng thái:** 🔄
 
 ### R5.06 · Xóa trang trắng · M
 - **Mô tả:** tự tìm trang trắng (thường gặp khi scan hai mặt), xem trước danh sách, rồi mới xóa.
 - **Tiêu chí:** (1) không xóa khi chưa xác nhận; (2) trang có một chấm bẩn vẫn bị coi là trắng hay không được ghi rõ theo ngưỡng; (3) có undo.
 - **Kiểm chứng:** test với trang trắng và trang có chữ nhỏ.
 - **Phụ thuộc:** R5.02
-- **File:** `apps/native/crates/chef-app/src/blank_pages.rs`
+- **File:** `apps/native/crates/chef-app/src/blank_pages.rs`, `apps/native/crates/chef-app/src/process.rs`, `apps/native/crates/chef-app/src/golden_tests.rs`, `apps/native/crates/chef-app/testdata/op_params.json`, `core/tests/test_native_op_params.py`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **Tính năng:** C8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `BlankDialog`: tự dò khi mở bằng `page.findBlank` (độ nhạy 0–100%, viền bỏ qua mm, giữ trang có chú thích), hiện danh sách trang trắng kèm tỉ lệ mực và cờ "có chữ"/"có chú thích", chọn sẵn tất cả, người dùng bỏ chọn trang muốn giữ, nút "Tìm lại" khi đổi ngưỡng. Chỉ khi bấm "Xóa N trang đã chọn" mới phát `page.removeBlank` với đúng các trang đã chọn (`pages`), nên (1) không xóa khi chưa xác nhận; (2) ngưỡng ghi rõ trong mô tả đầu file và trên giao diện (độ nhạy, viền, tỉ lệ mực từng trang); (3) có hoàn tác qua `begin_edit`. Chặn xóa hết trang (`can_remove`) trước khi gọi lõi. Kiểm bằng lõi thật: `findBlank` ra ứng viên [1,2] trên tài liệu mẫu (trang chữ, trắng, nhiễu gần trắng, mực nửa trang, trắng có chú thích), `removeBlank` với `pages: [1,2]` còn 3 trang. Danh sách rất dài chưa cuộn riêng (dùng cuộn của khung hộp thoại). Kiểm trên Linux (không có Windows/pdfium trong phiên này): `cargo fmt`, `cargo clippy`, `cargo test` cho chef-app (188) và chef-ui (85) đạt; vì `chef-rpc` là bản stub ngoài Windows nên chưa chạy được hộp thoại thật. Còn thiếu để ✅: E2E `tools5` trên Windows (script PowerShell chưa viết và chưa chạy), `cargo deny check` và cả bộ fmt/clippy/test trên Windows, và ảnh ui-audit (R5.09).
+- **Trạng thái:** 🔄
 
 ### R5.07 · Chia đôi trang và lưới N phần · S
 - **Mô tả:** trang A3 hoặc trang đôi thành hai trang A4, hoặc cắt trang thành lưới N phần.
 - **Tiêu chí:** (1) hai nửa đúng khổ; (2) lưới N×M đúng thứ tự đọc; (3) có undo.
 - **Kiểm chứng:** test.
 - **Phụ thuộc:** R5.02
-- **File:** `apps/native/crates/chef-app/src/split_page.rs`
+- **File:** `apps/native/crates/chef-app/src/split_page.rs`, `apps/native/crates/chef-app/src/golden_tests.rs`, `apps/native/crates/chef-app/testdata/op_params.json`, `core/tests/test_native_op_params.py`, `apps/native/assets/i18n/vi.json`, `apps/native/assets/i18n/en.json`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **Tính năng:** C9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `GridSplitDialog` là **nối `SchemaForm` đầu tiên vào `TaskDialog`** (nhóm S, `PageSplitParams`): trang cần chia (để trống = tất cả; mặc định là trang đang chọn), số hàng, số cột, chồng lấn mm, thứ tự trái→phải/phải→trái, nhãn và lựa chọn lấy từ `schemaForm.fields/options.PageSplitParams.*` trong `vi.json`/`en.json`. Chặn lưới 1×1, ước tính số trang kết quả ở cột phụ. Chạy `page.split` qua `begin_edit` (có hoàn tác). Kiểm bằng lõi thật: trang 1 chia 2×2, phải-sang-trái, chồng lấn 1,5 mm → tài liệu 3 trang thành 6 trang và có thể hoàn tác. Tiêu chí 1 (hai nửa đúng khổ) và 2 (thứ tự đọc N×M) chưa đo riêng trên đường vỏ Rust; lõi có test ở `test_pageedit.py`. Kiểm trên Linux (không có Windows/pdfium trong phiên này): `cargo fmt`, `cargo clippy`, `cargo test` cho chef-app (188) và chef-ui (85) đạt; vì `chef-rpc` là bản stub ngoài Windows nên chưa chạy được hộp thoại thật. Còn thiếu để ✅: E2E `tools5` trên Windows (script PowerShell chưa viết và chưa chạy), `cargo deny check` và cả bộ fmt/clippy/test trên Windows, và ảnh ui-audit (R5.09).
+- **Trạng thái:** 🔄
 
 ### R5.08 · Tách thông minh · M
 - **Mô tả:** tách file mỗi khi gặp trang có tiêu đề mới, mã QR phân cách, hoặc trang trắng phân cách.
 - **Tiêu chí:** (1) mỗi kiểu phân cách đúng số file; (2) trang phân cách không đưa vào file kết quả (có tùy chọn); (3) xem trước các điểm tách.
 - **Kiểm chứng:** test với ba PDF mẫu.
 - **Phụ thuộc:** R5.04
-- **File:** `apps/native/crates/chef-app/src/smart_split.rs`
+- **File:** `apps/native/crates/chef-app/src/smart_split.rs`, `apps/native/crates/chef-app/src/process.rs`, `apps/native/crates/chef-app/src/golden_tests.rs`, `apps/native/crates/chef-app/testdata/op_params.json`, `core/tests/test_native_op_params.py`, `apps/native/crates/chef-app/src/viewer.rs`, `apps/native/crates/chef-app/src/commands.rs`
 - **Tính năng:** C10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `SmartSplitDialog`: tách theo trang trắng phân cách (độ nhạy, tùy chọn bỏ trang phân cách), theo bookmark cấp N (1–10) hoặc theo mẫu chữ (regex, phân biệt hoa thường tùy chọn); chọn file nguồn (mặc định tài liệu đang mở), thư mục, mẫu tên có tên mẫu. Chạy `file.splitSmart` (standalone, ghi file ra thư mục, không đổi file gốc). Xem trước điểm tách (tiêu chí 3): trang trắng dò bằng `page.findBlank` với đúng tham số lõi dùng (viền 5 mm, giữ trang có chú thích) rồi dựng nhóm giống `_parts_at_blanks` (có test); bookmark dùng bookmark của tài liệu đang mở; mẫu chữ không xem trước được. **Lệch so với mô tả task:** lõi chỉ có ba kiểu `blank`, `bookmarkLevel`, `pattern`; "mã QR phân cách" chưa có trong lõi nên chưa làm. Kiểm bằng lõi thật: tài liệu mẫu 5 trang (2 trang trắng phân cách) tách ra ≥ 2 file và tổng 3 trang khi bỏ trang phân cách; `bookmarkLevel` và `pattern` chạy trên `outline_10p.pdf`. Kiểm trên Linux (không có Windows/pdfium trong phiên này): `cargo fmt`, `cargo clippy`, `cargo test` cho chef-app (188) và chef-ui (85) đạt; vì `chef-rpc` là bản stub ngoài Windows nên chưa chạy được hộp thoại thật. Còn thiếu để ✅: E2E `tools5` trên Windows (script PowerShell chưa viết và chưa chạy), `cargo deny check` và cả bộ fmt/clippy/test trên Windows, và ảnh ui-audit (R5.09).
+- **Trạng thái:** 🔄
 
 ### R5.09 · Đối chiếu ui-audit hộp thoại xử lý · S
 - **Mô tả:** chụp và so ảnh các hộp thoại Ghép, Tách, Cắt, Xóa trang trắng, Chia đôi, Tách thông minh.

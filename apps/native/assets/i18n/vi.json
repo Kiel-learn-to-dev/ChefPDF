@@ -835,7 +835,22 @@
       "invalidChoice": "Lựa chọn của {{field}} không hợp lệ.",
       "unsupported": "Chưa hỗ trợ nhập {{field}} trong biểu mẫu này."
     },
+    "options": {
+      "PageSplitParams": {
+        "order": {
+          "ltr": "Trái sang phải",
+          "rtl": "Phải sang trái (sách)"
+        }
+      }
+    },
     "fields": {
+      "PageSplitParams": {
+        "pages": "Trang cần chia (để trống: tất cả)",
+        "rows": "Số hàng",
+        "cols": "Số cột",
+        "overlapMm": "Chồng lấn giữa các phần (mm)",
+        "order": "Thứ tự các phần"
+      },
       "pages": "Trang",
       "angle": "Góc xoay",
       "inputs": "Các tệp PDF",
@@ -880,6 +895,9 @@
     "totalPages": "trang trong file kết quả",
     "andMore": "và {{count}} file khác",
     "needTwo": "Cần ít nhất 2 file để ghép.",
+    "loading": "Đang đọc…",
+    "unreadable": "Có file không đọc được. Hãy bỏ file đó ra khỏi danh sách.",
+    "outputIsInput": "File kết quả không được trùng với một file nguồn.",
     "unsavedWarning": "“{{name}}” đang có thay đổi chưa lưu. Ghép sẽ dùng bản đã lưu trên đĩa.",
     "suffix": "da-ghep",
     "failed": "Ghép file không thành công",
@@ -2693,6 +2711,7 @@
       "sourcePages": "Khoảng trang của file nguồn không hợp lệ.",
       "margins": "Lề phải là số từ 0 đến 500 mm.",
       "box": "Khung phải có x1 lớn hơn x0 và y1 lớn hơn y0.",
+      "border": "Viền bỏ qua phải từ 0 đến 50 mm.",
       "padding": "Khoảng đệm phải từ 0 đến 50 mm.",
       "rows": "Số hàng phải từ 1 đến 10.",
       "cols": "Số cột phải từ 1 đến 10.",
@@ -2808,6 +2827,7 @@
       "noOutputDir": "Chưa chọn thư mục",
       "nameTemplate": "Mẫu tên file",
       "nameHint": "Ví dụ tên file: {{sample}}",
+      "noSplitPoints": "Không tìm thấy điểm tách; file sẽ không bị tách.",
       "openFolder": "Mở thư mục",
       "result": "Đã tách thành {{count}} file",
       "resultLabel": "Kết quả tách file",
@@ -2820,6 +2840,8 @@
       "jobTitle": "Xóa trang trắng: {{name}}",
       "sensitivity": "Độ nhạy",
       "keepAnnotations": "Giữ trang có chú thích",
+      "border": "Viền bỏ qua (mm)",
+      "rescan": "Tìm lại",
       "keepAnnotationsHint": "Trang có ghi chú hoặc ô ký sẽ không bị coi là trắng.",
       "list": "Trang trắng tìm được",
       "none": "Không tìm thấy trang trắng.",

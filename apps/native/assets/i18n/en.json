@@ -842,7 +842,22 @@
       "invalidChoice": "The choice for {{field}} is not valid.",
       "unsupported": "{{field}} cannot be entered in this form yet."
     },
+    "options": {
+      "PageSplitParams": {
+        "order": {
+          "ltr": "Left to right",
+          "rtl": "Right to left (books)"
+        }
+      }
+    },
     "fields": {
+      "PageSplitParams": {
+        "pages": "Pages to split (empty: all)",
+        "rows": "Rows",
+        "cols": "Columns",
+        "overlapMm": "Overlap between pieces (mm)",
+        "order": "Piece order"
+      },
       "pages": "Pages",
       "angle": "Rotation angle",
       "inputs": "PDF files",
@@ -890,6 +905,9 @@
     "andMore_one": "and {{count}} more file",
     "andMore_other": "and {{count}} more files",
     "needTwo": "You need at least two files to merge.",
+    "loading": "Reading…",
+    "unreadable": "Some files cannot be read. Remove them from the list.",
+    "outputIsInput": "The result file must not be one of the source files.",
     "unsavedWarning": "“{{name}}” has unsaved changes. Merging uses the version saved on disk.",
     "suffix": "merged",
     "failed": "Merging failed",
@@ -2713,6 +2731,7 @@
       "sourcePages": "The page range of the source file is invalid.",
       "margins": "Margins must be numbers from 0 to 500 mm.",
       "box": "The box needs x1 greater than x0 and y1 greater than y0.",
+      "border": "The ignored border must be from 0 to 50 mm.",
       "padding": "The padding must be from 0 to 50 mm.",
       "rows": "The number of rows must be from 1 to 10.",
       "cols": "The number of columns must be from 1 to 10.",
@@ -2828,6 +2847,7 @@
       "noOutputDir": "No folder chosen",
       "nameTemplate": "File name template",
       "nameHint": "Example file name: {{sample}}",
+      "noSplitPoints": "No split points were found; the file will not be split.",
       "openFolder": "Open folder",
       "result": "Split into {{count}} files",
       "resultLabel": "Split result",
@@ -2840,6 +2860,8 @@
       "jobTitle": "Remove blank pages: {{name}}",
       "sensitivity": "Sensitivity",
       "keepAnnotations": "Keep pages with annotations",
+      "border": "Ignored border (mm)",
+      "rescan": "Search again",
       "keepAnnotationsHint": "Pages with notes or signature fields are never treated as blank.",
       "list": "Blank pages found",
       "none": "No blank pages found.",
