@@ -314,6 +314,9 @@ impl DocumentHost {
         let Some(action) = command.action.gpui_action() else {
             return;
         };
+        if let commands::CommandAction::Op(index) = command.action {
+            cx.set_global(viewer::PendingOp(index));
+        }
         self.palette_open = false;
         self.palette_query.clear();
         self.palette_selected = 0;

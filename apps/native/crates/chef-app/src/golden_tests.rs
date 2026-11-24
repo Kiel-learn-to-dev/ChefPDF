@@ -193,3 +193,310 @@ fn grid_split_form_matches_the_golden_params() {
     let built = split_page::finish_params(schema.build(&inputs).unwrap());
     assert_eq!(built, golden("grid.split").1);
 }
+
+// ---------------------------------------------------------------------------
+// Hộp thoại sinh từ schema (op_dialog.rs): mỗi dòng của OPS có một mẫu nhập.
+// ---------------------------------------------------------------------------
+
+use chef_ui::schema_form::{FieldInput, FieldKind, FormSchema};
+
+use crate::op_dialog::OPS;
+
+/// Giá trị người dùng nhập cho từng hộp thoại: (mã lệnh, [(trường, chữ nhập)]).
+/// Bool nhập "true"/"false"; lựa chọn nhập đúng giá trị enum; danh sách file nhập các đường dẫn cách nhau bằng '|'.
+const DIALOG_INPUTS: &[(&str, &[(&str, &str)])] = &[
+    ("compress.pdf", &[("preset", "screen")]),
+    (
+        "compress.file",
+        &[
+            ("inputPath", "{a}"),
+            ("outputPath", "{out}"),
+            ("preset", "print"),
+        ],
+    ),
+    (
+        "convert.pdfToImages",
+        &[
+            ("path", "{a}"),
+            ("outputDir", "{dir}"),
+            ("format", "png"),
+            ("dpi", "72"),
+            ("pages", "1-2"),
+        ],
+    ),
+    (
+        "convert.imagesToPdf",
+        &[
+            ("images", "{img}|{img}"),
+            ("outputPath", "{out}"),
+            ("pageSize", "a4"),
+        ],
+    ),
+    ("color.convert", &[("mode", "gray"), ("pages", "1-2")]),
+    ("doc.extractImages", &[("outputDir", "{dir}")]),
+    ("doc.extractText", &[("outputPath", "{out}")]),
+    ("doc.attachments.add", &[("paths", "{att}")]),
+    ("doc.attachments.extract", &[("outputDir", "{dir}")]),
+    (
+        "doc.setMetadata",
+        &[
+            ("title", "Hợp đồng"),
+            ("author", "Nhóm dự án"),
+            ("keywords", "pdf, hợp đồng"),
+        ],
+    ),
+    (
+        "doc.optimizeWeb",
+        &[("inputPath", "{a}"), ("outputPath", "{out}")],
+    ),
+    (
+        "doc.repair",
+        &[("inputPath", "{a}"), ("outputPath", "{out}")],
+    ),
+    (
+        "scan.rasterize",
+        &[("dpi", "100"), ("color", "gray"), ("pages", "1-2")],
+    ),
+    (
+        "overlay.watermark",
+        &[
+            ("text", "BẢN SAO"),
+            ("opacity", "0,3"),
+            ("rotation", "45"),
+            ("mode", "tiled"),
+        ],
+    ),
+    (
+        "stamp.text",
+        &[
+            ("x", "100"),
+            ("y", "120"),
+            ("text", "ĐÃ DUYỆT"),
+            ("unit", "pt"),
+        ],
+    ),
+    (
+        "stamp.image",
+        &[
+            ("x", "100"),
+            ("y", "120"),
+            ("path", "{img}"),
+            ("width", "40"),
+        ],
+    ),
+    ("stamp.seam", &[("path", "{img}"), ("side", "right")]),
+    (
+        "overlay.pageNumbers",
+        &[
+            ("template", "Trang {page}/{pages}"),
+            ("position", "bottom-center"),
+            ("startNumber", "1"),
+            ("skipFirst", "true"),
+        ],
+    ),
+    (
+        "overlay.qrCode",
+        &[
+            ("x", "20"),
+            ("y", "20"),
+            ("content", "https://example.com"),
+            ("size", "25"),
+        ],
+    ),
+    (
+        "overlay.barcode",
+        &[
+            ("x", "20"),
+            ("y", "20"),
+            ("kind", "code128"),
+            ("content", "ABC123"),
+        ],
+    ),
+    ("overlay.letterhead", &[("sourcePath", "{a}")]),
+    ("overlay.remove", &[("kind", "watermark")]),
+    ("watermark.remove", &[("all", "true")]),
+    ("background.remove", &[("mode", "remove")]),
+    (
+        "security.encrypt",
+        &[("userPassword", "1234"), ("ownerPassword", "chu-file")],
+    ),
+    ("security.decrypt", &[("password", "1234")]),
+    (
+        "export.document",
+        &[("format", "txt"), ("outputPath", "{out}")],
+    ),
+    (
+        "toc.insertPage",
+        &[
+            ("maxLevel", "2"),
+            ("title", "Mục lục"),
+            ("placement", "front"),
+        ],
+    ),
+    ("preflight.check", &[]),
+    ("inspect.hiddenData", &[]),
+    ("watermark.detect", &[]),
+    ("toc.preview", &[("maxLevel", "2")]),
+    ("compress.estimate", &[("preset", "screen")]),
+    ("forms.detectFields", &[("pages", "1")]),
+    ("sign.verify", &[]),
+    ("links.autoDetect", &[("skipExisting", "true")]),
+    (
+        "text.findReplace",
+        &[
+            ("find", "Noi dung"),
+            ("replace", "Van ban"),
+            ("pages", "1-2"),
+        ],
+    ),
+    ("pageimg.autoCrop", &[("pages", "1-2"), ("paperSize", "A4")]),
+    ("pageimg.deskew", &[("mode", "auto"), ("pages", "1-2")]),
+    ("pageimg.dewarp", &[("pages", "1")]),
+    (
+        "pageimg.enhance",
+        &[("whiten", "true"), ("denoise", "true"), ("pages", "1-2")],
+    ),
+    ("pageimg.splitSpread", &[("mode", "auto"), ("order", "ltr")]),
+    ("pageimg.removeFingers", &[("mode", "auto")]),
+    (
+        "pageimg.removeStains",
+        &[("hueMin", "20"), ("hueMax", "40"), ("pages", "1")],
+    ),
+    (
+        "image.cleanup",
+        &[
+            ("inputPath", "{img}"),
+            ("outputPath", "{out}"),
+            ("straighten", "true"),
+        ],
+    ),
+    (
+        "image.removeBackground",
+        &[
+            ("inputPath", "{img}"),
+            ("outputPath", "{out}"),
+            ("mode", "auto"),
+        ],
+    ),
+    (
+        "image.textSignature",
+        &[("text", "Nguyen Van A"), ("outputPath", "{out}")],
+    ),
+    ("sign.verifyFile", &[("path", "{a}")]),
+    (
+        "sign.certInfo",
+        &[("pfxPath", "{pfx}"), ("password", "mat-khau")],
+    ),
+    ("sign.trustList", &[]),
+    ("sign.trustAdd", &[("path", "{cer}"), ("group", "user")]),
+    (
+        "sign.trustRemove",
+        &[(
+            "fingerprintSha256",
+            "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+        )],
+    ),
+    ("sign.driverScan", &[("probe", "false")]),
+    ("sign.diagnoseToken", &[]),
+    ("sign.listStoreCertificates", &[("store", "MY")]),
+    ("sign.listTokens", &[("modulePath", "{dll}")]),
+    (
+        "sign.extractRevision",
+        &[
+            ("path", "{a}"),
+            ("fieldName", "Signature1"),
+            ("outputPath", "{out}"),
+        ],
+    ),
+    (
+        "sign.verifyBatch",
+        &[
+            ("folder", "{dir}"),
+            ("reportPath", "{rep}"),
+            ("format", "csv"),
+        ],
+    ),
+    (
+        "watch.scan",
+        &[
+            ("directory", "{dir}"),
+            ("ledgerPath", "{led}"),
+            ("pattern", "*.pdf"),
+        ],
+    ),
+    (
+        "bookmarks.fromPages",
+        &[
+            ("template", "Trang {page}"),
+            ("pages", "1-2"),
+            ("mode", "replace"),
+        ],
+    ),
+];
+
+fn build_dialog_params(id: &str, pairs: &[(&str, &str)]) -> Value {
+    let spec = OPS
+        .iter()
+        .find(|s| s.id == id)
+        .unwrap_or_else(|| panic!("không có {id}"));
+    let schema = FormSchema::from_definition(&chef_contracts::ops_schema(), spec.def).unwrap();
+    let mut inputs = schema.initial_inputs();
+    for (name, text) in pairs {
+        let field = schema
+            .fields
+            .iter()
+            .find(|f| f.name == *name)
+            .unwrap_or_else(|| panic!("{id}: không có trường {name}"));
+        let input = match &field.kind {
+            FieldKind::Bool => FieldInput::Bool(*text == "true"),
+            FieldKind::Choice(values) => FieldInput::Choice(Some(
+                values
+                    .iter()
+                    .position(|v| v.as_str() == Some(*text) || v.to_string().as_str() == *text)
+                    .unwrap_or_else(|| panic!("{id}.{name}: không có lựa chọn {text}")),
+            )),
+            FieldKind::FileList { .. } => {
+                FieldInput::Files(text.split('|').map(str::to_string).collect())
+            }
+            _ => FieldInput::Text((*text).to_string()),
+        };
+        inputs.insert((*name).to_string(), input);
+    }
+    schema
+        .build(&inputs)
+        .unwrap_or_else(|e| panic!("{id}: form không hợp lệ: {e:?}"))
+}
+
+#[test]
+fn every_dialog_has_an_input_sample() {
+    for spec in OPS {
+        assert!(
+            DIALOG_INPUTS.iter().any(|(id, _)| *id == spec.id),
+            "thiếu mẫu nhập cho {}",
+            spec.id
+        );
+    }
+}
+
+/// `testdata/dialog_params.json` do test này sinh khi đặt `CHEF_UPDATE_GOLDEN=1`, rồi người rà soát xem lại.
+/// Mặc định test chỉ so sánh.
+#[test]
+fn schema_dialogs_match_the_golden_params() {
+    let mut built = serde_json::Map::new();
+    for (id, pairs) in DIALOG_INPUTS {
+        let spec = OPS.iter().find(|s| s.id == *id).unwrap();
+        built.insert(
+            (*id).to_string(),
+            json!({ "op": spec.op_id, "params": build_dialog_params(id, pairs) }),
+        );
+    }
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/testdata/dialog_params.json");
+    if std::env::var("CHEF_UPDATE_GOLDEN").as_deref() == Ok("1") {
+        let text = serde_json::to_string_pretty(&Value::Object(built)).unwrap() + "\n";
+        std::fs::write(path, text).unwrap();
+        return;
+    }
+    let golden: Value =
+        serde_json::from_str(include_str!("../testdata/dialog_params.json")).unwrap();
+    assert_eq!(Value::Object(built), golden);
+}

@@ -15,9 +15,36 @@ pub mod ops_types {
 /// Schema gốc của mọi `Params` (`schema/ops.schema.json`), cho renderer hộp thoại (R5.02).
 pub const OPS_SCHEMA: &str = include_str!("../schema/ops.schema.json");
 
-/// `OPS_SCHEMA` đã đọc thành JSON.
+/// Giá trị mặc định của từng trường, `{ "<Params>": { "<trường>": <giá trị> } }`. Schema ở trên bỏ `default`
+/// (để typify sinh `Option` và lõi tự áp mặc định), nên mặc định đi riêng ở đây cho hộp thoại hiện đúng
+/// giá trị mà lõi sẽ dùng. Trường mặc định `null` không có trong file.
+pub const OPS_DEFAULTS: &str = include_str!("../schema/ops.defaults.json");
+
+/// `OPS_SCHEMA` đã đọc thành JSON, kèm `default` của từng trường lấy từ [`OPS_DEFAULTS`].
 pub fn ops_schema() -> serde_json::Value {
-    serde_json::from_str(OPS_SCHEMA).expect("ops.schema.json hợp lệ (kiểm bằng test)")
+    let mut schema: serde_json::Value =
+        serde_json::from_str(OPS_SCHEMA).expect("ops.schema.json hợp lệ (kiểm bằng test)");
+    let defaults: serde_json::Value =
+        serde_json::from_str(OPS_DEFAULTS).expect("ops.defaults.json hợp lệ (kiểm bằng test)");
+    if let Some(defaults) = defaults.as_object() {
+        for (params, fields) in defaults {
+            let Some(props) = schema
+                .pointer_mut(&format!("/definitions/{params}/properties"))
+                .and_then(serde_json::Value::as_object_mut)
+            else {
+                continue;
+            };
+            for (field, value) in fields.as_object().into_iter().flatten() {
+                if let Some(node) = props
+                    .get_mut(field)
+                    .and_then(serde_json::Value::as_object_mut)
+                {
+                    node.insert("default".to_string(), value.clone());
+                }
+            }
+        }
+    }
+    schema
 }
 
 #[cfg(test)]
@@ -37,6 +64,32 @@ mod tests {
     fn generated_type_rejects_a_paragraph_without_bbox() {
         let parsed: Result<Paragraph, _> = serde_json::from_str(r#"{"runs":[]}"#);
         assert!(parsed.is_err(), "thiếu bbox (bắt buộc) phải bị từ chối");
+    }
+
+    #[test]
+    fn defaults_are_merged_into_the_schema_without_touching_required() {
+        let schema = super::ops_schema();
+        let split = &schema["definitions"]["PageSplitParams"];
+        assert_eq!(split["properties"]["cols"]["default"], 2);
+        assert_eq!(split["properties"]["order"]["default"], "ltr");
+        // Trường có mặc định vẫn không bắt buộc, như trong file schema gốc.
+        assert!(
+            split
+                .get("required")
+                .is_none_or(|r| r.as_array().is_some_and(|r| r.is_empty()))
+        );
+        // Mọi mục trong file mặc định trỏ tới một trường có thật.
+        let defaults: serde_json::Value = serde_json::from_str(super::OPS_DEFAULTS).unwrap();
+        for (params, fields) in defaults.as_object().unwrap() {
+            for field in fields.as_object().unwrap().keys() {
+                assert!(
+                    schema["definitions"][params]["properties"]
+                        .get(field)
+                        .is_some(),
+                    "{params}.{field}"
+                );
+            }
+        }
     }
 
     const OPS_SCHEMA: &str = include_str!("../schema/ops.schema.json");

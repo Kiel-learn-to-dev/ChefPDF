@@ -577,6 +577,19 @@ pub fn parent_dir(path: &str) -> String {
     }
 }
 
+/// Nối thư mục và tên file theo kiểu dấu phân cách của thư mục đó.
+pub fn join_path(dir: &str, name: &str) -> String {
+    if dir.is_empty() {
+        return name.to_string();
+    }
+    let sep = if dir.contains('\\') { '\\' } else { '/' };
+    if dir.ends_with(['\\', '/']) {
+        format!("{dir}{name}")
+    } else {
+        format!("{dir}{sep}{name}")
+    }
+}
+
 /// Mở thư mục chứa file và chọn file đó (Explorer trên Windows, Finder trên macOS).
 pub fn reveal_in_folder(path: &str) {
     #[cfg(windows)]
@@ -698,5 +711,9 @@ mod tests {
         assert_eq!(parent_dir(r"C:\docs\a.pdf"), r"C:\docs");
         assert_eq!(parent_dir("/a.pdf"), "/");
         assert_eq!(parent_dir("a.pdf"), "");
+        assert_eq!(join_path(r"C:\docs", "a.pdf"), r"C:\docs\a.pdf");
+        assert_eq!(join_path(r"C:\docs\", "a.pdf"), r"C:\docs\a.pdf");
+        assert_eq!(join_path("/tmp", "a.pdf"), "/tmp/a.pdf");
+        assert_eq!(join_path("", "a.pdf"), "a.pdf");
     }
 }

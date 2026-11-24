@@ -1,0 +1,909 @@
+{
+  "AnchorPlacement": {
+    "position": "below",
+    "offsetX": 0.0,
+    "offsetY": 0.0,
+    "align": "center",
+    "ignoreDiacritics": true,
+    "whichMatch": "first",
+    "onMissing": "skip",
+    "fallbackCorner": "bottom-right",
+    "fallbackPage": "last",
+    "fallbackMargin": 36.0
+  },
+  "AnnotsAddFreeTextParams": {
+    "fontSize": 12.0,
+    "color": "#000000",
+    "borderColor": "#000000",
+    "borderWidth": 0.0,
+    "author": ""
+  },
+  "AnnotsAddInkParams": {
+    "width": 2.0,
+    "opacity": 1.0,
+    "author": ""
+  },
+  "AnnotsAddNoteParams": {
+    "author": "",
+    "icon": "Note",
+    "opacity": 1.0
+  },
+  "AnnotsAddShapeParams": {
+    "width": 1.5,
+    "author": ""
+  },
+  "AnnotsAddTextMarkupParams": {
+    "allMatches": false,
+    "opacity": 1.0,
+    "contents": "",
+    "author": ""
+  },
+  "AnnotsExportParams": {
+    "format": "txt"
+  },
+  "AnnotsFlattenParams": {
+    "keepLinks": true,
+    "keepFormFields": true
+  },
+  "AnnotsReplyParams": {
+    "author": ""
+  },
+  "BackgroundRemoveParams": {
+    "mode": "remove"
+  },
+  "BackgroundStyle": {
+    "color": "#FFFFFF",
+    "opacity": 0.0
+  },
+  "BatchExportOutput": {
+    "mode": "suffix",
+    "suffix": "_export"
+  },
+  "BatchOutput": {
+    "mode": "suffix",
+    "suffix": "_signed"
+  },
+  "BatchRunParams": {
+    "parallel": 1,
+    "stopOnError": false
+  },
+  "BatesOutput": {
+    "mode": "suffix",
+    "suffix": "_bates"
+  },
+  "BookmarkNode": {
+    "open": true,
+    "bold": false,
+    "italic": false
+  },
+  "BookmarkView": {
+    "type": "fit"
+  },
+  "BookmarksFromPagesParams": {
+    "template": "Trang {page}",
+    "startNumber": 1,
+    "mode": "replace",
+    "dateFormat": "dd/MM/yyyy"
+  },
+  "BorderStyle": {
+    "color": "#1F3A93",
+    "width": 0.8
+  },
+  "ColorConvertParams": {
+    "threshold": 128,
+    "dithering": false,
+    "amount": 0.5,
+    "tolerance": 24
+  },
+  "CompressEstimateParams": {
+    "preset": "ebook",
+    "grayscale": false,
+    "removeMetadata": false,
+    "removeAttachments": false,
+    "removeAnnotations": false,
+    "flattenTransparency": false,
+    "subsetFonts": true
+  },
+  "CompressFileParams": {
+    "preset": "ebook",
+    "grayscale": false,
+    "removeMetadata": false,
+    "removeAttachments": false,
+    "removeAnnotations": false,
+    "flattenTransparency": false,
+    "subsetFonts": true
+  },
+  "CompressFitSizeParams": {
+    "preset": "ebook",
+    "grayscale": false,
+    "removeMetadata": false,
+    "removeAttachments": false,
+    "removeAnnotations": false,
+    "flattenTransparency": false,
+    "subsetFonts": true,
+    "minDpi": 72,
+    "minJpegQuality": 30
+  },
+  "CompressPdfParams": {
+    "preset": "ebook",
+    "grayscale": false,
+    "removeMetadata": false,
+    "removeAttachments": false,
+    "removeAnnotations": false,
+    "flattenTransparency": false,
+    "subsetFonts": true
+  },
+  "CompressToSizeParams": {
+    "preset": "ebook",
+    "grayscale": false,
+    "removeMetadata": false,
+    "removeAttachments": false,
+    "removeAnnotations": false,
+    "flattenTransparency": false,
+    "subsetFonts": true,
+    "minDpi": 72,
+    "minJpegQuality": 30
+  },
+  "ContentAdjustImageParams": {
+    "rotate": 0,
+    "flip": "none",
+    "grayscale": false,
+    "invert": false,
+    "brightness": 0,
+    "contrast": 0,
+    "saturation": 0,
+    "gamma": 1.0
+  },
+  "ContentDeleteParams": {
+    "flattenForms": false
+  },
+  "ContentDuplicateParams": {
+    "flattenForms": false,
+    "dx": 0.0,
+    "dy": 0.0
+  },
+  "ContentEraseRegionParams": {
+    "mode": "cut",
+    "color": "auto",
+    "includeText": true,
+    "includeImages": true,
+    "includeVectors": true,
+    "partial": true,
+    "imageFill": "transparent"
+  },
+  "ContentHitTestParams": {
+    "unit": "pt",
+    "includeForms": true
+  },
+  "ContentListObjectsParams": {
+    "includeForms": false
+  },
+  "ContentMoveParams": {
+    "flattenForms": false,
+    "dx": 0.0,
+    "dy": 0.0
+  },
+  "ContentRemoveSimilarParams": {
+    "scope": "all",
+    "toleranceMm": 2.0,
+    "dryRun": true
+  },
+  "ContentReorderParams": {
+    "flattenForms": false
+  },
+  "ContentReplaceImageParams": {
+    "fit": "contain",
+    "keepAspectBox": true
+  },
+  "ContentSetColorParams": {
+    "flattenForms": false
+  },
+  "ContentSetOpacityParams": {
+    "flattenForms": false
+  },
+  "ContentTransformParams": {
+    "flattenForms": false
+  },
+  "ContentViewByTypeParams": {
+    "solo": false
+  },
+  "ConvertImagesToPdfParams": {
+    "pageSize": "a4",
+    "marginMm": 10,
+    "orientation": "auto",
+    "fit": "fit"
+  },
+  "ConvertPdfToImagesParams": {
+    "format": "png",
+    "dpi": 150,
+    "color": "color",
+    "jpegQuality": 90,
+    "multiPageTiff": false,
+    "nameTemplate": "{name}_{page}"
+  },
+  "CropPage": {
+    "angle": 0
+  },
+  "DocAttachmentsAddParams": {
+    "replace": false
+  },
+  "DocExtractImagesParams": {
+    "nameTemplate": "{page}_{index}"
+  },
+  "DocExtractTextParams": {
+    "pageMarkers": false
+  },
+  "DocSetMetadataParams": {
+    "clear": false
+  },
+  "ExportBatchParams": {
+    "stopOnError": false
+  },
+  "ExportDocumentParams": {
+    "replaceExisting": false
+  },
+  "ExportOptions": {
+    "includeHeadersFooters": false,
+    "includeImages": true,
+    "embedImages": false,
+    "pageMarkers": false,
+    "parseNumbers": true,
+    "chapterMode": "heading1",
+    "pagesPerChapter": 10,
+    "mode": "editable",
+    "pageBreaks": false,
+    "language": "vi",
+    "pageSize": "A4",
+    "fontScale": 1.0,
+    "margins": 56.0
+  },
+  "ExportRefreshParams": {
+    "replaceExisting": false
+  },
+  "FileSplitParams": {
+    "nameTemplate": "{name}_{index}"
+  },
+  "FileSplitSmartParams": {
+    "level": 1,
+    "ignoreCase": true,
+    "dropSeparatorPages": false,
+    "blankSensitivity": 0.5,
+    "nameTemplate": "{name}_{index}"
+  },
+  "FilesRenameBatchParams": {
+    "conflict": "suffix",
+    "dryRun": true
+  },
+  "FixedPlacement": {
+    "corner": "bottom-right",
+    "margin": 36.0,
+    "page": "last"
+  },
+  "FormsAddFieldParams": {
+    "required": false,
+    "readOnly": false,
+    "fontSize": 0.0,
+    "textColour": "#000000",
+    "borderColour": "#000000",
+    "borderWidth": 1.0,
+    "alignment": 0,
+    "multiSelect": false
+  },
+  "FormsExportDataParams": {
+    "format": "json"
+  },
+  "FormsFillParams": {
+    "flatten": false,
+    "force": false,
+    "highlightRequired": false
+  },
+  "FormsFlattenParams": {
+    "keepSignatures": true,
+    "removeJavascript": true
+  },
+  "FormsImportDataParams": {
+    "force": false
+  },
+  "ImageCleanupParams": {
+    "minBlobPx": 0,
+    "straighten": false,
+    "maxTilt": 15.0,
+    "thicken": 0,
+    "contrast": 1.0,
+    "brightness": 0,
+    "flipH": false
+  },
+  "ImageFromStrokesParams": {
+    "colorHex": "#1F3A93",
+    "minWidth": 1.5,
+    "maxWidth": 6.0,
+    "padding": 8
+  },
+  "ImageRemoveBackgroundParams": {
+    "mode": "auto",
+    "inkColor": "auto",
+    "tolerance": 60,
+    "sensitivity": 50,
+    "feather": 1.0,
+    "padding": 4
+  },
+  "ImageSeparateColorsParams": {
+    "mode": "layers"
+  },
+  "ImageSlot": {
+    "fit": "contain",
+    "opacity": 1.0
+  },
+  "ImageTextSignatureParams": {
+    "fontName": "BeVietnamPro",
+    "sizePx": 96,
+    "colorHex": "#1F3A93",
+    "slantDeg": 0.0,
+    "padding": 6
+  },
+  "LayersRemoveParams": {
+    "deleteContent": false
+  },
+  "LayoutAnalyzeParams": {
+    "dropRepeated": true,
+    "joinAcrossPages": true,
+    "detectTables": true,
+    "borderlessTables": false,
+    "joinTables": true,
+    "includeModel": false
+  },
+  "LayoutPageModelParams": {
+    "context": false
+  },
+  "Levels": {
+    "black": 0,
+    "white": 255,
+    "gamma": 1.0
+  },
+  "LinksAddParams": {
+    "view": "fit",
+    "borderWidth": 0.0,
+    "highlight": "invert"
+  },
+  "LinksAutoDetectParams": {
+    "skipExisting": true
+  },
+  "LinksRemoveParams": {
+    "all": false
+  },
+  "Margins": {
+    "top": 10.0,
+    "bottom": 10.0,
+    "left": 20.0,
+    "right": 20.0
+  },
+  "NamingApplyParams": {
+    "conflict": "suffix"
+  },
+  "NamingPreviewParams": {
+    "conflict": "suffix"
+  },
+  "OverlayAddImageParams": {
+    "unit": "pt",
+    "anchor": "top-left",
+    "rotation": 0.0,
+    "opacity": 1.0,
+    "under": false
+  },
+  "OverlayAddTextParams": {
+    "unit": "pt",
+    "anchor": "top-left",
+    "rotation": 0.0,
+    "opacity": 1.0,
+    "under": false,
+    "fontName": "BeVietnamPro",
+    "fontSize": 12.0,
+    "bold": false,
+    "color": "#000000",
+    "align": "left",
+    "lineHeight": 1.2
+  },
+  "OverlayBarcodeParams": {
+    "unit": "mm",
+    "anchor": "top-left",
+    "rotation": 0.0,
+    "opacity": 1.0,
+    "under": false,
+    "kind": "code128",
+    "moduleWidth": 0.33,
+    "height": 15.0,
+    "quietZone": 10,
+    "color": "#000000",
+    "labelFontSize": 8.0,
+    "fontName": "BeVietnamPro",
+    "startNumber": 1,
+    "dateFormat": "dd/MM/yyyy"
+  },
+  "OverlayBatesParams": {
+    "prefix": "",
+    "suffix": "",
+    "startNumber": 1,
+    "digits": 6,
+    "position": "bottom-right",
+    "fontName": "BeVietnamPro",
+    "fontSize": 9.0,
+    "bold": false,
+    "color": "#000000",
+    "opacity": 1.0,
+    "stopOnError": false
+  },
+  "OverlayHeaderFooterParams": {
+    "fontName": "BeVietnamPro",
+    "fontSize": 10.0,
+    "bold": false,
+    "color": "#000000",
+    "opacity": 1.0,
+    "dateFormat": "dd/MM/yyyy",
+    "skipFirst": false,
+    "startNumber": 1,
+    "mirrorOddEven": false,
+    "batesPrefix": "",
+    "batesSuffix": "",
+    "batesDigits": 6
+  },
+  "OverlayLetterheadParams": {
+    "scaling": "fit",
+    "under": true
+  },
+  "OverlayPageNumbersParams": {
+    "numberFormat": "arabic",
+    "template": "{page}",
+    "position": "bottom-center",
+    "fontName": "BeVietnamPro",
+    "fontSize": 12.0,
+    "bold": false,
+    "color": "#000000",
+    "opacity": 1.0,
+    "startNumber": 1,
+    "skipFirst": false,
+    "writeLabels": false,
+    "dateFormat": "dd/MM/yyyy"
+  },
+  "OverlayQrCodeParams": {
+    "unit": "mm",
+    "anchor": "top-left",
+    "rotation": 0.0,
+    "opacity": 1.0,
+    "under": false,
+    "errorCorrection": "M",
+    "quietZone": 4,
+    "size": 25.0,
+    "color": "#000000",
+    "labelFontSize": 8.0,
+    "fontName": "BeVietnamPro",
+    "startNumber": 1,
+    "dateFormat": "dd/MM/yyyy"
+  },
+  "OverlayWatermarkParams": {
+    "fontName": "BeVietnamPro",
+    "fontSize": 60.0,
+    "bold": false,
+    "color": "#808080",
+    "opacity": 0.25,
+    "rotation": 45.0,
+    "mode": "center",
+    "spacing": 60.0,
+    "under": false
+  },
+  "PageCropParams": {
+    "scope": "all",
+    "mode": "cropbox",
+    "autoTrim": false,
+    "trimPaddingMm": 3,
+    "trimThreshold": 240,
+    "trimDpi": 50
+  },
+  "PageFindBlankParams": {
+    "sensitivity": 0.5,
+    "borderMm": 5,
+    "keepIfAnnotations": true
+  },
+  "PageMargins": {
+    "top": 0,
+    "bottom": 0,
+    "left": 0,
+    "right": 0
+  },
+  "PageRemoveBlankParams": {
+    "sensitivity": 0.5,
+    "borderMm": 5,
+    "keepIfAnnotations": true
+  },
+  "PageResizeParams": {
+    "scope": "all",
+    "size": "A4",
+    "fit": "scale"
+  },
+  "PageSplitParams": {
+    "rows": 1,
+    "cols": 2,
+    "overlapMm": 0,
+    "order": "ltr"
+  },
+  "PageimgAutoCropParams": {
+    "minConfidence": 0.6,
+    "paperSize": "auto",
+    "padding": 0,
+    "keepPageSize": false,
+    "jpegQuality": 80
+  },
+  "PageimgCropParams": {
+    "keepPageSize": false,
+    "jpegQuality": 80
+  },
+  "PageimgCropPreviewParams": {
+    "angle": 0
+  },
+  "PageimgDeskewParams": {
+    "mode": "auto",
+    "angle": 0.0,
+    "minConfidence": 0.5,
+    "jpegQuality": 80
+  },
+  "PageimgDewarpParams": {
+    "minConfidence": 0.35,
+    "jpegQuality": 88
+  },
+  "PageimgEnhanceParams": {
+    "whiten": false,
+    "whitenStrength": 0.8,
+    "denoise": false,
+    "denoiseStrength": 0.5,
+    "invert": false,
+    "grayscale": false,
+    "contrast": 0,
+    "brightness": 0,
+    "resizePage": false,
+    "jpegQuality": 80
+  },
+  "PageimgEnhancePreviewParams": {
+    "whiten": false,
+    "whitenStrength": 0.8,
+    "denoise": false,
+    "denoiseStrength": 0.5,
+    "invert": false,
+    "grayscale": false,
+    "contrast": 0,
+    "brightness": 0,
+    "resizePage": false,
+    "jpegQuality": 80
+  },
+  "PageimgEraseParams": {
+    "fill": "paper",
+    "jpegQuality": 80
+  },
+  "PageimgRemoveFingersParams": {
+    "mode": "auto",
+    "fill": "paper",
+    "jpegQuality": 80
+  },
+  "PageimgRemoveStainsParams": {
+    "minSaturation": 0.4,
+    "fill": "paper",
+    "jpegQuality": 80
+  },
+  "PageimgSplitSpreadParams": {
+    "mode": "auto",
+    "order": "ltr",
+    "gutterMargin": 0.01,
+    "minConfidence": 0.4,
+    "jpegQuality": 80
+  },
+  "PermissionFlags": {
+    "printLowRes": true,
+    "printHighRes": true,
+    "copyContent": true,
+    "modify": true,
+    "annotate": true,
+    "fillForms": true,
+    "assemble": true,
+    "accessibility": true
+  },
+  "PreflightCheckParams": {
+    "checkRevocation": "none"
+  },
+  "PreviewValues": {
+    "signerName": ""
+  },
+  "RedactApplyParams": {
+    "fill": "#000000",
+    "alsoMetadata": true,
+    "removeFromAnnotations": true
+  },
+  "RedactPattern": {
+    "ignoreDiacritics": true
+  },
+  "ReviewChange": {
+    "level": 1
+  },
+  "ScanEffects": {
+    "rotationDegrees": 0.0,
+    "noise": 0.0,
+    "paperTint": 0.0,
+    "tintColor": "#f4efe1",
+    "edgeShadow": 0.0,
+    "blur": 0.0,
+    "contrast": 1.0,
+    "brightness": 1.0,
+    "jitter": false
+  },
+  "ScanFitSizeParams": {
+    "dpi": 200,
+    "color": "gray",
+    "threshold": 128,
+    "dithering": false,
+    "jpegQuality": 75,
+    "stripMetadata": true,
+    "seed": 0,
+    "minDpi": 100,
+    "minJpegQuality": 30
+  },
+  "ScanPreviewParams": {
+    "dpi": 200,
+    "color": "gray",
+    "threshold": 128,
+    "dithering": false,
+    "jpegQuality": 75,
+    "stripMetadata": true,
+    "seed": 0
+  },
+  "ScanRasterizeParams": {
+    "dpi": 200,
+    "color": "gray",
+    "threshold": 128,
+    "dithering": false,
+    "jpegQuality": 75,
+    "stripMetadata": true,
+    "seed": 0
+  },
+  "SeparationLayer": {
+    "tolerance": 60
+  },
+  "SignBatchParams": {
+    "stopOnError": false,
+    "verifyAfter": false
+  },
+  "SignDriverScanParams": {
+    "probe": false
+  },
+  "SignFindAnchorsParams": {
+    "caseSensitive": false,
+    "ignoreDiacritics": true,
+    "wholeWord": true,
+    "maxResults": 200
+  },
+  "SignListStoreCertificatesParams": {
+    "store": "MY"
+  },
+  "SignOptions": {
+    "level": "B-B",
+    "digest": "sha256"
+  },
+  "SignPadesParams": {
+    "level": "B-B",
+    "digest": "sha256"
+  },
+  "SignPadesStoreParams": {
+    "level": "B-B",
+    "digest": "sha256"
+  },
+  "SignPadesTokenParams": {
+    "level": "B-B",
+    "digest": "sha256",
+    "confirmFinalTry": false
+  },
+  "SignPlaceFromAnchorParams": {
+    "position": "below",
+    "offsetX": 0.0,
+    "offsetY": 0.0,
+    "align": "center",
+    "gap": 4.0,
+    "clampToPage": true
+  },
+  "SignTemplatePreviewParams": {
+    "dpi": 144
+  },
+  "SignTrustAddParams": {
+    "group": "user"
+  },
+  "SignVerifyBatchParams": {
+    "checkRevocation": "soft",
+    "allowOffline": true,
+    "timeoutSeconds": 15,
+    "recursive": false,
+    "format": "csv"
+  },
+  "SignVerifyFileParams": {
+    "checkRevocation": "soft",
+    "allowOffline": true,
+    "timeoutSeconds": 15
+  },
+  "SignVerifyParams": {
+    "checkRevocation": "soft",
+    "allowOffline": true,
+    "timeoutSeconds": 15
+  },
+  "SignatureTemplate": {
+    "name": "Mặc định",
+    "layout": "text-only",
+    "header": "Ký số bởi",
+    "dateFormat": "dd/MM/yyyy HH:mm:ss",
+    "showTimezone": false,
+    "fontName": "BeVietnamPro",
+    "fontSize": 9,
+    "minFontSize": 5,
+    "autoShrink": true,
+    "bold": false,
+    "textColor": "#000000",
+    "align": "left",
+    "valign": "middle",
+    "padding": 4,
+    "checkmark": false,
+    "checkColor": "#1E8E3E",
+    "imageRatio": 0.35
+  },
+  "StampImageParams": {
+    "unit": "pt",
+    "anchor": "top-left",
+    "rotation": 0.0,
+    "opacity": 1.0,
+    "under": false,
+    "blendMultiply": false
+  },
+  "StampInitialsParams": {
+    "position": "bottom-right",
+    "marginMm": 10.0,
+    "widthMm": 25.0,
+    "fontSize": 14.0,
+    "fontName": "BeVietnamPro",
+    "bold": false,
+    "color": "#1F4E9A",
+    "opacity": 1.0,
+    "blendMultiply": false
+  },
+  "StampSeamParams": {
+    "side": "right",
+    "sliceMode": "even",
+    "cutFirstPage": true,
+    "vertical": "center",
+    "overlapMm": 0.0,
+    "opacity": 1.0,
+    "blendMultiply": false
+  },
+  "StampTextParams": {
+    "unit": "pt",
+    "anchor": "top-left",
+    "rotation": 0.0,
+    "opacity": 1.0,
+    "under": false,
+    "fontName": "BeVietnamPro",
+    "fontSize": 24.0,
+    "bold": true,
+    "color": "#C00000",
+    "borderWidth": 2.0,
+    "padding": 6.0,
+    "lineHeight": 1.2,
+    "blendMultiply": false
+  },
+  "StrokePointParams": {
+    "pressure": 1.0
+  },
+  "TemplateLine": {
+    "enabled": true
+  },
+  "TextCheckTextParams": {
+    "newText": "",
+    "keepStyle": true
+  },
+  "TextEditLineParams": {
+    "fontStrategy": "auto",
+    "keepStyle": true,
+    "fitWidth": "none"
+  },
+  "TextEditParagraphParams": {
+    "fontStrategy": "auto",
+    "keepStyle": true,
+    "align": "keep",
+    "lineSpacing": "keep",
+    "fontSize": "keep",
+    "color": "keep",
+    "bold": "keep",
+    "italic": "keep",
+    "boxWidth": "keep",
+    "indent": "keep"
+  },
+  "TextFindReplaceParams": {
+    "replace": "",
+    "caseSensitive": false,
+    "ignoreDiacritics": false,
+    "wholeWord": false,
+    "regex": false,
+    "preview": false,
+    "fontStrategy": "auto",
+    "keepStyle": true,
+    "fitWidth": "none"
+  },
+  "TextGetLinesParams": {
+    "includeArtifacts": false
+  },
+  "TextPreviewParagraphParams": {
+    "fontStrategy": "auto",
+    "keepStyle": true,
+    "align": "keep",
+    "lineSpacing": "keep",
+    "fontSize": "keep",
+    "color": "keep",
+    "bold": "keep",
+    "italic": "keep",
+    "boxWidth": "keep",
+    "indent": "keep"
+  },
+  "TextStyleParagraphParams": {
+    "fontStrategy": "auto",
+    "keepStyle": true,
+    "align": "keep",
+    "lineSpacing": "keep",
+    "fontSize": "keep",
+    "color": "keep",
+    "bold": "keep",
+    "italic": "keep",
+    "boxWidth": "keep",
+    "indent": "keep"
+  },
+  "TextZones": {
+    "left": "",
+    "center": "",
+    "right": ""
+  },
+  "TocFromHeadingsParams": {
+    "maxLevel": 3,
+    "minConfidence": 0.6,
+    "includeNumbering": true,
+    "mode": "replace"
+  },
+  "TocInsertPageParams": {
+    "maxLevel": 3,
+    "minConfidence": 0.6,
+    "includeNumbering": true,
+    "title": "Mục lục",
+    "placement": "front",
+    "pageSize": "source",
+    "dotLeader": true,
+    "pageNumberOffset": 0,
+    "fontScale": 1.0,
+    "linkEntries": true,
+    "addBookmark": false
+  },
+  "TocPreviewParams": {
+    "maxLevel": 3,
+    "minConfidence": 0.6,
+    "includeNumbering": true
+  },
+  "TokenSigner": {
+    "confirmFinalTry": false
+  },
+  "WatchMarkDoneParams": {
+    "status": "done"
+  },
+  "WatchScanParams": {
+    "settleSeconds": 3.0,
+    "pattern": "*.pdf"
+  },
+  "WatermarkRemoveParams": {
+    "all": false
+  },
+  "WorkflowOutput": {
+    "mode": "suffix",
+    "suffix": "_da-xu-ly",
+    "alsoSavePdf": false
+  },
+  "WorkflowRunParams": {
+    "stopOnError": false,
+    "dryRun": false
+  }
+}

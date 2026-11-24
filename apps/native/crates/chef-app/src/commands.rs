@@ -41,6 +41,8 @@ pub enum CommandAction {
     RemoveBlankPages,
     GridSplitPages,
     SmartSplitFile,
+    /// Hộp thoại sinh từ schema, chỉ số trong `op_dialog::OPS`.
+    Op(usize),
     SelectAllPages,
     InvertPageSelection,
     SelectOddPages,
@@ -88,6 +90,7 @@ impl CommandAction {
             Self::RemoveBlankPages => Box::new(v::OpenRemoveBlank),
             Self::GridSplitPages => Box::new(v::OpenGridSplit),
             Self::SmartSplitFile => Box::new(v::OpenSmartSplit),
+            Self::Op(_) => Box::new(v::OpenOpDialog),
             Self::SelectAllPages => Box::new(v::SelectAllPages),
             Self::InvertPageSelection => Box::new(v::InvertPageSelection),
             Self::SelectOddPages => Box::new(v::SelectOddPages),
@@ -549,12 +552,37 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
     ] {
         commands.register(command);
     }
+    for (index, spec) in crate::op_dialog::OPS.iter().enumerate() {
+        commands.register(
+            Command::new(
+                spec.id,
+                t(&spec.title_key()),
+                t(&format!("palette.group.{}", spec.group)),
+                A::Op(index),
+            )
+            .keywords(spec.keywords.iter().copied()),
+        );
+    }
     commands
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_schema_dialog_has_a_searchable_command() {
+        let registry = viewer_commands(|key| key.to_string());
+        for (index, spec) in crate::op_dialog::OPS.iter().enumerate() {
+            let found = registry
+                .all()
+                .iter()
+                .find(|c| c.id == spec.id)
+                .unwrap_or_else(|| panic!("thiếu lệnh {}", spec.id));
+            assert_eq!(found.action, CommandAction::Op(index));
+            assert!(found.is_available());
+        }
+    }
 
     fn commands() -> CommandRegistry {
         let mut registry = CommandRegistry::new();

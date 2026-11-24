@@ -825,6 +825,328 @@
     "outOfRange": "Some pages are outside the document.",
     "reversed": "The first page must come before the last page."
   },
+  "opDialog": {
+    "done": "Done",
+    "doneFiles": "Created {{count}} files.",
+    "clearList": "Clear list",
+    "untitled": "document",
+    "compress_pdf": {
+      "title": "Compress PDF",
+      "run": "Compress",
+      "description": "Reduce the size of \"{{name}}\": lower image resolution, drop unused objects. Can be undone."
+    },
+    "compress_file": {
+      "title": "Compress to a new file",
+      "run": "Compress",
+      "description": "Compress a PDF into a new file. The source is not changed."
+    },
+    "convert_pdfToImages": {
+      "title": "PDF → images",
+      "run": "Convert",
+      "description": "Export PDF pages as image files into a folder."
+    },
+    "convert_imagesToPdf": {
+      "title": "Images → PDF",
+      "run": "Convert",
+      "description": "Combine images into one PDF, one image per page."
+    },
+    "color_convert": {
+      "title": "Convert colours",
+      "run": "Convert",
+      "description": "Change the colours of \"{{name}}\": grayscale, black and white, ink saver or replace a colour. Can be undone."
+    },
+    "doc_extractImages": {
+      "title": "Extract images",
+      "run": "Extract",
+      "description": "Save the original images embedded in \"{{name}}\" as files."
+    },
+    "doc_extractText": {
+      "title": "Extract text",
+      "run": "Extract",
+      "description": "Save the text of \"{{name}}\" to a .txt file."
+    },
+    "doc_attachments_add": {
+      "title": "Add attachments",
+      "run": "Add",
+      "description": "Embed files into \"{{name}}\". Can be undone."
+    },
+    "doc_attachments_extract": {
+      "title": "Save attachments",
+      "run": "Save",
+      "description": "Save the files embedded in \"{{name}}\" to a folder."
+    },
+    "doc_setMetadata": {
+      "title": "Edit document properties",
+      "run": "Apply",
+      "description": "Edit the title, author, subject and keywords of \"{{name}}\". Can be undone."
+    },
+    "doc_optimizeWeb": {
+      "title": "Optimise for web",
+      "run": "Optimise",
+      "description": "Reorder the file so the first page opens fast over a network. Writes a new file."
+    },
+    "doc_repair": {
+      "title": "Repair a damaged PDF",
+      "run": "Repair",
+      "description": "Try to recover a file that will not open. The original is kept."
+    },
+    "scan_rasterize": {
+      "title": "Turn into a scan",
+      "run": "Convert",
+      "description": "Turn the pages of \"{{name}}\" into images like a scan. Text is no longer selectable. Can be undone."
+    },
+    "overlay_watermark": {
+      "title": "Watermark",
+      "run": "Add watermark",
+      "description": "Add faded text or an image to the pages of \"{{name}}\". It can be removed cleanly later."
+    },
+    "stamp_text": {
+      "title": "Text stamp",
+      "run": "Stamp",
+      "description": "Stamp text onto the selected pages of \"{{name}}\"."
+    },
+    "stamp_image": {
+      "title": "Image stamp",
+      "run": "Stamp",
+      "description": "Stamp an image onto the selected pages of \"{{name}}\"."
+    },
+    "stamp_seam": {
+      "title": "Seam stamp",
+      "run": "Apply seam stamp",
+      "description": "Slice one stamp into strips across the page edges of \"{{name}}\"."
+    },
+    "overlay_pageNumbers": {
+      "title": "Page numbers",
+      "run": "Number pages",
+      "description": "Add page numbers to \"{{name}}\". A preset for Decree 30/2020/ND-CP is included."
+    },
+    "overlay_qrCode": {
+      "title": "QR code",
+      "run": "Add QR code",
+      "description": "Place a QR code on the pages of \"{{name}}\"."
+    },
+    "overlay_barcode": {
+      "title": "Barcode",
+      "run": "Add barcode",
+      "description": "Place a barcode on the pages of \"{{name}}\"."
+    },
+    "overlay_letterhead": {
+      "title": "Letterhead",
+      "run": "Apply",
+      "description": "Overlay the pages of \"{{name}}\" with a letterhead page from another PDF."
+    },
+    "overlay_remove": {
+      "title": "Remove added overlays",
+      "run": "Remove",
+      "description": "Remove the watermarks, stamps and page numbers that Chef PDF added to \"{{name}}\"."
+    },
+    "watermark_remove": {
+      "title": "Remove watermark",
+      "run": "Remove",
+      "description": "Find and remove watermarks in \"{{name}}\". Can be undone."
+    },
+    "background_remove": {
+      "title": "Remove or replace page background",
+      "run": "Apply",
+      "description": "Remove the page background or replace it with another colour in \"{{name}}\". Can be undone."
+    },
+    "security_encrypt": {
+      "title": "Set password",
+      "run": "Set password",
+      "description": "Set an open password and a permissions password for \"{{name}}\". AES-256 encryption."
+    },
+    "security_decrypt": {
+      "title": "Remove password",
+      "run": "Remove password",
+      "description": "Remove protection from \"{{name}}\" when you know the password. There is no way to crack a password."
+    },
+    "export_document": {
+      "title": "Export document",
+      "run": "Export",
+      "description": "Analyse \"{{name}}\" and export it to another format."
+    },
+    "toc_insertPage": {
+      "title": "Insert table of contents",
+      "run": "Insert",
+      "description": "Detect headings in \"{{name}}\" and insert a contents page. Can be undone."
+    },
+    "bookmarks_fromPages": {
+      "title": "Bookmarks from pages",
+      "run": "Create",
+      "description": "Create bookmarks for the selected pages of \"{{name}}\" from a template. Can be undone."
+    },
+    "preflight_check": {
+      "title": "Pre-send check",
+      "run": "Check",
+      "description": "Run a check of \"{{name}}\": leftover metadata, hidden data, fonts, size and signatures."
+    },
+    "inspect_hiddenData": {
+      "title": "Inspect file",
+      "run": "Inspect",
+      "description": "See what \"{{name}}\" contains beyond the visible pages: metadata, JavaScript, attachments, hidden layers, comments."
+    },
+    "watermark_detect": {
+      "title": "Detect watermarks",
+      "run": "Detect",
+      "description": "Find the watermarks in \"{{name}}\" without changing anything."
+    },
+    "toc_preview": {
+      "title": "Preview contents entries",
+      "run": "Detect headings",
+      "description": "See the headings that would go into the contents of \"{{name}}\" before inserting."
+    },
+    "compress_estimate": {
+      "title": "Estimate compression",
+      "run": "Estimate",
+      "description": "Estimate the size of \"{{name}}\" after compressing with these settings, without changing the file."
+    },
+    "forms_detectFields": {
+      "title": "Detect form fields",
+      "run": "Detect",
+      "description": "Find regions of \"{{name}}\" that look like input fields (lines, boxes)."
+    },
+    "sign_verify": {
+      "title": "Verify signatures",
+      "run": "Verify",
+      "description": "Check the digital signatures of \"{{name}}\": integrity, certificate, revocation and timestamp."
+    },
+    "links_autoDetect": {
+      "title": "Detect links",
+      "run": "Detect links",
+      "description": "Find web addresses and emails in \"{{name}}\" and make them clickable. Can be undone."
+    },
+    "text_findReplace": {
+      "title": "Find and replace",
+      "run": "Replace",
+      "description": "Find text in \"{{name}}\" and replace it, keeping the formatting. Can be undone."
+    },
+    "pageimg_autoCrop": {
+      "title": "Auto crop",
+      "run": "Crop",
+      "description": "Find the sheet on each scanned page of \"{{name}}\" and crop to it. Unsure pages are reported."
+    },
+    "pageimg_deskew": {
+      "title": "Straighten pages",
+      "run": "Straighten",
+      "description": "Rotate skewed scanned pages of \"{{name}}\" upright."
+    },
+    "pageimg_dewarp": {
+      "title": "Flatten curved pages",
+      "run": "Flatten",
+      "description": "Flatten curved book pages in \"{{name}}\"."
+    },
+    "pageimg_enhance": {
+      "title": "Enhance page images",
+      "run": "Apply",
+      "description": "Whiten the background, remove noise and adjust contrast of scanned pages in \"{{name}}\"."
+    },
+    "pageimg_splitSpread": {
+      "title": "Split two-page spreads",
+      "run": "Split",
+      "description": "Split scanned pages that hold two book pages in \"{{name}}\" into two pages."
+    },
+    "pageimg_removeFingers": {
+      "title": "Remove fingers",
+      "run": "Remove",
+      "description": "Remove fingers that appear in the page images of \"{{name}}\"."
+    },
+    "pageimg_removeStains": {
+      "title": "Remove coloured stains",
+      "run": "Remove",
+      "description": "Remove stains within a colour range from the page images of \"{{name}}\"."
+    },
+    "image_cleanup": {
+      "title": "Clean up signature image",
+      "run": "Clean up",
+      "description": "Clean up a photographed signature: drop specks, straighten, thicken strokes."
+    },
+    "image_removeBackground": {
+      "title": "Remove image background",
+      "run": "Remove",
+      "description": "Remove the background of a signature or stamp image, leaving only the ink."
+    },
+    "image_textSignature": {
+      "title": "Text signature",
+      "run": "Create",
+      "description": "Create a signature image from a line of text in a handwriting style."
+    },
+    "sign_verifyFile": {
+      "title": "Verify a file's signatures",
+      "run": "Verify",
+      "description": "Check the digital signatures of any PDF file without opening it."
+    },
+    "sign_certInfo": {
+      "title": "Certificate details (.pfx)",
+      "run": "Read",
+      "description": "Read the details of a digital certificate in a .pfx or .p12 file."
+    },
+    "sign_trustList": {
+      "title": "Trusted root certificates",
+      "run": "List",
+      "description": "List the root certificates that Chef PDF trusts when verifying signatures."
+    },
+    "sign_trustAdd": {
+      "title": "Add trusted certificate",
+      "run": "Add",
+      "description": "Add a root certificate (.cer, .crt, .pem) to the trusted list."
+    },
+    "sign_trustRemove": {
+      "title": "Remove trusted certificate",
+      "run": "Remove",
+      "description": "Remove a root certificate from the trusted list by its SHA-256 fingerprint."
+    },
+    "sign_driverScan": {
+      "title": "Scan token drivers",
+      "run": "Scan",
+      "description": "Look for installed PKCS#11 drivers of USB tokens."
+    },
+    "sign_diagnoseToken": {
+      "title": "Diagnose token",
+      "run": "Diagnose",
+      "description": "Check the USB token step by step, from driver to certificate, to find what is broken."
+    },
+    "sign_listStoreCertificates": {
+      "title": "Windows store certificates",
+      "run": "List",
+      "description": "List personal certificates with a private key in the Windows certificate store."
+    },
+    "sign_listTokens": {
+      "title": "List tokens",
+      "run": "List",
+      "description": "List the USB tokens plugged in for the chosen driver."
+    },
+    "sign_extractRevision": {
+      "title": "Extract signed revision",
+      "run": "Extract",
+      "description": "Recover the version of a file just before a given signature."
+    },
+    "sign_verifyBatch": {
+      "title": "Verify signatures in bulk",
+      "run": "Verify",
+      "description": "Check the signatures of many files in a folder and write a report."
+    },
+    "watch_scan": {
+      "title": "Scan watched folder",
+      "run": "Scan",
+      "description": "Find new files in a watched folder, skipping those already handled."
+    },
+    "path": {
+      "folder": "folder of files",
+      "outputDirectory": "output folder",
+      "pfxPath": "pfx file",
+      "reportPath": "report file",
+      "ledgerPath": "ledger file",
+      "directory": "watched folder",
+      "modulePath": "PKCS#11 driver",
+      "inputPath": "source file",
+      "outputPath": "destination",
+      "outputDir": "output folder",
+      "path": "file",
+      "images": "images",
+      "paths": "files",
+      "sourcePath": "letterhead file"
+    }
+  },
   "schemaForm": {
     "pagesPlaceholder": "Example: 1-3, 5",
     "noChoice": "None",
@@ -843,6 +1165,230 @@
       "unsupported": "{{field}} cannot be entered in this form yet."
     },
     "options": {
+      "checkRevocation": {
+        "none": "Off",
+        "soft": "Check, ignore network errors",
+        "hard": "Require"
+      },
+      "fontStrategy": {
+        "auto": "Automatic",
+        "keep": "Keep the original font",
+        "replace": "Use another font"
+      },
+      "fitWidth": {
+        "none": "Leave as is",
+        "shrink": "Shrink to fit",
+        "track": "Tighten letter spacing"
+      },
+      "store": {
+        "MY": "Personal (MY)",
+        "CA": "Intermediate (CA)",
+        "ROOT": "Root (ROOT)"
+      },
+      "paperSize": {
+        "auto": "From the image",
+        "A4": "A4",
+        "A5": "A5",
+        "Letter": "Letter"
+      },
+      "PageimgDeskewParams": {
+        "mode": {
+          "auto": "Detect angle",
+          "angle": "Manual angle"
+        }
+      },
+      "PageimgSplitSpreadParams": {
+        "mode": {
+          "auto": "Detect gutter",
+          "x": "Manual position"
+        },
+        "order": {
+          "ltr": "Left to right",
+          "rtl": "Right to left"
+        }
+      },
+      "PageimgRemoveFingersParams": {
+        "mode": {
+          "auto": "Detect",
+          "mask": "From a mask"
+        }
+      },
+      "ImageRemoveBackgroundParams": {
+        "mode": {
+          "ink-color": "By ink colour",
+          "paper-white": "White paper",
+          "auto": "Automatic"
+        }
+      },
+      "SignTrustAddParams": {
+        "group": {
+          "vn-public-ca": "Vietnam public CA",
+          "vn-gov-ca": "Vietnam government CA",
+          "user": "User"
+        }
+      },
+      "SignVerifyBatchParams": {
+        "format": {
+          "csv": "CSV",
+          "xlsx": "Excel (.xlsx)"
+        }
+      },
+      "anchor": {
+        "top-left": "Top left",
+        "top-center": "Top centre",
+        "top-right": "Top right",
+        "center-left": "Centre left",
+        "center": "Centre",
+        "center-right": "Centre right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom centre",
+        "bottom-right": "Bottom right"
+      },
+      "color": {
+        "color": "Colour",
+        "gray": "Grayscale",
+        "bw": "Black and white"
+      },
+      "effectsPreset": {
+        "none": "None",
+        "light": "Light",
+        "photocopy": "Photocopy",
+        "old-paper": "Old paper"
+      },
+      "errorCorrection": {
+        "L": "L (low)",
+        "M": "M",
+        "Q": "Q",
+        "H": "H (high)"
+      },
+      "fit": {
+        "fit": "Fit",
+        "fill": "Fill",
+        "center": "Keep size, centre"
+      },
+      "orientation": {
+        "auto": "Auto",
+        "portrait": "Portrait",
+        "landscape": "Landscape"
+      },
+      "scaling": {
+        "none": "None",
+        "fit": "Fit to page"
+      },
+      "side": {
+        "right": "Right",
+        "left": "Left"
+      },
+      "vertical": {
+        "center": "Centre",
+        "top": "Top",
+        "bottom": "Bottom"
+      },
+      "unit": {
+        "pt": "pt",
+        "mm": "mm"
+      },
+      "preset": {
+        "screen": "Screen",
+        "ebook": "E-book",
+        "print": "Print",
+        "archive-light": "Light archive",
+        "custom": "Custom"
+      },
+      "placement": {
+        "front": "Front",
+        "back": "Back",
+        "afterPage": "After a page"
+      },
+      "position": {
+        "top-left": "Top left",
+        "top-center": "Top centre",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom centre",
+        "bottom-right": "Bottom right",
+        "outside-alternating": "Outside edge, alternating"
+      },
+      "ColorConvertParams": {
+        "mode": {
+          "gray": "Grayscale",
+          "blackwhite": "Black and white",
+          "ink-saver": "Ink saver",
+          "replace-color": "Replace a colour"
+        }
+      },
+      "BackgroundRemoveParams": {
+        "mode": {
+          "remove": "Remove",
+          "replaceColor": "Replace colour"
+        }
+      },
+      "BookmarksFromPagesParams": {
+        "mode": {
+          "replace": "Replace existing",
+          "append": "Append"
+        }
+      },
+      "OverlayWatermarkParams": {
+        "mode": {
+          "center": "Single, centred",
+          "tiled": "Tiled"
+        }
+      },
+      "ConvertPdfToImagesParams": {
+        "format": {
+          "png": "PNG",
+          "jpeg": "JPEG",
+          "tiff": "TIFF",
+          "webp": "WebP"
+        }
+      },
+      "ExportDocumentParams": {
+        "format": {
+          "md": "Markdown",
+          "html": "HTML",
+          "txt": "Plain text (.txt)",
+          "json": "JSON",
+          "epub": "EPUB",
+          "odt": "OpenDocument (.odt)",
+          "xlsx": "Excel (.xlsx)",
+          "docx": "Word (.docx)"
+        }
+      },
+      "OverlayBarcodeParams": {
+        "kind": {
+          "code128": "Code 128",
+          "ean13": "EAN-13",
+          "code39": "Code 39"
+        }
+      },
+      "OverlayRemoveParams": {
+        "kind": {
+          "text": "Text",
+          "image": "Image",
+          "watermark": "Watermark",
+          "stamp": "Stamp",
+          "header": "Header",
+          "footer": "Footer",
+          "number": "Page number",
+          "qr": "QR code",
+          "letterhead": "Letterhead"
+        }
+      },
+      "ConvertImagesToPdfParams": {
+        "pageSize": {
+          "fit-image": "Fit the image",
+          "a4": "A4",
+          "letter": "Letter",
+          "custom": "Custom"
+        }
+      },
+      "TocInsertPageParams": {
+        "pageSize": {
+          "source": "Same as source",
+          "a4": "A4"
+        }
+      },
       "PageSplitParams": {
         "order": {
           "ltr": "Left to right",
@@ -851,6 +1397,285 @@
       }
     },
     "fields": {
+      "checkRevocation": "Revocation check",
+      "maxBytes": "Maximum size (bytes)",
+      "allowOffline": "Allow offline checks",
+      "timeoutSeconds": "Timeout (seconds)",
+      "trustRootPaths": "Extra root certificates",
+      "skipExisting": "Skip existing links",
+      "find": "Find",
+      "caseSensitive": "Match case",
+      "ignoreDiacritics": "Ignore diacritics",
+      "wholeWord": "Whole word",
+      "regex": "Regular expression",
+      "preview": "Preview only",
+      "fontStrategy": "Font strategy",
+      "keepStyle": "Keep style",
+      "fitWidth": "When the new text is longer",
+      "paperSize": "Paper size",
+      "keepPageSize": "Keep page size",
+      "whiten": "Whiten background",
+      "whitenStrength": "Whitening strength",
+      "denoise": "Denoise",
+      "denoiseStrength": "Denoise strength",
+      "invert": "Invert",
+      "contrast": "Contrast",
+      "brightness": "Brightness",
+      "gutterMargin": "Gutter margin (px)",
+      "maskPng": "Mask PNG file",
+      "maskPngBase64": "Mask PNG (base64)",
+      "hueMin": "Minimum hue",
+      "hueMax": "Maximum hue",
+      "minSaturation": "Minimum saturation",
+      "minBlobPx": "Drop specks smaller than (px)",
+      "straighten": "Straighten",
+      "maxTilt": "Maximum tilt (degrees)",
+      "thicken": "Thicken strokes",
+      "maxWidth": "Maximum width (px)",
+      "maxHeight": "Maximum height (px)",
+      "flipH": "Flip horizontally",
+      "inkColor": "Ink colour",
+      "sensitivity": "Sensitivity",
+      "feather": "Feather",
+      "outputColor": "Output ink colour",
+      "fontPath": "Font file",
+      "sizePx": "Size (px)",
+      "colorHex": "Colour (hex)",
+      "slantDeg": "Slant (degrees)",
+      "pfxPath": "Certificate file (.pfx)",
+      "fingerprintSha256": "SHA-256 fingerprint",
+      "probe": "Probe each driver",
+      "modulePath": "PKCS#11 driver path",
+      "slotId": "Slot number",
+      "store": "Certificate store",
+      "fieldName": "Signature field name",
+      "reportPath": "Save report to",
+      "folder": "Folder of files",
+      "recursive": "Include subfolders",
+      "directory": "Watched folder",
+      "outputDirectory": "Output folder",
+      "ledgerPath": "Ledger file",
+      "settleSeconds": "Wait for the file to settle (s)",
+      "pattern": "File name pattern",
+      "PageimgDeskewParams": {
+        "mode": "Method",
+        "angle": "Manual angle (degrees)"
+      },
+      "PageimgSplitSpreadParams": {
+        "mode": "Split method",
+        "x": "Split position (0–1)",
+        "order": "Page order"
+      },
+      "PageimgRemoveFingersParams": {
+        "mode": "Method"
+      },
+      "ImageRemoveBackgroundParams": {
+        "mode": "Method"
+      },
+      "SignTrustAddParams": {
+        "group": "Group"
+      },
+      "SignVerifyBatchParams": {
+        "format": "Report format"
+      },
+      "SignVerifyParams": {
+        "trustRootPaths": "Extra root certificates"
+      },
+      "PageimgAutoCropParams": {
+        "padding": "Padding around the sheet (px)"
+      },
+      "addBookmark": "Add to bookmarks",
+      "afterPage": "After page",
+      "all": "Remove every watermark found",
+      "amount": "Lightness (%)",
+      "anchor": "Anchor",
+      "author": "Author",
+      "background": "Background colour",
+      "blendMultiply": "Multiply blend",
+      "bold": "Bold",
+      "borderColor": "Border colour",
+      "borderWidth": "Border width (pt)",
+      "candidateIds": "Watermark IDs to remove",
+      "clear": "Clear existing properties",
+      "color": "Colour",
+      "content": "Content",
+      "creationDate": "Creation date",
+      "creator": "Creator",
+      "custom": "Custom properties",
+      "customHeightMm": "Height (mm)",
+      "customWidthMm": "Width (mm)",
+      "cutFirstPage": "First page of each set also gets a strip",
+      "dateFormat": "Date format",
+      "dithering": "Dither images",
+      "dotLeader": "Dot leaders",
+      "dpi": "Resolution (dpi)",
+      "effects": "Effects",
+      "effectsPreset": "Scan effect",
+      "errorCorrection": "Error correction",
+      "even": "Even pages use page",
+      "fill": "Stamp fill",
+      "first": "First page uses page",
+      "fit": "Fit",
+      "flattenTransparency": "Flatten transparency",
+      "fontName": "Font",
+      "fontScale": "Font scale",
+      "fontSize": "Font size",
+      "format": "Format",
+      "grayscale": "Convert images to grayscale",
+      "group": "Group",
+      "groupSize": "Pages per set (0 = one set)",
+      "height": "Height",
+      "ids": "Overlay IDs to remove",
+      "images": "Images",
+      "includeNumbering": "Keep heading numbers",
+      "inputPassword": "Source password",
+      "inputPath": "Source file",
+      "jpegQuality": "JPEG quality",
+      "keywords": "Keywords",
+      "kind": "Kind",
+      "label": "Label",
+      "labelFontSize": "Label font size",
+      "lineHeight": "Line height",
+      "linkEntries": "Link each entry",
+      "marginMm": "Margin (mm)",
+      "margins": "Margins",
+      "maxImageDpi": "Maximum image resolution (dpi)",
+      "maxLevel": "Maximum heading level",
+      "minConfidence": "Minimum confidence",
+      "modDate": "Modified date",
+      "modelPath": "Analysed model file",
+      "moduleWidth": "Bar width",
+      "multiPageTiff": "Multi-page TIFF in one file",
+      "nameTemplate": "File name template",
+      "names": "Attachment names",
+      "numberFormat": "Number style",
+      "odd": "Odd pages use page",
+      "opacity": "Opacity (0–1)",
+      "options": "Export options",
+      "orientation": "Orientation",
+      "outputDir": "Output folder",
+      "overlapMm": "Strip overlap (mm)",
+      "ownerPassword": "Permissions password (owner)",
+      "padding": "Padding",
+      "pageMarkers": "Mark page boundaries",
+      "pageNumberOffset": "Page number offset",
+      "pageRange": "Page range",
+      "pageSize": "Page size",
+      "password": "Password",
+      "path": "File",
+      "paths": "Files",
+      "permissions": "Reader permissions",
+      "placement": "Contents page position",
+      "position": "Position",
+      "preset": "Preset",
+      "producer": "Producer",
+      "quietZone": "Quiet zone",
+      "recompressStreams": "Recompress streams",
+      "removeAnnotations": "Remove annotations",
+      "removeAttachments": "Remove attachments",
+      "removeMetadata": "Remove metadata",
+      "removeThumbnails": "Remove thumbnails",
+      "removeUnused": "Remove unused objects",
+      "replace": "Replace files with the same name",
+      "replaceExisting": "Overwrite existing file",
+      "rest": "Remaining pages use page",
+      "rotation": "Rotation (degrees)",
+      "scaleWidthMm": "Full stamp width (mm, 0 = original)",
+      "scaling": "Scaling",
+      "seed": "Random seed",
+      "side": "Edge",
+      "size": "Size",
+      "skipFirst": "Skip first page",
+      "skipPages": "Skip pages",
+      "sliceMode": "Slice mode",
+      "sourceColor": "Colour to replace",
+      "sourcePage": "Letterhead page",
+      "sourcePath": "Letterhead file",
+      "spacing": "Spacing",
+      "startNumber": "Start at",
+      "stripMetadata": "Strip metadata",
+      "subject": "Subject",
+      "subsetFonts": "Subset fonts",
+      "targetColor": "New colour",
+      "template": "Template",
+      "text": "Text",
+      "threshold": "Black-and-white threshold",
+      "title": "Title",
+      "tolerance": "Colour tolerance",
+      "under": "Place under content",
+      "unit": "Unit",
+      "useObjectStreams": "Use object streams",
+      "user": "Stamped by",
+      "userPassword": "Open password",
+      "vertical": "Vertical position",
+      "width": "Width",
+      "writeLabels": "Write page labels",
+      "x": "Horizontal position (x)",
+      "y": "Vertical position (y)",
+      "OverlayWatermarkParams": {
+        "path": "Watermark image (if using an image)",
+        "mode": "Layout",
+        "spacing": "Spacing between watermarks (pt)",
+        "opacity": "Opacity (0–1)"
+      },
+      "StampImageParams": {
+        "path": "Stamp image"
+      },
+      "StampSeamParams": {
+        "path": "Seam stamp image"
+      },
+      "ConvertPdfToImagesParams": {
+        "path": "PDF file",
+        "color": "Image colour",
+        "pages": "Pages to export (empty: all)"
+      },
+      "DocExtractImagesParams": {
+        "pages": "Pages (empty: all)"
+      },
+      "ColorConvertParams": {
+        "mode": "Conversion"
+      },
+      "BackgroundRemoveParams": {
+        "mode": "Background action",
+        "color": "New colour"
+      },
+      "BookmarksFromPagesParams": {
+        "mode": "When bookmarks exist",
+        "template": "Bookmark name template"
+      },
+      "OverlayBarcodeParams": {
+        "kind": "Barcode type"
+      },
+      "OverlayRemoveParams": {
+        "kind": "Overlay type",
+        "group": "Group (label)"
+      },
+      "ExportDocumentParams": {
+        "pages": "Pages (empty: all)",
+        "outputPath": "Save to"
+      },
+      "DocExtractTextParams": {
+        "outputPath": "Save text to"
+      },
+      "OverlayLetterheadParams": {
+        "pages": "Pages to overlay (empty: all)"
+      },
+      "OverlayPageNumbersParams": {
+        "template": "Text template (e.g. Page {page}/{pages})",
+        "preset": "Preset"
+      },
+      "ConvertImagesToPdfParams": {
+        "outputPath": "Save PDF to"
+      },
+      "DocOptimizeWebParams": {
+        "outputPath": "Save optimised file to"
+      },
+      "DocRepairParams": {
+        "outputPath": "Save repaired file to"
+      },
+      "CompressFileParams": {
+        "outputPath": "Save compressed file to"
+      },
       "PageSplitParams": {
         "pages": "Pages to split (empty: all)",
         "rows": "Rows",

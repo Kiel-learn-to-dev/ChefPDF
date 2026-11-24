@@ -103,6 +103,9 @@ pub struct FormSchema {
 pub enum FieldInput {
     Text(String),
     Bool(bool),
+    /// Công tắc chưa được bật hay tắt: không gửi giá trị, để lõi lấy theo mẫu thiết lập (`bool | null`
+    /// không có mặc định ở schema, ví dụ `removeUnused` của nén PDF).
+    Unset,
     /// Chỉ số trong `FieldKind::Choice`; `None` là chưa chọn.
     Choice(Option<usize>),
     Files(Vec<String>),
@@ -242,7 +245,9 @@ fn array_kind(root: &Value, name: &str, node: &Value) -> FieldKind {
                 min_items,
             }
         }
-        Some("string") if lower.ends_with("paths") || lower.ends_with("files") => {
+        Some("string")
+            if lower.ends_with("paths") || lower.ends_with("files") || lower == "images" =>
+        {
             FieldKind::FileList {
                 as_objects: false,
                 min_items,
@@ -288,8 +293,10 @@ impl FormSchema {
                 nullable,
                 title: text("title"),
                 description: text("description"),
-                default: outer
+                // `default` có thể nằm ở chính thuộc tính (khi nó là `$ref`) hoặc ở kiểu được trỏ tới.
+                default: prop
                     .get("default")
+                    .or_else(|| outer.get("default"))
                     .or_else(|| inner.get("default"))
                     .cloned(),
             });
@@ -419,6 +426,9 @@ pub fn humanize(name: &str) -> String {
 
 fn initial_input(field: &FieldSpec) -> FieldInput {
     match &field.kind {
+        FieldKind::Bool if field.nullable && field.default.is_none() && !field.required => {
+            FieldInput::Unset
+        }
         FieldKind::Bool => FieldInput::Bool(
             field
                 .default
@@ -459,9 +469,11 @@ fn build_field(field: &FieldSpec, input: &FieldInput) -> Result<Option<Value>, F
             }
         }
         (FieldKind::Bool, FieldInput::Bool(b)) => Ok(Some(Value::Bool(*b))),
+        (FieldKind::Bool, FieldInput::Unset) => empty(field.required),
         (FieldKind::Text { min_len, max_len }, FieldInput::Text(s)) => {
             if s.trim().is_empty() {
-                return empty(field.required || *min_len > 0);
+                // Để trống trường tùy chọn là không gửi; `minLength` chỉ áp khi có chữ.
+                return empty(field.required);
             }
             let len = s.chars().count();
             if len < *min_len {
@@ -526,7 +538,8 @@ fn build_field(field: &FieldSpec, input: &FieldInput) -> Result<Option<Value>, F
             FieldInput::Files(files),
         ) => {
             if files.is_empty() {
-                return if field.required || *min_items > 0 {
+                // Danh sách tùy chọn để trống là không gửi; `minItems` chỉ áp khi đã có phần tử.
+                return if field.required {
                     Err(FieldErrorKind::NoFiles((*min_items).max(1)))
                 } else {
                     Ok(None)
@@ -1052,6 +1065,31 @@ mod tests {
             // Mọi trường có điều khiển hoặc được đánh dấu "viết tay"; không trường nào mất.
             assert!(!schema.params_name.is_empty());
         }
+    }
+
+    #[test]
+    fn untouched_nullable_switches_and_empty_optional_text_are_not_sent() {
+        let schema = form("CompressPdfParams");
+        let removed = schema
+            .fields
+            .iter()
+            .find(|f| f.name == "removeUnused")
+            .unwrap();
+        assert!(removed.nullable && removed.default.is_none());
+        let built = schema.build(&schema.initial_inputs()).expect("hợp lệ");
+        // Công tắc `bool | null` chưa chạm vào thì lõi lấy theo mẫu thiết lập.
+        assert!(built.get("removeUnused").is_none());
+        let mut inputs = schema.initial_inputs();
+        inputs.insert("removeUnused".into(), FieldInput::Bool(false));
+        assert_eq!(schema.build(&inputs).unwrap()["removeUnused"], false);
+        // Chuỗi tùy chọn có minLength để trống thì bỏ qua, không báo thiếu.
+        let images = form("ConvertPdfToImagesParams");
+        let mut inputs = images.initial_inputs();
+        inputs.insert("path".into(), text("a.pdf"));
+        inputs.insert("outputDir".into(), text("out"));
+        inputs.insert("nameTemplate".into(), text(""));
+        let built = images.build(&inputs).expect("hợp lệ");
+        assert!(built.get("nameTemplate").is_none());
     }
 
     #[test]

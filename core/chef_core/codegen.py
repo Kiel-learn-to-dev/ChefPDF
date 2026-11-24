@@ -35,6 +35,7 @@ DEFAULT_WORKFLOW_OUTPUT = REPO_ROOT / "packages" / "contracts" / "src" / "genera
 DEFAULT_RUST_SCHEMA_OUTPUT = (
     REPO_ROOT / "apps" / "native" / "crates" / "chef-contracts" / "schema" / "ops.schema.json"
 )
+DEFAULT_RUST_DEFAULTS_OUTPUT = DEFAULT_RUST_SCHEMA_OUTPUT.with_name("ops.defaults.json")
 
 HEADER = """\
 /**
@@ -290,12 +291,8 @@ def _strip_defaults(node: Any) -> Any:
     return node
 
 
-def render_rust_schema() -> str:
-    """One draft-07 schema holding every operation's ``Params`` for Rust codegen (typify).
-
-    ``definitions`` has one ``<Op>Params`` per registered operation plus the shared ``$defs``.
-    ``apps/native/crates/chef-contracts/build.rs`` turns it into Rust structs.
-    """
+def _rust_root() -> Schema:
+    """The draft-07 root shared by the Rust schema and the Rust defaults file."""
     ops.load_builtin_ops()
     specs = sorted(ops.registry().values(), key=lambda s: s.id)
     definitions: dict[str, Schema] = {}
@@ -309,7 +306,7 @@ def render_rust_schema() -> str:
         if name in definitions:
             raise ValueError(f"operation params name clashes with a definition: {name}")
         definitions[name] = schema
-    root = {
+    root: Schema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "ChefOps",
         "description": (
@@ -318,6 +315,16 @@ def render_rust_schema() -> str:
         "type": "object",
         "definitions": dict(sorted(definitions.items())),
     }
+    return root
+
+
+def render_rust_schema() -> str:
+    """One draft-07 schema holding every operation's ``Params`` for Rust codegen (typify).
+
+    ``definitions`` has one ``<Op>Params`` per registered operation plus the shared ``$defs``.
+    ``apps/native/crates/chef-contracts/build.rs`` turns it into Rust structs.
+    """
+    root = _rust_root()
     return (
         json.dumps(
             _strip_defaults(_relax_colliding_enums(_to_draft7_refs(root))),
@@ -328,17 +335,40 @@ def render_rust_schema() -> str:
     )
 
 
+def render_rust_defaults() -> str:
+    """Field defaults that ``render_rust_schema`` strips, for the native dialog forms.
+
+    ``{ "<Params>": { "<field>": <default> } }``; fields whose default is null are left out (null
+    means "take the value from elsewhere", for example the compression preset). The forms show
+    these values so the dialog starts with what the core would apply, while the typed structs stay
+    free of them.
+    """
+    root = _rust_root()
+    defaults: dict[str, dict[str, Any]] = {}
+    for name, definition in sorted(root["definitions"].items()):
+        fields = {
+            prop: node["default"]
+            for prop, node in (definition.get("properties") or {}).items()
+            if isinstance(node, dict) and node.get("default") is not None
+        }
+        if fields:
+            defaults[name] = fields
+    return json.dumps(defaults, indent=2, ensure_ascii=False) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m chef_core.codegen")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--workflow-out", type=Path, default=DEFAULT_WORKFLOW_OUTPUT)
     parser.add_argument("--rust-schema-out", type=Path, default=DEFAULT_RUST_SCHEMA_OUTPUT)
+    parser.add_argument("--rust-defaults-out", type=Path, default=DEFAULT_RUST_DEFAULTS_OUTPUT)
     parser.add_argument("--check", action="store_true", help="fail if the file is outdated")
     parser.add_argument("--stdout", action="store_true", help="print instead of writing")
     args = parser.parse_args(argv)
     content = render()
     workflow_content = render_workflow()
     rust_schema_content = render_rust_schema()
+    rust_defaults_content = render_rust_defaults()
     if args.stdout:
         sys.stdout.write(content)
         return 0
@@ -348,6 +378,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.out == DEFAULT_OUTPUT:
             targets.append((args.workflow_out, workflow_content))
             targets.append((args.rust_schema_out, rust_schema_content))
+            targets.append((args.rust_defaults_out, rust_defaults_content))
         stale = False
         for target, expected in targets:
             current = target.read_text(encoding="utf-8") if target.is_file() else ""
@@ -359,6 +390,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.out == DEFAULT_OUTPUT:
         targets.append((args.workflow_out, workflow_content))
         targets.append((args.rust_schema_out, rust_schema_content))
+        targets.append((args.rust_defaults_out, rust_defaults_content))
     for target, expected in targets:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(expected, encoding="utf-8", newline="\n")

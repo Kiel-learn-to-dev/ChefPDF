@@ -1,0 +1,625 @@
+{
+  "compress.pdf": {
+    "op": "compress.pdf",
+    "params": {
+      "preset": "screen",
+      "grayscale": false,
+      "removeMetadata": false,
+      "removeAttachments": false,
+      "removeAnnotations": false,
+      "flattenTransparency": false,
+      "subsetFonts": true
+    }
+  },
+  "compress.file": {
+    "op": "compress.file",
+    "params": {
+      "preset": "print",
+      "grayscale": false,
+      "removeMetadata": false,
+      "removeAttachments": false,
+      "removeAnnotations": false,
+      "flattenTransparency": false,
+      "subsetFonts": true,
+      "inputPath": "{a}",
+      "outputPath": "{out}"
+    }
+  },
+  "convert.pdfToImages": {
+    "op": "convert.pdfToImages",
+    "params": {
+      "path": "{a}",
+      "pages": [
+        0,
+        1
+      ],
+      "format": "png",
+      "dpi": 72,
+      "color": "color",
+      "jpegQuality": 90,
+      "multiPageTiff": false,
+      "outputDir": "{dir}",
+      "nameTemplate": "{name}_{page}"
+    }
+  },
+  "convert.imagesToPdf": {
+    "op": "convert.imagesToPdf",
+    "params": {
+      "images": [
+        "{img}",
+        "{img}"
+      ],
+      "outputPath": "{out}",
+      "pageSize": "a4",
+      "marginMm": 10.0,
+      "orientation": "auto",
+      "fit": "fit"
+    }
+  },
+  "color.convert": {
+    "op": "color.convert",
+    "params": {
+      "mode": "gray",
+      "pages": [
+        0,
+        1
+      ],
+      "threshold": 128,
+      "dithering": false,
+      "amount": 0.5,
+      "tolerance": 24
+    }
+  },
+  "doc.extractImages": {
+    "op": "doc.extractImages",
+    "params": {
+      "outputDir": "{dir}",
+      "nameTemplate": "{page}_{index}"
+    }
+  },
+  "doc.extractText": {
+    "op": "doc.extractText",
+    "params": {
+      "outputPath": "{out}",
+      "pageMarkers": false
+    }
+  },
+  "doc.attachments.add": {
+    "op": "doc.attachments.add",
+    "params": {
+      "paths": [
+        "{att}"
+      ],
+      "replace": false
+    }
+  },
+  "doc.attachments.extract": {
+    "op": "doc.attachments.extract",
+    "params": {
+      "outputDir": "{dir}"
+    }
+  },
+  "doc.setMetadata": {
+    "op": "doc.setMetadata",
+    "params": {
+      "title": "Hợp đồng",
+      "author": "Nhóm dự án",
+      "keywords": "pdf, hợp đồng",
+      "clear": false
+    }
+  },
+  "doc.optimizeWeb": {
+    "op": "doc.optimizeWeb",
+    "params": {
+      "inputPath": "{a}",
+      "outputPath": "{out}"
+    }
+  },
+  "doc.repair": {
+    "op": "doc.repair",
+    "params": {
+      "inputPath": "{a}",
+      "outputPath": "{out}"
+    }
+  },
+  "scan.rasterize": {
+    "op": "scan.rasterize",
+    "params": {
+      "dpi": 100,
+      "color": "gray",
+      "threshold": 128,
+      "dithering": false,
+      "jpegQuality": 75,
+      "pages": [
+        0,
+        1
+      ],
+      "stripMetadata": true,
+      "seed": 0
+    }
+  },
+  "overlay.watermark": {
+    "op": "overlay.watermark",
+    "params": {
+      "text": "BẢN SAO",
+      "fontName": "BeVietnamPro",
+      "fontSize": 60.0,
+      "bold": false,
+      "color": "#808080",
+      "opacity": 0.3,
+      "rotation": 45.0,
+      "mode": "tiled",
+      "spacing": 60.0,
+      "under": false
+    }
+  },
+  "stamp.text": {
+    "op": "stamp.text",
+    "params": {
+      "x": 100.0,
+      "y": 120.0,
+      "unit": "pt",
+      "anchor": "top-left",
+      "rotation": 0.0,
+      "opacity": 1.0,
+      "under": false,
+      "text": "ĐÃ DUYỆT",
+      "fontName": "BeVietnamPro",
+      "fontSize": 24.0,
+      "bold": true,
+      "color": "#C00000",
+      "borderWidth": 2.0,
+      "padding": 6.0,
+      "lineHeight": 1.2,
+      "blendMultiply": false
+    }
+  },
+  "stamp.image": {
+    "op": "stamp.image",
+    "params": {
+      "x": 100.0,
+      "y": 120.0,
+      "unit": "pt",
+      "anchor": "top-left",
+      "rotation": 0.0,
+      "opacity": 1.0,
+      "under": false,
+      "path": "{img}",
+      "width": 40.0,
+      "blendMultiply": false
+    }
+  },
+  "stamp.seam": {
+    "op": "stamp.seam",
+    "params": {
+      "path": "{img}",
+      "side": "right",
+      "sliceMode": "even",
+      "cutFirstPage": true,
+      "overlapMm": 0.0,
+      "opacity": 1.0,
+      "blendMultiply": false
+    }
+  },
+  "overlay.pageNumbers": {
+    "op": "overlay.pageNumbers",
+    "params": {
+      "numberFormat": "arabic",
+      "template": "Trang {page}/{pages}",
+      "position": "bottom-center",
+      "fontName": "BeVietnamPro",
+      "fontSize": 12.0,
+      "bold": false,
+      "color": "#000000",
+      "opacity": 1.0,
+      "startNumber": 1,
+      "skipFirst": true,
+      "writeLabels": false,
+      "dateFormat": "dd/MM/yyyy"
+    }
+  },
+  "overlay.qrCode": {
+    "op": "overlay.qrCode",
+    "params": {
+      "x": 20.0,
+      "y": 20.0,
+      "unit": "mm",
+      "anchor": "top-left",
+      "rotation": 0.0,
+      "opacity": 1.0,
+      "under": false,
+      "content": "https://example.com",
+      "errorCorrection": "M",
+      "quietZone": 4,
+      "size": 25.0,
+      "color": "#000000",
+      "labelFontSize": 8.0,
+      "fontName": "BeVietnamPro",
+      "startNumber": 1,
+      "dateFormat": "dd/MM/yyyy"
+    }
+  },
+  "overlay.barcode": {
+    "op": "overlay.barcode",
+    "params": {
+      "x": 20.0,
+      "y": 20.0,
+      "unit": "mm",
+      "anchor": "top-left",
+      "rotation": 0.0,
+      "opacity": 1.0,
+      "under": false,
+      "kind": "code128",
+      "content": "ABC123",
+      "moduleWidth": 0.33,
+      "height": 15.0,
+      "quietZone": 10,
+      "color": "#000000",
+      "labelFontSize": 8.0,
+      "fontName": "BeVietnamPro",
+      "startNumber": 1,
+      "dateFormat": "dd/MM/yyyy"
+    }
+  },
+  "overlay.letterhead": {
+    "op": "overlay.letterhead",
+    "params": {
+      "sourcePath": "{a}",
+      "scaling": "fit",
+      "under": true
+    }
+  },
+  "overlay.remove": {
+    "op": "overlay.remove",
+    "params": {
+      "kind": "watermark"
+    }
+  },
+  "watermark.remove": {
+    "op": "watermark.remove",
+    "params": {
+      "all": true
+    }
+  },
+  "background.remove": {
+    "op": "background.remove",
+    "params": {
+      "mode": "remove"
+    }
+  },
+  "security.encrypt": {
+    "op": "security.encrypt",
+    "params": {
+      "userPassword": "1234",
+      "ownerPassword": "chu-file"
+    }
+  },
+  "security.decrypt": {
+    "op": "security.decrypt",
+    "params": {
+      "password": "1234"
+    }
+  },
+  "export.document": {
+    "op": "export.document",
+    "params": {
+      "format": "txt",
+      "outputPath": "{out}",
+      "replaceExisting": false
+    }
+  },
+  "toc.insertPage": {
+    "op": "toc.insertPage",
+    "params": {
+      "maxLevel": 2,
+      "minConfidence": 0.6,
+      "includeNumbering": true,
+      "title": "Mục lục",
+      "placement": "front",
+      "pageSize": "source",
+      "dotLeader": true,
+      "pageNumberOffset": 0,
+      "fontScale": 1.0,
+      "linkEntries": true,
+      "addBookmark": false
+    }
+  },
+  "preflight.check": {
+    "op": "preflight.check",
+    "params": {
+      "checkRevocation": "none"
+    }
+  },
+  "inspect.hiddenData": {
+    "op": "inspect.hiddenData",
+    "params": {}
+  },
+  "watermark.detect": {
+    "op": "watermark.detect",
+    "params": {}
+  },
+  "toc.preview": {
+    "op": "toc.preview",
+    "params": {
+      "maxLevel": 2,
+      "minConfidence": 0.6,
+      "includeNumbering": true
+    }
+  },
+  "compress.estimate": {
+    "op": "compress.estimate",
+    "params": {
+      "preset": "screen",
+      "grayscale": false,
+      "removeMetadata": false,
+      "removeAttachments": false,
+      "removeAnnotations": false,
+      "flattenTransparency": false,
+      "subsetFonts": true
+    }
+  },
+  "forms.detectFields": {
+    "op": "forms.detectFields",
+    "params": {
+      "pages": [
+        0
+      ]
+    }
+  },
+  "sign.verify": {
+    "op": "sign.verify",
+    "params": {
+      "checkRevocation": "soft",
+      "allowOffline": true,
+      "timeoutSeconds": 15
+    }
+  },
+  "links.autoDetect": {
+    "op": "links.autoDetect",
+    "params": {
+      "skipExisting": true
+    }
+  },
+  "text.findReplace": {
+    "op": "text.findReplace",
+    "params": {
+      "find": "Noi dung",
+      "replace": "Van ban",
+      "caseSensitive": false,
+      "ignoreDiacritics": false,
+      "wholeWord": false,
+      "regex": false,
+      "pages": [
+        0,
+        1
+      ],
+      "preview": false,
+      "fontStrategy": "auto",
+      "keepStyle": true,
+      "fitWidth": "none"
+    }
+  },
+  "pageimg.autoCrop": {
+    "op": "pageimg.autoCrop",
+    "params": {
+      "pages": [
+        0,
+        1
+      ],
+      "minConfidence": 0.6,
+      "paperSize": "A4",
+      "padding": 0,
+      "keepPageSize": false,
+      "jpegQuality": 80
+    }
+  },
+  "pageimg.deskew": {
+    "op": "pageimg.deskew",
+    "params": {
+      "pages": [
+        0,
+        1
+      ],
+      "mode": "auto",
+      "angle": 0.0,
+      "minConfidence": 0.5,
+      "jpegQuality": 80
+    }
+  },
+  "pageimg.dewarp": {
+    "op": "pageimg.dewarp",
+    "params": {
+      "pages": [
+        0
+      ],
+      "minConfidence": 0.35,
+      "jpegQuality": 88
+    }
+  },
+  "pageimg.enhance": {
+    "op": "pageimg.enhance",
+    "params": {
+      "pages": [
+        0,
+        1
+      ],
+      "whiten": true,
+      "whitenStrength": 0.8,
+      "denoise": true,
+      "denoiseStrength": 0.5,
+      "invert": false,
+      "grayscale": false,
+      "contrast": 0.0,
+      "brightness": 0.0,
+      "resizePage": false,
+      "jpegQuality": 80
+    }
+  },
+  "pageimg.splitSpread": {
+    "op": "pageimg.splitSpread",
+    "params": {
+      "mode": "auto",
+      "order": "ltr",
+      "gutterMargin": 0.01,
+      "minConfidence": 0.4,
+      "jpegQuality": 80
+    }
+  },
+  "pageimg.removeFingers": {
+    "op": "pageimg.removeFingers",
+    "params": {
+      "mode": "auto",
+      "fill": "paper",
+      "jpegQuality": 80
+    }
+  },
+  "pageimg.removeStains": {
+    "op": "pageimg.removeStains",
+    "params": {
+      "pages": [
+        0
+      ],
+      "hueMin": 20.0,
+      "hueMax": 40.0,
+      "minSaturation": 0.4,
+      "fill": "paper",
+      "jpegQuality": 80
+    }
+  },
+  "image.cleanup": {
+    "op": "image.cleanup",
+    "params": {
+      "inputPath": "{img}",
+      "outputPath": "{out}",
+      "minBlobPx": 0,
+      "straighten": true,
+      "maxTilt": 15.0,
+      "thicken": 0,
+      "contrast": 1.0,
+      "brightness": 0,
+      "flipH": false
+    }
+  },
+  "image.removeBackground": {
+    "op": "image.removeBackground",
+    "params": {
+      "inputPath": "{img}",
+      "outputPath": "{out}",
+      "mode": "auto",
+      "inkColor": "auto",
+      "tolerance": 60,
+      "sensitivity": 50,
+      "feather": 1.0,
+      "padding": 4
+    }
+  },
+  "image.textSignature": {
+    "op": "image.textSignature",
+    "params": {
+      "text": "Nguyen Van A",
+      "fontName": "BeVietnamPro",
+      "sizePx": 96,
+      "colorHex": "#1F3A93",
+      "slantDeg": 0.0,
+      "padding": 6,
+      "outputPath": "{out}"
+    }
+  },
+  "sign.verifyFile": {
+    "op": "sign.verifyFile",
+    "params": {
+      "checkRevocation": "soft",
+      "allowOffline": true,
+      "timeoutSeconds": 15,
+      "path": "{a}"
+    }
+  },
+  "sign.certInfo": {
+    "op": "sign.certInfo",
+    "params": {
+      "pfxPath": "{pfx}",
+      "password": "mat-khau"
+    }
+  },
+  "sign.trustList": {
+    "op": "sign.trustList",
+    "params": {}
+  },
+  "sign.trustAdd": {
+    "op": "sign.trustAdd",
+    "params": {
+      "path": "{cer}",
+      "group": "user"
+    }
+  },
+  "sign.trustRemove": {
+    "op": "sign.trustRemove",
+    "params": {
+      "fingerprintSha256": "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+    }
+  },
+  "sign.driverScan": {
+    "op": "sign.driverScan",
+    "params": {
+      "probe": false
+    }
+  },
+  "sign.diagnoseToken": {
+    "op": "sign.diagnoseToken",
+    "params": {}
+  },
+  "sign.listStoreCertificates": {
+    "op": "sign.listStoreCertificates",
+    "params": {
+      "store": "MY"
+    }
+  },
+  "sign.listTokens": {
+    "op": "sign.listTokens",
+    "params": {
+      "modulePath": "{dll}"
+    }
+  },
+  "sign.extractRevision": {
+    "op": "sign.extractRevision",
+    "params": {
+      "path": "{a}",
+      "fieldName": "Signature1",
+      "outputPath": "{out}"
+    }
+  },
+  "sign.verifyBatch": {
+    "op": "sign.verifyBatch",
+    "params": {
+      "checkRevocation": "soft",
+      "allowOffline": true,
+      "timeoutSeconds": 15,
+      "folder": "{dir}",
+      "recursive": false,
+      "reportPath": "{rep}",
+      "format": "csv"
+    }
+  },
+  "watch.scan": {
+    "op": "watch.scan",
+    "params": {
+      "directory": "{dir}",
+      "ledgerPath": "{led}",
+      "settleSeconds": 3.0,
+      "pattern": "*.pdf"
+    }
+  },
+  "bookmarks.fromPages": {
+    "op": "bookmarks.fromPages",
+    "params": {
+      "pages": [
+        0,
+        1
+      ],
+      "template": "Trang {page}",
+      "startNumber": 1,
+      "mode": "replace",
+      "dateFormat": "dd/MM/yyyy"
+    }
+  }
+}

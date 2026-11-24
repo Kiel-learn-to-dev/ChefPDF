@@ -92,6 +92,7 @@ actions!(
         OpenRemoveBlank,
         OpenGridSplit,
         OpenSmartSplit,
+        OpenOpDialog,
         SelectAllPages,
         InvertPageSelection,
         SelectOddPages,
@@ -485,6 +486,11 @@ enum FormControlState {
     },
 }
 
+/// Chỉ số hộp thoại sinh từ schema mà lệnh vừa chọn muốn mở; bảng lệnh đặt trước khi gửi `OpenOpDialog`.
+pub struct PendingOp(pub usize);
+
+impl gpui::Global for PendingOp {}
+
 /// Hộp thoại xử lý M5 đang mở: view để vẽ và đăng ký nghe sự kiện của nó.
 struct ProcessHost {
     view: gpui::AnyView,
@@ -500,6 +506,8 @@ enum ProcessKind {
     RemoveBlank,
     GridSplit,
     SmartSplit,
+    /// Hộp thoại sinh từ schema, chỉ số trong `op_dialog::OPS`.
+    Op(usize),
 }
 
 enum OperationResult {
@@ -1390,9 +1398,19 @@ impl Viewer {
             kind,
             ProcessKind::Crop | ProcessKind::RemoveBlank | ProcessKind::GridSplit
         );
-        if kind != ProcessKind::Merge && self.page_sizes.is_empty() {
+        let op_spec = match kind {
+            ProcessKind::Op(index) => crate::op_dialog::OPS.get(index),
+            _ => None,
+        };
+        let needs_document = match (kind, op_spec) {
+            (ProcessKind::Merge, _) => false,
+            (ProcessKind::Op(_), Some(spec)) => spec.needs_document(),
+            _ => true,
+        };
+        if needs_document && self.page_sizes.is_empty() {
             return;
         }
+        let edits_pages = edits_pages || op_spec.is_some_and(|spec| spec.edits_document());
         if edits_pages && self.document_signed {
             self.message = Some(i18n::t("pageTools.signedBlocked"));
             cx.notify();
@@ -1440,6 +1458,14 @@ impl Viewer {
             ProcessKind::GridSplit => {
                 let entity =
                     cx.new(|cx| crate::split_page::GridSplitDialog::new(ctx, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::Op(_) => {
+                let Some(spec) = op_spec else {
+                    return;
+                };
+                let entity = cx.new(|cx| crate::op_dialog::OpDialog::new(spec, ctx, return_to, cx));
                 let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
                 (entity.into(), sub)
             }
@@ -10407,6 +10433,12 @@ impl Render for Viewer {
                 }))
                 .on_action(cx.listener(|this, _: &OpenGridSplit, window, cx| {
                     this.open_process(ProcessKind::GridSplit, window, cx)
+                }))
+                .on_action(cx.listener(|this, _: &OpenOpDialog, window, cx| {
+                    let index = cx.try_global::<PendingOp>().map(|p| p.0);
+                    if let Some(index) = index {
+                        this.open_process(ProcessKind::Op(index), window, cx);
+                    }
                 }))
                 .on_action(cx.listener(|this, _: &OpenSmartSplit, window, cx| {
                     this.open_process(ProcessKind::SmartSplit, window, cx)

@@ -56,6 +56,7 @@ mod night;
 pub mod notes;
 mod notes_list;
 mod objects;
+mod op_dialog;
 mod page_ops;
 mod page_range;
 mod password;

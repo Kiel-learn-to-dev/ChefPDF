@@ -818,6 +818,328 @@
     "outOfRange": "Có trang nằm ngoài tài liệu.",
     "reversed": "Trang bắt đầu phải nhỏ hơn trang kết thúc."
   },
+  "opDialog": {
+    "done": "Đã xong",
+    "doneFiles": "Đã tạo {{count}} file.",
+    "clearList": "Xóa danh sách",
+    "untitled": "tai-lieu",
+    "compress_pdf": {
+      "title": "Nén PDF",
+      "run": "Nén",
+      "description": "Giảm dung lượng \"{{name}}\": giảm độ phân giải ảnh, bỏ đối tượng thừa. Có thể hoàn tác."
+    },
+    "compress_file": {
+      "title": "Nén thành file mới",
+      "run": "Nén",
+      "description": "Nén một file PDF và ghi ra file mới, file gốc không đổi."
+    },
+    "convert_pdfToImages": {
+      "title": "PDF → ảnh",
+      "run": "Chuyển",
+      "description": "Xuất các trang của PDF thành file ảnh trong một thư mục."
+    },
+    "convert_imagesToPdf": {
+      "title": "Ảnh → PDF",
+      "run": "Chuyển",
+      "description": "Ghép nhiều ảnh thành một file PDF, mỗi ảnh một trang."
+    },
+    "color_convert": {
+      "title": "Chuyển màu",
+      "run": "Chuyển màu",
+      "description": "Đổi màu của \"{{name}}\": thang xám, đen trắng, tiết kiệm mực hoặc thay một màu. Có thể hoàn tác."
+    },
+    "doc_extractImages": {
+      "title": "Trích xuất ảnh",
+      "run": "Trích xuất",
+      "description": "Lưu các ảnh gốc nhúng trong \"{{name}}\" thành file."
+    },
+    "doc_extractText": {
+      "title": "Trích xuất văn bản",
+      "run": "Trích xuất",
+      "description": "Lưu văn bản của \"{{name}}\" thành file .txt."
+    },
+    "doc_attachments_add": {
+      "title": "Thêm file đính kèm",
+      "run": "Thêm",
+      "description": "Nhúng thêm file vào \"{{name}}\". Có thể hoàn tác."
+    },
+    "doc_attachments_extract": {
+      "title": "Lưu file đính kèm",
+      "run": "Lưu",
+      "description": "Lưu các file nhúng trong \"{{name}}\" ra thư mục."
+    },
+    "doc_setMetadata": {
+      "title": "Sửa thuộc tính tài liệu",
+      "run": "Áp dụng",
+      "description": "Sửa tiêu đề, tác giả, chủ đề và từ khóa của \"{{name}}\". Có thể hoàn tác."
+    },
+    "doc_optimizeWeb": {
+      "title": "Tối ưu cho web",
+      "run": "Tối ưu",
+      "description": "Sắp xếp lại file để trang đầu mở nhanh khi xem qua mạng. Ghi ra file mới."
+    },
+    "doc_repair": {
+      "title": "Sửa file PDF hỏng",
+      "run": "Thử sửa",
+      "description": "Thử khôi phục file không mở được. File gốc được giữ nguyên."
+    },
+    "scan_rasterize": {
+      "title": "Chuyển thành bản scan",
+      "run": "Chuyển đổi",
+      "description": "Biến các trang của \"{{name}}\" thành ảnh như bản quét. Chữ không còn chọn được. Có thể hoàn tác."
+    },
+    "overlay_watermark": {
+      "title": "Watermark",
+      "run": "Thêm watermark",
+      "description": "Thêm chữ hoặc ảnh mờ lên các trang của \"{{name}}\". Có thể gỡ sạch sau này."
+    },
+    "stamp_text": {
+      "title": "Con dấu chữ",
+      "run": "Đóng dấu",
+      "description": "Đóng dấu chữ lên các trang đã chọn của \"{{name}}\"."
+    },
+    "stamp_image": {
+      "title": "Con dấu ảnh",
+      "run": "Đóng dấu",
+      "description": "Đóng dấu bằng ảnh lên các trang đã chọn của \"{{name}}\"."
+    },
+    "stamp_seam": {
+      "title": "Dấu giáp lai",
+      "run": "Đóng dấu giáp lai",
+      "description": "Cắt một con dấu thành dải đều qua mép các trang của \"{{name}}\"."
+    },
+    "overlay_pageNumbers": {
+      "title": "Đánh số trang",
+      "run": "Đánh số",
+      "description": "Thêm số trang vào \"{{name}}\". Có sẵn mẫu theo Nghị định 30/2020/NĐ-CP."
+    },
+    "overlay_qrCode": {
+      "title": "Mã QR",
+      "run": "Thêm mã QR",
+      "description": "Đặt mã QR lên các trang của \"{{name}}\"."
+    },
+    "overlay_barcode": {
+      "title": "Mã vạch",
+      "run": "Thêm mã vạch",
+      "description": "Đặt mã vạch lên các trang của \"{{name}}\"."
+    },
+    "overlay_letterhead": {
+      "title": "Chồng lên giấy tiêu đề",
+      "run": "Chồng",
+      "description": "Chồng các trang của \"{{name}}\" lên một trang giấy tiêu đề lấy từ PDF khác."
+    },
+    "overlay_remove": {
+      "title": "Gỡ dấu đã thêm",
+      "run": "Gỡ",
+      "description": "Gỡ các watermark, con dấu, số trang… mà Chef PDF đã thêm vào \"{{name}}\"."
+    },
+    "watermark_remove": {
+      "title": "Gỡ watermark tự động",
+      "run": "Gỡ",
+      "description": "Tìm và gỡ watermark trong \"{{name}}\". Có thể hoàn tác."
+    },
+    "background_remove": {
+      "title": "Gỡ hoặc đổi nền trang",
+      "run": "Áp dụng",
+      "description": "Gỡ nền trang hoặc đổi sang màu khác trên \"{{name}}\". Có thể hoàn tác."
+    },
+    "security_encrypt": {
+      "title": "Đặt mật khẩu",
+      "run": "Đặt mật khẩu",
+      "description": "Đặt mật khẩu mở file và mật khẩu quyền cho \"{{name}}\". Mã hóa AES-256."
+    },
+    "security_decrypt": {
+      "title": "Gỡ mật khẩu",
+      "run": "Gỡ mật khẩu",
+      "description": "Gỡ bảo vệ của \"{{name}}\" khi bạn đã biết mật khẩu. Không có cách bẻ mật khẩu."
+    },
+    "export_document": {
+      "title": "Xuất tài liệu",
+      "run": "Xuất",
+      "description": "Phân tích nội dung \"{{name}}\" và xuất sang định dạng khác."
+    },
+    "toc_insertPage": {
+      "title": "Tạo trang mục lục",
+      "run": "Chèn mục lục",
+      "description": "Dò tiêu đề trong \"{{name}}\" và chèn trang mục lục. Có thể hoàn tác."
+    },
+    "bookmarks_fromPages": {
+      "title": "Tạo bookmark từ trang",
+      "run": "Tạo bookmark",
+      "description": "Tạo bookmark cho các trang đã chọn của \"{{name}}\" theo mẫu. Có thể hoàn tác."
+    },
+    "preflight_check": {
+      "title": "Kiểm tra trước khi gửi",
+      "run": "Kiểm tra",
+      "description": "Chạy một lượt kiểm tra \"{{name}}\": metadata còn sót, dữ liệu ẩn, phông chữ, dung lượng, chữ ký."
+    },
+    "inspect_hiddenData": {
+      "title": "Soi file",
+      "run": "Soi file",
+      "description": "Xem \"{{name}}\" còn chứa gì ngoài các trang nhìn thấy: metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú."
+    },
+    "watermark_detect": {
+      "title": "Dò watermark",
+      "run": "Dò",
+      "description": "Tìm các watermark trong \"{{name}}\" mà không sửa gì."
+    },
+    "toc_preview": {
+      "title": "Dò tiêu đề cho mục lục",
+      "run": "Dò tiêu đề",
+      "description": "Xem danh sách tiêu đề sẽ vào mục lục của \"{{name}}\" trước khi chèn."
+    },
+    "compress_estimate": {
+      "title": "Ước tính nén",
+      "run": "Ước tính",
+      "description": "Ước tính dung lượng của \"{{name}}\" sau khi nén với thiết lập này, không sửa file."
+    },
+    "forms_detectFields": {
+      "title": "Dò ô biểu mẫu",
+      "run": "Dò",
+      "description": "Tìm các vùng có thể là ô nhập trong \"{{name}}\" (đường kẻ, ô vuông)."
+    },
+    "sign_verify": {
+      "title": "Kiểm tra chữ ký",
+      "run": "Kiểm tra",
+      "description": "Kiểm tra các chữ ký số của \"{{name}}\": toàn vẹn, chứng thư, thu hồi, dấu thời gian."
+    },
+    "links_autoDetect": {
+      "title": "Tự tìm liên kết",
+      "run": "Tìm liên kết",
+      "description": "Tìm địa chỉ web và email trong \"{{name}}\" rồi tạo liên kết bấm được. Có thể hoàn tác."
+    },
+    "text_findReplace": {
+      "title": "Tìm và thay thế",
+      "run": "Thay thế",
+      "description": "Tìm chữ trong \"{{name}}\" và thay bằng chữ khác, giữ định dạng. Có thể hoàn tác."
+    },
+    "pageimg_autoCrop": {
+      "title": "Tự dò viền và cắt",
+      "run": "Cắt",
+      "description": "Tìm tờ giấy trên mỗi trang ảnh của \"{{name}}\" và cắt theo đó. Trang không chắc chắn được báo lại."
+    },
+    "pageimg_deskew": {
+      "title": "Chỉnh nghiêng",
+      "run": "Chỉnh",
+      "description": "Xoay thẳng các trang ảnh bị nghiêng trong \"{{name}}\"."
+    },
+    "pageimg_dewarp": {
+      "title": "Làm phẳng trang cong",
+      "run": "Làm phẳng",
+      "description": "Làm phẳng các trang chụp sách bị cong trong \"{{name}}\"."
+    },
+    "pageimg_enhance": {
+      "title": "Làm đẹp ảnh trang",
+      "run": "Áp dụng",
+      "description": "Làm trắng nền, khử nhiễu, chỉnh tương phản các trang ảnh của \"{{name}}\"."
+    },
+    "pageimg_splitSpread": {
+      "title": "Tách trang đôi",
+      "run": "Tách",
+      "description": "Tách trang ảnh chứa hai trang sách của \"{{name}}\" thành hai trang."
+    },
+    "pageimg_removeFingers": {
+      "title": "Xóa ngón tay",
+      "run": "Xóa",
+      "description": "Xóa ngón tay lọt vào ảnh trang của \"{{name}}\"."
+    },
+    "pageimg_removeStains": {
+      "title": "Xóa vết bẩn theo màu",
+      "run": "Xóa",
+      "description": "Xóa vết bẩn có màu trong khoảng đã chọn trên các trang ảnh của \"{{name}}\"."
+    },
+    "image_cleanup": {
+      "title": "Làm sạch ảnh chữ ký",
+      "run": "Làm sạch",
+      "description": "Làm sạch ảnh chữ ký đã chụp: bỏ chấm bẩn, chỉnh nghiêng, làm đậm nét."
+    },
+    "image_removeBackground": {
+      "title": "Xóa nền ảnh",
+      "run": "Xóa nền",
+      "description": "Xóa nền của ảnh chữ ký hoặc con dấu để chỉ còn nét mực."
+    },
+    "image_textSignature": {
+      "title": "Tạo chữ ký từ chữ",
+      "run": "Tạo ảnh",
+      "description": "Tạo ảnh chữ ký từ một dòng chữ với kiểu chữ viết tay."
+    },
+    "sign_verifyFile": {
+      "title": "Kiểm tra chữ ký của một file",
+      "run": "Kiểm tra",
+      "description": "Kiểm tra chữ ký số của một file PDF bất kỳ, không cần mở file."
+    },
+    "sign_certInfo": {
+      "title": "Xem chứng thư (.pfx)",
+      "run": "Xem",
+      "description": "Đọc thông tin chứng thư số trong file .pfx hoặc .p12."
+    },
+    "sign_trustList": {
+      "title": "Danh sách chứng thư gốc tin cậy",
+      "run": "Xem",
+      "description": "Liệt kê các chứng thư gốc mà Chef PDF tin cậy khi kiểm tra chữ ký."
+    },
+    "sign_trustAdd": {
+      "title": "Thêm chứng thư gốc tin cậy",
+      "run": "Thêm",
+      "description": "Thêm một chứng thư gốc (.cer, .crt, .pem) vào danh sách tin cậy."
+    },
+    "sign_trustRemove": {
+      "title": "Gỡ chứng thư gốc tin cậy",
+      "run": "Gỡ",
+      "description": "Gỡ một chứng thư gốc khỏi danh sách tin cậy theo dấu vân tay SHA-256."
+    },
+    "sign_driverScan": {
+      "title": "Quét driver token",
+      "run": "Quét",
+      "description": "Tìm các driver PKCS#11 của USB token đã cài trên máy."
+    },
+    "sign_diagnoseToken": {
+      "title": "Chẩn đoán token",
+      "run": "Chẩn đoán",
+      "description": "Kiểm tra từng bước từ driver đến chứng thư của USB token để tìm chỗ hỏng."
+    },
+    "sign_listStoreCertificates": {
+      "title": "Chứng thư trong kho Windows",
+      "run": "Xem",
+      "description": "Liệt kê chứng thư cá nhân có khóa riêng trong kho chứng thư của Windows."
+    },
+    "sign_listTokens": {
+      "title": "Liệt kê token",
+      "run": "Xem",
+      "description": "Liệt kê các USB token cắm trên máy theo driver đã chọn."
+    },
+    "sign_extractRevision": {
+      "title": "Lấy bản trước khi ký",
+      "run": "Lấy",
+      "description": "Khôi phục phiên bản của file ngay trước một chữ ký."
+    },
+    "sign_verifyBatch": {
+      "title": "Kiểm tra chữ ký hàng loạt",
+      "run": "Kiểm tra",
+      "description": "Kiểm tra chữ ký của nhiều file trong một thư mục và ghi báo cáo."
+    },
+    "watch_scan": {
+      "title": "Quét thư mục theo dõi",
+      "run": "Quét",
+      "description": "Tìm file mới trong thư mục theo dõi, bỏ qua file đã xử lý."
+    },
+    "path": {
+      "folder": "thư mục chứa file",
+      "outputDirectory": "thư mục kết quả",
+      "pfxPath": "file .pfx",
+      "reportPath": "nơi lưu báo cáo",
+      "ledgerPath": "file sổ theo dõi",
+      "directory": "thư mục theo dõi",
+      "modulePath": "driver PKCS#11",
+      "inputPath": "file nguồn",
+      "outputPath": "nơi lưu",
+      "outputDir": "thư mục lưu",
+      "path": "file",
+      "images": "ảnh",
+      "paths": "file",
+      "sourcePath": "file giấy tiêu đề"
+    }
+  },
   "schemaForm": {
     "pagesPlaceholder": "Ví dụ: 1-3, 5",
     "noChoice": "Không chọn",
@@ -836,6 +1158,230 @@
       "unsupported": "Chưa hỗ trợ nhập {{field}} trong biểu mẫu này."
     },
     "options": {
+      "checkRevocation": {
+        "none": "Không kiểm tra",
+        "soft": "Kiểm tra, bỏ qua nếu lỗi mạng",
+        "hard": "Bắt buộc kiểm tra"
+      },
+      "fontStrategy": {
+        "auto": "Tự chọn",
+        "keep": "Giữ phông gốc",
+        "replace": "Dùng phông khác"
+      },
+      "fitWidth": {
+        "none": "Để nguyên",
+        "shrink": "Thu nhỏ chữ cho vừa",
+        "track": "Co khoảng cách chữ"
+      },
+      "store": {
+        "MY": "Cá nhân (MY)",
+        "CA": "Cấp trung gian (CA)",
+        "ROOT": "Gốc (ROOT)"
+      },
+      "paperSize": {
+        "auto": "Theo tỉ lệ ảnh",
+        "A4": "A4",
+        "A5": "A5",
+        "Letter": "Letter"
+      },
+      "PageimgDeskewParams": {
+        "mode": {
+          "auto": "Tự dò góc",
+          "angle": "Nhập góc"
+        }
+      },
+      "PageimgSplitSpreadParams": {
+        "mode": {
+          "auto": "Tự dò đường tách",
+          "x": "Theo vị trí nhập"
+        },
+        "order": {
+          "ltr": "Trái sang phải",
+          "rtl": "Phải sang trái"
+        }
+      },
+      "PageimgRemoveFingersParams": {
+        "mode": {
+          "auto": "Tự dò",
+          "mask": "Theo mặt nạ"
+        }
+      },
+      "ImageRemoveBackgroundParams": {
+        "mode": {
+          "ink-color": "Theo màu mực",
+          "paper-white": "Giấy trắng",
+          "auto": "Tự chọn"
+        }
+      },
+      "SignTrustAddParams": {
+        "group": {
+          "vn-public-ca": "CA công cộng Việt Nam",
+          "vn-gov-ca": "CA chuyên dùng Chính phủ",
+          "user": "Của người dùng"
+        }
+      },
+      "SignVerifyBatchParams": {
+        "format": {
+          "csv": "CSV",
+          "xlsx": "Excel (.xlsx)"
+        }
+      },
+      "anchor": {
+        "top-left": "Trên trái",
+        "top-center": "Trên giữa",
+        "top-right": "Trên phải",
+        "center-left": "Giữa trái",
+        "center": "Giữa",
+        "center-right": "Giữa phải",
+        "bottom-left": "Dưới trái",
+        "bottom-center": "Dưới giữa",
+        "bottom-right": "Dưới phải"
+      },
+      "color": {
+        "color": "Màu",
+        "gray": "Thang xám",
+        "bw": "Đen trắng"
+      },
+      "effectsPreset": {
+        "none": "Không",
+        "light": "Nhẹ",
+        "photocopy": "Photocopy",
+        "old-paper": "Giấy cũ"
+      },
+      "errorCorrection": {
+        "L": "L (thấp)",
+        "M": "M",
+        "Q": "Q",
+        "H": "H (cao)"
+      },
+      "fit": {
+        "fit": "Vừa trang",
+        "fill": "Lấp đầy",
+        "center": "Giữ cỡ, căn giữa"
+      },
+      "orientation": {
+        "auto": "Tự chọn",
+        "portrait": "Dọc",
+        "landscape": "Ngang"
+      },
+      "scaling": {
+        "none": "Giữ nguyên",
+        "fit": "Co vừa trang"
+      },
+      "side": {
+        "right": "Phải",
+        "left": "Trái"
+      },
+      "vertical": {
+        "center": "Giữa",
+        "top": "Trên",
+        "bottom": "Dưới"
+      },
+      "unit": {
+        "pt": "pt",
+        "mm": "mm"
+      },
+      "preset": {
+        "screen": "Xem trên màn hình",
+        "ebook": "Đọc sách điện tử",
+        "print": "In ấn",
+        "archive-light": "Lưu trữ nhẹ",
+        "custom": "Tùy chỉnh"
+      },
+      "placement": {
+        "front": "Đầu tài liệu",
+        "back": "Cuối tài liệu",
+        "afterPage": "Sau một trang"
+      },
+      "position": {
+        "top-left": "Trên trái",
+        "top-center": "Trên giữa",
+        "top-right": "Trên phải",
+        "bottom-left": "Dưới trái",
+        "bottom-center": "Dưới giữa",
+        "bottom-right": "Dưới phải",
+        "outside-alternating": "Mép ngoài, đổi bên theo trang"
+      },
+      "ColorConvertParams": {
+        "mode": {
+          "gray": "Thang xám",
+          "blackwhite": "Đen trắng",
+          "ink-saver": "Tiết kiệm mực",
+          "replace-color": "Thay một màu"
+        }
+      },
+      "BackgroundRemoveParams": {
+        "mode": {
+          "remove": "Gỡ nền",
+          "replaceColor": "Đổi sang màu khác"
+        }
+      },
+      "BookmarksFromPagesParams": {
+        "mode": {
+          "replace": "Thay bookmark hiện có",
+          "append": "Thêm vào cuối"
+        }
+      },
+      "OverlayWatermarkParams": {
+        "mode": {
+          "center": "Một watermark giữa trang",
+          "tiled": "Lát kín trang"
+        }
+      },
+      "ConvertPdfToImagesParams": {
+        "format": {
+          "png": "PNG",
+          "jpeg": "JPEG",
+          "tiff": "TIFF",
+          "webp": "WebP"
+        }
+      },
+      "ExportDocumentParams": {
+        "format": {
+          "md": "Markdown",
+          "html": "HTML",
+          "txt": "Văn bản (.txt)",
+          "json": "JSON",
+          "epub": "EPUB",
+          "odt": "OpenDocument (.odt)",
+          "xlsx": "Excel (.xlsx)",
+          "docx": "Word (.docx)"
+        }
+      },
+      "OverlayBarcodeParams": {
+        "kind": {
+          "code128": "Code 128",
+          "ean13": "EAN-13",
+          "code39": "Code 39"
+        }
+      },
+      "OverlayRemoveParams": {
+        "kind": {
+          "text": "Chữ",
+          "image": "Ảnh",
+          "watermark": "Watermark",
+          "stamp": "Con dấu",
+          "header": "Header",
+          "footer": "Footer",
+          "number": "Số trang",
+          "qr": "Mã QR",
+          "letterhead": "Giấy tiêu đề"
+        }
+      },
+      "ConvertImagesToPdfParams": {
+        "pageSize": {
+          "fit-image": "Vừa ảnh",
+          "a4": "A4",
+          "letter": "Letter",
+          "custom": "Tùy chỉnh"
+        }
+      },
+      "TocInsertPageParams": {
+        "pageSize": {
+          "source": "Theo trang gốc",
+          "a4": "A4"
+        }
+      },
       "PageSplitParams": {
         "order": {
           "ltr": "Trái sang phải",
@@ -844,6 +1390,285 @@
       }
     },
     "fields": {
+      "checkRevocation": "Kiểm tra thu hồi",
+      "maxBytes": "Dung lượng tối đa (byte)",
+      "allowOffline": "Cho phép kiểm tra không có mạng",
+      "timeoutSeconds": "Thời gian chờ (giây)",
+      "trustRootPaths": "Chứng thư gốc bổ sung",
+      "skipExisting": "Bỏ qua chỗ đã có liên kết",
+      "find": "Tìm",
+      "caseSensitive": "Phân biệt hoa thường",
+      "ignoreDiacritics": "Bỏ qua dấu tiếng Việt",
+      "wholeWord": "Nguyên từ",
+      "regex": "Biểu thức chính quy",
+      "preview": "Chỉ xem trước",
+      "fontStrategy": "Cách chọn phông",
+      "keepStyle": "Giữ kiểu chữ",
+      "fitWidth": "Khi chữ mới dài hơn",
+      "paperSize": "Khổ giấy",
+      "keepPageSize": "Giữ khổ trang",
+      "whiten": "Làm trắng nền",
+      "whitenStrength": "Mức làm trắng",
+      "denoise": "Khử nhiễu",
+      "denoiseStrength": "Mức khử nhiễu",
+      "invert": "Đảo màu",
+      "contrast": "Tương phản",
+      "brightness": "Độ sáng",
+      "gutterMargin": "Chừa lề giữa (px)",
+      "maskPng": "File mặt nạ PNG",
+      "maskPngBase64": "Mặt nạ PNG (base64)",
+      "hueMin": "Sắc độ nhỏ nhất",
+      "hueMax": "Sắc độ lớn nhất",
+      "minSaturation": "Độ bão hòa tối thiểu",
+      "minBlobPx": "Bỏ chấm nhỏ hơn (px)",
+      "straighten": "Chỉnh nghiêng",
+      "maxTilt": "Nghiêng tối đa (độ)",
+      "thicken": "Làm đậm nét",
+      "maxWidth": "Rộng tối đa (px)",
+      "maxHeight": "Cao tối đa (px)",
+      "flipH": "Lật ngang",
+      "inkColor": "Màu mực",
+      "sensitivity": "Độ nhạy",
+      "feather": "Làm mềm viền",
+      "outputColor": "Màu nét đầu ra",
+      "fontPath": "File phông chữ",
+      "sizePx": "Cỡ chữ (px)",
+      "colorHex": "Màu (hex)",
+      "slantDeg": "Độ nghiêng (độ)",
+      "pfxPath": "File chứng thư (.pfx)",
+      "fingerprintSha256": "Dấu vân tay SHA-256",
+      "probe": "Thử mở từng driver",
+      "modulePath": "Đường dẫn driver PKCS#11",
+      "slotId": "Số khe (slot)",
+      "store": "Kho chứng thư",
+      "fieldName": "Tên ô chữ ký",
+      "reportPath": "Lưu báo cáo vào",
+      "folder": "Thư mục chứa file",
+      "recursive": "Gồm cả thư mục con",
+      "directory": "Thư mục theo dõi",
+      "outputDirectory": "Thư mục kết quả",
+      "ledgerPath": "File sổ theo dõi",
+      "settleSeconds": "Chờ file ổn định (giây)",
+      "pattern": "Mẫu tên file",
+      "PageimgDeskewParams": {
+        "mode": "Cách chỉnh",
+        "angle": "Góc xoay tay (độ)"
+      },
+      "PageimgSplitSpreadParams": {
+        "mode": "Cách tìm đường tách",
+        "x": "Vị trí đường tách (0–1)",
+        "order": "Thứ tự hai trang"
+      },
+      "PageimgRemoveFingersParams": {
+        "mode": "Cách xóa"
+      },
+      "ImageRemoveBackgroundParams": {
+        "mode": "Cách xóa nền"
+      },
+      "SignTrustAddParams": {
+        "group": "Nhóm"
+      },
+      "SignVerifyBatchParams": {
+        "format": "Định dạng báo cáo"
+      },
+      "SignVerifyParams": {
+        "trustRootPaths": "Chứng thư gốc bổ sung"
+      },
+      "PageimgAutoCropParams": {
+        "padding": "Chừa lề quanh tờ (px)"
+      },
+      "addBookmark": "Thêm vào dấu trang",
+      "afterPage": "Sau trang số",
+      "all": "Gỡ mọi watermark tìm được",
+      "amount": "Mức nhạt (%)",
+      "anchor": "Neo vào",
+      "author": "Tác giả",
+      "background": "Màu nền",
+      "blendMultiply": "Hòa màu nhân",
+      "bold": "In đậm",
+      "borderColor": "Màu viền",
+      "borderWidth": "Độ dày viền (pt)",
+      "candidateIds": "Mã watermark cần gỡ",
+      "clear": "Xóa mọi thuộc tính cũ",
+      "color": "Màu",
+      "content": "Nội dung",
+      "creationDate": "Ngày tạo",
+      "creator": "Phần mềm tạo",
+      "custom": "Thuộc tính tùy chỉnh",
+      "customHeightMm": "Cao (mm)",
+      "customWidthMm": "Rộng (mm)",
+      "cutFirstPage": "Trang đầu của mỗi bộ cũng có dải",
+      "dateFormat": "Định dạng ngày",
+      "dithering": "Rải điểm cho ảnh",
+      "dotLeader": "Dấu chấm dẫn",
+      "dpi": "Độ phân giải (dpi)",
+      "effects": "Hiệu ứng",
+      "effectsPreset": "Hiệu ứng scan",
+      "errorCorrection": "Mức sửa lỗi",
+      "even": "Trang chẵn lấy trang số",
+      "fill": "Màu nền con dấu",
+      "first": "Trang đầu lấy trang số",
+      "fit": "Cách vừa trang",
+      "flattenTransparency": "Làm phẳng độ trong suốt",
+      "fontName": "Phông chữ",
+      "fontScale": "Tỉ lệ cỡ chữ",
+      "fontSize": "Cỡ chữ",
+      "format": "Định dạng",
+      "grayscale": "Đổi ảnh sang thang xám",
+      "group": "Nhóm",
+      "groupSize": "Số trang mỗi bộ (0 = một bộ)",
+      "height": "Cao",
+      "ids": "Mã dấu cần gỡ",
+      "images": "Các ảnh",
+      "includeNumbering": "Giữ số thứ tự của tiêu đề",
+      "inputPassword": "Mật khẩu file nguồn",
+      "inputPath": "File nguồn",
+      "jpegQuality": "Chất lượng JPEG",
+      "keywords": "Từ khóa",
+      "kind": "Loại",
+      "label": "Nhãn",
+      "labelFontSize": "Cỡ chữ nhãn",
+      "lineHeight": "Dãn dòng",
+      "linkEntries": "Gắn liên kết cho từng mục",
+      "marginMm": "Lề (mm)",
+      "margins": "Lề",
+      "maxImageDpi": "Độ phân giải ảnh tối đa (dpi)",
+      "maxLevel": "Cấp tiêu đề tối đa",
+      "minConfidence": "Độ tin cậy tối thiểu",
+      "modDate": "Ngày sửa",
+      "modelPath": "File mô hình đã phân tích",
+      "moduleWidth": "Độ rộng vạch",
+      "multiPageTiff": "TIFF nhiều trang trong một file",
+      "nameTemplate": "Mẫu tên file",
+      "names": "Tên file đính kèm",
+      "numberFormat": "Kiểu số",
+      "odd": "Trang lẻ lấy trang số",
+      "opacity": "Độ đậm (0–1)",
+      "options": "Tùy chọn xuất",
+      "orientation": "Hướng trang",
+      "outputDir": "Thư mục lưu",
+      "overlapMm": "Chồng lấn giữa các dải (mm)",
+      "ownerPassword": "Mật khẩu quyền (chủ file)",
+      "padding": "Khoảng đệm",
+      "pageMarkers": "Đánh dấu ranh giới trang",
+      "pageNumberOffset": "Lệch số trang",
+      "pageRange": "Khoảng trang",
+      "pageSize": "Khổ trang",
+      "password": "Mật khẩu",
+      "path": "File",
+      "paths": "Các file",
+      "permissions": "Quyền của người đọc",
+      "placement": "Vị trí trang mục lục",
+      "position": "Vị trí",
+      "preset": "Mẫu thiết lập",
+      "producer": "Phần mềm xuất",
+      "quietZone": "Vùng trống quanh mã",
+      "recompressStreams": "Nén lại các luồng dữ liệu",
+      "removeAnnotations": "Bỏ ghi chú",
+      "removeAttachments": "Bỏ file đính kèm",
+      "removeMetadata": "Bỏ metadata",
+      "removeThumbnails": "Bỏ ảnh thu nhỏ",
+      "removeUnused": "Bỏ đối tượng không dùng",
+      "replace": "Thay file trùng tên",
+      "replaceExisting": "Ghi đè file đã có",
+      "rest": "Các trang còn lại lấy trang số",
+      "rotation": "Xoay (độ)",
+      "scaleWidthMm": "Rộng toàn con dấu (mm, 0 = cỡ gốc)",
+      "scaling": "Co giãn",
+      "seed": "Hạt giống ngẫu nhiên",
+      "side": "Mép dán",
+      "size": "Cỡ",
+      "skipFirst": "Bỏ trang đầu",
+      "skipPages": "Bỏ các trang",
+      "sliceMode": "Cách cắt dải",
+      "sourceColor": "Màu cần thay",
+      "sourcePage": "Trang giấy tiêu đề",
+      "sourcePath": "File giấy tiêu đề",
+      "spacing": "Khoảng cách",
+      "startNumber": "Bắt đầu từ số",
+      "stripMetadata": "Bỏ metadata",
+      "subject": "Chủ đề",
+      "subsetFonts": "Rút gọn phông chữ",
+      "targetColor": "Màu mới",
+      "template": "Mẫu",
+      "text": "Chữ",
+      "threshold": "Ngưỡng đen trắng",
+      "title": "Tiêu đề",
+      "tolerance": "Độ lệch màu",
+      "under": "Đặt dưới nội dung",
+      "unit": "Đơn vị",
+      "useObjectStreams": "Dùng luồng đối tượng",
+      "user": "Người đóng dấu",
+      "userPassword": "Mật khẩu mở file",
+      "vertical": "Vị trí dọc",
+      "width": "Rộng",
+      "writeLabels": "Ghi nhãn trang vào file",
+      "x": "Vị trí ngang (x)",
+      "y": "Vị trí dọc (y)",
+      "OverlayWatermarkParams": {
+        "path": "Ảnh watermark (nếu dùng ảnh)",
+        "mode": "Cách đặt",
+        "spacing": "Khoảng cách giữa các watermark (pt)",
+        "opacity": "Độ đậm (0–1)"
+      },
+      "StampImageParams": {
+        "path": "Ảnh con dấu"
+      },
+      "StampSeamParams": {
+        "path": "Ảnh con dấu giáp lai"
+      },
+      "ConvertPdfToImagesParams": {
+        "path": "File PDF",
+        "color": "Màu ảnh",
+        "pages": "Trang cần xuất (để trống: tất cả)"
+      },
+      "DocExtractImagesParams": {
+        "pages": "Trang cần trích (để trống: tất cả)"
+      },
+      "ColorConvertParams": {
+        "mode": "Kiểu đổi màu"
+      },
+      "BackgroundRemoveParams": {
+        "mode": "Cách xử lý nền",
+        "color": "Màu mới"
+      },
+      "BookmarksFromPagesParams": {
+        "mode": "Khi đã có bookmark",
+        "template": "Mẫu tên bookmark"
+      },
+      "OverlayBarcodeParams": {
+        "kind": "Loại mã vạch"
+      },
+      "OverlayRemoveParams": {
+        "kind": "Loại dấu",
+        "group": "Nhóm (nhãn)"
+      },
+      "ExportDocumentParams": {
+        "pages": "Trang cần xuất (để trống: tất cả)",
+        "outputPath": "Lưu vào"
+      },
+      "DocExtractTextParams": {
+        "outputPath": "Lưu văn bản vào"
+      },
+      "OverlayLetterheadParams": {
+        "pages": "Trang cần chồng (để trống: tất cả)"
+      },
+      "OverlayPageNumbersParams": {
+        "template": "Mẫu chữ (ví dụ: Trang {page}/{pages})",
+        "preset": "Mẫu có sẵn"
+      },
+      "ConvertImagesToPdfParams": {
+        "outputPath": "Lưu PDF vào"
+      },
+      "DocOptimizeWebParams": {
+        "outputPath": "Lưu file đã tối ưu vào"
+      },
+      "DocRepairParams": {
+        "outputPath": "Lưu file đã sửa vào"
+      },
+      "CompressFileParams": {
+        "outputPath": "Lưu file đã nén vào"
+      },
       "PageSplitParams": {
         "pages": "Trang cần chia (để trống: tất cả)",
         "rows": "Số hàng",

@@ -16,7 +16,7 @@ PACKAGE = CORE / "chef_core"
 RESOURCES = PACKAGE / "resources"
 BUILD_SCRIPT = CORE.parent / "packaging" / "build-core.mjs"
 # Written by the app at run time, or generated outside the Python package for Rust contract typing.
-NON_PACKAGE_FILES = {"meta.json", "ops.schema.json"}
+NON_PACKAGE_FILES = {"meta.json", "ops.schema.json", "ops.defaults.json"}
 DATA_LITERAL = re.compile(r'"([A-Za-z0-9_.-]+\.(?:json|ttf|otf|txt|pem|p12|pfx|crt|cer))"')
 
 
