@@ -2938,7 +2938,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.14, R3.13, R6.02
 - **File:** `apps/native/crates/chef-app/src/migrate.rs`
 - **Tính năng:** A4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Có `chef-app/src/migrate.rs`: `inspect(userData)` trả `MigrationReport` (settings, phiên chưa đóng, library, `secrets.json`); `secrets.json` chỉ kiểm bằng `metadata`, không bao giờ mở (tiêu chí 3, có test). Còn: nối thông báo vào giao diện lần đầu, chuỗi i18n, và kiểm với userData thật của Electron trên Windows (tiêu chí 1–2).
+- **Trạng thái:** 🔄
 
 ### R9.10 · Nhật ký có trần và thư mục dữ liệu · S
 - **Mô tả:** ghi nhật ký ra `logs/`, bộ đệm trong RAM có trần (R11), xoay vòng file. Mở thư mục nhật ký và thư mục dữ liệu từ tab Giới thiệu.

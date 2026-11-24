@@ -65,6 +65,7 @@ mod layers;
 mod links;
 mod logging;
 mod merge;
+mod migrate;
 mod naming;
 mod night;
 pub mod notes;
