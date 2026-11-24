@@ -24,6 +24,7 @@ pub mod bookmarks;
 #[cfg(windows)]
 mod capture;
 mod capture_model;
+mod cert_lists;
 mod cert_model;
 mod cleanup_model;
 mod close;
@@ -102,6 +103,7 @@ mod sign_batch;
 mod sign_placement;
 mod sign_request;
 mod sign_template_model;
+mod sign_template_view;
 mod sign_verify_model;
 mod smart_split;
 #[allow(dead_code)]
