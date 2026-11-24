@@ -433,6 +433,9 @@ pub struct Viewer {
     document_signed: bool,
     /// Right-click page context menu (R4.05), positioned relative to the viewer root.
     page_context_at: Option<(f32, f32)>,
+    /// Menu ⋯ của thanh công cụ khi thu gọn (D96), tính từ gốc viewer.
+    toolbar_more_at: Option<(f32, f32)>,
+    toolbar_more_focus: Vec<FocusHandle>,
     /// Viewer origin and available size in window coordinates, captured after layout.
     page_context_root: Rc<Cell<Option<ContentBounds>>>,
     page_context_focus: Vec<FocusHandle>,
@@ -877,6 +880,99 @@ impl Viewer {
         self.page_context_at = None;
         window.focus(&self.focus, cx);
         cx.notify();
+    }
+
+    fn toggle_toolbar_more(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.toolbar_more_at = match self.toolbar_more_at {
+            Some(_) => None,
+            None => {
+                let width = window.viewport_size().width.as_f32();
+                Some(((width - 260.0).max(0.0), TOOLBAR_H))
+            }
+        };
+        if self.toolbar_more_at.is_some() {
+            let focus = self.toolbar_more_focus[0].clone();
+            window.defer(cx, move |window, cx| window.focus(&focus, cx));
+        }
+        cx.notify();
+    }
+
+    fn close_toolbar_more(&mut self, cx: &mut Context<Self>) {
+        self.toolbar_more_at = None;
+        cx.notify();
+    }
+
+    fn toolbar_more_menu(&self, x: f32, y: f32, dark: bool, cx: &mut Context<Self>) -> Menu {
+        let entity = cx.entity();
+        let dispatch = entity.clone();
+        let dismiss = entity;
+        let f = &self.toolbar_more_focus;
+        let entries = vec![
+            MenuEntry::new(
+                "toolbar-more-fit-width",
+                f[0].clone(),
+                i18n::t("zoom.fitWidth"),
+            ),
+            MenuEntry::new(
+                "toolbar-more-fit-page",
+                f[1].clone(),
+                i18n::t("zoom.fitPage"),
+            ),
+            MenuEntry::separator("toolbar-more-separator-1", f[2].clone()),
+            MenuEntry::new(
+                "toolbar-more-rotate-left",
+                f[3].clone(),
+                i18n::t("zoom.rotateLeft"),
+            ),
+            MenuEntry::new(
+                "toolbar-more-rotate-right",
+                f[4].clone(),
+                i18n::t("zoom.rotateRight"),
+            ),
+            MenuEntry::separator("toolbar-more-separator-2", f[5].clone()),
+            MenuEntry::new(
+                "toolbar-more-continuous",
+                f[6].clone(),
+                i18n::t("commands.modeContinuous"),
+            ),
+            MenuEntry::new(
+                "toolbar-more-two-page",
+                f[7].clone(),
+                i18n::t("commands.modeTwoPage"),
+            ),
+            MenuEntry::new(
+                "toolbar-more-book",
+                f[8].clone(),
+                i18n::t("commands.modeBook"),
+            ),
+            MenuEntry::new(
+                "toolbar-more-slideshow",
+                f[9].clone(),
+                i18n::t("commands.modeSlideshow"),
+            ),
+        ];
+        Menu::new("toolbar-more-menu", String::new(), entries)
+            .at(x, y)
+            .width(240.0)
+            .dark(dark)
+            .on_select_id(move |id, window, cx| {
+                dispatch.update(cx, |this, cx| {
+                    this.toolbar_more_at = None;
+                    match id.as_str() {
+                        "toolbar-more-fit-width" => this.reset_zoom(),
+                        "toolbar-more-fit-page" => this.fit_to_page(),
+                        "toolbar-more-rotate-left" => this.rotate_view(-1, cx),
+                        "toolbar-more-rotate-right" => this.rotate_view(1, cx),
+                        "toolbar-more-continuous" => this.set_page_mode(PageMode::Continuous, cx),
+                        "toolbar-more-two-page" => this.set_page_mode(PageMode::TwoPage, cx),
+                        "toolbar-more-book" => this.set_page_mode(PageMode::Book, cx),
+                        "toolbar-more-slideshow" => this.enter_slideshow(window, cx),
+                        _ => {}
+                    }
+                    cx.notify();
+                });
+            })
+            .on_dismiss(move |_, cx| dismiss.update(cx, |this, cx| this.close_toolbar_more(cx)))
     }
 
     fn page_context_menu(&self, x: f32, y: f32, dark: bool, cx: &mut Context<Self>) -> Menu {
@@ -4860,6 +4956,8 @@ impl Viewer {
             drag_target: None,
             document_signed: false,
             page_context_at: None,
+            toolbar_more_at: None,
+            toolbar_more_focus: (0..10).map(|_| cx.focus_handle()).collect(),
             page_context_root: Rc::new(Cell::new(None)),
             page_context_focus: (0..23).map(|_| cx.focus_handle()).collect(),
             pending_open_tabs: Vec::new(),
@@ -7385,6 +7483,9 @@ fn fit_anchor_page(
         .map(|(page, _)| page)
 }
 
+/// Dưới độ rộng này, nhóm zoom, xoay khung nhìn và chế độ trang vào menu ⋯ (D96).
+const TOOLBAR_COLLAPSE_W: f32 = 2200.0;
+
 impl Render for Viewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let _render_timer = crate::debug::render_timer();
@@ -7755,6 +7856,8 @@ impl Render for Viewer {
                     .child(
                         div()
                             .flex()
+                            .flex_wrap()
+                            .w_full()
                             .gap(px(8.))
                             .child(
                                 Button::new("notes-add", cx.focus_handle())
@@ -9738,6 +9841,7 @@ impl Render for Viewer {
                     entity.update(cx, |this, cx| this.retry_revision_reload(cx))
                 })
         });
+        let collapse_tools = window.viewport_size().width.as_f32() < TOOLBAR_COLLAPSE_W;
         let toolbar = div()
             .w_full()
             .h(px(TOOLBAR_H))
@@ -9751,6 +9855,93 @@ impl Render for Viewer {
             .text_color(rgb(palette.text))
             .border_b_1()
             .border_color(rgb(palette.border))
+            .child(
+                Button::new("viewer-undo", self.undo_focus.clone())
+                    .label(i18n::t("editor.undo"))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || !self.can_undo,
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| {
+                            entity.update(cx, |this, cx| this.begin_edit(EditOperation::Undo, cx))
+                        }
+                    }),
+            )
+            .child(
+                Button::new("viewer-redo", self.redo_focus.clone())
+                    .label(i18n::t("editor.redo"))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || !self.can_redo,
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| {
+                            entity.update(cx, |this, cx| this.begin_edit(EditOperation::Redo, cx))
+                        }
+                    }),
+            )
+            .child(
+                Button::new("viewer-save", self.save_focus.clone())
+                    .label(i18n::t("editor.save"))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.session_id.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| {
+                            entity.update(cx, |this, cx| {
+                                this.begin_edit(EditOperation::Save(None), cx)
+                            })
+                        }
+                    }),
+            )
+            .child(
+                Button::new("viewer-save-as", self.save_as_focus.clone())
+                    .label(i18n::t("editor.saveAs"))
+                    .size(ButtonSize::Sm)
+                    .dark(dark)
+                    .disabled(
+                        self.operation_pending
+                            || self.switch_rx.is_some()
+                            || self.edit_blocked
+                            || self.session_id.is_none(),
+                    )
+                    .on_click({
+                        let entity = entity.clone();
+                        move |_, _, cx| entity.update(cx, |this, cx| this.begin_save_as(cx))
+                    }),
+            )
+            .child(div().w(px(64.)).child(self.zoom_input.clone()))
+            .when(collapse_tools, |toolbar| {
+                toolbar.child(
+                    Button::new("viewer-more", cx.focus_handle())
+                        .label("⋯")
+                        .size(ButtonSize::Sm)
+                        .dark(dark)
+                        .on_click({
+                            let entity = entity.clone();
+                            move |_, window, cx| {
+                                entity.update(cx, |v, cx| v.toggle_toolbar_more(window, cx))
+                            }
+                        }),
+                )
+            })
             .when(self.selection.is_some(), |toolbar| {
                 let highlight_entity = entity.clone();
                 let underline_entity = entity.clone();
@@ -10048,179 +10239,112 @@ impl Render for Viewer {
                         move |_, _, cx| entity.update(cx, |this, cx| this.begin_rotate_page(90, cx))
                     }),
             )
-            .child(
-                Button::new("viewer-undo", self.undo_focus.clone())
-                    .label(i18n::t("editor.undo"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .disabled(
-                        self.operation_pending
-                            || self.switch_rx.is_some()
-                            || self.edit_blocked
-                            || !self.can_undo,
-                    )
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |this, cx| this.begin_edit(EditOperation::Undo, cx))
-                        }
-                    }),
-            )
-            .child(
-                Button::new("viewer-redo", self.redo_focus.clone())
-                    .label(i18n::t("editor.redo"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .disabled(
-                        self.operation_pending
-                            || self.switch_rx.is_some()
-                            || self.edit_blocked
-                            || !self.can_redo,
-                    )
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |this, cx| this.begin_edit(EditOperation::Redo, cx))
-                        }
-                    }),
-            )
-            .child(
-                Button::new("viewer-save", self.save_focus.clone())
-                    .label(i18n::t("editor.save"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .disabled(
-                        self.operation_pending
-                            || self.switch_rx.is_some()
-                            || self.edit_blocked
-                            || self.session_id.is_none(),
-                    )
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |this, cx| {
-                                this.begin_edit(EditOperation::Save(None), cx)
-                            })
-                        }
-                    }),
-            )
-            .child(
-                Button::new("viewer-save-as", self.save_as_focus.clone())
-                    .label(i18n::t("editor.saveAs"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .disabled(
-                        self.operation_pending
-                            || self.switch_rx.is_some()
-                            || self.edit_blocked
-                            || self.session_id.is_none(),
-                    )
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| entity.update(cx, |this, cx| this.begin_save_as(cx))
-                    }),
-            )
             .children(retry_reload)
             .child(div().flex_1().child(self.search.clone()))
-            .child(
-                Button::new("zoom-fit-width", cx.focus_handle())
-                    .label(i18n::t("zoom.fitWidth"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |v, cx| {
-                                v.reset_zoom();
-                                cx.notify();
-                            })
-                        }
-                    }),
-            )
-            .child(
-                Button::new("zoom-fit-page", cx.focus_handle())
-                    .label(i18n::t("zoom.fitPage"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |v, cx| {
-                                v.fit_to_page();
-                                cx.notify();
-                            })
-                        }
-                    }),
-            )
-            .child(div().w(px(64.)).child(self.zoom_input.clone()))
-            .child(
-                Button::new("zoom-rotate-left", cx.focus_handle())
-                    .label(i18n::t("zoom.rotateLeft"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| entity.update(cx, |v, cx| v.rotate_view(-1, cx))
-                    }),
-            )
-            .child(
-                Button::new("zoom-rotate-right", cx.focus_handle())
-                    .label(i18n::t("zoom.rotateRight"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| entity.update(cx, |v, cx| v.rotate_view(1, cx))
-                    }),
-            )
-            .child(
-                Button::new("mode-continuous", cx.focus_handle())
-                    .label(i18n::t("commands.modeContinuous"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |v, cx| v.set_page_mode(PageMode::Continuous, cx))
-                        }
-                    }),
-            )
-            .child(
-                Button::new("mode-two-page", cx.focus_handle())
-                    .label(i18n::t("commands.modeTwoPage"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |v, cx| v.set_page_mode(PageMode::TwoPage, cx))
-                        }
-                    }),
-            )
-            .child(
-                Button::new("mode-book", cx.focus_handle())
-                    .label(i18n::t("commands.modeBook"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, _, cx| {
-                            entity.update(cx, |v, cx| v.set_page_mode(PageMode::Book, cx))
-                        }
-                    }),
-            )
-            .child(
-                Button::new("mode-slideshow", cx.focus_handle())
-                    .label(i18n::t("commands.modeSlideshow"))
-                    .size(ButtonSize::Sm)
-                    .dark(dark)
-                    .on_click({
-                        let entity = entity.clone();
-                        move |_, window, cx| {
-                            entity.update(cx, |v, cx| v.enter_slideshow(window, cx))
-                        }
-                    }),
-            )
+            .when(!collapse_tools, |toolbar| {
+                toolbar
+                    .child(
+                        Button::new("zoom-fit-width", cx.focus_handle())
+                            .label(i18n::t("zoom.fitWidth"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| {
+                                    entity.update(cx, |v, cx| {
+                                        v.reset_zoom();
+                                        cx.notify();
+                                    })
+                                }
+                            }),
+                    )
+                    .child(
+                        Button::new("zoom-fit-page", cx.focus_handle())
+                            .label(i18n::t("zoom.fitPage"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| {
+                                    entity.update(cx, |v, cx| {
+                                        v.fit_to_page();
+                                        cx.notify();
+                                    })
+                                }
+                            }),
+                    )
+                    .child(
+                        Button::new("zoom-rotate-left", cx.focus_handle())
+                            .label(i18n::t("zoom.rotateLeft"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| entity.update(cx, |v, cx| v.rotate_view(-1, cx))
+                            }),
+                    )
+                    .child(
+                        Button::new("zoom-rotate-right", cx.focus_handle())
+                            .label(i18n::t("zoom.rotateRight"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| entity.update(cx, |v, cx| v.rotate_view(1, cx))
+                            }),
+                    )
+                    .child(
+                        Button::new("mode-continuous", cx.focus_handle())
+                            .label(i18n::t("commands.modeContinuous"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| {
+                                    entity.update(cx, |v, cx| {
+                                        v.set_page_mode(PageMode::Continuous, cx)
+                                    })
+                                }
+                            }),
+                    )
+                    .child(
+                        Button::new("mode-two-page", cx.focus_handle())
+                            .label(i18n::t("commands.modeTwoPage"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| {
+                                    entity
+                                        .update(cx, |v, cx| v.set_page_mode(PageMode::TwoPage, cx))
+                                }
+                            }),
+                    )
+                    .child(
+                        Button::new("mode-book", cx.focus_handle())
+                            .label(i18n::t("commands.modeBook"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, _, cx| {
+                                    entity.update(cx, |v, cx| v.set_page_mode(PageMode::Book, cx))
+                                }
+                            }),
+                    )
+                    .child(
+                        Button::new("mode-slideshow", cx.focus_handle())
+                            .label(i18n::t("commands.modeSlideshow"))
+                            .size(ButtonSize::Sm)
+                            .dark(dark)
+                            .on_click({
+                                let entity = entity.clone();
+                                move |_, window, cx| {
+                                    entity.update(cx, |v, cx| v.enter_slideshow(window, cx))
+                                }
+                            }),
+                    )
+            })
             .child(
                 div()
                     .flex_none()
@@ -10230,6 +10354,9 @@ impl Render for Viewer {
         let page_context = self
             .page_context_at
             .map(|(x, y)| self.page_context_menu(x, y, dark, cx));
+        let toolbar_more = self
+            .toolbar_more_at
+            .map(|(x, y)| self.toolbar_more_menu(x, y, dark, cx));
         let page_context_root = self.page_context_root.clone();
         let root =
             div()
@@ -11958,6 +12085,7 @@ impl Render for Viewer {
             .children(image_adjust_dialog)
             .children(forms_dialog)
             .children(page_context)
+            .children(toolbar_more)
     }
 }
 

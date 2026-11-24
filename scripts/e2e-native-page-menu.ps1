@@ -64,8 +64,14 @@ function Expect([string]$Name, [bool]$Condition, [string]$Detail) {
     else { $script:fails++; Write-Output "FAIL $Name : $Detail" }
 }
 function Click-Control([string]$Id, [string]$Button = '') {
-    $snapshot = State
-    $control = $snapshot.controls.controls | Where-Object { $_.id -eq $Id } | Select-Object -First 1
+    # Chờ control có bounds: thumbnail/sidebar được layout sau vài khung hình.
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        $snapshot = State
+        $control = $snapshot.controls.controls | Where-Object { $_.id -eq $Id } | Select-Object -First 1
+        if ($null -ne $control -and $null -ne $control.bounds) { break }
+        Start-Sleep -Milliseconds 150
+    } while ([DateTime]::UtcNow -lt $deadline)
     if ($null -eq $control -or $null -eq $control.bounds) { throw "Missing control bounds for $Id" }
     $scale = [double]$snapshot.controls.scale
     $x = [int](($control.bounds[0] + $control.bounds[2] / 2) * $scale)
