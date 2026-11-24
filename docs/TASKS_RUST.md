@@ -2709,7 +2709,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-capture/src/server.rs`, `apps/native/crates/chef-capture/src/qr.rs`
 - **E2E:** `capture`
 - **Tính năng:** L5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `chef-capture` (trước là crate rỗng): máy chủ HTTP tạm đồng bộ (`tiny_http`), chỉ gắn một IPv4 LAN riêng, token 128 bit trong đường dẫn, 5 yêu cầu/giây, thân tối đa 25 MB, CSP, `no-store`, tự hết hạn sau 10 phút, mã QR SVG; trang điện thoại chép từ Electron vào `assets/capture.html`. 19 test chạy máy chủ thật trên loopback (lặp 3 lần ổn định). Còn: nối vào giao diện (QR, danh sách ảnh nhận được), thử trên điện thoại thật (MAN-3), đo RAM khi chụp.
+- **Trạng thái:** 🔄
 
 ### R8.08 · Nhận ảnh chụp và tự cắt nắn · M
 - **Mô tả:** điện thoại gửi ảnh, máy tính nhận và tự cắt và nắn (L2, L15). Điện thoại thật qua MAN-3 (chụp qua QR). Dùng `captureModel.ts` và `demo-v08` làm chuẩn.
@@ -2719,7 +2720,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-capture/src/receive.rs`
 - **E2E:** `capture`, `demo-v08`
 - **Tính năng:** L5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `chef-capture`: nhận ảnh JPEG/PNG/WebP, kiểm byte đầu, đặt tên `NNN.ext`, chống ghi trùng theo `X-Chef-Index`, giới hạn số trang, phát sự kiện `Image` cho giao diện. Phần tự cắt nắn dùng `capture_model::plan` (đã có) và các op lõi. Còn: nối giao diện và MAN-3.
+- **Trạng thái:** 🔄
 
 ### M8.2 Tách trang và sửa trang
 
