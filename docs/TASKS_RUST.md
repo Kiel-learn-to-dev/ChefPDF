@@ -2830,7 +2830,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/crop_manual.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L16, L17
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `crop_sizing.rs`: các tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do), khóa tỉ lệ theo ảnh nguồn, thu khung về đúng tỉ lệ giữ tâm; tám nắm và hít khung đã có ở `crop_geometry.rs`. Còn giao diện (kính lúp, kéo nắm).
+- **Trạng thái:** 🔄
 
 ### R8.19 · Cắt hàng loạt và duyệt nhanh · M
 - **Mô tả:** áp một khung cho nhiều trang, duyệt nhanh bằng lưới, kính lúp cho trang đã chọn. Dùng trong quy trình.
@@ -2840,7 +2841,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/crop_batch.rs`
 - **E2E:** `crop-review`, `workflow-batch-crop-step`
 - **Tính năng:** L18
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `crop_sizing.rs`: `output_size_from_mm` (giới hạn 20000 px mỗi chiều, 50 triệu điểm ảnh). Còn lưới duyệt nhanh và quy trình.
+- **Trạng thái:** 🔄
 
 ### R8.20 · Tự nhận khổ giấy · S
 - **Mô tả:** đoán khổ theo tỉ lệ cạnh (A4, A5, Letter, CCCD…) và đặt đúng kích thước trang PDF, hoặc giữ kích thước thật.
@@ -2849,7 +2851,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R8.19
 - **File:** `apps/native/crates/chef-app/src/paper_size.rs`
 - **Tính năng:** L19
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `crop_sizing.rs`: `guess_paper` đoán khổ theo tỉ lệ cạnh (A4, Letter, CCCD, cả hai hướng, dung sai 3%) và `page_size_pt`. Lưu ý A5 cùng tỉ lệ với A4 nên đọc thành A4. Còn nối vào đặt kích thước trang PDF.
+- **Trạng thái:** 🔄
 
 ### R8.21 · Mô hình dò viền L20: giấy phép và đóng gói · M
 - **Mô tả:** kiểm giấy phép của DocAligner và trọng số mô hình (BLUEPRINT §L20: cả code lẫn trọng số). Nếu không ổn, tìm mô hình khác hoặc tự huấn luyện. Đóng gói ONNX Runtime CPU vào bản cài (vài chục MB).
@@ -2987,7 +2990,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** script đối chiếu; báo cáo.
 - **Phụ thuộc:** R9.01 đến R9.10
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Có `scripts/check_coverage_rust.py`. Kết quả hôm nay trên 164 mã trong phạm vi: 32 đạt, 93 một phần, 39 chưa làm, 0 không có task. Danh sách từng mã: chạy với `--list`. Task vẫn ⬜ vì phải chạy lại sau R9.01 đến R9.10 và ghi danh sách chuyển sang sau 1.0 vào NOTES.
+- **Trạng thái:** 🔄
 
 ### R9.12 · Nghiệm thu dùng hằng ngày (MAN-6) · —
 - **Mô tả:** chủ dự án chạy bản Rust thay Electron ít nhất một tuần cho công việc thật. Ghi các lỗi và thiếu sót vào TASKS_RUST.
@@ -3040,10 +3044,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 
 ## Kiểm tra độ phủ
 
-Đối chiếu bằng cách đọc chính file này và `docs/FEATURES.md` (không lưu script trong repo). Lặp lại được khi thêm task.
+Đối chiếu bằng `python3 scripts/check_coverage_rust.py --list` (đọc `docs/FEATURES.md` và các dòng "Tính năng" ở file này; phân loại từng mã: đạt, một phần, chưa làm, không có task). Lặp lại được khi thêm task. Có thể đọc tay như trước.
 
 **Kết quả hiện tại:**
-- **Mã tính năng trong phạm vi:** 165/165 có ít nhất một task. Phạm vi = các mã có mốc v0.1–v0.10, v1.0, v1.1 trong FEATURES.md (161 + 4). Không có mã ngoài phạm vi được gán nhầm. Nhóm P (so sánh tài liệu) và các mã "Sau 1.0", "Nâng cấp", "Ý tưởng" không thuộc phạm vi này.
+- **Mã tính năng trong phạm vi:** 164/164 có ít nhất một task (M5 đã bỏ ngày 2026-11-24, D97; trước đó 165). Phạm vi = các mã có mốc v0.1–v0.10, v1.0, v1.1 trong FEATURES.md (161 + 4). Không có mã ngoài phạm vi được gán nhầm. Nhóm P (so sánh tài liệu) và các mã "Sau 1.0", "Nâng cấp", "Ý tưởng" không thuộc phạm vi này.
 - **Spec E2E:** 63/63 có ít nhất một task. Hai spec `perf-heap` và `perf-layers` được đánh dấu "không áp dụng" ở R1.36 (đo Chromium).
 - **Cờ kiểm chứng trong BLUEPRINT_RUST:** 32 cờ (`Kiểm ở M…`, `Quyết định ở M…`) đều có task, bảng dưới.
 - **Task:** 269 (kể cả 14 điểm kiểm; thêm R1.43 và R2.33 ngày 2026-11-11). Không có ID trùng. Không còn phụ thuộc vòng (R8.11 ↔ R8.12 đã gỡ).

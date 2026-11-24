@@ -34,6 +34,7 @@ mod compress_model;
 mod convert_model;
 mod crop_geometry;
 mod crop_page;
+mod crop_sizing;
 #[cfg(windows)]
 mod debug;
 #[cfg(not(windows))]
