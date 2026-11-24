@@ -53,13 +53,16 @@ impl MigrationReport {
     /// Thông báo cần hiện lần đầu. Chuỗi i18n gắn khi làm giao diện (không thêm khóa vào `vi.json`/`en.json`
     /// ở đây vì hai file đó giữ nguyên văn với bản Electron).
     pub fn notice(&self) -> Option<MigrationNotice> {
-        self.needs_secret_reentry.then_some(MigrationNotice::SecretsReenter)
+        self.needs_secret_reentry
+            .then_some(MigrationNotice::SecretsReenter)
     }
 }
 
 fn non_empty_file(path: &Path) -> bool {
     // Chỉ `metadata`: tuyệt đối không mở file để đọc ciphertext (R9.09 tiêu chí 3).
-    fs::metadata(path).map(|m| m.is_file() && m.len() > 0).unwrap_or(false)
+    fs::metadata(path)
+        .map(|m| m.is_file() && m.len() > 0)
+        .unwrap_or(false)
 }
 
 /// Kiểm tra `user_data_dir` (chỉ đọc metadata, không sửa gì).
@@ -109,7 +112,11 @@ mod tests {
         let session = dir.join("sessions").join(SID);
         fs::create_dir_all(&session).unwrap();
         fs::write(session.join("meta.json"), r#"{"closed":false}"#).unwrap();
-        fs::write(dir.join("secrets.json"), "not even json: must never be parsed").unwrap();
+        fs::write(
+            dir.join("secrets.json"),
+            "not even json: must never be parsed",
+        )
+        .unwrap();
 
         let r = inspect(&dir);
         assert!(r.has_settings);

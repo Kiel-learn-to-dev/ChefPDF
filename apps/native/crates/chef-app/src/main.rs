@@ -99,6 +99,8 @@ mod sig_library_model;
 mod sig_separate_model;
 mod sign_anchor;
 mod sign_batch;
+mod sign_placement;
+mod sign_request;
 mod sign_template_model;
 mod sign_verify_model;
 mod smart_split;
