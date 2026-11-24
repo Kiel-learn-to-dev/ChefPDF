@@ -2858,7 +2858,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R8.16
 - **File:** `core/chef_core/imaging/docaligner.py`, `docs/NOTES.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Tiêu chí 1: giấy phép mã và trọng số đều Apache-2.0, ghi ở NOTES (đối chiếu upstream 2026-11-24). Tiêu chí 2: 8 test lõi chạy mô hình trên CPU đạt. Tiêu chí 3: mô hình 4,77 MB, onnxruntime Linux 63 MB; còn đo kích thước bản cài Windows (R9.13).
+- **Trạng thái:** 🔄
 
 ### R8.22 · Chạy hai cách và chọn kết quả tin cậy hơn · M
 - **Mô tả:** chạy thuật toán L15 và mô hình L20 song song, chọn kết quả có điểm tin cậy cao hơn. Xử lý giấy trắng trên bàn trắng, nền lộn xộn, góc bị ngón tay che, ánh sáng xấu. Mã Q13 để sau (không thuộc 1.0).
@@ -2868,7 +2869,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/autocrop_pick.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L20
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Lõi đã có `prefer_confident_quad` (chọn kết quả tin cậy hơn giữa thuật toán và mô hình) cùng test trong 8 test dò viền. Còn: phần vỏ Rust (`autocrop_pick.rs`) gọi `pageimg.autoCrop` và hiện kết quả; E2E `crop-review` trên Windows; đo RAM mô hình.
+- **Trạng thái:** 🔄
 
 ### R8.23 · Điểm kiểm M8 · —
 - **Mô tả:** E2E `capture`, `dewarp`, `crop-review`, `erase`, `finger`, `spine`, `adjust`, `demo-v08`, `scan` (phần xử lý ảnh); MAN-3 đã làm; đo RAM khi chụp 20 trang và tự dò viền.
