@@ -101,6 +101,7 @@ mod settings;
 mod settings_dialog;
 mod sig_library_model;
 mod sig_separate_model;
+mod sig_vault;
 mod sign_anchor;
 mod sign_batch;
 mod sign_placement;

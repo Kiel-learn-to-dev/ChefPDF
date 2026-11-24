@@ -2262,7 +2262,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R6.07
 - **File:** `apps/native/crates/chef-app/src/sig_vault.rs`
 - **Tính năng:** I23
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud, D98) `sig_vault.rs`: khóa dữ liệu bọc bằng mật khẩu (Argon2id), ảnh `CHLIB1` AES-256-GCM; tiêu chí 1 (không đọc được như PNG), 2 (sai mật khẩu không mở được), 3 (khóa lại thì không mở) có test. Còn: hộp thoại hỏi mật khẩu, nối vào thư viện ảnh, chạy `cargo deny` trên Windows, Windows Hello (để sau).
+- **Trạng thái:** 🔄
 
 ### M6.2 Studio mẫu chữ ký
 

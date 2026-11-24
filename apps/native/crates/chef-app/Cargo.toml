@@ -28,6 +28,9 @@ serde_json = "1"
 same-file = "1.0"
 # Xóa mật khẩu khỏi bộ nhớ sau khi dùng (TASKS_RUST R2.26). Đã có trong Cargo.lock (Apache-2.0 hoặc MIT).
 zeroize = "1"
+# Kho ảnh chữ ký mã hóa bằng mật khẩu của app (TASKS_RUST R6.10, hướng 1): AES-256-GCM và Argon2id.
+aes-gcm = "0.10"
+argon2 = "0.5"
 # Cùng phiên bản 0.57 mà Cargo.lock đã có (qua gpui). Dùng để chụp cửa sổ bằng
 # Windows.Graphics.Capture (chỉ dùng trong kênh debug, R1.07/R1.08).
 windows = { version = "0.57", features = [
