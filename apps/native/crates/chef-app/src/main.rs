@@ -23,22 +23,33 @@ mod blank_pages;
 pub mod bookmarks;
 #[cfg(windows)]
 mod capture;
+mod capture_model;
+mod cert_model;
+mod cleanup_model;
 mod close;
+mod color_model;
 mod commands;
+mod compress_model;
+mod convert_model;
+mod crop_geometry;
 mod crop_page;
 #[cfg(windows)]
 mod debug;
 #[cfg(not(windows))]
 #[path = "debug_stub.rs"]
 mod debug;
+mod diag_model;
 #[cfg(windows)]
 mod dialogs;
 #[cfg(not(windows))]
 #[path = "dialogs_stub.rs"]
 mod dialogs;
+mod doc_tools_model;
 mod draw;
 mod drop;
+mod export_model;
 mod find;
+mod find_replace_model;
 mod forms_create;
 mod forms_fill;
 mod forms_flatten;
@@ -46,39 +57,67 @@ mod forms_overlay;
 #[cfg(test)]
 mod golden_tests;
 mod image_edit;
+mod initials_model;
 mod insert_image;
+mod inspect_model;
 mod instance;
 mod layers;
 mod links;
 mod logging;
 mod merge;
+mod naming;
 mod night;
 pub mod notes;
 mod notes_list;
+mod object_model;
 mod objects;
 mod op_dialog;
+mod ordering;
+mod overlay_common;
+mod overlay_model;
+mod overlay_variables;
+mod page_image_tools;
 mod page_ops;
 mod page_range;
 mod password;
 mod picker;
+mod preflight_model;
 mod probe;
 mod process;
 mod properties;
 mod recovery;
+mod recovery_model;
+mod redact_model;
+mod rename;
+mod scan_convert;
+mod security_model;
 mod session;
 mod settings;
 mod settings_dialog;
+mod sig_library_model;
+mod sig_separate_model;
+mod sign_anchor;
+mod sign_batch;
+mod sign_template_model;
+mod sign_verify_model;
 mod smart_split;
 #[allow(dead_code)]
 mod source_guard;
 mod split;
 mod split_page;
 mod split_pane;
+mod stamp_model;
 mod start;
 mod tabs;
 mod tabs_host;
+mod text_edit_model;
+mod text_paragraph_model;
 mod theme;
+mod update_check;
+mod verify_batch_model;
 mod viewer;
+mod watermark_model;
+mod workflow_model;
 
 use tabs_host::DocumentHost;
 
