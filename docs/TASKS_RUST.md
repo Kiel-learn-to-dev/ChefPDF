@@ -2499,7 +2499,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/edit_mode.rs`
 - **E2E:** `text-merged`
 - **Tính năng:** B11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: cờ chế độ (tắt giữ phiên và nháp, bỏ vùng chọn), bộ nhớ đệm dòng theo khóa bản sửa. Còn giao diện chế độ Xem/Chọn/Chỉnh sửa.
+- **Trạng thái:** 🔄
 
 ### M7.1 Sửa dòng và đoạn
 
@@ -2511,7 +2512,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/text_replace.rs`
 - **E2E:** `text-merged`, `textedit`
 - **Tính năng:** D8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: `select_at` (nhấp, nhấp đúp chọn từ, Shift kéo dài, chỉ trong một đoạn), `drag_selection`, `session_for_selection` mở phiên đúng vùng bôi đen.
+- **Trạng thái:** 🔄
 
 ### R7.03 · Sửa mức dòng · M
 - **Mô tả:** con trỏ nhấp nháy `tedit-blink` của khung sửa (`textedit.css`). Bấm vào dòng chữ để sửa, dùng lại font gốc khi còn đủ ký tự. Đoạn đang mở có khung liền riêng; các đoạn khác có viền đứt xanh quanh vùng đoạn, không viền giữa các từ (D69).
@@ -2563,7 +2565,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/text_add.rs`
 - **E2E:** `text-merged`
 - **Tính năng:** D1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: nháp văn bản mới (`open_draft`, `plan_draft`: chữ trống chỉ đóng khung), `NEW_TEXT_SIZE`.
+- **Trạng thái:** 🔄
 
 ### R7.08 · Gõ tiếng Việt trong khung nháp · XS
 - **Mô tả:** MAN-1 trong khung nháp của Thêm văn bản và sửa đoạn: Telex và VNI, bộ gõ Windows và Unikey hoặc EVKey.
@@ -2603,7 +2606,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/props_panel.rs`
 - **E2E:** `objects`, `demo-v11`
 - **Tính năng:** D13
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `object_state.rs`: trạng thái chế độ sửa đối tượng (vùng chọn, lọc loại, bộ nhớ đệm theo khóa bản sửa). Còn bảng thuộc tính giao diện.
+- **Trạng thái:** 🔄
 
 ### R7.12 · Phiên sửa đoạn: ghi đoạn và lưu đúng thứ tự · M
 - **Mô tả:** khi đóng phiên sửa đoạn, ghi đoạn trước, rồi lưu. Lưu chạy đua với ghi đoạn là lỗi đã biết (NOTES 2026-11-05f), nên lưu phải chờ phiên đóng. Chữ vừa thêm vẫn nằm trong danh sách đối tượng sau khi sửa (điểm chưa xác minh trong NOTES).
@@ -2613,7 +2617,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/paragraph_session.rs`
 - **E2E:** `paragraph-session`
 - **Tính năng:** D9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: `JobQueue` (lệnh ghi và đổi kiểu chạy tuần tự, lỗi không chặn lệnh sau), `plan_commit` (không ghi hai lần), `check_before_close`/`close_action` (D64), `preview_notes`, `change_session_text` với `seq` bỏ câu trả lời cũ; 14 test. Còn nối `text.editParagraph` thật.
+- **Trạng thái:** 🔄
 
 ### R7.13 · Điểm kiểm M7 · —
 - **Mô tả:** E2E `text-merged`, `textedit`, `paragraph-session`, `format-row`, `demo-v07`, `demo-v11`; MAN-1 đã làm (R7.08, R7.09); đo RAM khi sửa đoạn trong file 300 trang.
