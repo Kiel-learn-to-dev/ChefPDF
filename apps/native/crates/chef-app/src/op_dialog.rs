@@ -1479,7 +1479,7 @@ impl Render for OpDialog {
                 &[("name", &self.ctx.file_name)],
             ));
         }
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

@@ -109,8 +109,8 @@ pub fn page_selection(
             m.insert("pageRange".into(), "even".into());
         }
         PagesChoice::Range => {
-            let p =
-                crate::page_range::parse_page_ranges(&sel.range, page_count).map_err(|_| BadPages)?;
+            let p = crate::page_range::parse_page_ranges(&sel.range, page_count)
+                .map_err(|_| BadPages)?;
             m.insert("pages".into(), Value::from(p.pages));
         }
     }

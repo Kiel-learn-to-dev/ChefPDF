@@ -215,6 +215,12 @@ fn score(query: &str, command: &Command) -> Option<u32> {
     }
     let tokens: Vec<&str> = query.split_whitespace().collect();
     let words: Vec<&str> = title.split_whitespace().collect();
+    if tokens
+        .iter()
+        .all(|token| words.iter().any(|word| word.starts_with(token)))
+    {
+        return Some(800_u32.saturating_sub((title.len() as u32).min(49)));
+    }
     if tokens.iter().all(|token| {
         words.iter().any(|word| word.starts_with(token))
             || keywords.iter().any(|keyword| {
@@ -223,7 +229,7 @@ fn score(query: &str, command: &Command) -> Option<u32> {
                     .any(|word| word.starts_with(token))
             })
     }) {
-        return Some(800_u32.saturating_sub(title.len() as u32));
+        return Some(750_u32.saturating_sub((title.len() as u32).min(49)));
     }
     if title.contains(query) {
         return Some(700);
@@ -722,5 +728,17 @@ mod tests {
         let results = registry.search("lam phang bieu mau");
         assert_eq!(results[0].id, "forms.flatten");
         assert!(results[0].is_available());
+    }
+
+    #[test]
+    fn title_token_prefix_outranks_shorter_keyword_only_match() {
+        let registry = viewer_commands(|key| match key {
+            "commands.decree30" => "Số trang theo Nghị định 30".into(),
+            "opDialog.overlay_pageNumbers.title" => "Đánh số trang".into(),
+            _ => key.into(),
+        });
+        let results = registry.search("nghi dinh");
+        assert_eq!(results[0].id, "pages.decree30");
+        assert!(results.iter().any(|c| c.id == "overlay.pageNumbers"));
     }
 }

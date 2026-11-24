@@ -801,7 +801,7 @@ impl Render for SplitDialog {
             .can_run(self.can_run(cx))
             .tab_order(tab_order)
             .advanced_tab_order(advanced_order);
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

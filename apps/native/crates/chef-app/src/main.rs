@@ -433,6 +433,12 @@ fn action_for(name: &str) -> Option<Box<dyn Action>> {
         "redoedit" => Box::new(viewer::RedoEdit),
         "saveedit" => Box::new(viewer::SaveEdit),
         "saveeditas" => Box::new(viewer::SaveEditAs),
+        "openmerge" => Box::new(viewer::OpenMerge),
+        "opensplit" => Box::new(viewer::OpenSplit),
+        "opencropresize" => Box::new(viewer::OpenCropResize),
+        "openremoveblank" => Box::new(viewer::OpenRemoveBlank),
+        "opengridsplit" => Box::new(viewer::OpenGridSplit),
+        "opensmartsplit" => Box::new(viewer::OpenSmartSplit),
         _ => return None,
     };
     Some(action)

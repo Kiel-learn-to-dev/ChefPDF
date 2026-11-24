@@ -416,19 +416,20 @@ pub trait ProcessView: EventEmitter<ProcessEvent> + Sized + 'static {
 /// kết quả) với entity `entity`. `run` là hành động của nút chạy.
 pub fn wire<T: ProcessView>(
     dialog: TaskDialog,
-    entity: &Entity<T>,
-    cx: &App,
+    view: &T,
+    cx: &Context<T>,
     run: fn(&mut T, &mut Context<T>),
 ) -> TaskDialog {
+    let entity = cx.entity();
     let (run_e, cancel_e, close_e, req_e, keep_e, stop_e) = (
         entity.clone(),
         entity.clone(),
         entity.clone(),
         entity.clone(),
         entity.clone(),
-        entity.clone(),
+        entity,
     );
-    let runner = entity.read(cx).runner();
+    let runner = view.runner();
     let mut dialog = dialog
         .running(runner.running)
         .confirm_cancel_open(runner.confirm_cancel)

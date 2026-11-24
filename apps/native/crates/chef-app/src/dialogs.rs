@@ -170,6 +170,9 @@ pub fn open_pdfs(initial_dir: Option<&Path>) -> Vec<PathBuf> {
         std::ptr::null(),
         open_flags(),
     );
+    if let Some(paths) = e2e_open_pdfs_override() {
+        return paths;
+    }
     let mut ofn = new_ofn(
         filter.as_mut_ptr(),
         file.as_mut_ptr(),
@@ -201,6 +204,9 @@ pub fn save_pdf(initial_dir: Option<&Path>, suggested: &str) -> Option<PathBuf> 
         PDF_DEFAULT_EXTENSION.as_ptr(),
         save_flags(),
     );
+    if let Some(path) = e2e_save_pdf_override() {
+        return Some(path);
+    }
     let mut ofn = new_ofn(
         filter.as_mut_ptr(),
         file.as_mut_ptr(),
@@ -302,6 +308,37 @@ fn new_ofn(
         reserved_dw: 0,
         flags_ex: 0,
     }
+}
+
+/// Chỉ E2E (`CHEF_E2E=1`): đọc danh sách file thay cho hộp thoại `GetOpenFileNameW`.
+fn parse_e2e_open_pdfs(raw: &str) -> Vec<PathBuf> {
+    raw.split(';')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from)
+        .collect()
+}
+
+fn is_e2e_enabled() -> bool {
+    std::env::var("CHEF_E2E").as_deref() == Ok("1")
+}
+
+fn e2e_open_pdfs_override() -> Option<Vec<PathBuf>> {
+    if !is_e2e_enabled() {
+        return None;
+    }
+    let raw = std::env::var("CHEF_E2E_OPEN_PDFS").ok()?;
+    let paths = parse_e2e_open_pdfs(&raw);
+    (!paths.is_empty()).then_some(paths)
+}
+
+fn e2e_save_pdf_override() -> Option<PathBuf> {
+    if !is_e2e_enabled() {
+        return None;
+    }
+    let raw = std::env::var("CHEF_E2E_SAVE_PDF").ok()?;
+    let trimmed = raw.trim();
+    (!trimmed.is_empty()).then(|| PathBuf::from(trimmed))
 }
 
 /// Chỉ E2E: nếu `CHEF_E2E_CLOSE_DIALOGS=1`, sau khoảng 800 ms đóng mọi hộp thoại (#32770) của tiến
@@ -441,5 +478,15 @@ mod tests {
             unsafe { std::slice::from_raw_parts(ofn.def_ext, PDF_DEFAULT_EXTENSION.len()) };
         assert_eq!(extension, PDF_DEFAULT_EXTENSION.as_slice());
         assert_ne!(ofn.flags & OFN_OVERWRITEPROMPT, 0);
+    }
+
+    #[test]
+    fn e2e_open_pdfs_parser_splits_semicolons_and_skips_empty_entries() {
+        assert!(parse_e2e_open_pdfs("").is_empty());
+        assert!(parse_e2e_open_pdfs(" ;  ; ").is_empty());
+        assert_eq!(
+            parse_e2e_open_pdfs("C:\\a.pdf ; D:\\b.pdf;"),
+            vec![PathBuf::from("C:\\a.pdf"), PathBuf::from("D:\\b.pdf")]
+        );
     }
 }

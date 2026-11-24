@@ -454,7 +454,7 @@ impl Render for PickerDialog {
             ))
             .can_run(!selected.is_empty())
             .tab_order(order);
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

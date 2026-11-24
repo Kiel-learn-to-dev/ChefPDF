@@ -140,7 +140,6 @@ impl GridSplitDialog {
 impl Render for GridSplitDialog {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dark = self.ctx.dark;
-        let entity = cx.entity();
         let current = self.current(cx);
         let can_run = current.as_ref().is_some_and(|p| !is_noop(p));
         let estimate = current.as_ref().map(|p| {
@@ -178,7 +177,7 @@ impl Render for GridSplitDialog {
                     .child(estimate),
             );
         }
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

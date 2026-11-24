@@ -867,7 +867,7 @@ impl Render for MergeDialog {
             .run_label(t("merge.run"))
             .can_run(plan.can_run() && !running)
             .tab_order(self.tab_order(cx));
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

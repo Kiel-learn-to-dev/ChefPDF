@@ -488,6 +488,12 @@ pub const ACTION_NAMES: &[&str] = &[
     "insertblankafter",
     "insertpagesfromfile",
     "replaceselectedpages",
+    "openmerge",
+    "opensplit",
+    "opencropresize",
+    "openremoveblank",
+    "opengridsplit",
+    "opensmartsplit",
 ];
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

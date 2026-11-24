@@ -845,7 +845,7 @@ impl Render for SmartSplitDialog {
             .run_label(t("pageTools.smart.run"))
             .can_run(issue.is_none() && !running)
             .tab_order(order);
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

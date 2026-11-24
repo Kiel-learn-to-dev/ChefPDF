@@ -462,7 +462,7 @@ impl Render for BlankDialog {
             ))
             .can_run(can_remove(selected.len(), self.ctx.page_count) && !detecting)
             .tab_order(order);
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 

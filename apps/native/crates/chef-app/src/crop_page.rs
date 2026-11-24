@@ -605,7 +605,7 @@ impl Render for CropDialog {
             .run_label(t(run_key))
             .can_run(build(&input, self.ctx.page_count).is_ok())
             .tab_order(order);
-        wire(dialog, &entity, cx, Self::run)
+        wire(dialog, self, cx, Self::run)
     }
 }
 
