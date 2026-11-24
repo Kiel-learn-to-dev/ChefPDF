@@ -94,6 +94,7 @@ mod recovery_model;
 mod redact_model;
 mod rename;
 mod scan_convert;
+mod scan_preview;
 mod security_model;
 mod session;
 mod settings;

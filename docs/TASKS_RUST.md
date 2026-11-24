@@ -1688,7 +1688,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scan_preview.rs`
 - **E2E:** `scan`
 - **Tính năng:** K5, K6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `scan_preview.rs` (port `previewScheduler.ts`): máy trạng thái debounce 400 ms, bản mới nhất thắng, không chạy chồng, hủy job cũ, bỏ kết quả cũ; 10 test. Còn: nối `scan.preview` thật, ước lượng dung lượng, giao diện.
+- **Trạng thái:** 🔄
 
 ### R5.26 · Phạm vi, tùy chọn và preset scan · M
 - **Mô tả:** chọn trang hay cả file, các tùy chọn, preset Nhẹ, Chuẩn, Nét, Văn bản hành chính, và tự tạo preset.
