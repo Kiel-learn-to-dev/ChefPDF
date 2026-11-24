@@ -1221,6 +1221,35 @@
       "sourcePath": "file giấy tiêu đề"
     }
   },
+  "picker": {
+    "loading": "Đang tải danh sách…",
+    "selectAll": "Chọn hết",
+    "selectNone": "Bỏ chọn hết",
+    "attachments": {
+      "title": "Gỡ file đính kèm",
+      "description": "Chọn các file nhúng trong \"{{name}}\" cần gỡ. Có thể hoàn tác.",
+      "run": "Gỡ {{count}} file",
+      "empty": "Tài liệu không có file đính kèm."
+    },
+    "overlays": {
+      "title": "Gỡ dấu đã thêm",
+      "description": "Chọn các watermark, con dấu, số trang… mà Chef PDF đã thêm vào \"{{name}}\". Có thể hoàn tác.",
+      "run": "Gỡ {{count}} mục",
+      "empty": "Chưa có dấu nào do Chef PDF thêm."
+    },
+    "watermarks": {
+      "title": "Gỡ watermark",
+      "description": "Chọn watermark tìm được trong \"{{name}}\" cần gỡ. Có thể hoàn tác.",
+      "run": "Gỡ {{count}} watermark",
+      "empty": "Không tìm thấy watermark."
+    },
+    "hidden": {
+      "title": "Dọn dữ liệu ẩn",
+      "description": "Chọn loại dữ liệu ẩn cần xóa khỏi \"{{name}}\". Mục chỉ để báo cáo hoặc không có gì thì không chọn được. Có thể hoàn tác.",
+      "run": "Dọn {{count}} loại",
+      "empty": "Không tìm thấy dữ liệu ẩn."
+    }
+  },
   "schemaForm": {
     "jsonPlaceholder": "JSON",
     "pagesPlaceholder": "Ví dụ: 1-3, 5",
@@ -1855,6 +1884,7 @@
     "bookmarksHint": "Mỗi file thành một mục trong mục lục của file kết quả.",
     "totalPages": "trang trong file kết quả",
     "andMore": "và {{count}} file khác",
+    "locked": "File có mật khẩu: nhập mật khẩu rồi bấm Mở.",
     "needTwo": "Cần ít nhất 2 file để ghép.",
     "loading": "Đang đọc…",
     "unreadable": "Có file không đọc được. Hãy bỏ file đó ra khỏi danh sách.",

@@ -60,6 +60,7 @@ mod op_dialog;
 mod page_ops;
 mod page_range;
 mod password;
+mod picker;
 mod probe;
 mod process;
 mod properties;

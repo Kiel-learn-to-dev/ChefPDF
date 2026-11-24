@@ -21,8 +21,8 @@ use serde_json::{Value, json};
 
 use crate::page_range::{RangeError, parse_page_ranges};
 use crate::process::{
-    Colors, ProbedPdf, ProcessContext, ProcessEvent, ProcessView, Runner, file_stem, format_bytes,
-    parent_dir, probe_pdf, spawn_job, wire,
+    Colors, ProbeError, ProbedPdf, ProcessContext, ProcessEvent, ProcessView, Runner, file_stem,
+    format_bytes, parent_dir, probe_pdf, spawn_job, wire,
 };
 
 /// Số tệp hiện trong cột xem trước trước khi gộp "và N file khác".
@@ -37,7 +37,11 @@ const SUMMARY_ROWS: usize = 6;
 pub enum Probe {
     Pending,
     Ready(ProbedPdf),
-    /// Không đọc được (ví dụ cần mật khẩu); chuỗi đã dịch.
+    /// File có mật khẩu: chưa mở được. `wrong` là lần thử trước sai mật khẩu.
+    Locked {
+        wrong: bool,
+    },
+    /// Không đọc được; chuỗi đã dịch.
     Failed(String),
 }
 
@@ -48,6 +52,8 @@ pub struct MergeRow {
     pub probe: Probe,
     /// Khoảng trang người dùng nhập; rỗng là tất cả trang.
     pub range: String,
+    /// Mật khẩu mở file, nếu đã nhập đúng.
+    pub password: Option<String>,
 }
 
 /// Trang lấy từ một dòng.
@@ -89,6 +95,7 @@ pub enum MergeIssue {
     NeedTwo,
     Loading,
     Unreadable,
+    Locked,
     BadRange,
     OutputIsInput,
 }
@@ -99,6 +106,7 @@ impl MergeIssue {
             MergeIssue::NeedTwo => "merge.needTwo",
             MergeIssue::Loading => "merge.loading",
             MergeIssue::Unreadable => "merge.unreadable",
+            MergeIssue::Locked => "merge.locked",
             MergeIssue::BadRange => "range.syntax",
             MergeIssue::OutputIsInput => "merge.outputIsInput",
         }
@@ -135,6 +143,8 @@ pub fn plan(rows: &[MergeRow]) -> MergePlan {
         .sum();
     let issue = if rows.iter().any(|r| matches!(r.probe, Probe::Failed(_))) {
         Some(MergeIssue::Unreadable)
+    } else if rows.iter().any(|r| matches!(r.probe, Probe::Locked { .. })) {
+        Some(MergeIssue::Locked)
     } else if rows.iter().any(|r| matches!(r.probe, Probe::Pending)) {
         Some(MergeIssue::Loading)
     } else if pages.iter().any(|p| matches!(p, RowPages::Invalid(_))) {
@@ -176,6 +186,9 @@ pub fn build_params(
         .iter()
         .map(|row| {
             let mut input = json!({ "path": row.path });
+            if let Some(password) = &row.password {
+                input["password"] = json!(password);
+            }
             if let RowPages::Some(pages) = row_pages(row) {
                 input["pages"] = json!(pages);
             }
@@ -231,6 +244,11 @@ struct Row {
     key: u64,
     path: String,
     probe: Probe,
+    /// Mật khẩu đã nhập đúng; nằm trong bộ nhớ và được xóa khi đóng hộp thoại.
+    password: Option<zeroize::Zeroizing<String>>,
+    /// Ô nhập mật khẩu, chỉ hiện khi file có mật khẩu.
+    password_input: Entity<TextInput>,
+    password_try: FocusHandle,
     range: Entity<TextInput>,
     up: FocusHandle,
     down: FocusHandle,
@@ -308,37 +326,86 @@ impl MergeDialog {
                         cx.notify();
                     }
                 }));
+            let password_input = cx.new(|cx| {
+                let mut input = TextInput::new(cx, t("password.label"));
+                input.set_secure(true, cx);
+                input
+            });
             self.rows.push(Row {
                 key,
                 path: path_text,
                 probe: Probe::Pending,
+                password: None,
+                password_input,
+                password_try: cx.focus_handle(),
                 range,
                 up: cx.focus_handle(),
                 down: cx.focus_handle(),
                 remove: cx.focus_handle(),
             });
-            let supervisor = self.ctx.supervisor.clone();
-            cx.spawn(async move |this, cx| {
-                let outcome = match supervisor {
-                    Some(sup) => {
-                        cx.background_executor()
-                            .spawn(async move { probe_pdf(&sup, &path) })
-                            .await
-                    }
-                    None => Err(t("editor.coreUnavailable")),
-                };
-                let _ = this.update(cx, |me, cx| {
-                    if let Some(row) = me.rows.iter_mut().find(|r| r.key == key) {
-                        row.probe = match outcome {
-                            Ok(info) => Probe::Ready(info),
-                            Err(message) => Probe::Failed(message),
-                        };
-                    }
-                    cx.notify();
-                });
-            })
-            .detach();
+            self.probe_row(key, path, None, cx);
         }
+        cx.notify();
+    }
+
+    /// Dò một dòng trên luồng nền, có hoặc không có mật khẩu.
+    fn probe_row(
+        &mut self,
+        key: u64,
+        path: PathBuf,
+        password: Option<zeroize::Zeroizing<String>>,
+        cx: &mut Context<Self>,
+    ) {
+        let supervisor = self.ctx.supervisor.clone();
+        cx.spawn(async move |this, cx| {
+            let typed = password.clone();
+            let outcome = match supervisor {
+                Some(sup) => cx
+                    .background_executor()
+                    .spawn(
+                        async move { probe_pdf(&sup, &path, typed.as_ref().map(|p| p.as_str())) },
+                    )
+                    .await,
+                None => Err(ProbeError::Message(t("editor.coreUnavailable"))),
+            };
+            let _ = this.update(cx, |me, cx| {
+                if let Some(row) = me.rows.iter_mut().find(|r| r.key == key) {
+                    match outcome {
+                        Ok(info) => {
+                            row.probe = Probe::Ready(info);
+                            row.password = password;
+                        }
+                        Err(ProbeError::PasswordRequired) => {
+                            row.probe = Probe::Locked { wrong: false };
+                        }
+                        Err(ProbeError::PasswordInvalid) => {
+                            row.probe = Probe::Locked { wrong: true };
+                        }
+                        Err(ProbeError::Message(message)) => row.probe = Probe::Failed(message),
+                    }
+                }
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    /// Thử lại một dòng có mật khẩu bằng chữ trong ô nhập; ô nhập được xóa ngay.
+    fn retry_password(&mut self, index: usize, cx: &mut Context<Self>) {
+        let Some(row) = self.rows.get(index) else {
+            return;
+        };
+        let (key, path) = (row.key, PathBuf::from(&row.path));
+        let typed = zeroize::Zeroizing::new(row.password_input.read(cx).text().to_string());
+        row.password_input
+            .update(cx, |input, cx| input.clear_sensitive(cx));
+        if typed.is_empty() {
+            return;
+        }
+        if let Some(row) = self.rows.get_mut(index) {
+            row.probe = Probe::Pending;
+        }
+        self.probe_row(key, path, Some(typed), cx);
         cx.notify();
     }
 
@@ -349,6 +416,7 @@ impl MergeDialog {
                 path: row.path.clone(),
                 probe: row.probe.clone(),
                 range: row.range.read(cx).text().to_string(),
+                password: None,
             })
             .collect()
     }
@@ -442,11 +510,14 @@ impl MergeDialog {
             path: row.path.clone(),
             probe: row.probe.clone(),
             range: row.range.read(cx).text().to_string(),
+            password: None,
         };
         let pages = row_pages(&merge_row);
         let meta = match &row.probe {
             Probe::Pending => t("merge.loading"),
             Probe::Failed(message) => message.clone(),
+            Probe::Locked { wrong: false } => t("merge.locked"),
+            Probe::Locked { wrong: true } => t("password.invalid"),
             Probe::Ready(info) => format!(
                 "{} · {}",
                 t_with("merge.pages", &[("count", &info.page_count.to_string())]),
@@ -509,7 +580,32 @@ impl MergeDialog {
                             .child(message)
                     })),
             )
-            .child(
+            .child(if matches!(row.probe, Probe::Locked { .. }) {
+                let retry_entity = entity.clone();
+                div()
+                    .flex()
+                    .items_end()
+                    .gap(px(4.))
+                    .child(
+                        div().w(px(120.)).child(
+                            chef_ui::form::TextField::new(
+                                ("merge-password", row.key),
+                                t("password.label"),
+                                row.password_input.clone(),
+                            )
+                            .dark(dark),
+                        ),
+                    )
+                    .child(
+                        Button::new(("merge-unlock", row.key), row.password_try.clone())
+                            .label(t("password.open"))
+                            .size(Size::Sm)
+                            .dark(dark)
+                            .on_click(move |_, _, cx| {
+                                retry_entity.update(cx, |me, cx| me.retry_password(index, cx));
+                            }),
+                    )
+            } else {
                 div().w(px(120.)).child(
                     chef_ui::form::TextField::new(
                         ("merge-range", row.key),
@@ -520,8 +616,8 @@ impl MergeDialog {
                         row.range.clone(),
                     )
                     .dark(dark),
-                ),
-            )
+                )
+            })
             .child(
                 Button::new(("merge-up", row.key), row.up.clone())
                     .icon("icons/arrow-up.svg")
@@ -787,6 +883,7 @@ mod tests {
                 file_size: size,
             }),
             range: range.into(),
+            password: None,
         }
     }
 
@@ -809,6 +906,7 @@ mod tests {
             path: "b.pdf".into(),
             probe: Probe::Pending,
             range: String::new(),
+            password: None,
         };
         let both = [ready("a.pdf", 3, 1, ""), pending];
         assert_eq!(plan(&both).issue, Some(MergeIssue::Loading));
@@ -817,6 +915,7 @@ mod tests {
             path: "c.pdf".into(),
             probe: Probe::Failed("cần mật khẩu".into()),
             range: String::new(),
+            password: None,
         };
         assert_eq!(
             plan(&[ready("a.pdf", 3, 1, ""), failed]).issue,
@@ -858,6 +957,27 @@ mod tests {
         assert!(same_path("/tmp/a.pdf", "/tmp/a.pdf"));
         assert!(same_path("C:/x/a.pdf", "C:\\x\\a.pdf"));
         assert!(build_params(&rows[..1], "/tmp/o.pdf", false).is_err());
+    }
+
+    #[test]
+    fn locked_files_block_the_run_until_the_password_opens_them() {
+        let locked = MergeRow {
+            path: "/tmp/khoa.pdf".into(),
+            probe: Probe::Locked { wrong: false },
+            range: String::new(),
+            password: None,
+        };
+        let rows = [ready("/tmp/a.pdf", 3, 1, ""), locked];
+        assert_eq!(plan(&rows).issue, Some(MergeIssue::Locked));
+        assert_eq!(plan(&rows).total_pages, None);
+        assert_eq!(MergeIssue::Locked.i18n_key(), "merge.locked");
+        // Sau khi mở được bằng mật khẩu, mật khẩu đi cùng đầu vào đó và chỉ đầu vào đó.
+        let mut opened = ready("/tmp/khoa.pdf", 4, 1, "");
+        opened.password = Some("1234".into());
+        let rows = [ready("/tmp/a.pdf", 3, 1, ""), opened];
+        let params = build_params(&rows, "/tmp/o.pdf", false).unwrap();
+        assert!(params["inputs"][0].get("password").is_none());
+        assert_eq!(params["inputs"][1]["password"], "1234");
     }
 
     #[test]

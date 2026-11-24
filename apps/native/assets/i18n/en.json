@@ -1228,6 +1228,35 @@
       "sourcePath": "letterhead file"
     }
   },
+  "picker": {
+    "loading": "Loading the list…",
+    "selectAll": "Select all",
+    "selectNone": "Select none",
+    "attachments": {
+      "title": "Remove attachments",
+      "description": "Choose the files embedded in \"{{name}}\" to remove. Can be undone.",
+      "run": "Remove {{count}} files",
+      "empty": "The document has no attachments."
+    },
+    "overlays": {
+      "title": "Remove added overlays",
+      "description": "Choose the watermarks, stamps and page numbers that Chef PDF added to \"{{name}}\". Can be undone.",
+      "run": "Remove {{count}} items",
+      "empty": "Chef PDF has not added anything yet."
+    },
+    "watermarks": {
+      "title": "Remove watermarks",
+      "description": "Choose the watermarks found in \"{{name}}\" to remove. Can be undone.",
+      "run": "Remove {{count}} watermarks",
+      "empty": "No watermark found."
+    },
+    "hidden": {
+      "title": "Clean hidden data",
+      "description": "Choose which hidden data to delete from \"{{name}}\". Report-only or empty items cannot be selected. Can be undone.",
+      "run": "Clean {{count}} kinds",
+      "empty": "No hidden data found."
+    }
+  },
   "schemaForm": {
     "jsonPlaceholder": "JSON",
     "pagesPlaceholder": "Example: 1-3, 5",
@@ -1865,6 +1894,7 @@
     "totalPages": "pages in the result",
     "andMore_one": "and {{count}} more file",
     "andMore_other": "and {{count}} more files",
+    "locked": "This file has a password: enter it and press Open.",
     "needTwo": "You need at least two files to merge.",
     "loading": "Reading…",
     "unreadable": "Some files cannot be read. Remove them from the list.",

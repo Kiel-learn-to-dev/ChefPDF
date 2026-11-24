@@ -529,17 +529,44 @@ pub struct ProbedPdf {
     pub file_size: u64,
 }
 
+/// Vì sao không dò được một PDF.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProbeError {
+    PasswordRequired,
+    PasswordInvalid,
+    /// Lỗi khác; chuỗi đã dịch.
+    Message(String),
+}
+
+/// Phân loại lỗi RPC khi mở file: cần mật khẩu, sai mật khẩu, hay lỗi khác.
+pub fn classify_open_error(error: CallError) -> ProbeError {
+    if let CallError::Rpc(value) = &error {
+        match chef_rpc::errors::kind_of(value) {
+            "PASSWORD_REQUIRED" => return ProbeError::PasswordRequired,
+            "PASSWORD_INVALID" => return ProbeError::PasswordInvalid,
+            _ => {}
+        }
+    }
+    ProbeError::Message(error_text(error))
+}
+
 /// Dò số trang và dung lượng bằng phiên tạm (hợp đồng chưa có "info không cần phiên", như Electron).
-pub fn probe_pdf(supervisor: &Arc<Mutex<Supervisor>>, path: &Path) -> Result<ProbedPdf, String> {
+/// `password` là mật khẩu mở file nếu có.
+pub fn probe_pdf(
+    supervisor: &Arc<Mutex<Supervisor>>,
+    path: &Path,
+    password: Option<&str>,
+) -> Result<ProbedPdf, ProbeError> {
+    let mut params = json!({ "path": path.display().to_string() });
+    if let Some(password) = password {
+        params["password"] = Value::String(password.to_string());
+    }
     let reply = {
         let sup = supervisor
             .lock()
-            .map_err(|_| i18n::t("editor.coreUnavailable"))?;
-        sup.request(
-            "session.open",
-            &json!({ "path": path.display().to_string() }),
-        )
-        .map_err(error_text)?
+            .map_err(|_| ProbeError::Message(i18n::t("editor.coreUnavailable")))?;
+        sup.request("session.open", &params)
+            .map_err(classify_open_error)?
     };
     if let Some(id) = reply.pointer("/state/sessionId").and_then(Value::as_str) {
         if let Ok(sup) = supervisor.lock() {
@@ -547,7 +574,7 @@ pub fn probe_pdf(supervisor: &Arc<Mutex<Supervisor>>, path: &Path) -> Result<Pro
         }
         close_session(supervisor, id);
     }
-    parse_probe(&reply).ok_or_else(|| i18n::t("errors.INTERNAL"))
+    parse_probe(&reply).ok_or_else(|| ProbeError::Message(i18n::t("errors.INTERNAL")))
 }
 
 /// `info.pageCount` và `info.fileSize` của `session.open`.
@@ -674,6 +701,29 @@ mod tests {
         );
         assert!(parse_probe(&json!({ "info": {} })).is_none());
         assert!(parse_probe(&json!({})).is_none());
+    }
+
+    #[test]
+    fn classifies_password_errors_from_the_core() {
+        let rpc = |kind: &str| {
+            CallError::Rpc(json!({ "code": -32000, "message": "x", "data": { "kind": kind } }))
+        };
+        assert_eq!(
+            classify_open_error(rpc("PASSWORD_REQUIRED")),
+            ProbeError::PasswordRequired
+        );
+        assert_eq!(
+            classify_open_error(rpc("PASSWORD_INVALID")),
+            ProbeError::PasswordInvalid
+        );
+        assert!(matches!(
+            classify_open_error(rpc("INVALID_PARAMS")),
+            ProbeError::Message(_)
+        ));
+        assert!(matches!(
+            classify_open_error(CallError::Timeout),
+            ProbeError::Message(_)
+        ));
     }
 
     #[test]

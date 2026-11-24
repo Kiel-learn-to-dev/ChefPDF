@@ -43,6 +43,8 @@ pub enum CommandAction {
     SmartSplitFile,
     /// Hộp thoại sinh từ schema, chỉ số trong `op_dialog::OPS`.
     Op(usize),
+    /// Hộp thoại danh sách chọn, chỉ số trong `picker::PICKERS`.
+    Picker(usize),
     SelectAllPages,
     InvertPageSelection,
     SelectOddPages,
@@ -91,6 +93,7 @@ impl CommandAction {
             Self::GridSplitPages => Box::new(v::OpenGridSplit),
             Self::SmartSplitFile => Box::new(v::OpenSmartSplit),
             Self::Op(_) => Box::new(v::OpenOpDialog),
+            Self::Picker(_) => Box::new(v::OpenPickerDialog),
             Self::SelectAllPages => Box::new(v::SelectAllPages),
             Self::InvertPageSelection => Box::new(v::InvertPageSelection),
             Self::SelectOddPages => Box::new(v::SelectOddPages),
@@ -559,6 +562,17 @@ pub fn viewer_commands(t: impl Fn(&str) -> String) -> CommandRegistry {
                 t(&spec.title_key()),
                 t(&format!("palette.group.{}", spec.group)),
                 A::Op(index),
+            )
+            .keywords(spec.keywords.iter().copied()),
+        );
+    }
+    for (index, spec) in crate::picker::PICKERS.iter().enumerate() {
+        commands.register(
+            Command::new(
+                format!("picker.{}", spec.id),
+                t(&spec.title_key()),
+                t(&format!("palette.group.{}", spec.group)),
+                A::Picker(index),
             )
             .keywords(spec.keywords.iter().copied()),
         );

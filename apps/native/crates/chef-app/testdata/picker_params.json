@@ -1,0 +1,30 @@
+{
+  "attachments": {
+    "listOp": "doc.attachments.list",
+    "rowsPointer": "",
+    "idField": "name",
+    "applyOp": "doc.attachments.remove",
+    "applyField": "names"
+  },
+  "overlays": {
+    "listOp": "overlay.listOverlays",
+    "rowsPointer": "/overlays",
+    "idField": "id",
+    "applyOp": "overlay.remove",
+    "applyField": "ids"
+  },
+  "watermarks": {
+    "listOp": "watermark.detect",
+    "rowsPointer": "/candidates",
+    "idField": "id",
+    "applyOp": "watermark.remove",
+    "applyField": "candidateIds"
+  },
+  "hidden": {
+    "listOp": "inspect.hiddenData",
+    "rowsPointer": "/findings",
+    "idField": "category",
+    "applyOp": "inspect.removeHidden",
+    "applyField": "categories"
+  }
+}

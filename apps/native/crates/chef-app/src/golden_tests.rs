@@ -33,6 +33,7 @@ fn row(path: &str, pages: usize, range: &str) -> MergeRow {
             file_size: 1,
         }),
         range: range.into(),
+        password: None,
     }
 }
 

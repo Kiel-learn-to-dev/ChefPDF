@@ -93,6 +93,7 @@ actions!(
         OpenGridSplit,
         OpenSmartSplit,
         OpenOpDialog,
+        OpenPickerDialog,
         SelectAllPages,
         InvertPageSelection,
         SelectOddPages,
@@ -491,6 +492,11 @@ pub struct PendingOp(pub usize);
 
 impl gpui::Global for PendingOp {}
 
+/// Như [`PendingOp`] cho hộp thoại danh sách chọn.
+pub struct PendingPicker(pub usize);
+
+impl gpui::Global for PendingPicker {}
+
 /// Hộp thoại xử lý M5 đang mở: view để vẽ và đăng ký nghe sự kiện của nó.
 struct ProcessHost {
     view: gpui::AnyView,
@@ -508,6 +514,8 @@ enum ProcessKind {
     SmartSplit,
     /// Hộp thoại sinh từ schema, chỉ số trong `op_dialog::OPS`.
     Op(usize),
+    /// Hộp thoại danh sách chọn, chỉ số trong `picker::PICKERS`.
+    Picker(usize),
 }
 
 enum OperationResult {
@@ -1407,10 +1415,12 @@ impl Viewer {
             (ProcessKind::Op(_), Some(spec)) => spec.needs_document(),
             _ => true,
         };
+        let picker_edits = matches!(kind, ProcessKind::Picker(_));
         if needs_document && self.page_sizes.is_empty() {
             return;
         }
-        let edits_pages = edits_pages || op_spec.is_some_and(|spec| spec.edits_document());
+        let edits_pages =
+            edits_pages || picker_edits || op_spec.is_some_and(|spec| spec.edits_document());
         if edits_pages && self.document_signed {
             self.message = Some(i18n::t("pageTools.signedBlocked"));
             cx.notify();
@@ -1466,6 +1476,15 @@ impl Viewer {
                     return;
                 };
                 let entity = cx.new(|cx| crate::op_dialog::OpDialog::new(spec, ctx, return_to, cx));
+                let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
+                (entity.into(), sub)
+            }
+            ProcessKind::Picker(index) => {
+                let Some(spec) = crate::picker::PICKERS.get(index) else {
+                    return;
+                };
+                let entity =
+                    cx.new(|cx| crate::picker::PickerDialog::new(spec, ctx, return_to, cx));
                 let sub = cx.subscribe_in(&entity, window, Self::on_process_event);
                 (entity.into(), sub)
             }
@@ -10438,6 +10457,12 @@ impl Render for Viewer {
                     let index = cx.try_global::<PendingOp>().map(|p| p.0);
                     if let Some(index) = index {
                         this.open_process(ProcessKind::Op(index), window, cx);
+                    }
+                }))
+                .on_action(cx.listener(|this, _: &OpenPickerDialog, window, cx| {
+                    let index = cx.try_global::<PendingPicker>().map(|p| p.0);
+                    if let Some(index) = index {
+                        this.open_process(ProcessKind::Picker(index), window, cx);
                     }
                 }))
                 .on_action(cx.listener(|this, _: &OpenSmartSplit, window, cx| {

@@ -1,0 +1,413 @@
+{
+ "attachments": [
+  {
+   "name": "ghi-chu.txt",
+   "size": 1,
+   "description": ""
+  }
+ ],
+ "overlays": {
+  "overlays": [
+   {
+    "id": "de6e6e6e09394172b23b87addcaf5ff1",
+    "kind": "watermark",
+    "group": "ae2db7734fe14c37b0e4d4671c500433",
+    "pages": [
+     0,
+     1,
+     2
+    ],
+    "label": "MAU"
+   },
+   {
+    "id": "61f9f7fecb4b40e389f3c1449829928e",
+    "kind": "stamp",
+    "group": "be0dd12d44d04559b6de15880c9556fc",
+    "pages": [
+     0,
+     1,
+     2
+    ],
+    "label": "DAU"
+   }
+  ]
+ },
+ "watermarks": {
+  "pageCount": 3,
+  "candidates": [
+   {
+    "id": "4-c0a0d82462",
+    "kind": "overlay",
+    "source": "overlay",
+    "tier": 4,
+    "confidence": 1.0,
+    "pages": [
+     0,
+     1,
+     2
+    ],
+    "count": 4,
+    "sample": {
+     "pageIndex": 0,
+     "bbox": [
+      -333.291796,
+      -243.29179599999998,
+      945.291796,
+      1035.291796
+     ]
+    },
+    "description": {
+     "vi": "Watermark do Chef PDF thêm (đã gắn nhãn)",
+     "en": "Watermark added by Chef PDF (tagged)"
+    },
+    "evidence": [
+     "Chef PDF overlay registry: kind watermark"
+    ],
+    "objectRefs": [
+     {
+      "pageIndex": 0,
+      "id": "p0:ebe9d416bbe1:1"
+     },
+     {
+      "pageIndex": 1,
+      "id": "p1:d485ff5630b1:1"
+     },
+     {
+      "pageIndex": 2,
+      "id": "p2:2c3aad06207b:1"
+     }
+    ],
+    "annotRefs": [],
+    "layerIds": [],
+    "overlayIds": [
+     "de6e6e6e09394172b23b87addcaf5ff1"
+    ],
+    "preview": [
+     {
+      "pageIndex": 0,
+      "bboxes": [
+       [
+        -333.291796,
+        -243.29179599999998,
+        945.291796,
+        1035.291796
+       ]
+      ]
+     },
+     {
+      "pageIndex": 1,
+      "bboxes": [
+       [
+        -333.291796,
+        -243.29179599999998,
+        945.291796,
+        1035.291796
+       ]
+      ]
+     },
+     {
+      "pageIndex": 2,
+      "bboxes": [
+       [
+        -333.291796,
+        -243.29179599999998,
+        945.291796,
+        1035.291796
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "id": "5-d89dc77c25",
+    "kind": "repeated",
+    "source": "repeated",
+    "tier": 5,
+    "confidence": 0.4,
+    "pages": [
+     0,
+     1,
+     2
+    ],
+    "count": 3,
+    "sample": {
+     "pageIndex": 0,
+     "bbox": [
+      57.0,
+      57.0,
+      111.19200000000001,
+      87.36000000000001
+     ]
+    },
+    "description": {
+     "vi": "Lặp lại ở cùng vị trí trên 3 trang: DAU",
+     "en": "Repeated at the same place on 3 page(s): DAU"
+    },
+    "evidence": [
+     "repeated on 3 of 3 pages"
+    ],
+    "objectRefs": [
+     {
+      "pageIndex": 0,
+      "id": "p0:ebe9d416bbe1:4"
+     },
+     {
+      "pageIndex": 1,
+      "id": "p1:d485ff5630b1:4"
+     },
+     {
+      "pageIndex": 2,
+      "id": "p2:2c3aad06207b:4"
+     }
+    ],
+    "annotRefs": [],
+    "layerIds": [],
+    "overlayIds": [],
+    "preview": [
+     {
+      "pageIndex": 0,
+      "bboxes": [
+       [
+        57.0,
+        57.0,
+        111.19200000000001,
+        87.36000000000001
+       ]
+      ]
+     },
+     {
+      "pageIndex": 1,
+      "bboxes": [
+       [
+        57.0,
+        57.0,
+        111.19200000000001,
+        87.36000000000001
+       ]
+      ]
+     },
+     {
+      "pageIndex": 2,
+      "bboxes": [
+       [
+        57.0,
+        57.0,
+        111.19200000000001,
+        87.36000000000001
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "id": "5-e8a92539ab",
+    "kind": "repeated",
+    "source": "repeated",
+    "tier": 5,
+    "confidence": 0.4,
+    "pages": [
+     0,
+     1,
+     2
+    ],
+    "count": 3,
+    "sample": {
+     "pageIndex": 0,
+     "bbox": [
+      50.0,
+      50.0,
+      118.192,
+      94.36000000000001
+     ]
+    },
+    "description": {
+     "vi": "Lặp lại ở cùng vị trí trên 3 trang: vector shape",
+     "en": "Repeated at the same place on 3 page(s): vector shape"
+    },
+    "evidence": [
+     "repeated on 3 of 3 pages"
+    ],
+    "objectRefs": [
+     {
+      "pageIndex": 0,
+      "id": "p0:ebe9d416bbe1:3"
+     },
+     {
+      "pageIndex": 1,
+      "id": "p1:d485ff5630b1:3"
+     },
+     {
+      "pageIndex": 2,
+      "id": "p2:2c3aad06207b:3"
+     }
+    ],
+    "annotRefs": [],
+    "layerIds": [],
+    "overlayIds": [],
+    "preview": [
+     {
+      "pageIndex": 0,
+      "bboxes": [
+       [
+        50.0,
+        50.0,
+        118.192,
+        94.36000000000001
+       ]
+      ]
+     },
+     {
+      "pageIndex": 1,
+      "bboxes": [
+       [
+        50.0,
+        50.0,
+        118.192,
+        94.36000000000001
+       ]
+      ]
+     },
+     {
+      "pageIndex": 2,
+      "bboxes": [
+       [
+        50.0,
+        50.0,
+        118.192,
+        94.36000000000001
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "hidden": {
+  "findings": [
+   {
+    "category": "metadata",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "embeddedFiles",
+    "severity": "warn",
+    "count": 2,
+    "items": [
+     {
+      "where": "name tree",
+      "name": "ghi-chu.txt"
+     },
+     {
+      "where": "AF"
+     }
+    ],
+    "fixAvailable": true
+   },
+   {
+    "category": "javascript",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "launchActions",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "hiddenText",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": false
+   },
+   {
+    "category": "hiddenLayers",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "comments",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "formValues",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "bookmarks",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "thumbnails",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "externalLinks",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "xfa",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "revisionHistory",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "unusedObjects",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": true
+   },
+   {
+    "category": "fontsNotEmbedded",
+    "severity": "warn",
+    "count": 1,
+    "items": [
+     {
+      "name": "Helvetica"
+     }
+    ],
+    "fixAvailable": false
+   },
+   {
+    "category": "images",
+    "severity": "info",
+    "count": 0,
+    "items": [],
+    "fixAvailable": false
+   }
+  ]
+ }
+}
