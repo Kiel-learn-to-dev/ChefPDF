@@ -2341,6 +2341,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `signflow`
 - **Tính năng:** I25, I27
 - **Ghi chú:** (2026-11-24, phiên cloud) `sign_placement.rs`: hình học ba khung tọa độ, góc cố định, kéo, dời, đổi cỡ hộp (test mọi góc xoay). Còn lớp vẽ giao diện.
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_state.rs`: `PlacementStore` (hộp ký, xem trước chữ mốc, chọn hộp) và `SignDraft`.
 - **Trạng thái:** 🔄
 
 ### R6.18 · Ký thật bằng token qua lõi · L
@@ -2448,6 +2449,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `signflow`
 - **Tính năng:** I34
 - **Ghi chú:** (2026-11-24) `sign.verify` (chữ ký của tài liệu đang mở) và `sign.verifyFile` (file bất kỳ), hiện dạng dòng. **Chưa làm:** panel có biểu tượng trạng thái từng chữ ký. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_state.rs`: `VerifyStore` theo tài liệu, debounce 300 ms, bản mới nhất thắng (dùng lại `scan_preview`), 8 test.
 - **Trạng thái:** 🔄
 
 ### R6.28 · Kho tin cậy · S

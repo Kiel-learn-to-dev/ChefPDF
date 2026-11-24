@@ -105,6 +105,7 @@ mod sign_anchor;
 mod sign_batch;
 mod sign_placement;
 mod sign_request;
+mod sign_state;
 mod sign_template_model;
 mod sign_template_view;
 mod sign_verify_model;
