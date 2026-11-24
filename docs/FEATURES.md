@@ -369,7 +369,7 @@ Thư viện **dùng chung** cho ký số (I-B), con dấu ảnh (F3), dấu giá
 | M2 | PDF → ảnh | PNG / JPG / TIFF (TIFF nhiều trang), chọn DPI | v0.5 |
 | M3 | Ảnh → PDF | Nhiều ảnh, sắp thứ tự, khổ giấy, lề, tự xoay theo EXIF | v0.5 |
 | M4 | Ảnh chụp màn hình → PDF | Dán từ clipboard hoặc chụp màn hình trực tiếp | v0.5 |
-| M5 | Markdown / HTML → PDF | Mở file Markdown hoặc HTML để xuất PDF. Phần dán link trang web đã bỏ (xem Thay đổi sau khi chốt, 2026-11-09) | v0.5 |
+| M5 | ~~Markdown / HTML → PDF~~ | **Đã bỏ (2026-11-24, D97).** Trước đó: mở file Markdown hoặc HTML để xuất PDF; phần dán link trang web đã bỏ ngày 2026-11-09 | Đã bỏ |
 | M6 | Chuyển đổi màu | Thang xám / đen trắng (vẫn giữ chữ, khác K2); tiết kiệm mực in; thay màu | v0.5 |
 | M7 | Trích xuất | Lấy toàn bộ ảnh gốc; lấy text ra `.txt` | v0.5 |
 | M8 | File đính kèm | Xem, thêm, xóa, lưu ra các file nhúng trong PDF | v0.5 |
@@ -452,12 +452,12 @@ Phiên bản nâng cấp sau này. Dùng **mô hình chạy trên máy** (offlin
 
 | Mức | Số tính năng |
 |---|---|
-| Bản 1.0 (v0.1–v0.10) | 161 |
+| Bản 1.0 (v0.1–v0.10) | 160 |
 | Bản 1.1 | 4 |
 | Sau 1.0 | 5 |
 | Nâng cấp | 12 |
 | Ý tưởng | 20 |
-| **Tổng** | 202 |
+| **Tổng** | 201 |
 
 ## Thay đổi sau khi chốt
 
@@ -465,6 +465,7 @@ Ghi mọi thay đổi phạm vi ở đây (ngày, mã, thay đổi, lý do).
 
 | Ngày | Mã | Thay đổi | Lý do |
 |---|---|---|---|
+| 2026-11-24 | M5 | **Bỏ hẳn M5 (Markdown / HTML → PDF)** (D97). Mã M5 giữ trong bảng để không lệch số, đánh dấu "Đã bỏ". Bản 1.0 còn 160, tổng 201 | Chủ dự án: tính năng không hữu ích; lõi cũng chưa có op nào cho việc này |
 | 2026-11-09 | M5 | **Bỏ phần dán link trang web → PDF** (vỏ Rust không có Chromium để `printToPDF`, CH-R1 chọn (c)). Mục M5 chỉ còn Markdown và HTML. Số tính năng không đổi (mức giữ nguyên), nhưng bớt một phần của M5 | Chủ dự án chọn phương án (c) khi xem CH-R1 trong TASKS_RUST |
 | 2026-11-05 | (menu) | **Bản 1.2.0 (D67–D70):** bỏ thanh menu trên Windows và Linux; thêm tab Giới thiệu (phiên bản, lõi, môi trường, mở thư mục nhật ký và dữ liệu); viền đứt trong sửa chữ chỉ quanh đoạn; bôi đen rồi Sửa chọn đúng vùng. Đóng gói macOS (dmg) cần máy Mac | Chủ dự án yêu cầu bản 1.2 |
 | 2026-11-05 | D1, D4, D8, D9 | **Sửa chữ là một chế độ (1.1, D66):** nút Thêm chữ và Chọn & sửa đối tượng bỏ khỏi thanh Chỉnh sửa. Chế độ Sửa chữ gồm chọn và sửa chữ, Thêm văn bản (công cụ đầu hàng định dạng, bấm trang để đặt, Ctrl+Enter ghi), và chọn, kéo, xóa đối tượng. Chữ thêm vào là chữ thường, sửa được. Tùy chọn của chữ mới ở "Tùy chọn…" | Chủ dự án: ba nút là một tính năng; blueprint ABBYY đặt Thêm văn bản trong hàng định dạng và Chọn đối tượng là một công cụ con trỏ |

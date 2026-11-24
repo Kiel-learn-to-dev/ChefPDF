@@ -58,7 +58,7 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 | M9 | Hoàn thiện | 17 | 1 | 6 | 8 | 0 | — |
 | **Tổng** | | **269** | 14 | 82 | 152 | 7 | — |
 
-Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R1.24–R1.26, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
+Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R1.24–R1.26, R5.15, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
 
 ## Thứ tự làm tiếp (cập nhật 2026-11-24)
 
@@ -1585,7 +1585,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/markdown.rs`
 - **E2E:** `web2pdf`
 - **Tính năng:** M5 (Markdown, HTML)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) Bỏ theo D97: chủ dự án không cần tính năng này. Không có mã nào để gỡ (lõi chưa có op Markdown/HTML → PDF).
+- **Trạng thái:** ❌
 
 ### R5.16 · Web sang PDF theo CH-R1 · L
 - **Mô tả:** dán link trang web và xuất PDF. Cách làm theo quyết định CH-R1: WebView2 qua CDP (`printToPDF`), hoặc tiến trình Electron nhỏ chỉ chạy khi dùng. Nếu chủ dự án chọn (c), bỏ tính năng và ghi vào FEATURES.
