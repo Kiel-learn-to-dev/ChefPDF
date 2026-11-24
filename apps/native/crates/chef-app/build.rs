@@ -10,6 +10,9 @@ fn main() {
     // crates/chef-app -> apps/native là hai cấp trên.
     let native = manifest.join("..").join("..");
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    // Tài nguyên được nhúng trên mọi hệ điều hành: `assets.rs` cần có cả khi chỉ kiểm biên dịch trên Linux.
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
+    embed_assets(&native.join("assets"), &out_dir);
     let library = match target_os.as_str() {
         "windows" => "pdfium.dll",
         "macos" => "libpdfium.dylib",
@@ -21,13 +24,10 @@ fn main() {
     println!("cargo:rerun-if-changed={}", source.display());
 
     // OUT_DIR = target/<profile>/build/<pkg>-<hash>/out; ba cấp trên là target/<profile>.
-    let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
     let profile_dir = out_dir
         .ancestors()
         .nth(3)
         .expect("không xác định được thư mục profile");
-
-    embed_assets(&native.join("assets"), &out_dir);
 
     if !Path::new(&source).exists() {
         println!(

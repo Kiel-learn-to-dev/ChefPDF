@@ -40,4 +40,5 @@ Mốc là cách chia việc. Thứ tự làm đi theo rủi ro còn lại, nên 
 - Điểm kiểm cuối mỗi mốc là điểm xem lại kế hoạch, không phải cổng dừng, và **không phải phụ thuộc kỹ thuật**: task của mốc sau không chờ điểm kiểm của mốc trước.
 - Task 🔄 chỉ còn thiếu việc thuộc mốc sau thì chuyển tiêu chí đó sang task của mốc sau và đóng, không để đuôi kéo dài.
 - Trước mỗi lần báo "xong" một đợt việc: chạy script gộp E2E native (R2.33) cùng fmt, clippy, test.
+- Phiên cloud (Linux, không có Windows): chạy `scripts/cloud-linux-check.sh` (fmt, clippy, test; vá tạm `xattr` mà không sửa repo) và `cd core && uv run pytest` cho phần lõi. Việc này không thay được E2E và bộ kiểm trên Windows.
 - Không commit nếu chủ dự án không yêu cầu.

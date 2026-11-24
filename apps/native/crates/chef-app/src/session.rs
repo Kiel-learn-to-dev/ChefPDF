@@ -80,7 +80,8 @@ fn map_call_error(err: CallError) -> OpenError {
     }
 }
 
-#[cfg(test)]
+// Các test mở phiên thật qua `Supervisor::start`, chỉ có trên Windows (ngoài Windows là bản thay thế).
+#[cfg(all(test, windows))]
 mod tests {
     use super::*;
     use chef_rpc::{CoreCommand, SupervisorConfig};
