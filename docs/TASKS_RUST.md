@@ -68,7 +68,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 2. **Giữ các việc cần môi trường/nghiệm thu thành cổng rõ.** MAN-1 tại R1.27 đã ✅ theo xác nhận trực tiếp của chủ dự án ngày 2026-11-22; UniKey Telex/VNI trong khung nháp R7.09 vẫn thuộc mốc sau. R2.17 còn cần kéo thả từ Explorer; R2.19 còn cần OS wheel/key và present/frame thật. Computer Use (`@oai/sky` và CUA) không kết nối được native pipe trong lần thử 2026-11-22, nên không gửi input giả. MAN-5 đã xem sáu cặp cuối và chấp nhận sai khác raster còn lại; cursor hand cũng đã đo bằng Win32.
 3. **Điểm kiểm M1 đã được chủ dự án nghiệm thu (2026-11-22).** Còn mở: ước lượng điểm M2–M9 (chờ số giờ thực tế của M1) và frame/present của R1.32 (ghi ở "Điểm kiểm M1"). R1.05 đã đóng. M2 vẫn 🔄 theo các cổng R2.17, R2.19, R2.28 và MAN-5. R2.26 đã ✅: E2E Windows đạt và vùng nhớ do app sở hữu được zeroize; bản sao tạm trong thư viện/allocator nằm ngoài bảo đảm này.
 4. **Tiếp tục phần còn lại của M3/M4:** R3.09 còn 🔄; M4 còn R4.01 và R4.05 đang 🔄 (R4.02–R4.04 và R4.06–R4.08 đã ✅). Cập nhật thứ tự theo task thực sự còn mở.
-5. **M5a (R5.03–R5.08) đã có code và test (2026-11-24), đang 🔄 chờ kiểm trên Windows:** E2E `tools5`, ui-audit R5.09 và bộ fmt/clippy/test/deny trên Windows. Tiếp theo từ R5.11 (M5b) sau khi các kiểm đó xong; R5.01–R5.02 đã ✅. Có thể làm task M5 độc lập song song về mặt kỹ thuật, nhưng cập nhật lại hàng đợi tại đây để tránh mất dấu phần nghiệm thu M1/M2.
+5. **M5a (R5.03–R5.08) và hộp thoại sinh từ schema cho M5b–M5f, M6, M7, M8 (D95) đã có code và test (2026-11-24), đang 🔄 chờ kiểm trên Windows:** E2E `tools5`, ui-audit R5.09 và bộ fmt/clippy/test/deny trên Windows. Tiếp theo từ R5.11 (M5b) sau khi các kiểm đó xong; R5.01–R5.02 đã ✅. Có thể làm task M5 độc lập song song về mặt kỹ thuật, nhưng cập nhật lại hàng đợi tại đây để tránh mất dấu phần nghiệm thu M1/M2.
 
 **Vì sao M1/M2 bị bỏ lại:** D86 đã ưu tiên lát cắt dọc M3 do chuỗi revision là phụ thuộc kỹ thuật của nhiều task sau. Sau khi lát cắt đó qua được, các đợt code tiếp theo ưu tiên task giao diện M4/M5; quy tắc cho phép làm trước khi xong checkpoint, nhưng hàng đợi không được cập nhật theo tiến độ thực tế. M1/M2 chưa đóng chủ yếu vì thiếu ảnh Electron và MAN-5, cùng một số lượt xác minh runtime/OS-input; không có một blocker kỹ thuật duy nhất buộc phải dừng cả hai mốc.
 
@@ -1532,7 +1532,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/compress.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `compress.pdf` (nén tại chỗ, hoàn tác được), `compress.file` (nén ra file mới) và `compress.estimate` (ước tính, hiện dạng dòng). Công tắc `bool | null` chưa chạm vào thì không gửi để lõi lấy theo preset. **Chưa làm:** preset do người dùng lưu (`compressPresets.ts`), ước tính tự cập nhật ở cột phụ, nén theo dung lượng đích (`compress.toSize`/`fitSize`). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.12 · PDF sang ảnh · M
 - **Mô tả:** xuất PNG, JPG, TIFF (nhiều trang), chọn DPI. Dùng pdfium render.
@@ -1542,7 +1543,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/to_images.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `convert.pdfToImages` (PNG/JPEG/TIFF/WebP, dpi, màu, TIFF nhiều trang, mẫu tên). **Chưa làm:** chọn trang bằng ảnh thu nhỏ. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.13 · Ảnh sang PDF · M
 - **Mô tả:** nhiều ảnh, sắp thứ tự, chọn khổ giấy, lề, tự xoay theo EXIF. Operation `image.topdf`.
@@ -1552,7 +1554,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/from_images.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `convert.imagesToPdf` (khổ trang, lề, hướng, vừa trang, dpi); thêm ảnh từng cái một bằng hộp chọn ảnh. **Chưa làm:** kéo thả/sắp thứ tự ảnh, chọn nhiều ảnh một lần. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.14 · Ảnh chụp màn hình và clipboard sang PDF · S
 - **Mô tả:** dán ảnh từ clipboard hoặc chụp một vùng màn hình thành PDF (`clipboardImage.ts`).
@@ -1592,7 +1595,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/color.rs`
 - **E2E:** `tools5-convert`
 - **Tính năng:** M6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `color.convert` (thang xám, đen trắng có ngưỡng và rải điểm, tiết kiệm mực, thay một màu). **Chưa làm:** xem trước trước/sau. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.18 · Trích xuất ảnh gốc và văn bản · S
 - **Mô tả:** lấy toàn bộ ảnh gốc của PDF, lấy chữ ra `.txt`.
@@ -1601,7 +1605,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02, R2.25a
 - **File:** `apps/native/crates/chef-app/src/extract.rs`
 - **Tính năng:** M7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `doc.extractImages` và `doc.extractText`. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.19 · File đính kèm · S
 - **Mô tả:** xem, thêm, xóa, lưu ra các file nhúng trong PDF.
@@ -1610,7 +1615,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02
 - **File:** `apps/native/crates/chef-app/src/attachments.rs`
 - **Tính năng:** M8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `doc.attachments.add` và `doc.attachments.extract`. **Chưa làm:** xem danh sách và xóa từng file đính kèm (`doc.attachments.list/remove` cần hộp thoại có danh sách). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.20 · Sửa metadata · S
 - **Mô tả:** tiêu đề, tác giả, chủ đề, từ khóa. Operation `meta.set`.
@@ -1619,7 +1625,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02
 - **File:** `apps/native/crates/chef-app/src/metadata.rs`
 - **Tính năng:** M9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `doc.setMetadata` (tiêu đề, tác giả, chủ đề, từ khóa, ngày, thuộc tính tùy chỉnh dạng JSON). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.21 · Tối ưu cho web · S
 - **Mô tả:** linearize để mở trang đầu nhanh khi xem qua mạng.
@@ -1628,7 +1635,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02
 - **File:** `apps/native/crates/chef-app/src/linearize.rs`
 - **Tính năng:** M10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `doc.optimizeWeb` (ghi file mới, không đổi file gốc). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.22 · Sửa file PDF hỏng · M
 - **Mô tả:** thử khôi phục file lỗi, không mở được thì báo rõ và giữ file gốc.
@@ -1637,7 +1645,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.02
 - **File:** `apps/native/crates/chef-app/src/repair.rs`
 - **Tính năng:** M11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `doc.repair` (ghi file mới, giữ file gốc). **Chưa làm:** tự mở file đã sửa thành tab mới và hiện cảnh báo khi sửa. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.23 · Chuyển thành bản scan: độ phân giải, màu, nén · M
 - **Mô tả:** chọn độ phân giải, chế độ màu, và nén (JPEG có chỉnh chất lượng, Flate không mất dữ liệu, CCITT G4 cho đen trắng). Operation `scan.convert` (`scan.py`).
@@ -1647,7 +1656,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scan_convert.rs`
 - **E2E:** `scan`
 - **Tính năng:** K1, K2, K3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `scan.rasterize` (dpi, màu, ngưỡng, rải điểm, chất lượng JPEG, trang, bỏ metadata, mẫu hiệu ứng). **Chưa làm:** R5.24–R5.27 (hiệu ứng chi tiết, xem trước, preset, giới hạn dung lượng `scan.fitSize`). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.24 · Hiệu ứng scan thật · M
 - **Mô tả:** thêm nghiêng nhẹ, hạt nhiễu, ám màu giấy, bóng mép, mờ nhẹ, lệch tương phản. Ngẫu nhiên khác nhau từng trang, có hạt giống để lặp lại.
@@ -1705,7 +1715,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/watermark.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.watermark` (chữ hoặc ảnh, độ đậm, xoay, đặt giữa hoặc lát kín, trên hoặc dưới nội dung, chọn trang). Gỡ sạch dùng `overlay.remove`. **Chưa làm:** xem trước, chọn vị trí bằng kéo. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.30 · Con dấu chữ và con dấu ảnh · M
 - **Mô tả:** con dấu chữ với font tiếng Việt đóng gói, viền, nền trong suốt; con dấu ảnh kéo thả đổi cỡ, xoay. Thư viện mẫu (ĐÃ DUYỆT, MẬT, KHẨN, BẢN SAO, ĐÃ NHẬN…).
@@ -1715,7 +1726,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/stamps.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F2, F3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `stamp.text` và `stamp.image` (vị trí, neo, xoay, độ đậm, hòa màu nhân). **Chưa làm:** mẫu con dấu có sẵn (`stamp.presets`) và xem trước. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.31 · Dấu giáp lai · M
 - **Mô tả:** dấu giáp lai trên mép các trang chọn, theo kiểu văn bản hành chính Việt Nam: chọn trang, vị trí dọc, số phần cắt. Dùng cho bước "Phát hành văn bản".
@@ -1725,7 +1737,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/giap_lai.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `stamp.seam` (dải cắt đều qua mép trang, bên phải/trái, chồng lấn, bộ trang). **Chưa làm:** xem trước dải. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.32 · Con dấu động · M
 - **Mô tả:** dấu có ngày giờ, tên người và số tự điền khi đóng dấu, ví dụ "ĐÃ NHẬN – 14:30 31/10/2026 – Nguyễn A".
@@ -1755,7 +1768,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/header_footer.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.headerFooter` với ba vùng trái/giữa/phải nhập dạng JSON (`{"center": "Trang {page}/{pages}"}`). **Chưa làm:** ô nhập riêng cho từng vùng và nút chèn biến. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.35 · Đánh số trang · M
 - **Mô tả:** kiểu "1", "Trang 1/10", "- 1 -", số La Mã; chọn vị trí; bỏ trang đầu; bắt đầu từ số bất kỳ. Preset theo Nghị định 30/2020/NĐ-CP (giữa lề trên, không đánh số trang đầu).
@@ -1765,7 +1779,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/page_numbers.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.pageNumbers` (mẫu chữ `{page}`/`{pages}`, kiểu số, vị trí gồm "mép ngoài đổi bên", bỏ trang đầu, bắt đầu từ số bất kỳ, ghi nhãn trang). **Chưa làm:** nút preset Nghị định 30/2020/NĐ-CP (trường `preset` của lõi nhận chuỗi, chưa có danh sách chọn). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.36 · Đánh số Bates · M
 - **Mô tả:** mã tài liệu liên tục qua nhiều file (HS-000001…), tiền tố, số bắt đầu, chọn trang. Dùng `overlay_bates.py`.
@@ -1775,7 +1790,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/bates.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.bates` trên nhiều file, đầu ra dạng JSON (`{"mode": "suffix"}`). **Chưa làm:** xem trước số đầu và cuối. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.37 · Mã QR và mã vạch · M
 - **Mô tả:** chèn QR hoặc mã vạch chứa link, mã hồ sơ, số văn bản. Dùng được trong đánh số Bates (`overlay_code.py`).
@@ -1785,7 +1801,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/codes.rs`
 - **E2E:** `workflow-qr-code-step`
 - **Tính năng:** F10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.qrCode` và `overlay.barcode` (Code 128, EAN-13, Code 39). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.38 · Chồng lên giấy tiêu đề · S
 - **Mô tả:** đặt nội dung lên mẫu giấy tiêu đề (một file PDF khác), áp cho trang đầu hoặc mọi trang.
@@ -1794,7 +1811,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.29
 - **File:** `apps/native/crates/chef-app/src/letterhead.rs`
 - **Tính năng:** F11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.letterhead` (trang giấy tiêu đề lấy từ PDF khác, đặt trên hoặc dưới). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.39 · Quản lý và gỡ dấu đã thêm · M
 - **Mô tả:** sửa hoặc gỡ watermark, header, footer, số trang mà Chef PDF đã thêm, nhờ nhãn chuẩn của R5.29.
@@ -1804,7 +1822,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/overlay_manage.rs`
 - **E2E:** `stamps2`
 - **Tính năng:** F12
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `overlay.remove` gỡ theo loại hoặc nhóm. **Chưa làm:** danh sách các dấu đã thêm (`overlay.listOverlays`) để chọn từng mục. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.40 · Gỡ watermark tự động · M
 - **Mô tả:** tìm ứng viên watermark (nhãn chuẩn, lớp tên "watermark", ghi chú kiểu watermark, đối tượng lặp cùng vị trí, đối tượng xoay chéo hoặc trong suốt), hiện danh sách kèm xem trước để tích chọn. Không tự xóa.
@@ -1814,7 +1833,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/watermark_detect.rs`
 - **E2E:** `content-v06`
 - **Tính năng:** E3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `watermark.detect` (hiện danh sách tìm được) và `watermark.remove` (gỡ tất cả hoặc theo mã). **Chưa làm:** chọn mục trong danh sách để gỡ. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.41 · Gỡ đối tượng giống thế này · M
 - **Mô tả:** chọn một đối tượng (ví dụ logo chìm), gỡ nó trên mọi trang. So khớp theo nội dung và kích thước.
@@ -1834,7 +1854,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/background.rs`
 - **E2E:** `content-v06`
 - **Tính năng:** E5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `background.remove` (gỡ nền hoặc đổi sang màu khác). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.43 · Điểm kiểm 5c · —
 - **Mô tả:** E2E `stamps2`, `workflow-qr-code-step`, `content-v06`; kiểm tra số đánh và dấu trên file ký (phần M6).
@@ -1852,7 +1873,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/encrypt.rs`
 - **E2E:** `tools5`
 - **Tính năng:** J1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `security.encrypt`: mật khẩu mở, mật khẩu quyền; lõi ghi nhận để áp khi lưu (`pendingEncryption`). **Chưa làm:** nhập lại mật khẩu, thanh độ mạnh, bảng quyền (đối tượng `permissions`). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.45 · Gỡ mật khẩu · S
 - **Mô tả:** gỡ mật khẩu khi đã biết mật khẩu. Không có cách bẻ mật khẩu.
@@ -1861,7 +1883,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R5.44
 - **File:** `apps/native/crates/chef-app/src/decrypt.rs`
 - **Tính năng:** J2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `security.decrypt` (gỡ khi đã biết mật khẩu; ghi nhận "gỡ" để áp khi lưu). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.46 · Gỡ dữ liệu ẩn · S
 - **Mô tả:** xóa metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú, lịch sử sửa. Operation `security.scrub`.
@@ -1871,7 +1894,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scrub.rs`
 - **E2E:** `redact`
 - **Tính năng:** J3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `inspect.removeHidden` với danh sách loại nhập dạng JSON. **Chưa làm:** danh sách chọn theo loại, đề cập ở R5.47. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.47 · Soi file · M
 - **Mô tả:** xem metadata, khổ giấy, font, phiên bản PDF, số trang, dung lượng, lớp, file đính kèm, JavaScript, link ra ngoài, form, chữ ký, font chưa nhúng, lớp ẩn.
@@ -1881,7 +1905,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/inspect.rs`
 - **E2E:** `redact`
 - **Tính năng:** J4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `inspect.hiddenData` hiện kết quả dạng dòng. **Chưa làm:** màn hình có nhóm, đếm và "Xem N mục" như Electron. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.48 · Kiểm tra trước khi gửi · M
 - **Mô tả:** một nút chạy danh sách kiểm: metadata, ghi chú còn sót, form chưa làm phẳng, dung lượng vượt giới hạn (5, 10, 25 MB), chữ ký còn hợp lệ. Bấm để sửa từng mục. Xuất kết quả ra PDF (phần xuất ở M5e nếu dùng chung).
@@ -1891,7 +1916,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/preflight.rs`
 - **E2E:** `redact`
 - **Tính năng:** J5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `preflight.check` hiện kết quả dạng dòng. **Chưa làm:** màn hình đạt/cảnh báo/lỗi và nút "Sửa". Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.49 · Che thông tin mật · M
 - **Mô tả:** chọn vùng chữ hoặc ảnh, tìm và che hàng loạt (CCCD, số điện thoại, email, số tài khoản), xóa hẳn nội dung bên dưới. Khác với tẩy vùng (D5).
@@ -1901,7 +1927,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/redact.rs`
 - **E2E:** `redact`
 - **Tính năng:** J6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `redact.find` (mẫu tìm dạng JSON: chữ, regex, CCCD, điện thoại, email, tài khoản, mã số thuế, ngày) và `redact.apply`. **Chưa làm:** danh sách vị trí để chọn, vùng che tay bằng kéo khung, cảnh báo xóa vĩnh viễn kiểu Electron. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.50 · Điểm kiểm 5d · —
 - **Mô tả:** E2E `redact`, `tools5`; kiểm không còn nội dung sau khi che bằng hai cách đọc khác nhau.
@@ -1919,7 +1946,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/layout_extract.rs`
 - **E2E:** `tools5-docs`, `document-export`
 - **Tính năng:** N1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `layout.analyze` hiện dữ liệu dạng dòng. **Chưa làm:** màn hình đối chiếu bố cục (R5.53–R5.54). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.52 · Bảng đơn giản · M
 - **Mô tả:** bảng có đường kẻ trong PDF có chữ thành bảng (Markdown, HTML, Excel). Bảng không kẻ, ô gộp, bảng trong bản scan để sau (N2 nâng cao).
@@ -1959,7 +1987,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/export.rs`
 - **E2E:** `document-export`
 - **Tính năng:** N4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `export.document` (md, html, txt, json, epub, odt, xlsx, docx). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.56 · Hai chế độ xuất Word · M
 - **Mô tả:** chế độ sửa được (văn bản chảy, style Heading) và chế độ giữ bố cục (khung định vị, cột). Quốc hiệu và thể thức văn bản hành chính (Q6) để sau.
@@ -1989,7 +2018,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/batch_extract.rs`
 - **E2E:** `tools5-docs`
 - **Tính năng:** N7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `export.batch` với đầu ra dạng JSON. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.59 · Tự tạo mục lục · S
 - **Mô tả:** tạo bookmark từ tiêu đề đã rã (N1) hoặc theo mẫu. Dùng `toc.py`.
@@ -1999,7 +2029,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/toc_build.rs`
 - **E2E:** `toc`
 - **Tính năng:** D12
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `toc.insertPage`, `toc.preview` (dò tiêu đề) và `bookmarks.fromPages`. **Chưa làm:** danh sách tiêu đề để bỏ chọn trước khi chèn. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.60 · Điểm kiểm 5e · —
 - **Mô tả:** E2E `tools5-docs`, `document-export`, `layout-review`, `toc`, `demo-v10`.
@@ -2027,7 +2058,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/workflow_run.rs`
 - **E2E:** `workflow-batch-crop-step`, `workflow-task-step`, `workflow-background-step`
 - **Tính năng:** O2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `batch.run` (một thao tác, cùng tham số, nhiều file) và `workflow.run`, `workflow.validate` với quy trình nhập dạng JSON. **Chưa làm:** trình tạo quy trình trực quan (R5.61), thư mục tự động (R5.63). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.63 · Thư mục tự động · M
 - **Mô tả:** thả file vào thư mục là app chạy quy trình. Dùng `watch.py` và `watch.spec` (`watch.ts`).
@@ -2065,7 +2097,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/rename.rs`
 - **E2E:** `rename`
 - **Tính năng:** O6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `naming.preview` và `naming.apply` theo mẫu đặt tên. **Chưa làm:** bảng đổi tên tay (`files.renameBatch` với `mapping`). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R5.67 · Quy trình mẫu có sẵn · S
 - **Mô tả:** các quy trình mẫu: Nhẹ, Chuẩn, Nét, Văn bản hành chính, Nộp hồ sơ online, Phát hành văn bản, Chụp sách (phần chụp sách chờ M8).
@@ -2112,7 +2145,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sign_list.rs`
 - **E2E:** `certs`
 - **Tính năng:** I1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.listTokens` (kết quả dạng dòng); chỉ kiểm dạng tham số (cần token thật). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.02 · Chứng thư file .pfx và .p12 · S
 - **Mô tả:** chọn file chứng thư, nhập mật khẩu một lần (D73), tùy chọn ghi nhớ mật khẩu vào kho bảo mật của hệ điều hành (ở bản Rust, không dùng DPAPI-giải-mã từ Electron).
@@ -2122,7 +2156,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/pfx.rs`
 - **E2E:** `certs`
 - **Tính năng:** I2
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.certInfo` đọc thông tin file .pfx/.p12; chỉ kiểm dạng tham số. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.03 · Thông tin chứng thư và nhắc hết hạn · S
 - **Mô tả:** chủ sở hữu, đơn vị cấp, hạn dùng, MST hoặc CCCD. Nhắc trước khi hết hạn (mặc định 30 ngày).
@@ -2152,7 +2187,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/driver_scan.rs`
 - **E2E:** `certs`
 - **Tính năng:** I5, I8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.driverScan` và `sign.listStoreCertificates` (kết quả dạng dòng). Chạy được tham số trên lõi Linux cho `driverScan`; kho chứng thư Windows chỉ kiểm dạng tham số. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.06 · Chẩn đoán token năm bước · M
 - **Mô tả:** kiểm từng bước: thấy token → nạp driver → có chứng thư → còn hạn → tin cậy. Mỗi lỗi kèm hướng dẫn tiếng Việt và link tải driver đúng CA. Cảnh báo khi token sắp bị khóa vì nhập sai PIN; không bao giờ tự thử lại PIN sai.
@@ -2162,7 +2198,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/diagnose.rs`
 - **E2E:** `certs`
 - **Tính năng:** I6, I7
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.diagnoseToken` hiện kết quả chẩn đoán dạng dòng. **Chưa làm:** hiển thị năm bước có trạng thái và gợi ý khắc phục. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### M6.1 Ảnh chữ ký và thư viện
 
@@ -2174,7 +2211,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_draw.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I19
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `image.textSignature` (tạo ảnh chữ ký từ chữ). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.08 · Tách nền tự động · M
 - **Mô tả:** bỏ nền giấy, giữ nét mực trong suốt, chỉnh độ nhạy, xem trước trên nền caro, tự nhận màu mực. Operation `signature.clean` (lõi, `pageimg`).
@@ -2184,7 +2222,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_clean.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I20
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `image.removeBackground` (theo màu mực, giấy trắng, tự chọn). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.09 · Làm sạch và chỉnh ảnh chữ ký · M
 - **Mô tả:** cắt sát nét mực, xoay, xóa chấm bẩn, đổi màu mực, làm đậm hoặc mảnh nét, chỉnh độ mờ.
@@ -2194,7 +2233,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_adjust.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I21
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `image.cleanup` (bỏ chấm, chỉnh nghiêng, làm đậm nét, lật). **Chưa làm:** xem trước và thanh trượt. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.10 · Bảo vệ thư viện chữ ký · M
 - **Mô tả:** mã hóa ảnh chữ ký khi lưu. Hỏi mật khẩu của app trước khi dùng. Windows Hello là mục sau, vì cần API riêng (ghi trong NOTES khi làm).
@@ -2378,7 +2418,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/verify_panel.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I34
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.verify` (chữ ký của tài liệu đang mở) và `sign.verifyFile` (file bất kỳ), hiện dạng dòng. **Chưa làm:** panel có biểu tượng trạng thái từng chữ ký. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.28 · Kho tin cậy · S
 - **Mô tả:** nạp sẵn hai hệ Root CA Việt Nam (NEAC và Ban Cơ yếu Chính phủ), thêm hoặc xóa chứng thư tin cậy. Dùng `trust.py`.
@@ -2388,7 +2429,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/trust_store.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I35
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.trustList`, `sign.trustAdd`, `sign.trustRemove` (nhóm CA công cộng/chính phủ/người dùng). Chỉ kiểm dạng tham số cho add/remove (cần chứng thư). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.29 · Kiểm tra chữ ký hàng loạt · M
 - **Mô tả:** kiểm tra cả thư mục, xuất bảng kết quả ra Excel và CSV, xuất kết quả kiểm tra ra PDF.
@@ -2398,7 +2440,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/verify_batch.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I36
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `sign.verifyBatch` (thư mục, đệ quy, báo cáo CSV/XLSX). Chạy được trên lõi thật với thư mục có PDF. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R6.30 · Điểm kiểm M6 · —
 - **Mô tả:** E2E `certs`, `sigstudio`, `signflow`; MAN-2 đã làm (R6.18, R6.19); đo RAM lúc ký (lõi chạy, pyHanko đã import lười).
@@ -2517,7 +2560,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/text_replace_all.rs`
 - **E2E:** `demo-v07`
 - **Tính năng:** D10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `text.findReplace` (phân biệt hoa thường, bỏ qua dấu, nguyên từ, regex, giữ kiểu, cách vừa chiều rộng). **Chưa làm:** danh sách kết quả xem trước và thay từng chỗ. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R7.11 · Bảng thuộc tính đối tượng · M
 - **Mô tả:** panel phải hiện thuộc tính của đối tượng đang chọn: chữ (font, cỡ, màu), ảnh, ghi chú, chữ ký. Thay một phần của `objects.css`.
@@ -2574,7 +2618,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/deskew.rs`
 - **E2E:** `adjust`, `demo-v08`
 - **Tính năng:** L1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.deskew` (tự dò hoặc nhập góc). **Chưa làm:** xem trước trong trình sửa ảnh trang (R8.01). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R8.03 · Nắn phối cảnh · M
 - **Mô tả:** nắn trang chụp xiên thành hình chữ nhật từ bốn góc. Kết hợp với R8.02.
@@ -2594,7 +2639,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/whiten.rs`
 - **E2E:** `demo-v08`
 - **Tính năng:** L3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.enhance` (làm trắng nền, khử nhiễu và mức độ, đảo màu, thang xám, tương phản, độ sáng, dpi). Levels/Curves nhập dạng JSON; **chưa làm** thanh trượt và xem trước. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R8.05 · Khử nhiễu và chỉnh sáng · M
 - **Mô tả:** chỉnh sáng và tương phản, khử nhiễu, xóa chấm bẩn.
@@ -2648,7 +2694,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/spine.rs`
 - **E2E:** `spine`
 - **Tính năng:** L6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.splitSpread` (tự dò đường tách hoặc theo vị trí, thứ tự trái-phải/phải-trái, lề giữa). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R8.10 · Tẩy và tô · M
 - **Mô tả:** cọ tẩy, chọn vùng chữ nhật hoặc vẽ tự do. Tô bằng màu nền giấy tự dò (có thêm hạt giấy để vùng tô không lộ) hoặc màu tự chọn.
@@ -2668,7 +2715,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/color_remove.rs`
 - **E2E:** `erase`
 - **Tính năng:** L11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.removeStains` theo khoảng sắc độ. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R8.12 · Tách chữ ký và con dấu theo màu · M
 - **Mô tả:** ảnh có chữ ký xanh đè lên con dấu đỏ thành hai ảnh riêng. Dùng công cụ tách màu chung với R8.11. Đây là mục I22 (thuộc M6 về nghiệp vụ, làm ở đây vì là công cụ ảnh).
@@ -2688,7 +2736,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/dewarp_detect.rs`
 - **E2E:** `dewarp`
 - **Tính năng:** L13
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.dewarp` (chạy trên các trang chọn). **Chưa làm:** R8.14 (kéo và áp dụng có xem trước). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R8.14 · Làm phẳng trang cong: kéo và áp dụng · M
 - **Mô tả:** kéo lưới cho thẳng, xem trước, áp dụng. Thay `dewarp.css`.
@@ -2708,7 +2757,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/finger.rs`
 - **E2E:** `finger`, `demo-v08`
 - **Tính năng:** L14
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.removeFingers` (tự dò hoặc theo mặt nạ). **Chưa làm:** vẽ mặt nạ bán tự động. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### M8.3 Tự dò viền và cắt
 
@@ -2730,7 +2780,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/autocrop_view.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L15
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) `pageimg.autoCrop` (tự dò viền, độ tin cậy tối thiểu, khổ giấy, khoảng đệm). **Chưa làm:** màn hình duyệt kết quả theo điểm tin cậy (R8.17, R8.19). Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Trạng thái:** 🔄
 
 ### R8.18 · Cắt thủ công: khung chữ nhật và kéo bốn góc · M
 - **Mô tả:** khung chữ nhật với tám nắm, kính lúp khi kéo góc, tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do, giữ tỉ lệ khổ giấy), nhập số đo bằng mm. Khung tự hít vào viền đã dò trong 8 px (T8.06). Kéo bốn góc độc lập và xem trước.

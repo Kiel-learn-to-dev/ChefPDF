@@ -425,6 +425,73 @@ const DIALOG_INPUTS: &[(&str, &[(&str, &str)])] = &[
         ],
     ),
     (
+        "overlay.headerFooter",
+        &[
+            ("header", r#"{"center": "Trang {page}/{pages}"}"#),
+            ("footer", r#"{"left": "{filename}"}"#),
+        ],
+    ),
+    (
+        "overlay.bates",
+        &[
+            ("files", "{a}"),
+            ("prefix", "HS-"),
+            ("output", r#"{"mode": "suffix", "suffix": "_bates"}"#),
+        ],
+    ),
+    (
+        "redact.find",
+        &[("patterns", r#"[{"kind": "literal", "value": "Noi dung"}]"#)],
+    ),
+    (
+        "redact.apply",
+        &[("patterns", r#"[{"kind": "literal", "value": "Noi dung"}]"#)],
+    ),
+    (
+        "inspect.removeHidden",
+        &[("categories", r#"["metadata", "javascript"]"#)],
+    ),
+    (
+        "workflow.validate",
+        &[(
+            "workflow",
+            r#"{"id": "mau-xoay", "name": "Mẫu xoay", "steps": [{"op": "page.rotate", "params": {"pages": [0], "angle": 90}}]}"#,
+        )],
+    ),
+    (
+        "workflow.run",
+        &[
+            (
+                "workflow",
+                r#"{"id": "mau-xoay", "name": "Mẫu xoay", "steps": [{"op": "page.rotate", "params": {"pages": [0], "angle": 90}}]}"#,
+            ),
+            ("files", "{a}"),
+            ("dryRun", "true"),
+        ],
+    ),
+    (
+        "batch.run",
+        &[
+            ("opId", "page.rotate"),
+            ("params", r#"{"pages": [0], "angle": 90}"#),
+            ("files", "{a}"),
+        ],
+    ),
+    ("export.batch", &[("files", "{a}"), ("format", "txt")]),
+    (
+        "naming.preview",
+        &[("files", "{a}"), ("template", "{name}_da-xu-ly")],
+    ),
+    (
+        "naming.apply",
+        &[("files", "{a}"), ("template", "{name}_moi")],
+    ),
+    ("layout.analyze", &[("pages", "1-2")]),
+    ("annots.flatten", &[("keepLinks", "true")]),
+    ("annots.removeAll", &[]),
+    ("layers.flatten", &[]),
+    ("bookmarks.clear", &[]),
+    (
         "bookmarks.fromPages",
         &[
             ("template", "Trang {page}"),
@@ -439,7 +506,8 @@ fn build_dialog_params(id: &str, pairs: &[(&str, &str)]) -> Value {
         .iter()
         .find(|s| s.id == id)
         .unwrap_or_else(|| panic!("không có {id}"));
-    let schema = FormSchema::from_definition(&chef_contracts::ops_schema(), spec.def).unwrap();
+    let mut schema = FormSchema::from_definition(&chef_contracts::ops_schema(), spec.def).unwrap();
+    schema.expose_json(spec.json_fields());
     let mut inputs = schema.initial_inputs();
     for (name, text) in pairs {
         let field = schema

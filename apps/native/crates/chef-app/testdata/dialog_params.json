@@ -609,6 +609,217 @@
       "pattern": "*.pdf"
     }
   },
+  "overlay.headerFooter": {
+    "op": "overlay.headerFooter",
+    "params": {
+      "header": {
+        "center": "Trang {page}/{pages}"
+      },
+      "footer": {
+        "left": "{filename}"
+      },
+      "fontName": "BeVietnamPro",
+      "fontSize": 10.0,
+      "bold": false,
+      "color": "#000000",
+      "opacity": 1.0,
+      "dateFormat": "dd/MM/yyyy",
+      "skipFirst": false,
+      "startNumber": 1,
+      "mirrorOddEven": false,
+      "batesDigits": 6
+    }
+  },
+  "overlay.bates": {
+    "op": "overlay.bates",
+    "params": {
+      "files": [
+        {
+          "path": "{a}"
+        }
+      ],
+      "prefix": "HS-",
+      "startNumber": 1,
+      "digits": 6,
+      "position": "bottom-right",
+      "fontName": "BeVietnamPro",
+      "fontSize": 9.0,
+      "bold": false,
+      "color": "#000000",
+      "opacity": 1.0,
+      "output": {
+        "mode": "suffix",
+        "suffix": "_bates"
+      },
+      "stopOnError": false
+    }
+  },
+  "redact.find": {
+    "op": "redact.find",
+    "params": {
+      "patterns": [
+        {
+          "kind": "literal",
+          "value": "Noi dung"
+        }
+      ]
+    }
+  },
+  "redact.apply": {
+    "op": "redact.apply",
+    "params": {
+      "patterns": [
+        {
+          "kind": "literal",
+          "value": "Noi dung"
+        }
+      ],
+      "fill": "#000000",
+      "alsoMetadata": true,
+      "removeFromAnnotations": true
+    }
+  },
+  "inspect.removeHidden": {
+    "op": "inspect.removeHidden",
+    "params": {
+      "categories": [
+        "metadata",
+        "javascript"
+      ]
+    }
+  },
+  "workflow.validate": {
+    "op": "workflow.validate",
+    "params": {
+      "workflow": {
+        "id": "mau-xoay",
+        "name": "Mẫu xoay",
+        "steps": [
+          {
+            "op": "page.rotate",
+            "params": {
+              "pages": [
+                0
+              ],
+              "angle": 90
+            }
+          }
+        ]
+      }
+    }
+  },
+  "workflow.run": {
+    "op": "workflow.run",
+    "params": {
+      "workflow": {
+        "id": "mau-xoay",
+        "name": "Mẫu xoay",
+        "steps": [
+          {
+            "op": "page.rotate",
+            "params": {
+              "pages": [
+                0
+              ],
+              "angle": 90
+            }
+          }
+        ]
+      },
+      "files": [
+        {
+          "path": "{a}"
+        }
+      ],
+      "stopOnError": false,
+      "dryRun": true
+    }
+  },
+  "batch.run": {
+    "op": "batch.run",
+    "params": {
+      "opId": "page.rotate",
+      "params": {
+        "pages": [
+          0
+        ],
+        "angle": 90
+      },
+      "files": [
+        {
+          "path": "{a}"
+        }
+      ],
+      "parallel": 1,
+      "stopOnError": false
+    }
+  },
+  "export.batch": {
+    "op": "export.batch",
+    "params": {
+      "files": [
+        {
+          "path": "{a}"
+        }
+      ],
+      "format": "txt",
+      "stopOnError": false
+    }
+  },
+  "naming.preview": {
+    "op": "naming.preview",
+    "params": {
+      "files": [
+        "{a}"
+      ],
+      "template": "{name}_da-xu-ly",
+      "conflict": "suffix"
+    }
+  },
+  "naming.apply": {
+    "op": "naming.apply",
+    "params": {
+      "files": [
+        "{a}"
+      ],
+      "template": "{name}_moi",
+      "conflict": "suffix"
+    }
+  },
+  "layout.analyze": {
+    "op": "layout.analyze",
+    "params": {
+      "pages": [
+        0,
+        1
+      ],
+      "dropRepeated": true,
+      "joinAcrossPages": true,
+      "detectTables": true,
+      "borderlessTables": false,
+      "joinTables": true,
+      "includeModel": false
+    }
+  },
+  "annots.flatten": {
+    "op": "annots.flatten",
+    "params": {
+      "keepLinks": true,
+      "keepFormFields": true
+    }
+  },
+  "annots.removeAll": {
+    "op": "annots.removeAll",
+    "params": {}
+  },
+  "layers.flatten": {
+    "op": "layers.flatten",
+    "params": {}
+  },
+  "bookmarks.clear": {
+    "op": "bookmarks.clear",
+    "params": {}
+  },
   "bookmarks.fromPages": {
     "op": "bookmarks.fromPages",
     "params": {

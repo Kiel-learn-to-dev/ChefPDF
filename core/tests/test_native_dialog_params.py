@@ -58,6 +58,13 @@ def _text_doc(path: Path, pages: int = 4) -> Path:
 
 # Cách chạy của từng hộp thoại, theo OpMode trong op_dialog.rs.
 STANDALONE = {
+    "overlay.bates",
+    "workflow.validate",
+    "workflow.run",
+    "batch.run",
+    "export.batch",
+    "naming.preview",
+    "naming.apply",
     "image.cleanup",
     "image.removeBackground",
     "image.textSignature",
@@ -74,6 +81,8 @@ STANDALONE = {
     "doc.repair",
 }
 OUTPUT = {
+    "redact.find",
+    "layout.analyze",
     "doc.extractImages",
     "doc.extractText",
     "doc.attachments.extract",
@@ -120,8 +129,13 @@ NO_CHANGE_EXPECTED = {
     "overlay.remove",
     "watermark.remove",
     "background.remove",
-    # Tài liệu mẫu chỉ có chữ, không có ảnh để đổi màu.
+    # Tài liệu mẫu chỉ có chữ, không có ảnh để đổi màu, ghi chú, lớp hay bookmark để gỡ.
     "color.convert",
+    "annots.flatten",
+    "annots.removeAll",
+    "layers.flatten",
+    "bookmarks.clear",
+    "inspect.removeHidden",
     "links.autoDetect",
     "text.findReplace",
     # Trang ảnh mẫu không có vết bẩn, ngón tay hay nền cần xử lý: lõi báo "xem lại" nhưng không lỗi.

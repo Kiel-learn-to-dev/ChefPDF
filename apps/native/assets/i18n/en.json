@@ -1130,7 +1130,88 @@
       "run": "Scan",
       "description": "Find new files in a watched folder, skipping those already handled."
     },
+    "overlay_headerFooter": {
+      "title": "Header and footer",
+      "run": "Apply",
+      "description": "Add text at the top and bottom of \"{{name}}\". The left, centre and right zones are JSON, for example {\"center\": \"Page {page}/{pages}\"}."
+    },
+    "overlay_bates": {
+      "title": "Bates numbering",
+      "run": "Number",
+      "description": "Apply continuous Bates numbers across several PDFs, writing new files."
+    },
+    "redact_find": {
+      "title": "Find sensitive data",
+      "run": "Find",
+      "description": "Find national IDs, phone numbers, emails, accounts, tax codes or any text in \"{{name}}\". Patterns are JSON, for example [{\"kind\": \"phone\"}]."
+    },
+    "redact_apply": {
+      "title": "Redact",
+      "run": "Redact permanently",
+      "description": "PERMANENTLY remove the information from \"{{name}}\": the text underneath is deleted, not just covered. Can be undone before saving."
+    },
+    "inspect_removeHidden": {
+      "title": "Remove hidden data",
+      "run": "Remove",
+      "description": "Delete metadata, JavaScript, attachments, hidden layers, comments and revision history from \"{{name}}\". Categories are JSON, for example [\"metadata\", \"javascript\"]."
+    },
+    "workflow_validate": {
+      "title": "Validate workflow",
+      "run": "Validate",
+      "description": "Check that a workflow (JSON) is valid before running it."
+    },
+    "workflow_run": {
+      "title": "Run workflow",
+      "run": "Run",
+      "description": "Run a workflow (JSON) on several PDF files in turn."
+    },
+    "batch_run": {
+      "title": "Batch run",
+      "run": "Run",
+      "description": "Run the same operation with the same parameters on several PDF files."
+    },
+    "export_batch": {
+      "title": "Export in bulk",
+      "run": "Export",
+      "description": "Export several PDF files to another format."
+    },
+    "naming_preview": {
+      "title": "Preview file names",
+      "run": "Preview",
+      "description": "See the new names of the files from a naming template without changing anything."
+    },
+    "naming_apply": {
+      "title": "Rename files in bulk",
+      "run": "Rename",
+      "description": "Rename several files from a naming template."
+    },
+    "layout_analyze": {
+      "title": "Analyse layout",
+      "run": "Analyse",
+      "description": "Analyse the layout of \"{{name}}\" (paragraphs, tables, images) for export."
+    },
+    "annots_flatten": {
+      "title": "Flatten annotations",
+      "run": "Flatten",
+      "description": "Turn the annotations of \"{{name}}\" into page content. Can be undone."
+    },
+    "annots_removeAll": {
+      "title": "Remove all annotations",
+      "run": "Remove",
+      "description": "Remove every annotation from \"{{name}}\". Can be undone."
+    },
+    "layers_flatten": {
+      "title": "Flatten layers",
+      "run": "Flatten",
+      "description": "Merge every layer of \"{{name}}\" into the page content. Can be undone."
+    },
+    "bookmarks_clear": {
+      "title": "Clear bookmarks",
+      "run": "Clear",
+      "description": "Remove all bookmarks from \"{{name}}\". Can be undone."
+    },
     "path": {
+      "files": "PDF files",
       "folder": "folder of files",
       "outputDirectory": "output folder",
       "pfxPath": "pfx file",
@@ -1148,6 +1229,7 @@
     }
   },
   "schemaForm": {
+    "jsonPlaceholder": "JSON",
     "pagesPlaceholder": "Example: 1-3, 5",
     "noChoice": "None",
     "noFiles": "No files yet",
@@ -1162,9 +1244,28 @@
       "badPages": "The page range \"{{token}}\" is not valid. Example: 1-3, 5.",
       "noFiles": "Add at least {{min}} file(s) for {{field}}.",
       "invalidChoice": "The choice for {{field}} is not valid.",
+      "badJson": "{{field}} must be valid JSON.",
       "unsupported": "{{field}} cannot be entered in this form yet."
     },
     "options": {
+      "ExportBatchParams": {
+        "format": {
+          "md": "Markdown",
+          "html": "HTML",
+          "txt": "Plain text (.txt)",
+          "json": "JSON",
+          "epub": "EPUB",
+          "odt": "OpenDocument (.odt)",
+          "xlsx": "Excel (.xlsx)",
+          "docx": "Word (.docx)",
+          "pdf": "PDF (refreshed)"
+        }
+      },
+      "conflict": {
+        "skip": "Skip",
+        "suffix": "Add a suffix",
+        "overwrite": "Overwrite"
+      },
       "checkRevocation": {
         "none": "Off",
         "soft": "Check, ignore network errors",
@@ -1397,6 +1498,41 @@
       }
     },
     "fields": {
+      "header": "Header (JSON)",
+      "footer": "Footer (JSON)",
+      "patterns": "Patterns (JSON)",
+      "matchIds": "Match IDs to redact (JSON)",
+      "rects": "Manual areas (JSON)",
+      "categories": "Categories to remove (JSON)",
+      "output": "Output (JSON)",
+      "opId": "Operation ID",
+      "params": "Operation parameters (JSON)",
+      "workflow": "Workflow (JSON)",
+      "secrets": "Secrets (JSON)",
+      "variables": "Variables (JSON)",
+      "parallel": "Files in parallel",
+      "stopOnError": "Stop on error",
+      "dryRun": "Dry run",
+      "mapping": "Rename map (JSON)",
+      "conflict": "On name clash",
+      "dropRepeated": "Drop repeated headers and footers",
+      "joinAcrossPages": "Join paragraphs across pages",
+      "detectTables": "Detect tables",
+      "borderlessTables": "Borderless tables",
+      "joinTables": "Join tables across pages",
+      "language": "Language",
+      "includeModel": "Include layout model",
+      "prefix": "Prefix",
+      "suffix": "Suffix",
+      "digits": "Digits",
+      "files": "PDF files",
+      "alsoMetadata": "Also redact metadata",
+      "removeFromAnnotations": "Also redact in annotations",
+      "overlayText": "Text over redacted areas",
+      "keepLinks": "Keep links",
+      "keepFormFields": "Keep form fields",
+      "kinds": "Kinds (JSON)",
+      "flattenForms": "Also flatten forms",
       "checkRevocation": "Revocation check",
       "maxBytes": "Maximum size (bytes)",
       "allowOffline": "Allow offline checks",

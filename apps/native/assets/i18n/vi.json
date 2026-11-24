@@ -1123,7 +1123,88 @@
       "run": "Quét",
       "description": "Tìm file mới trong thư mục theo dõi, bỏ qua file đã xử lý."
     },
+    "overlay_headerFooter": {
+      "title": "Header và footer",
+      "run": "Áp dụng",
+      "description": "Thêm dòng chữ đầu và chân trang vào \"{{name}}\". Ba vùng trái, giữa, phải nhập dạng JSON, ví dụ {\"center\": \"Trang {page}/{pages}\"}."
+    },
+    "overlay_bates": {
+      "title": "Đánh số Bates",
+      "run": "Đánh số",
+      "description": "Đánh số Bates liên tục qua nhiều file PDF, ghi ra file mới."
+    },
+    "redact_find": {
+      "title": "Tìm thông tin mật",
+      "run": "Tìm",
+      "description": "Tìm số CCCD, điện thoại, email, tài khoản, mã số thuế hoặc chữ bất kỳ trong \"{{name}}\". Mẫu tìm nhập dạng JSON, ví dụ [{\"kind\": \"phone\"}]."
+    },
+    "redact_apply": {
+      "title": "Che thông tin mật",
+      "run": "Che vĩnh viễn",
+      "description": "Che VĨNH VIỄN thông tin trong \"{{name}}\": chữ bên dưới bị xóa khỏi file, không chỉ bị phủ đen. Có thể hoàn tác trước khi lưu."
+    },
+    "inspect_removeHidden": {
+      "title": "Gỡ dữ liệu ẩn",
+      "run": "Gỡ",
+      "description": "Xóa metadata, JavaScript, file đính kèm, lớp ẩn, ghi chú, lịch sử sửa khỏi \"{{name}}\". Nhập danh sách loại dạng JSON, ví dụ [\"metadata\", \"javascript\"]."
+    },
+    "workflow_validate": {
+      "title": "Kiểm tra quy trình",
+      "run": "Kiểm tra",
+      "description": "Kiểm tra một quy trình (JSON) có hợp lệ không trước khi chạy."
+    },
+    "workflow_run": {
+      "title": "Chạy quy trình",
+      "run": "Chạy",
+      "description": "Chạy một quy trình (JSON) lần lượt trên nhiều file PDF."
+    },
+    "batch_run": {
+      "title": "Chạy hàng loạt",
+      "run": "Chạy",
+      "description": "Chạy cùng một thao tác với cùng tham số trên nhiều file PDF."
+    },
+    "export_batch": {
+      "title": "Xuất tài liệu hàng loạt",
+      "run": "Xuất",
+      "description": "Xuất nhiều file PDF sang một định dạng khác."
+    },
+    "naming_preview": {
+      "title": "Xem trước tên file",
+      "run": "Xem trước",
+      "description": "Xem tên mới của các file theo mẫu đặt tên, chưa đổi gì."
+    },
+    "naming_apply": {
+      "title": "Đổi tên file hàng loạt",
+      "run": "Đổi tên",
+      "description": "Đổi tên nhiều file theo mẫu đặt tên."
+    },
+    "layout_analyze": {
+      "title": "Rã tài liệu",
+      "run": "Phân tích",
+      "description": "Phân tích bố cục \"{{name}}\" (đoạn, bảng, ảnh) để xuất sang định dạng khác."
+    },
+    "annots_flatten": {
+      "title": "Làm phẳng ghi chú",
+      "run": "Làm phẳng",
+      "description": "Biến ghi chú và chú thích của \"{{name}}\" thành nội dung trang. Có thể hoàn tác."
+    },
+    "annots_removeAll": {
+      "title": "Xóa mọi ghi chú",
+      "run": "Xóa",
+      "description": "Xóa mọi ghi chú và chú thích khỏi \"{{name}}\". Có thể hoàn tác."
+    },
+    "layers_flatten": {
+      "title": "Gộp các lớp",
+      "run": "Gộp",
+      "description": "Gộp mọi lớp của \"{{name}}\" thành nội dung trang. Có thể hoàn tác."
+    },
+    "bookmarks_clear": {
+      "title": "Xóa mọi bookmark",
+      "run": "Xóa",
+      "description": "Xóa toàn bộ bookmark của \"{{name}}\". Có thể hoàn tác."
+    },
     "path": {
+      "files": "các file PDF",
       "folder": "thư mục chứa file",
       "outputDirectory": "thư mục kết quả",
       "pfxPath": "file .pfx",
@@ -1141,6 +1222,7 @@
     }
   },
   "schemaForm": {
+    "jsonPlaceholder": "JSON",
     "pagesPlaceholder": "Ví dụ: 1-3, 5",
     "noChoice": "Không chọn",
     "noFiles": "Chưa có tệp nào",
@@ -1155,9 +1237,28 @@
       "badPages": "Khoảng trang \"{{token}}\" không hợp lệ. Ví dụ: 1-3, 5.",
       "noFiles": "Hãy thêm ít nhất {{min}} tệp cho {{field}}.",
       "invalidChoice": "Lựa chọn của {{field}} không hợp lệ.",
+      "badJson": "{{field}} phải là JSON hợp lệ.",
       "unsupported": "Chưa hỗ trợ nhập {{field}} trong biểu mẫu này."
     },
     "options": {
+      "ExportBatchParams": {
+        "format": {
+          "md": "Markdown",
+          "html": "HTML",
+          "txt": "Văn bản (.txt)",
+          "json": "JSON",
+          "epub": "EPUB",
+          "odt": "OpenDocument (.odt)",
+          "xlsx": "Excel (.xlsx)",
+          "docx": "Word (.docx)",
+          "pdf": "PDF (đã làm mới)"
+        }
+      },
+      "conflict": {
+        "skip": "Bỏ qua",
+        "suffix": "Thêm hậu tố vào tên",
+        "overwrite": "Ghi đè"
+      },
       "checkRevocation": {
         "none": "Không kiểm tra",
         "soft": "Kiểm tra, bỏ qua nếu lỗi mạng",
@@ -1390,6 +1491,41 @@
       }
     },
     "fields": {
+      "header": "Đầu trang (JSON)",
+      "footer": "Chân trang (JSON)",
+      "patterns": "Mẫu tìm (JSON)",
+      "matchIds": "Mã vị trí cần che (JSON)",
+      "rects": "Vùng che tay (JSON)",
+      "categories": "Loại dữ liệu cần gỡ (JSON)",
+      "output": "Nơi ghi kết quả (JSON)",
+      "opId": "Mã thao tác",
+      "params": "Tham số thao tác (JSON)",
+      "workflow": "Quy trình (JSON)",
+      "secrets": "Bí mật (JSON)",
+      "variables": "Biến (JSON)",
+      "parallel": "Số file chạy song song",
+      "stopOnError": "Dừng khi gặp lỗi",
+      "dryRun": "Chạy thử, chưa ghi",
+      "mapping": "Bảng đổi tên (JSON)",
+      "conflict": "Khi trùng tên",
+      "dropRepeated": "Bỏ đầu trang, chân trang lặp lại",
+      "joinAcrossPages": "Nối đoạn qua trang",
+      "detectTables": "Tìm bảng",
+      "borderlessTables": "Bảng không viền",
+      "joinTables": "Nối bảng qua trang",
+      "language": "Ngôn ngữ",
+      "includeModel": "Kèm mô hình bố cục",
+      "prefix": "Tiền tố",
+      "suffix": "Hậu tố",
+      "digits": "Số chữ số",
+      "files": "Các file PDF",
+      "alsoMetadata": "Che cả metadata",
+      "removeFromAnnotations": "Che cả trong ghi chú",
+      "overlayText": "Chữ ghi lên vùng che",
+      "keepLinks": "Giữ liên kết",
+      "keepFormFields": "Giữ ô biểu mẫu",
+      "kinds": "Loại (JSON)",
+      "flattenForms": "Làm phẳng cả biểu mẫu",
       "checkRevocation": "Kiểm tra thu hồi",
       "maxBytes": "Dung lượng tối đa (byte)",
       "allowOffline": "Cho phép kiểm tra không có mạng",

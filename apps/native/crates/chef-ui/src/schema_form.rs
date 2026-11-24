@@ -66,6 +66,9 @@ pub enum FieldKind {
         as_objects: bool,
         min_items: usize,
     },
+    /// Đối tượng lồng hoặc mảng phức tạp nhập dạng JSON trong một ô văn bản. Chỉ có khi bên gọi yêu cầu
+    /// ([`FormSchema::expose_json`]) hoặc trường bắt buộc; ô trống là không gửi.
+    Json,
     /// Kiểu chưa sinh được (đối tượng lồng, mảng phức tạp…): bên gọi tự viết điều khiển.
     Unsupported(String),
 }
@@ -123,6 +126,8 @@ pub enum FieldErrorKind {
     BadPageRange(String),
     NoFiles(usize),
     InvalidChoice,
+    /// Ô JSON không đọc được.
+    BadJson,
     Unsupported,
 }
 
@@ -146,6 +151,7 @@ impl FieldError {
             FieldErrorKind::BadPageRange(token) => ("badPages", vec![("token", token.clone())]),
             FieldErrorKind::NoFiles(min) => ("noFiles", vec![("min", min.to_string())]),
             FieldErrorKind::InvalidChoice => ("invalidChoice", vec![]),
+            FieldErrorKind::BadJson => ("badJson", vec![]),
             FieldErrorKind::Unsupported => ("unsupported", vec![]),
         };
         let mut all: Vec<(&str, &str)> = vec![("field", label)];
@@ -311,6 +317,19 @@ impl FormSchema {
         })
     }
 
+    /// Cho các trường đối tượng/mảng chưa sinh được nhập dạng JSON: những trường có tên trong `names` và
+    /// mọi trường bắt buộc (nếu không thì hộp thoại không chạy được). Kiểu khác (`Unsupported("khác")`)
+    /// giữ nguyên.
+    pub fn expose_json(&mut self, names: &[&str]) {
+        for field in &mut self.fields {
+            let nested =
+                matches!(&field.kind, FieldKind::Unsupported(t) if t == "object" || t == "array");
+            if nested && (field.required || names.contains(&field.name.as_str())) {
+                field.kind = FieldKind::Json;
+            }
+        }
+    }
+
     /// Giá trị ban đầu cho mọi trường.
     pub fn initial_inputs(&self) -> BTreeMap<String, FieldInput> {
         self.fields
@@ -448,6 +467,13 @@ fn initial_input(field: &FieldSpec) -> FieldInput {
         FieldKind::Text { .. } | FieldKind::Integer { .. } | FieldKind::Number { .. } => {
             FieldInput::Text(field.default.as_ref().map(value_text).unwrap_or_default())
         }
+        FieldKind::Json => FieldInput::Text(
+            field
+                .default
+                .as_ref()
+                .map(Value::to_string)
+                .unwrap_or_default(),
+        ),
         FieldKind::PageRange { .. } | FieldKind::Unsupported(_) => FieldInput::Text(String::new()),
     }
 }
@@ -470,6 +496,14 @@ fn build_field(field: &FieldSpec, input: &FieldInput) -> Result<Option<Value>, F
         }
         (FieldKind::Bool, FieldInput::Bool(b)) => Ok(Some(Value::Bool(*b))),
         (FieldKind::Bool, FieldInput::Unset) => empty(field.required),
+        (FieldKind::Json, FieldInput::Text(s)) => {
+            if s.trim().is_empty() {
+                return empty(field.required);
+            }
+            serde_json::from_str::<Value>(s)
+                .map(Some)
+                .map_err(|_| FieldErrorKind::BadJson)
+        }
         (FieldKind::Text { min_len, max_len }, FieldInput::Text(s)) => {
             if s.trim().is_empty() {
                 // Để trống trường tùy chọn là không gửi; `minLength` chỉ áp khi có chữ.
@@ -633,7 +667,19 @@ impl SchemaForm {
         dark: bool,
         cx: &mut Context<Self>,
     ) -> Result<Self, SchemaError> {
-        let schema = FormSchema::from_definition(root, def_name)?;
+        Self::new_with_json(root, def_name, dark, &[], cx)
+    }
+
+    /// Như [`Self::new`], thêm ô JSON cho các trường lồng nhau có tên trong `json_fields`.
+    pub fn new_with_json(
+        root: &Value,
+        def_name: &str,
+        dark: bool,
+        json_fields: &[&str],
+        cx: &mut Context<Self>,
+    ) -> Result<Self, SchemaError> {
+        let mut schema = FormSchema::from_definition(root, def_name)?;
+        schema.expose_json(json_fields);
         let inputs = schema.initial_inputs();
         let mut texts = BTreeMap::new();
         let mut focus = BTreeMap::new();
@@ -643,9 +689,12 @@ impl SchemaForm {
                 FieldKind::Text { .. }
                 | FieldKind::Integer { .. }
                 | FieldKind::Number { .. }
-                | FieldKind::PageRange { .. } => {
+                | FieldKind::PageRange { .. }
+                | FieldKind::Json => {
                     let placeholder = if matches!(field.kind, FieldKind::PageRange { .. }) {
                         i18n::t("schemaForm.pagesPlaceholder")
+                    } else if matches!(field.kind, FieldKind::Json) {
+                        i18n::t("schemaForm.jsonPlaceholder")
                     } else {
                         String::new()
                     };
@@ -784,7 +833,8 @@ impl SchemaForm {
             FieldKind::Text { .. }
             | FieldKind::Integer { .. }
             | FieldKind::Number { .. }
-            | FieldKind::PageRange { .. } => {
+            | FieldKind::PageRange { .. }
+            | FieldKind::Json => {
                 let entity = self.texts.get(&field.name)?.clone();
                 TextField::new(id.clone(), label.clone(), entity)
                     .dark(self.dark)
@@ -1093,6 +1143,36 @@ mod tests {
     }
 
     #[test]
+    fn nested_fields_become_json_boxes_only_when_asked_or_required() {
+        let mut schema = form("OverlayHeaderFooterParams");
+        let header = schema.fields.iter().find(|f| f.name == "header").unwrap();
+        assert!(matches!(header.kind, FieldKind::Unsupported(_)));
+        schema.expose_json(&["header"]);
+        let header = schema.fields.iter().find(|f| f.name == "header").unwrap();
+        assert_eq!(header.kind, FieldKind::Json);
+        let footer = schema.fields.iter().find(|f| f.name == "footer").unwrap();
+        assert!(
+            matches!(footer.kind, FieldKind::Unsupported(_)),
+            "chỉ trường được yêu cầu"
+        );
+        let mut inputs = schema.initial_inputs();
+        inputs.insert("header".into(), text(r#"{"center": "{page}"}"#));
+        let built = schema.build(&inputs).expect("hợp lệ");
+        assert_eq!(built["header"], json!({"center": "{page}"}));
+        inputs.insert("header".into(), text("{không phải json"));
+        let errors = schema.build(&inputs).unwrap_err();
+        assert_eq!(errors[0].kind, FieldErrorKind::BadJson);
+        // Để trống thì không gửi.
+        inputs.insert("header".into(), text("  "));
+        assert!(schema.build(&inputs).unwrap().get("header").is_none());
+        // Trường bắt buộc kiểu đối tượng tự thành ô JSON.
+        let mut run = form("WorkflowRunParams");
+        run.expose_json(&[]);
+        let workflow = run.fields.iter().find(|f| f.name == "workflow").unwrap();
+        assert_eq!(workflow.kind, FieldKind::Json);
+    }
+
+    #[test]
     fn most_required_fields_are_generated() {
         let root = ops();
         let (mut required, mut hand) = (0usize, 0usize);
@@ -1320,6 +1400,7 @@ mod tests {
             FieldErrorKind::BadPageRange("x".into()),
             FieldErrorKind::NoFiles(1),
             FieldErrorKind::InvalidChoice,
+            FieldErrorKind::BadJson,
             FieldErrorKind::Unsupported,
         ];
         for lang in [i18n::Lang::Vi, i18n::Lang::En] {
@@ -1335,6 +1416,7 @@ mod tests {
                     FieldErrorKind::BadPageRange(_) => "badPages",
                     FieldErrorKind::NoFiles(_) => "noFiles",
                     FieldErrorKind::InvalidChoice => "invalidChoice",
+                    FieldErrorKind::BadJson => "badJson",
                     FieldErrorKind::Unsupported => "unsupported",
                 };
                 let full = format!("schemaForm.error.{key}");

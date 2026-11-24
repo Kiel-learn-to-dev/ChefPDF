@@ -840,7 +840,204 @@ pub static OPS: &[OpSpec] = &[
         None,
         &[path("directory", Folder), path("outputDirectory", Folder)],
     ),
+    // Trường lồng nhau nhập dạng JSON (xem `json_fields`) và thao tác gọn.
+    spec(
+        "overlay.headerFooter",
+        "overlay.headerFooter",
+        "OverlayHeaderFooterParams",
+        Revision,
+        "icons/panel-top.svg",
+        "pages",
+        &["header footer", "dau trang chan trang"],
+        Some("pages"),
+        &[],
+    ),
+    spec(
+        "overlay.bates",
+        "overlay.bates",
+        "OverlayBatesParams",
+        Standalone,
+        "icons/hash.svg",
+        "file",
+        &["bates", "danh so bates"],
+        None,
+        &[path("files", PathKind::OpenPdfs)],
+    ),
+    spec(
+        "redact.find",
+        "redact.find",
+        "RedactFindParams",
+        Output,
+        "icons/eye-off.svg",
+        "tools",
+        &["find sensitive", "tim thong tin mat"],
+        Some("pages"),
+        &[],
+    ),
+    spec(
+        "redact.apply",
+        "redact.apply",
+        "RedactApplyParams",
+        Revision,
+        "icons/eye-off.svg",
+        "tools",
+        &["redact", "che thong tin mat"],
+        None,
+        &[],
+    ),
+    spec(
+        "inspect.removeHidden",
+        "inspect.removeHidden",
+        "InspectRemoveHiddenParams",
+        Revision,
+        "icons/eraser.svg",
+        "tools",
+        &["remove hidden data", "go du lieu an", "scrub"],
+        None,
+        &[],
+    ),
+    spec(
+        "workflow.validate",
+        "workflow.validate",
+        "WorkflowValidateParams",
+        Standalone,
+        "icons/workflow.svg",
+        "tools",
+        &["validate workflow", "kiem tra quy trinh"],
+        None,
+        &[],
+    ),
+    spec(
+        "workflow.run",
+        "workflow.run",
+        "WorkflowRunParams",
+        Standalone,
+        "icons/workflow.svg",
+        "tools",
+        &["run workflow", "chay quy trinh"],
+        None,
+        &[path("files", PathKind::OpenPdfs)],
+    ),
+    spec(
+        "batch.run",
+        "batch.run",
+        "BatchRunParams",
+        Standalone,
+        "icons/zap.svg",
+        "tools",
+        &["batch", "chay hang loat"],
+        None,
+        &[path("files", PathKind::OpenPdfs)],
+    ),
+    spec(
+        "export.batch",
+        "export.batch",
+        "ExportBatchParams",
+        Standalone,
+        "icons/file-output.svg",
+        "file",
+        &["export batch", "xuat hang loat"],
+        None,
+        &[path("files", PathKind::OpenPdfs)],
+    ),
+    spec(
+        "naming.preview",
+        "naming.preview",
+        "NamingPreviewParams",
+        Standalone,
+        "icons/file-pen-line.svg",
+        "file",
+        &["naming preview", "xem truoc ten file"],
+        None,
+        &[path("files", PathKind::OpenPdfs)],
+    ),
+    spec(
+        "naming.apply",
+        "naming.apply",
+        "NamingApplyParams",
+        Standalone,
+        "icons/file-pen-line.svg",
+        "file",
+        &["rename files", "doi ten file hang loat"],
+        None,
+        &[path("files", PathKind::OpenPdfs)],
+    ),
+    spec(
+        "layout.analyze",
+        "layout.analyze",
+        "LayoutAnalyzeParams",
+        Output,
+        "icons/layout-grid.svg",
+        "file",
+        &["analyze layout", "ra tai lieu", "phan tich bo cuc"],
+        Some("pages"),
+        &[],
+    ),
+    spec(
+        "annots.flatten",
+        "annots.flatten",
+        "AnnotsFlattenParams",
+        Revision,
+        "icons/layers.svg",
+        "tools",
+        &["flatten annotations", "lam phang ghi chu"],
+        Some("pages"),
+        &[],
+    ),
+    spec(
+        "annots.removeAll",
+        "annots.removeAll",
+        "AnnotsRemoveAllParams",
+        Revision,
+        "icons/trash-2.svg",
+        "tools",
+        &["remove all annotations", "xoa het ghi chu"],
+        None,
+        &[],
+    ),
+    spec(
+        "layers.flatten",
+        "layers.flatten",
+        "LayersFlattenParams",
+        Revision,
+        "icons/layers-3.svg",
+        "tools",
+        &["flatten layers", "gop lop"],
+        None,
+        &[],
+    ),
+    spec(
+        "bookmarks.clear",
+        "bookmarks.clear",
+        "BookmarksClearParams",
+        Revision,
+        "icons/trash-2.svg",
+        "pages",
+        &["clear bookmarks", "xoa bookmark"],
+        None,
+        &[],
+    ),
 ];
+
+impl OpSpec {
+    /// Trường lồng nhau nhập dạng JSON (ngoài các trường bắt buộc, tự thành ô JSON).
+    pub fn json_fields(&self) -> &'static [&'static str] {
+        match self.id {
+            "overlay.headerFooter" => &["header", "footer", "margins"],
+            "overlay.pageNumbers" => &["margins"],
+            "overlay.bates" => &["output", "margins"],
+            "redact.apply" => &["patterns", "matchIds", "rects"],
+            "scan.rasterize" => &["effects"],
+            "export.document" => &["options"],
+            "export.batch" => &["options", "output"],
+            "workflow.run" => &["output", "variables"],
+            "batch.run" => &["params", "output"],
+            "doc.setMetadata" => &["custom"],
+            "doc.attachments.extract" => &["names"],
+            _ => &[],
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Phần thuần
@@ -996,7 +1193,7 @@ impl OpDialog {
             .is_ok()
             .then(|| {
                 cx.new(|cx| {
-                    SchemaForm::new(&root, spec.def, dark, cx)
+                    SchemaForm::new_with_json(&root, spec.def, dark, spec.json_fields(), cx)
                         .unwrap_or_else(|_| unreachable!("đã kiểm schema ở trên"))
                 })
             });
@@ -1346,7 +1543,8 @@ mod tests {
         let root = chef_contracts::ops_schema();
         let mut missing = Vec::new();
         for spec in OPS {
-            let schema = FormSchema::from_definition(&root, spec.def).unwrap();
+            let mut schema = FormSchema::from_definition(&root, spec.def).unwrap();
+            schema.expose_json(spec.json_fields());
             for f in schema.unsupported_fields() {
                 if f.required {
                     missing.push(format!("{}.{} ({:?})", spec.id, f.name, f.kind));
