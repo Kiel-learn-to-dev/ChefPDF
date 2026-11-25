@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Chef PDF - Chụp tài liệu</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f7f9;
+        --fg: #1d2330;
+        --muted: #5b6575;
+        --card: #fff;
+        --accent: #1f6feb;
+        --accent-fg: #fff;
+        --ok: #1a7f37;
+        --bad: #b42318;
+        --line: #d7dce4;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #15181e;
+          --fg: #e8ebf0;
+          --muted: #9aa4b2;
+          --card: #1e232c;
+          --accent: #4b8cf0;
+          --accent-fg: #071426;
+          --ok: #3fb950;
+          --bad: #ff7b72;
+          --line: #303743;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.4 system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        background-color: var(--bg);
+      }
+      main {
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 4px 0 8px;
+      }
+      p {
+        margin: 6px 0;
+        color: var(--muted);
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 56px;
+        border: 0;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 18px;
+        font-family: inherit;
+        text-align: center;
+        padding: 14px;
+        cursor: pointer;
+        background: var(--accent);
+        color: var(--accent-fg);
+        margin: 10px 0;
+      }
+      .btn.secondary {
+        background: var(--card);
+        color: var(--fg);
+        border: 1px solid var(--line);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .pick {
+        position: relative;
+      }
+      .pick input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+      .count {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 12px 0 6px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .thumb {
+        position: relative;
+        aspect-ratio: 3 / 4;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .thumb .n {
+        position: absolute;
+        left: 4px;
+        bottom: 4px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border-radius: 6px;
+        font-size: 12px;
+        padding: 1px 6px;
+      }
+      .thumb button {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+      }
+      .thumb.err {
+        outline: 2px solid var(--bad);
+      }
+      .msg {
+        min-height: 24px;
+        font-weight: 600;
+        margin: 10px 0;
+      }
+      .msg.ok {
+        color: var(--ok);
+      }
+      .msg.bad {
+        color: var(--bad);
+      }
+      .done {
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        margin-top: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Chụp tài liệu</h1>
+      <p>Chụp từng trang, rồi bấm <b>Gửi</b>. Ảnh được gửi về máy tính đang mở Chef PDF.</p>
+
+      <div class="pick">
+        <button class="btn" type="button" id="snap-label">Chụp ảnh</button>
+        <input id="camera" type="file" accept="image/*" capture="environment" multiple />
+      </div>
+
+      <div class="count" id="count">Chưa có ảnh nào</div>
+      <div class="grid" id="grid" aria-live="polite"></div>
+
+      <div class="msg" id="msg" role="status"></div>
+
+      <button class="btn" type="button" id="send" disabled>Gửi</button>
+      <button class="btn secondary" type="button" id="finish" disabled>Xong</button>
+
+      <div class="done" id="done" hidden></div>
+    </main>
+
+    <script>
+      (function () {
+        'use strict';
+        var MAX_BYTES = 25 * 1024 * 1024;
+        var ACCEPTED = { 'image/jpeg': 1, 'image/png': 1, 'image/webp': 1 };
+        var match = /^\/c\/([0-9a-f]{32})$/.exec(location.pathname);
+        var token = match ? match[1] : '';
+
+        var photos = []; // { file: Blob, url: string, state: 'new'|'sent'|'error', index: number }
+        var nextIndex = 0; // client index sent in X-Chef-Index (retries reuse it)
+        var sending = false;
+        var finished = false;
+
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+        var camera = $('camera');
+        var grid = $('grid');
+
+        function say(text, kind) {
+          var m = $('msg');
+          m.textContent = text || '';
+          m.className = 'msg ' + (kind || '');
+        }
+
+        function render() {
+          var pending = photos.filter(function (p) {
+            return p.state !== 'sent';
+          }).length;
+          var sent = photos.length - pending;
+          $('count').textContent =
+            photos.length === 0
+              ? 'Chưa có ảnh nào'
+              : 'Đã chụp ' + photos.length + ' ảnh' + (sent ? ' (đã gửi ' + sent + ')' : '');
+          $('send').disabled = sending || pending === 0 || finished;
+          $('finish').disabled = sending || photos.length === 0 || finished;
+          grid.textContent = '';
+          photos.forEach(function (p, i) {
+            var cell = document.createElement('div');
+            cell.className = 'thumb' + (p.state === 'error' ? ' err' : '');
+            var img = document.createElement('img');
+            img.src = p.url;
+            img.alt = 'Ảnh ' + (i + 1);
+            cell.appendChild(img);
+            var n = document.createElement('span');
+            n.className = 'n';
+            n.textContent =
+              p.state === 'sent' ? 'đã gửi' : p.state === 'error' ? 'lỗi' : String(i + 1);
+            cell.appendChild(n);
+            if (p.state !== 'sent' && !sending) {
+              var del = document.createElement('button');
+              del.type = 'button';
+              del.setAttribute('aria-label', 'Xóa ảnh ' + (i + 1));
+              del.textContent = '×';
+              del.onclick = function () {
+                remove(p);
+              };
+              cell.appendChild(del);
+            }
+            grid.appendChild(cell);
+          });
+        }
+
+        function remove(p) {
+          var i = photos.indexOf(p);
+          if (i < 0) return;
+          URL.revokeObjectURL(p.url);
+          photos.splice(i, 1);
+          say('');
+          render();
+        }
+
+        // Images the server accepts go as they are; other formats (HEIC from some phones) are
+        // re-encoded to JPEG in the browser when it can decode them.
+        function toAcceptable(file) {
+          if (ACCEPTED[file.type]) return Promise.resolve(file);
+          return new Promise(function (resolve, reject) {
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () {
+              var c = document.createElement('canvas');
+              c.width = img.naturalWidth;
+              c.height = img.naturalHeight;
+              c.getContext('2d').drawImage(img, 0, 0);
+              URL.revokeObjectURL(url);
+              c.toBlob(
+                function (b) {
+                  b ? resolve(b) : reject(new Error('encode'));
+                },
+                'image/jpeg',
+                0.92,
+              );
+            };
+            img.onerror = function () {
+              URL.revokeObjectURL(url);
+              reject(new Error('decode'));
+            };
+            img.src = url;
+          });
+        }
+
+        camera.addEventListener('change', function () {
+          var files = Array.prototype.slice.call(camera.files || []);
+          camera.value = '';
+          files.forEach(function (file) {
+            if (file.size > MAX_BYTES) {
+              say('Một ảnh quá lớn (trên 25 MB). Hãy chụp lại ở độ phân giải thấp hơn.', 'bad');
+              return;
+            }
+            photos.push({ file: file, url: URL.createObjectURL(file), state: 'new', index: -1 });
+          });
+          if (files.length) say('');
+          render();
+        });
+
+        function sleep(ms) {
+          return new Promise(function (r) {
+            setTimeout(r, ms);
+          });
+        }
+
+        // POST one photo. The server allows 5 requests per second, so 429 is retried after a pause.
+        function upload(p, attempt) {
+          return toAcceptable(p.file)
+            .then(function (body) {
+              if (p.index < 0) p.index = nextIndex++;
+              return fetch('/u/' + token, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': body.type || p.file.type,
+                  'X-Chef-Index': String(p.index),
+                },
+                body: body,
+                credentials: 'omit',
+                cache: 'no-store',
+              });
+            })
+            .then(function (res) {
+              if (res.status === 429 && attempt < 4)
+                return sleep(1200).then(function () {
+                  return upload(p, attempt + 1);
+                });
+              if (!res.ok) throw new Error('status ' + res.status);
+              return res;
+            });
+        }
+
+        $('send').addEventListener('click', function () {
+          if (sending || finished) return;
+          sending = true;
+          say('Đang gửi...');
+          render();
+          var todo = photos.filter(function (p) {
+            return p.state !== 'sent';
+          });
+          var chain = Promise.resolve();
+          todo.forEach(function (p) {
+            chain = chain
+              .then(function () {
+                return upload(p, 0).then(
+                  function () {
+                    p.state = 'sent';
+                  },
+                  function () {
+                    p.state = 'error';
+                  },
+                );
+              })
+              .then(render);
+          });
+          chain.then(function () {
+            sending = false;
+            var failed = photos.filter(function (p) {
+              return p.state === 'error';
+            }).length;
+            say(
+              failed ? 'Có ' + failed + ' ảnh chưa gửi được. Bấm Gửi để thử lại.' : 'Đã gửi xong.',
+              failed ? 'bad' : 'ok',
+            );
+            render();
+          });
+        });
+
+        $('finish').addEventListener('click', function () {
+          if (sending || finished) return;
+          var pending = photos.filter(function (p) {
+            return p.state !== 'sent';
+          });
+          if (pending.length) {
+            say('Hãy bấm Gửi trước khi kết thúc.', 'bad');
+            return;
+          }
+          sending = true;
+          render();
+          fetch('/d/' + token, { method: 'POST', credentials: 'omit', cache: 'no-store' })
+            .then(function (res) {
+              return res.ok ? res.json() : Promise.reject(new Error('status'));
+            })
+            .then(function (data) {
+              finished = true;
+              sending = false;
+              $('done').hidden = false;
+              $('done').textContent = 'Đã nhận ' + data.count + ' ảnh. Bạn có thể đóng trang này.';
+              ['snap-label', 'camera'].forEach(function (id) {
+                $(id).style.pointerEvents = 'none';
+              });
+              render();
+            })
+            .catch(function () {
+              sending = false;
+              say('Chưa kết thúc được. Kiểm tra Wi-Fi rồi bấm Xong lại.', 'bad');
+              render();
+            });
+        });
+
+        if (!token) say('Liên kết không hợp lệ. Hãy quét lại mã QR trên máy tính.', 'bad');
+        render();
+      })();
+    </script>
+  </body>
+</html>

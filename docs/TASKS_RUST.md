@@ -58,7 +58,7 @@ Gom ở đây để không chặn việc tự động. Mỗi việc ghi rõ task
 | M9 | Hoàn thiện | 17 | 1 | 6 | 8 | 0 | — |
 | **Tổng** | | **269** | 14 | 82 | 152 | 7 | — |
 
-Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R1.24–R1.26, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
+Trong tổng có 14 task "Điểm kiểm" (kích thước —). Task ❌ (R1.09, R1.24–R1.26, R5.15, R5.16, R7.08) vẫn được đếm. Phần lớn task là M (157): đây là điều cần hiệu chỉnh sau M1 (BLUEPRINT_RUST §14) và sau R5.02 (xem tiêu chí 5 của R5.02).
 
 ## Thứ tự làm tiếp (cập nhật 2026-11-24)
 
@@ -1585,7 +1585,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/markdown.rs`
 - **E2E:** `web2pdf`
 - **Tính năng:** M5 (Markdown, HTML)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24) Bỏ theo D97: chủ dự án không cần tính năng này. Không có mã nào để gỡ (lõi chưa có op Markdown/HTML → PDF).
+- **Trạng thái:** ❌
 
 ### R5.16 · Web sang PDF theo CH-R1 · L
 - **Mô tả:** dán link trang web và xuất PDF. Cách làm theo quyết định CH-R1: WebView2 qua CDP (`printToPDF`), hoặc tiến trình Electron nhỏ chỉ chạy khi dùng. Nếu chủ dự án chọn (c), bỏ tính năng và ghi vào FEATURES.
@@ -1688,7 +1689,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/scan_preview.rs`
 - **E2E:** `scan`
 - **Tính năng:** K5, K6
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `scan_preview.rs` (port `previewScheduler.ts`): máy trạng thái debounce 400 ms, bản mới nhất thắng, không chạy chồng, hủy job cũ, bỏ kết quả cũ; 10 test. Còn: nối `scan.preview` thật, ước lượng dung lượng, giao diện.
+- **Trạng thái:** 🔄
 
 ### R5.26 · Phạm vi, tùy chọn và preset scan · M
 - **Mô tả:** chọn trang hay cả file, các tùy chọn, preset Nhẹ, Chuẩn, Nét, Văn bản hành chính, và tự tạo preset.
@@ -1727,6 +1729,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `stamps2`
 - **Tính năng:** F1
 - **Ghi chú:** (2026-11-24) `overlay.watermark` (chữ hoặc ảnh, độ đậm, xoay, đặt giữa hoặc lát kín, trên hoặc dưới nội dung, chọn trang). Gỡ sạch dùng `overlay.remove`. **Chưa làm:** xem trước, chọn vị trí bằng kéo. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Ghi chú:** (2026-11-24, phiên cloud) `overlay_prefs.rs`: lưu và đọc tùy chọn dùng gần nhất của hộp thoại overlay (không bao giờ lưu đường dẫn).
 - **Trạng thái:** 🔄
 
 ### R5.30 · Con dấu chữ và con dấu ảnh · M
@@ -1978,7 +1981,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/review_view.rs`
 - **E2E:** `layout-review`
 - **Tính năng:** N3 (bố cục)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `layout_review.rs` (port `reviewModel.ts`): đọc mô hình tài liệu, vùng theo % trang, thay đổi theo khối. Còn khung đối chiếu giao diện.
+- **Trạng thái:** 🔄
 
 ### R5.54 · Màn hình kiểm tra và sửa: sửa và đổi loại vùng · M
 - **Mô tả:** sửa chữ trong đoạn, đổi loại vùng (đoạn, tiêu đề, bảng, hình), bỏ vùng không cần.
@@ -1988,7 +1992,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/review_edit.rs`
 - **E2E:** `layout-review`
 - **Tính năng:** N3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `layout_review.rs`: `reviewed_block`, `set_change` (sửa chữ, đổi loại). Còn giao diện và undo.
+- **Trạng thái:** 🔄
 
 ### R5.55 · Xuất định dạng · M
 - **Mô tả:** Markdown (kèm thư mục ảnh), DOCX, HTML, EPUB, ODT, TXT, XLSX (chỉ bảng), JSON. Dùng `export/`.
@@ -2080,7 +2085,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/watch.rs`
 - **E2E:** `watch`
 - **Tính năng:** O3
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `watch.rs` (port bộ lặp `watchService.ts`, D42): `Watcher::cycle/run_loop` sau trait `WatchApi`; 11 test với bản giả (từng file, lô ghép, file lẻ chờ, dừng trả hàng đợi, lỗi sổ). Còn nối RPC thật và giao diện.
+- **Trạng thái:** 🔄
 
 ### R5.64 · Quy tắc đặt tên đầu ra · S
 - **Mô tả:** mẫu `{ten}_{ngay}_da-ky.pdf`, và các biến khác. Dùng `naming.py`.
@@ -2168,6 +2174,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `certs`
 - **Tính năng:** I2
 - **Ghi chú:** (2026-11-24) `sign.certInfo` đọc thông tin file .pfx/.p12; chỉ kiểm dạng tham số. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Ghi chú:** (2026-11-24, phiên cloud) `cert_lists.rs`: danh sách `.pfx` đã lưu (thêm, bỏ, nhớ, tối đa 20, so đường dẫn theo OS).
 - **Trạng thái:** 🔄
 
 ### R6.03 · Thông tin chứng thư và nhắc hết hạn · S
@@ -2188,7 +2195,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/driver_db.rs`
 - **E2E:** `certs`
 - **Tính năng:** I4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `cert_lists.rs`: sắp xếp driver (có trên máy, độ tin cậy, tên) và tóm tắt kết quả dò.
+- **Trạng thái:** 🔄
 
 ### R6.05 · Quét driver và kho chứng thư hệ điều hành · M
 - **Mô tả:** nút "Quét tìm driver" thử nạp thư viện trong thư mục hệ thống. Kho chứng thư Windows là đường dự phòng cho token chỉ có driver CSP.
@@ -2254,7 +2262,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R6.07
 - **File:** `apps/native/crates/chef-app/src/sig_vault.rs`
 - **Tính năng:** I23
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud, D98) `sig_vault.rs`: khóa dữ liệu bọc bằng mật khẩu (Argon2id), ảnh `CHLIB1` AES-256-GCM; tiêu chí 1 (không đọc được như PNG), 2 (sai mật khẩu không mở được), 3 (khóa lại thì không mở) có test. Còn: hộp thoại hỏi mật khẩu, nối vào thư viện ảnh, chạy `cargo deny` trên Windows, Windows Hello (để sau).
+- **Trạng thái:** 🔄
 
 ### M6.2 Studio mẫu chữ ký
 
@@ -2266,7 +2275,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_studio.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_template_view.rs`: danh sách mẫu (thêm, thay, xóa, nhân bản, tối đa 50).
+- **Trạng thái:** 🔄
 
 ### R6.12 · Studio: gắn mẫu với chứng thư, xuất và nhập · S
 - **Mô tả:** gắn mẫu mặc định với từng chứng thư; xuất và nhập mẫu ra file.
@@ -2276,7 +2286,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_studio_io.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I10
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_template_view.rs`: `bind_template`/`bound_template` (mỗi chứng thư một mẫu, không phân biệt hoa thường).
+- **Trạng thái:** 🔄
 
 ### R6.13 · Nguồn dữ liệu và thông tin hiển thị · M
 - **Mô tả:** tích chọn từng dòng: Người ký, Đơn vị, Chức vụ, Email, MST/CCCD, Ngày ký, Lý do, Nơi ký, Liên hệ, Doanh nghiệp, dòng tùy ý. Lấy dữ liệu từ chứng thư, cho ghi đè chữ hiển thị. Panel kiểm tra (R6.27) luôn hiện thông tin thật.
@@ -2286,7 +2297,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_fields_ui.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I11, I12
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_template_view.rs`: giá trị mẫu và giá trị từ chứng thư, `render_rows`.
+- **Trạng thái:** 🔄
 
 ### R6.14 · Định dạng ngày giờ, lý do và nơi ký · S
 - **Mô tả:** `dd/MM/yyyy HH:mm:ss`, "Ngày 31 tháng 10 năm 2026", có hoặc không múi giờ, giờ máy hoặc giờ TSA. Danh sách lý do có sẵn, tự nhớ lý do đã nhập, nơi ký mặc định.
@@ -2306,7 +2318,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_layout.rs`
 - **E2E:** `sigstudio`
 - **Tính năng:** I15
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_template_view.rs`: `layout_box` (bố cục xem thử, tự co chữ theo bề rộng và chiều cao).
+- **Trạng thái:** 🔄
 
 ### R6.16 · Kiểu chữ, màu, biểu tượng hợp lệ, logo · M
 - **Mô tả:** font tiếng Việt đóng gói, cỡ, màu, đậm nghiêng; biểu tượng hợp lệ kiểu "Signature Valid" (dấu ✓ của hóa đơn điện tử); logo công ty bên cạnh hoặc làm nền mờ.
@@ -2328,7 +2341,9 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_place.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I25, I27
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_placement.rs`: hình học ba khung tọa độ, góc cố định, kéo, dời, đổi cỡ hộp (test mọi góc xoay). Còn lớp vẽ giao diện.
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_state.rs`: `PlacementStore` (hộp ký, xem trước chữ mốc, chọn hộp) và `SignDraft`.
+- **Trạng thái:** 🔄
 
 ### R6.18 · Ký thật bằng token qua lõi · L
 - **Mô tả:** PAdES B-B với SHA-256 qua PKCS#11. Nhập PIN trong hộp thoại của app, PIN không đi qua log. Dùng `sign_token.py`, `pades.py`.
@@ -2338,7 +2353,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sign_run.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I25 (ký)
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_request.rs`: `build_sign_request` cho pfx, token, kho Windows; `persistable_draft` bỏ PIN/mật khẩu. Còn nối giao diện và ký thật (MAN-2).
+- **Trạng thái:** 🔄
 
 ### R6.19 · Kiểm tra chữ ký trên Adobe Reader và Foxit · XS
 - **Mô tả:** MAN-2: mở file đã ký bằng Adobe Reader và Foxit, báo chữ ký hợp lệ, và ghi kết quả vào TOKENS.md.
@@ -2367,7 +2383,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_options.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I28
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_request.rs`: `SignPrefs` và `clean_tsa_urls` (tối đa 5 máy chủ dấu thời gian).
+- **Trạng thái:** 🔄
 
 ### R6.22 · Ký chứng nhận (certify) · M
 - **Mô tả:** ký certify cho phép hoặc không cho phép sửa tiếp. Ràng buộc với mức quyền (I32).
@@ -2377,7 +2394,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sig_certify.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I29
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_request.rs`: tham số `certify` của yêu cầu ký.
+- **Trạng thái:** 🔄
 
 ### R6.23 · Nhiều người ký · M
 - **Mô tả:** ký nối tiếp không phá chữ ký trước; tạo ô ký trống cho người khác.
@@ -2397,7 +2415,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sign_batch.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I31
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_request.rs`: `batch_problem` và `build_batch_params` cho `sign.batch`.
+- **Trạng thái:** 🔄
 
 ### R6.25 · Sau khi ký · S
 - **Mô tả:** phiên chuyển sang trạng thái `signed`. Thao tác làm mất chữ ký bị chặn có cảnh báo. Ký thêm và ghi chú (nếu cấp độ cho phép) thì ghi kiểu incremental.
@@ -2417,7 +2436,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/sign_combo.rs`
 - **E2E:** `signflow`
 - **Tính năng:** I33
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_request.rs`: `stamp_steps_of` và `with_stamps` (sign.stampAndSign*).
+- **Trạng thái:** 🔄
 
 ### M6.4 Kiểm tra chữ ký
 
@@ -2430,6 +2450,7 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **E2E:** `signflow`
 - **Tính năng:** I34
 - **Ghi chú:** (2026-11-24) `sign.verify` (chữ ký của tài liệu đang mở) và `sign.verifyFile` (file bất kỳ), hiện dạng dòng. **Chưa làm:** panel có biểu tượng trạng thái từng chữ ký. Hộp thoại do `op_dialog.rs` sinh từ `SchemaForm` (nhóm S/S+ của `DIALOG_CLASSIFICATION_RUST.md`), có lệnh Ctrl+K, nhãn vi/en, giá trị mặc định lấy từ lõi (`ops.defaults.json`), và **tham số đã được lõi thật chấp nhận** (`core/tests/test_native_dialog_params.py`, tham số do `golden_tests.rs` sinh từ chính form). Còn thiếu để ✅: E2E Windows và bộ fmt/clippy/test/deny trên Windows, ảnh ui-audit, và các phần viết tay nêu ở "Chưa làm". Kiểm trên Linux (không có Windows/GPUI chạy được): `cargo fmt`, `clippy`, `cargo test` chef-app/chef-ui/chef-contracts đạt.
+- **Ghi chú:** (2026-11-24, phiên cloud) `sign_state.rs`: `VerifyStore` theo tài liệu, debounce 300 ms, bản mới nhất thắng (dùng lại `scan_preview`), 8 test.
 - **Trạng thái:** 🔄
 
 ### R6.28 · Kho tin cậy · S
@@ -2478,7 +2499,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/edit_mode.rs`
 - **E2E:** `text-merged`
 - **Tính năng:** B11
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: cờ chế độ (tắt giữ phiên và nháp, bỏ vùng chọn), bộ nhớ đệm dòng theo khóa bản sửa. Còn giao diện chế độ Xem/Chọn/Chỉnh sửa.
+- **Trạng thái:** 🔄
 
 ### M7.1 Sửa dòng và đoạn
 
@@ -2490,7 +2512,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/text_replace.rs`
 - **E2E:** `text-merged`, `textedit`
 - **Tính năng:** D8
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: `select_at` (nhấp, nhấp đúp chọn từ, Shift kéo dài, chỉ trong một đoạn), `drag_selection`, `session_for_selection` mở phiên đúng vùng bôi đen.
+- **Trạng thái:** 🔄
 
 ### R7.03 · Sửa mức dòng · M
 - **Mô tả:** con trỏ nhấp nháy `tedit-blink` của khung sửa (`textedit.css`). Bấm vào dòng chữ để sửa, dùng lại font gốc khi còn đủ ký tự. Đoạn đang mở có khung liền riêng; các đoạn khác có viền đứt xanh quanh vùng đoạn, không viền giữa các từ (D69).
@@ -2542,7 +2565,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/text_add.rs`
 - **E2E:** `text-merged`
 - **Tính năng:** D1
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: nháp văn bản mới (`open_draft`, `plan_draft`: chữ trống chỉ đóng khung), `NEW_TEXT_SIZE`.
+- **Trạng thái:** 🔄
 
 ### R7.08 · Gõ tiếng Việt trong khung nháp · XS
 - **Mô tả:** MAN-1 trong khung nháp của Thêm văn bản và sửa đoạn: Telex và VNI, bộ gõ Windows và Unikey hoặc EVKey.
@@ -2582,7 +2606,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/props_panel.rs`
 - **E2E:** `objects`, `demo-v11`
 - **Tính năng:** D13
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `object_state.rs`: trạng thái chế độ sửa đối tượng (vùng chọn, lọc loại, bộ nhớ đệm theo khóa bản sửa). Còn bảng thuộc tính giao diện.
+- **Trạng thái:** 🔄
 
 ### R7.12 · Phiên sửa đoạn: ghi đoạn và lưu đúng thứ tự · M
 - **Mô tả:** khi đóng phiên sửa đoạn, ghi đoạn trước, rồi lưu. Lưu chạy đua với ghi đoạn là lỗi đã biết (NOTES 2026-11-05f), nên lưu phải chờ phiên đóng. Chữ vừa thêm vẫn nằm trong danh sách đối tượng sau khi sửa (điểm chưa xác minh trong NOTES).
@@ -2592,7 +2617,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/paragraph_session.rs`
 - **E2E:** `paragraph-session`
 - **Tính năng:** D9
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `text_edit_state.rs`: `JobQueue` (lệnh ghi và đổi kiểu chạy tuần tự, lỗi không chặn lệnh sau), `plan_commit` (không ghi hai lần), `check_before_close`/`close_action` (D64), `preview_notes`, `change_session_text` với `seq` bỏ câu trả lời cũ; 14 test. Còn nối `text.editParagraph` thật.
+- **Trạng thái:** 🔄
 
 ### R7.13 · Điểm kiểm M7 · —
 - **Mô tả:** E2E `text-merged`, `textedit`, `paragraph-session`, `format-row`, `demo-v07`, `demo-v11`; MAN-1 đã làm (R7.08, R7.09); đo RAM khi sửa đoạn trong file 300 trang.
@@ -2683,7 +2709,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-capture/src/server.rs`, `apps/native/crates/chef-capture/src/qr.rs`
 - **E2E:** `capture`
 - **Tính năng:** L5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `chef-capture` (trước là crate rỗng): máy chủ HTTP tạm đồng bộ (`tiny_http`), chỉ gắn một IPv4 LAN riêng, token 128 bit trong đường dẫn, 5 yêu cầu/giây, thân tối đa 25 MB, CSP, `no-store`, tự hết hạn sau 10 phút, mã QR SVG; trang điện thoại chép từ Electron vào `assets/capture.html`. 19 test chạy máy chủ thật trên loopback (lặp 3 lần ổn định). Còn: nối vào giao diện (QR, danh sách ảnh nhận được), thử trên điện thoại thật (MAN-3), đo RAM khi chụp.
+- **Trạng thái:** 🔄
 
 ### R8.08 · Nhận ảnh chụp và tự cắt nắn · M
 - **Mô tả:** điện thoại gửi ảnh, máy tính nhận và tự cắt và nắn (L2, L15). Điện thoại thật qua MAN-3 (chụp qua QR). Dùng `captureModel.ts` và `demo-v08` làm chuẩn.
@@ -2693,7 +2720,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-capture/src/receive.rs`
 - **E2E:** `capture`, `demo-v08`
 - **Tính năng:** L5
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `chef-capture`: nhận ảnh JPEG/PNG/WebP, kiểm byte đầu, đặt tên `NNN.ext`, chống ghi trùng theo `X-Chef-Index`, giới hạn số trang, phát sự kiện `Image` cho giao diện. Phần tự cắt nắn dùng `capture_model::plan` (đã có) và các op lõi. Còn: nối giao diện và MAN-3.
+- **Trạng thái:** 🔄
 
 ### M8.2 Tách trang và sửa trang
 
@@ -2802,7 +2830,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/crop_manual.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L16, L17
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `crop_sizing.rs`: các tỉ lệ có sẵn (A4, A5, Letter, CCCD, tự do), khóa tỉ lệ theo ảnh nguồn, thu khung về đúng tỉ lệ giữ tâm; tám nắm và hít khung đã có ở `crop_geometry.rs`. Còn giao diện (kính lúp, kéo nắm).
+- **Trạng thái:** 🔄
 
 ### R8.19 · Cắt hàng loạt và duyệt nhanh · M
 - **Mô tả:** áp một khung cho nhiều trang, duyệt nhanh bằng lưới, kính lúp cho trang đã chọn. Dùng trong quy trình.
@@ -2812,7 +2841,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/crop_batch.rs`
 - **E2E:** `crop-review`, `workflow-batch-crop-step`
 - **Tính năng:** L18
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `crop_sizing.rs`: `output_size_from_mm` (giới hạn 20000 px mỗi chiều, 50 triệu điểm ảnh). Còn lưới duyệt nhanh và quy trình.
+- **Trạng thái:** 🔄
 
 ### R8.20 · Tự nhận khổ giấy · S
 - **Mô tả:** đoán khổ theo tỉ lệ cạnh (A4, A5, Letter, CCCD…) và đặt đúng kích thước trang PDF, hoặc giữ kích thước thật.
@@ -2821,7 +2851,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R8.19
 - **File:** `apps/native/crates/chef-app/src/paper_size.rs`
 - **Tính năng:** L19
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) `crop_sizing.rs`: `guess_paper` đoán khổ theo tỉ lệ cạnh (A4, Letter, CCCD, cả hai hướng, dung sai 3%) và `page_size_pt`. Lưu ý A5 cùng tỉ lệ với A4 nên đọc thành A4. Còn nối vào đặt kích thước trang PDF.
+- **Trạng thái:** 🔄
 
 ### R8.21 · Mô hình dò viền L20: giấy phép và đóng gói · M
 - **Mô tả:** kiểm giấy phép của DocAligner và trọng số mô hình (BLUEPRINT §L20: cả code lẫn trọng số). Nếu không ổn, tìm mô hình khác hoặc tự huấn luyện. Đóng gói ONNX Runtime CPU vào bản cài (vài chục MB).
@@ -2830,7 +2861,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R8.16
 - **File:** `core/chef_core/imaging/docaligner.py`, `docs/NOTES.md`
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Tiêu chí 1: giấy phép mã và trọng số đều Apache-2.0, ghi ở NOTES (đối chiếu upstream 2026-11-24). Tiêu chí 2: 8 test lõi chạy mô hình trên CPU đạt. Tiêu chí 3: mô hình 4,77 MB, onnxruntime Linux 63 MB; còn đo kích thước bản cài Windows (R9.13).
+- **Trạng thái:** 🔄
 
 ### R8.22 · Chạy hai cách và chọn kết quả tin cậy hơn · M
 - **Mô tả:** chạy thuật toán L15 và mô hình L20 song song, chọn kết quả có điểm tin cậy cao hơn. Xử lý giấy trắng trên bàn trắng, nền lộn xộn, góc bị ngón tay che, ánh sáng xấu. Mã Q13 để sau (không thuộc 1.0).
@@ -2840,7 +2872,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **File:** `apps/native/crates/chef-app/src/autocrop_pick.rs`
 - **E2E:** `crop-review`
 - **Tính năng:** L20
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Lõi đã có `prefer_confident_quad` (chọn kết quả tin cậy hơn giữa thuật toán và mô hình) cùng test trong 8 test dò viền. Còn: phần vỏ Rust (`autocrop_pick.rs`) gọi `pageimg.autoCrop` và hiện kết quả; E2E `crop-review` trên Windows; đo RAM mô hình.
+- **Trạng thái:** 🔄
 
 ### R8.23 · Điểm kiểm M8 · —
 - **Mô tả:** E2E `capture`, `dewarp`, `crop-review`, `erase`, `finger`, `spine`, `adjust`, `demo-v08`, `scan` (phần xử lý ảnh); MAN-3 đã làm; đo RAM khi chụp 20 trang và tự dò viền.
@@ -2938,7 +2971,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Phụ thuộc:** R2.14, R3.13, R6.02
 - **File:** `apps/native/crates/chef-app/src/migrate.rs`
 - **Tính năng:** A4
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Có `chef-app/src/migrate.rs`: `inspect(userData)` trả `MigrationReport` (settings, phiên chưa đóng, library, `secrets.json`); `secrets.json` chỉ kiểm bằng `metadata`, không bao giờ mở (tiêu chí 3, có test). Còn: nối thông báo vào giao diện lần đầu, chuỗi i18n, và kiểm với userData thật của Electron trên Windows (tiêu chí 1–2).
+- **Trạng thái:** 🔄
 
 ### R9.10 · Nhật ký có trần và thư mục dữ liệu · S
 - **Mô tả:** ghi nhật ký ra `logs/`, bộ đệm trong RAM có trần (R11), xoay vòng file. Mở thư mục nhật ký và thư mục dữ liệu từ tab Giới thiệu.
@@ -2956,7 +2990,8 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 - **Kiểm chứng:** script đối chiếu; báo cáo.
 - **Phụ thuộc:** R9.01 đến R9.10
 - **Tính năng:** —
-- **Trạng thái:** ⬜
+- **Ghi chú:** (2026-11-24, phiên cloud) Có `scripts/check_coverage_rust.py`. Kết quả hôm nay trên 164 mã trong phạm vi: 32 đạt, 93 một phần, 39 chưa làm, 0 không có task. Danh sách từng mã: chạy với `--list`. Task vẫn ⬜ vì phải chạy lại sau R9.01 đến R9.10 và ghi danh sách chuyển sang sau 1.0 vào NOTES.
+- **Trạng thái:** 🔄
 
 ### R9.12 · Nghiệm thu dùng hằng ngày (MAN-6) · —
 - **Mô tả:** chủ dự án chạy bản Rust thay Electron ít nhất một tuần cho công việc thật. Ghi các lỗi và thiếu sót vào TASKS_RUST.
@@ -3009,10 +3044,10 @@ Bảng M1–M9 vẫn là cách chia việc. Thứ tự làm dưới đây đi th
 
 ## Kiểm tra độ phủ
 
-Đối chiếu bằng cách đọc chính file này và `docs/FEATURES.md` (không lưu script trong repo). Lặp lại được khi thêm task.
+Đối chiếu bằng `python3 scripts/check_coverage_rust.py --list` (đọc `docs/FEATURES.md` và các dòng "Tính năng" ở file này; phân loại từng mã: đạt, một phần, chưa làm, không có task). Lặp lại được khi thêm task. Có thể đọc tay như trước.
 
 **Kết quả hiện tại:**
-- **Mã tính năng trong phạm vi:** 165/165 có ít nhất một task. Phạm vi = các mã có mốc v0.1–v0.10, v1.0, v1.1 trong FEATURES.md (161 + 4). Không có mã ngoài phạm vi được gán nhầm. Nhóm P (so sánh tài liệu) và các mã "Sau 1.0", "Nâng cấp", "Ý tưởng" không thuộc phạm vi này.
+- **Mã tính năng trong phạm vi:** 164/164 có ít nhất một task (M5 đã bỏ ngày 2026-11-24, D97; trước đó 165). Phạm vi = các mã có mốc v0.1–v0.10, v1.0, v1.1 trong FEATURES.md (161 + 4). Không có mã ngoài phạm vi được gán nhầm. Nhóm P (so sánh tài liệu) và các mã "Sau 1.0", "Nâng cấp", "Ý tưởng" không thuộc phạm vi này.
 - **Spec E2E:** 63/63 có ít nhất một task. Hai spec `perf-heap` và `perf-layers` được đánh dấu "không áp dụng" ở R1.36 (đo Chromium).
 - **Cờ kiểm chứng trong BLUEPRINT_RUST:** 32 cờ (`Kiểm ở M…`, `Quyết định ở M…`) đều có task, bảng dưới.
 - **Task:** 269 (kể cả 14 điểm kiểm; thêm R1.43 và R2.33 ngày 2026-11-11). Không có ID trùng. Không còn phụ thuộc vòng (R8.11 ↔ R8.12 đã gỡ).

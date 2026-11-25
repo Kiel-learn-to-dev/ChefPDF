@@ -9,3 +9,11 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+# Máy chủ HTTP tạm cho chụp qua điện thoại (R8.07): http đồng bộ, không async. MIT hoặc Apache-2.0.
+tiny_http = "0.12"
+# Mã QR dạng SVG. MIT hoặc Apache-2.0.
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+# Liệt kê giao diện mạng để chọn địa chỉ LAN. MIT hoặc BSD-3-Clause.
+if-addrs = "0.13"
+# Token ngẫu nhiên từ hệ điều hành (đã có trong Cargo.lock).
+getrandom = "0.3"
